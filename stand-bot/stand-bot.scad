@@ -95,9 +95,7 @@ module big_servo(params=servo_params) {
     zrot(90) down(arm_offset) union() {
         // body
         %union() {
-            //color("#4466ffa4") 
-            color("#444")
-            render() union() {
+            color("#444") render() union() {
                 cuboid([length,width,height],anchor=BOT);
                 up(arm_offset) {
                     difference() {
@@ -127,15 +125,21 @@ module big_servo(params=servo_params) {
 }
 
 module body() {
-    
+    %difference() {
+        up(27) cuboid([54,25,202],rounding=10,edges="Y");
+        down(44) left(15) zrot(90) xrot(-90) {
+            big_servo_neg(servo25kg_params);
+        }
+    }
+    up(95) children(0); // board
+    left(25) zrot(-90) xrot(90) children(1); // battery
+    down(44) left(15) zrot(90) xrot(-90) children(2); // motor
 }
 
-up(100) board_carrier() board();
-left(25) zrot(-90) xrot(90) ovonic_2s1p();
-
-down(44) left(13) zrot(90) xrot(-90) {
+body() {
+    board_carrier() board();
+    ovonic_2s1p();
     big_servo(servo25kg_params) down(3) {
         cyl(d=10,h=2,anchor=BOT);
     }
-    #big_servo_neg(servo25kg_params);
 }
