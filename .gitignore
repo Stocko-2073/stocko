@@ -1,1 +1,4 @@
 stand-bot/__pycache__
+pet/devlog/*.mp4
+stand-bot/devlog/*.mp4
+*.3mf
