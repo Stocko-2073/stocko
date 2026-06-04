@@ -49,6 +49,7 @@ void printHelp() {
     Serial.println("  dir <1|2> <-1|1>    set encoder feedback sign");
     Serial.println("  cal [1|2]           record current pose as cycle bottom (saved to flash)");
     Serial.println("  stand               move both legs to nearest cycle bottom");
+    Serial.println("  walk <n>            walk n half-turn steps (cranks 180 deg out of phase), ends standing");
     Serial.println("  z                   zero both position counters here (debug; cal/stand preferred)");
     Serial.println("  x                   stop/disable both");
     Serial.println("  kp|ki|kd <val>      set PID gains (both servos)");
@@ -119,6 +120,82 @@ void pulseTest(int idx, int pwm, int ms) {
     }
 }
 
+// --- walk sequencer ---
+// Walking runs the cranks 180 deg out of phase: the lead leg moves +half a turn
+// while the other holds stance (lead-in), both legs then advance together half a
+// turn per step (the PID keeps them phase-locked), and finally whichever leg
+// sits at half phase advances forward to the next whole turn (lead-out) so the
+// walk ends standing. After N steps that's the lead leg if N is even, the other
+// leg if N is odd. The lead foot alternates between walks: on even-step walks
+// the lead leg travels one extra full turn, and alternating cancels the
+// sideways drift that asymmetry would build up over many walks.
+enum WalkState { W_IDLE, W_STAND, W_LEADIN, W_STEPS, W_LEADOUT };
+WalkState walkState = W_IDLE;
+int walkLead = 0;  // index of the leg that starts the next walk
+int walkSteps = 0;
+
+// Start the next phase while the legs are still ~0.1 turn from finishing the
+// current one. Moves extend the target, and the slewed setpoint never
+// decelerates at the boundary, so the gait flows through phase changes instead
+// of braking, settling into the 8-count window, and lurching off again.
+const int32_t WALK_BLEND = 410;  // counts
+
+bool legsWithin(int32_t counts) {
+    return llabs(servo1.targetCounts() - servo1.positionCounts()) <= counts &&
+           llabs(servo2.targetCounts() - servo2.positionCounts()) <= counts;
+}
+
+void startWalk(int steps) {
+    // Cap keeps the big STEPS move within float-exact count range (and ~80 min).
+    walkSteps = constrain(steps, 1, 8000);
+    walkState = W_STAND;
+    servo1.standAtBottom();
+    servo2.standAtBottom();
+    Serial.printf("walk: %d steps, servo%d leads\n", walkSteps, walkLead + 1);
+}
+
+void walkSequencer() {
+    if (walkState == W_IDLE) return;
+    // Abort on fault or external disable (`x` mid-walk).
+    if (!servo1.enabled() || !servo2.enabled() || servo1.fault() || servo2.fault()) {
+        walkState = W_IDLE;
+        Serial.println("walk: aborted");
+        return;
+    }
+    // Blend mid-walk transitions; only the final "done" requires a true settle.
+    bool ready = (walkState == W_LEADOUT) ? (servo1.atTarget() && servo2.atTarget())
+                                          : legsWithin(WALK_BLEND);
+    if (!ready) return;
+    switch (walkState) {
+        case W_STAND:
+            servos[walkLead]->moveByTurns(0.5f);
+            walkState = W_LEADIN;
+            Serial.printf("walk: lead-in servo%d\n", walkLead + 1);
+            break;
+        case W_LEADIN:
+            servo1.moveByTurns(walkSteps * 0.5f);
+            servo2.moveByTurns(walkSteps * 0.5f);
+            walkState = W_STEPS;
+            Serial.printf("walk: stepping x%d\n", walkSteps);
+            break;
+        case W_STEPS: {
+            int halfLeg = (walkSteps % 2 == 0) ? walkLead : 1 - walkLead;
+            servos[halfLeg]->moveByTurns(0.5f);
+            walkState = W_LEADOUT;
+            Serial.printf("walk: lead-out servo%d\n", halfLeg + 1);
+            break;
+        }
+        case W_LEADOUT:
+            walkState = W_IDLE;
+            walkLead = 1 - walkLead;
+            Serial.printf("walk: done (%d steps), standing; servo%d leads next\n",
+                          walkSteps, walkLead + 1);
+            break;
+        default:
+            break;
+    }
+}
+
 // Record the leg's current pose as the bottom of its gait cycle and persist the
 // encoder's absolute angle to flash. Survives power cycles: the AS5600 is
 // absolute within a turn, so phase is recoverable at every boot even though the
@@ -160,6 +237,8 @@ void handleCommand(char* line) {
     } else if (strcmp(line, "cal") == 0) {
         calibrateBottom(1);
         calibrateBottom(2);
+    } else if (sscanf(line, "walk %d", &iv) == 1) {
+        startWalk(iv);
     } else if (strcmp(line, "stand") == 0) {
         for (int i = 0; i < 2; i++) {
             if (!servos[i]->hasBottom) Serial.printf("servo%d: not calibrated (run `cal`) — using current zero\n", i + 1);
@@ -258,6 +337,7 @@ void setup() {
 
 void loop() {
     pollSerial();
+    walkSequencer();
 
     // Announce faults as they happen (servo auto-disables itself).
     static uint8_t lastFault[2] = { 0, 0 };

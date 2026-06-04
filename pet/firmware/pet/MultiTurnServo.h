@@ -123,6 +123,7 @@ class MultiTurnServo {
         return t;
     }
     float targetTurns() { return (float)targetCounts() / COUNTS_PER_REV; }
+    bool atTarget() { return llabs(targetCounts() - positionCounts()) <= tolerance; }
     float velocityTps() { return _vel / COUNTS_PER_REV; }  // turns/sec
     int lastPwm() { return _lastPwm; }
     bool enabled() { return _enabled; }
