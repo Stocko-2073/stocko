@@ -1,6 +1,7 @@
 #include <ESP32MX1508.h>
 #include <Wire.h>
 #include <AS5600.h>
+#include <Preferences.h>
 #include "MultiTurnServo.h"
 
 TwoWire I2C_0 = TwoWire(0);
@@ -21,6 +22,8 @@ MultiTurnServo* servos[2] = { &servo1, &servo2 };
 MX1508* motors[2] = { &motor1, &motor2 };
 
 const uint32_t LOOP_HZ = 1000;
+Preferences prefs;
+const char* BOTTOM_KEYS[2] = { "bot1", "bot2" };
 bool streamStatus = false;
 bool printRaw = false;
 
@@ -44,7 +47,9 @@ void printHelp() {
     Serial.println("  pwm <val>           max PWM cap, both servos (default 255)");
     Serial.println("  minpwm <val>        stiction feedforward PWM, both servos (default 40)");
     Serial.println("  dir <1|2> <-1|1>    set encoder feedback sign");
-    Serial.println("  z                   zero both position counters here");
+    Serial.println("  cal [1|2]           record current pose as cycle bottom (saved to flash)");
+    Serial.println("  stand               move both legs to nearest cycle bottom");
+    Serial.println("  z                   zero both position counters here (debug; cal/stand preferred)");
     Serial.println("  x                   stop/disable both");
     Serial.println("  kp|ki|kd <val>      set PID gains (both servos)");
     Serial.println("  enc                 encoder health (magnet detect, AGC, magnitude)");
@@ -114,6 +119,19 @@ void pulseTest(int idx, int pwm, int ms) {
     }
 }
 
+// Record the leg's current pose as the bottom of its gait cycle and persist the
+// encoder's absolute angle to flash. Survives power cycles: the AS5600 is
+// absolute within a turn, so phase is recoverable at every boot even though the
+// turn count isn't.
+void calibrateBottom(int idx) {
+    MultiTurnServo& s = *servos[idx - 1];
+    s.disable();
+    s.calibrateBottomHere();
+    prefs.putUShort(BOTTOM_KEYS[idx - 1], s.bottomOffset);
+    Serial.printf("servo%d: bottom = raw %u (%.2f deg), saved; position re-zeroed here\n",
+                  idx, s.bottomOffset, s.bottomOffset * 360.0 / 4096.0);
+}
+
 void handleCommand(char* line) {
     int idx, iv, ms;
     float val;
@@ -137,6 +155,18 @@ void handleCommand(char* line) {
     } else if (sscanf(line, "dir %d %d", &idx, &iv) == 2 && idx >= 1 && idx <= 2) {
         servos[idx - 1]->setDirection(iv);
         Serial.printf("servo%d direction %+d (disabled)\n", idx, servos[idx - 1]->direction());
+    } else if (sscanf(line, "cal %d", &idx) == 1 && idx >= 1 && idx <= 2) {
+        calibrateBottom(idx);
+    } else if (strcmp(line, "cal") == 0) {
+        calibrateBottom(1);
+        calibrateBottom(2);
+    } else if (strcmp(line, "stand") == 0) {
+        for (int i = 0; i < 2; i++) {
+            if (!servos[i]->hasBottom) Serial.printf("servo%d: not calibrated (run `cal`) — using current zero\n", i + 1);
+            servos[i]->standAtBottom();
+        }
+        Serial.printf("standing: servo1 -> %.3f, servo2 -> %.3f turns\n",
+                      servo1.targetTurns(), servo2.targetTurns());
     } else if (strcmp(line, "z") == 0) {
         servo1.zeroHere();
         servo2.zeroHere();
@@ -203,6 +233,21 @@ void setup() {
 
     servo1.begin();
     servo2.begin();
+
+    // Restore cycle-bottom calibration and align zero to it: position 0 (and
+    // every other integer turn) is then a standing pose, across power cycles.
+    prefs.begin("pet", false);
+    for (int i = 0; i < 2; i++) {
+        if (prefs.isKey(BOTTOM_KEYS[i])) {
+            servos[i]->bottomOffset = prefs.getUShort(BOTTOM_KEYS[i]);
+            servos[i]->hasBottom = true;
+            servos[i]->alignZeroToBottom();
+            Serial.printf("servo%d: bottom calibration loaded, phase %.3f turns from stance\n",
+                          i + 1, servos[i]->positionTurns());
+        } else {
+            Serial.printf("servo%d: no bottom calibration (run `cal` with leg at cycle bottom)\n", i + 1);
+        }
+    }
 
     // Control loop on core 0; loop()/Serial stay on core 1 and can't stall it.
     xTaskCreatePinnedToCore(controlTask, "servo", 4096, nullptr, configMAX_PRIORITIES - 2, nullptr, 0);

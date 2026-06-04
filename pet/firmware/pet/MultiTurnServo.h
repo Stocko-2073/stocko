@@ -70,6 +70,43 @@ class MultiTurnServo {
         _dir = direction >= 0 ? 1 : -1;
     }
 
+    // --- cycle-bottom calibration ---
+    // The AS5600 is absolute within one turn, so the crank's phase in its gait
+    // cycle survives power loss even though the turn count doesn't. Calibrate
+    // once with the leg at the bottom of its cycle; align the zero to it at
+    // boot and every integer turn position is a stance pose.
+
+    uint16_t bottomOffset = 0;  // raw encoder counts at cycle bottom
+    bool hasBottom = false;
+
+    // Record the current pose as the cycle bottom and make it position 0.
+    void calibrateBottomHere() {
+        bottomOffset = _lastRaw;
+        hasBottom = true;
+        zeroHere(0);
+    }
+
+    // Re-zero so position 0 lands on the nearest cycle bottom (call at boot,
+    // after begin(), once bottomOffset is restored). Position becomes the
+    // signed phase distance from bottom, in [-half, half) of a turn.
+    void alignZeroToBottom() {
+        if (!hasBottom) return;
+        zeroHere(_dir * wrap12((int32_t)_lastRaw - bottomOffset));
+    }
+
+    int64_t nearestBottomCounts() {
+        return llround((double)positionCounts() / COUNTS_PER_REV) * (int64_t)COUNTS_PER_REV;
+    }
+
+    // Move to the nearest bottom-of-cycle pose (at most half a turn away).
+    void standAtBottom() { moveToCounts(nearestBottomCounts()); }
+
+    static int16_t wrap12(int32_t d) {
+        d &= 0x0FFF;
+        if (d > 2048) d -= 4096;
+        return (int16_t)d;
+    }
+
     // --- state ---
 
     int64_t positionCounts() {
