@@ -3,3 +3,6 @@ pet/devlog/*.mp4
 stand-bot/devlog/*.mp4
 *.3mf
 pet/stl
+u-bot/devlog
+u-bot/stls
+WireHandler/stls
