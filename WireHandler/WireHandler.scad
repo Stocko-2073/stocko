@@ -184,7 +184,7 @@ module cutter_mount() {
             fwd(42/2) left(2) {
                 cuboid([7,72,20],anchor=LEFT+TOP+FWD,chamfer=6,edges=[TOP+BACK]);
                 down(20)
-                    cuboid([7,72,19],anchor=LEFT+TOP+FWD,chamfer=2,edges=[BOT+RIGHT]);
+                    cuboid([7,72,19],anchor=LEFT+TOP+FWD,chamfer=2,edges=[BOT+RIGHT,BOT+LEFT]);
             }
         }
         up(7) left(ep) {
@@ -207,13 +207,14 @@ module cutter_mount() {
         up(7) right(7) fwd(42/2-15)
         back(0.125) up(1.5) xrot(172) down(6) fwd(65) 
         up(6.5) back(47) xrot(-5) zflip() down(6.5) fwd(47) {
-            back(27) screw_with_nut(-13);
-            xrot(16) back(13) screw_with_nut(-13-16);
-            screw_with_nut(-13);
+            back(27) left(6) zrot(180) screw_with_nut(-13);
+            xrot(16) back(13) left(6) zrot(180) screw_with_nut(-13-16);
             up(6.5) back(47) xcyl(d=9,h=6); 
         }
-        fwd(42/2) back(72/2) right(7) down(35.7-3) 
-            ycopies(n=4, l=60) screw_with_nut();
+        fwd(42/2) back(72/2) right(8.925) down(35.7-3) 
+            fwd(20) ycopies(n=2,l=20) xrot(180) screw_with_nut2();
+        fwd(42/2) back(72/2) right(2) down(35.7-3) 
+            back(20) ycopies(n=2,l=20) xrot(180) screw_with_nut2();
     }
     up(7) right(6) fwd(42/2-15){
         %xcyl(d=2,h=1); // Wire
@@ -224,40 +225,86 @@ module cutter_mount() {
 // !yrot(90) cutter_mount(); // print
 
 module servo_mount() {
-    y=60+1.75;
-    color("#848") difference() {
-        union() {
-            right(52) back(50) down(55/2) 
-            left(5.8) fwd(35) cuboid([5,y-24,11.5],chamfer=-2,edges=[LEFT+BOT],anchor=LEFT+FWD+TOP);
-            down(39) right(71.8) back(y-10.25+ep){
-                right(8)
-                cuboid([18,28.5,57],anchor=RIGHT+FWD+BOT);
-                cuboid([25.6,28.5,2],anchor=RIGHT+FWD+BOT,chamfer=-2,edges=[LEFT+BOT]);
-                cuboid([25.6,28.5,11.5],anchor=RIGHT+FWD+BOT,chamfer=2,edges=[BACK+TOP]);
+    y=61.5;
+    x=7.6;
+    color("#848") left(7) diff() {
+        right(52) down(55/2-ep) left(5.8-9)
+        {
+            back(50-1.5) cuboid([2,y+8,11.5],chamfer=-2,edges=[LEFT+BOT],anchor=RIGHT+BACK+TOP);
+            left(2) back(50-1.5-(y+11)) {
+                cuboid([63+$slop,99-$slop,11.5],rounding=3,edges="Z",anchor=LEFT+FWD+TOP)
+                    attach(RIGHT) down(7) back(6) right(25)
+                        zcopies(n=2,l=5.5)
+                        xcopies(n=8,l=40)
+                        xrot(-90) screw_hole("M3",l=15,head="socket",atype="head",anchor=BOT,$slop=0,tolerance="tight");
+                down(11.5) {
+                    fwd(6) cuboid([63+$slop,48.5-$slop,3],rounding=3,edges="Z",anchor=LEFT+FWD+BOT);
+                    fwd(1.6) {
+                        cuboid([63+$slop,48.5+3.2-$slop,20.5],rounding=3,edges="Z",anchor=LEFT+FWD+BOT)
+                        attach(FWD) {
+                            cyl(d=7,h=2,anchor=BOT);
+                            up(3) screw_hole("M3",l=15,head="socket",atype="head",anchor=BOT,$slop=0,tolerance="tight");
+                        }
+                    }
+                }
             }
         }
-        down(39) right(71.8+2.5) back((y-10.25)+ep+10.25)
-            up(56/2) zflip_copy() up(56/2-4.35+0.5)
-                yflip_copy() back(5.025) screw_with_nut2(counterbore=6);
-        down(39) right(71.8+8+ep) back((y-10.25)+28.5+ep){
-            up(7.664) xrot(45) cuboid([34+ep*2,8,2],anchor=RIGHT+BACK+TOP,chamfer=2,edges=[BOT+BACK,BOT+FWD]);
+        down(39) right(71.8) back(y-10.25+ep) fwd(13.1) {
+            zz=11.5;
+            xx=4.0;
+            up(zz) right(xx+7.4)
+            cuboid([8.5+9.5+xx,23.5+10,62-zz],anchor=RIGHT+FWD+BOT,rounding=12,edges=[TOP+FWD]);
+            left(18.6) {
+                cuboid([5,13.04-$slop,2],anchor=LEFT+FWD+BOT,chamfer=-2,edges=[LEFT+BOT]);
+                cuboid([7,23.5,11.5],anchor=LEFT+FWD+BOT,chamfer=2,edges=[BACK+TOP]);
+            }
         }
-        down(11) right(71.8) back(y) zrot(270) xrot(90)  {
-            big_servo_neg(mg995_params);
+        down(37) right(71.8+5) back(y+ep+13.35)
+            up(58/2) zflip_copy() up(58/2-4.35+0.5)
+                left(1.5+3) xflip_copy() left(9.5-2.5) zrot(90) screw_with_nut2();
+        tag("remove") {
+            right(71.8+55) down(39) cuboid([15,17,10],anchor=BOT+RIGHT);
+            down(39+ep) right(71.8+10.4+1+$slop) back(y+10.15) 
+                cuboid([22+$slop*2,3+$slop*2,62+ep*2],anchor=RIGHT+FWD+BOT,chamfer=-2-$slop,edges=[FWD+TOP,FWD+BOT]);
+            fwd(20) fwd(1.15+$slop) right(67.85-$slop) down(55/2-ep-3-30) left(5.8-9) {
+                cuboid([42.5+$slop*2,42.5+$slop*2,50],chamfer=2,edges="Z",anchor=LEFT+FWD+TOP);
+            }
+            down(8) right(71.8+1.5) back(y) zrot(270) xrot(90)  {
+                big_servo_neg(mg995_params);
+            }
+            fwd(42/2) back(72/2) right(42/2+20+8) down(35.7-3) 
+                back(20) ycopies(n=2,l=20) zrot(180) xrot(180) screw_with_nut2();
+            fwd(42/2) back(72/2) right(42/2+20+1.1) down(35.7-3) 
+                fwd(20) ycopies(n=2,l=20) zrot(180) xrot(180) screw_with_nut2();
+            // fwd(42/2) back(72/2) right(42/2+20+$slop+7+7) down(35.7-3) 
+            //     ycopies(n=4, l=60) screw_with_nut(counterbore=20);
         }
-        fwd(42/2) back(72/2) right(42/2+20+$slop+7) down(35.7-3) 
-            ycopies(n=4, l=60) screw_with_nut();
     }
-    down(11) right(71.8) back(y) zrot(270) xrot(90) children();
+    down(8) right(71.8-7+1.5) back(y) zrot(270) xrot(90) children(0);
+    children(1);
 }
-//!xrot(-90) servo_mount();
+// !xflip() servo_mount(); // print
+
+module servo_mount_cap() {
+    y=61.5;
+    color("#484")
+    difference() {
+        down(39) right(71.8+4.4) back(y+10.15+$slop) 
+            cuboid([22,3,62],anchor=RIGHT+FWD+BOT,chamfer=-2,edges=[FWD+TOP,FWD+BOT]);
+        left(7)
+        down(37) right(71.8+5) back(y+ep+13.35)
+            up(58/2) zflip_copy() up(58/2-4.35+0.5)
+                left(1.5+3) xflip_copy() left(9.5-2) zrot(90) screw_with_nut2();
+    }
+}
+// !xrot(-90) servo_mount_cap(); // print
 
 module servo_gear() {
     down(3) color("#448") difference() {
         spur_gear(
             mod=1,teeth=14,thickness=5,
             helical=-30,herringbone=true,slices=5,
-            spin=27.5,
+            spin=31,
             anchor=BOT
         );
         up(3.5-ep) servo_gear_socket();
@@ -268,8 +315,9 @@ module servo_gear() {
 
 module cutter_gear() {
     color("#AA4")
-    right(44.2) 
-    up(7) right(9) fwd(42/2-15)
+    right(39) up(7)
+    xflip()
+    fwd(42/2-15)
     back(0.125) up(1.5) xrot(172) down(6) fwd(65) 
     up(6.5) back(47) xrot(2) {
         difference() {
@@ -287,24 +335,30 @@ module cutter_gear() {
                 xrot(8) cuboid([5,25,10],anchor=FWD+TOP+LEFT,
                     rounding=5,edges=[BOT+FWD,BACK+TOP,BACK+BOT]);
                 xrot(10) down(6.5) fwd(47) hull() {
-                    back(27) xcyl(d=6,l=3,anchor=RIGHT);
-                    xrot(16) back(13) xcyl(d=6,l=3,anchor=RIGHT);
+                    back(27) xcyl(d=6,l=9.2,anchor=RIGHT);
+                    xrot(16) back(13) xcyl(d=6,l=9.2,anchor=RIGHT);
                 }
             }
             right(2) xrot(10) down(6.5) fwd(47) {
-                back(27) screw_with_nut(l=11);
-                xrot(16) back(13) screw_with_nut(l=11);
+                back(27) screw_hole("M3",l=15,head="socket",atype="head",orient=RIGHT,anchor=BOT,$slop=0,tolerance="tight");
+                xrot(16) back(13) screw_hole("M3",l=15,head="socket",atype="head",orient=RIGHT,anchor=BOT,$slop=0,tolerance="tight");
             }
         }
     }
 }
-// !yrot(90) cutter_gear(); // print
+// !yrot(-90) cutter_gear(); // print
 
 nema_stepper_motor(size=17, h=39, shaft_len=30);
 extruder_mount() cutter_mount();
-// cutter_gear();
-// servo_mount() big_servo(mg995_params) servo_gear();
-
+cutter_gear();
+right(85.4-$slop) xflip() servo_mount() {
+    big_servo(mg995_params) up(1.5) servo_gear();
+    servo_mount_cap();
+}
+right(11) fwd(28) down(36) {
+    color("#8c8") cuboid([70,1.6,31],anchor=BOT+BACK);
+    %cuboid([70,2.5,31],anchor=BOT+FWD);
+}
 // !yrot(cos($t*360)*90-90) zrot($t*360) servo_gear();
 
 echo(str("\n",
