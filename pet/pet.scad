@@ -1,6 +1,7 @@
 include <BOSL2/std.scad>
 include <BOSL2/gears.scad>
 include <BOSL2/screws.scad>
+include <BOSL2/ball_bearings.scad>
 include <../cad-practice/globals.scad>
 include <mx1508.scad>
 $fn=0;$fa=1;$fs=$preview?0.5:0.0625;
@@ -13,24 +14,28 @@ theta = asin(40 / 45);
 x=13+2.5;
 wall=nozzle*2;
 
-color1="#eee";
+color1="#555";
 color2="#785";
 
 module as5600() {
     render() down(1.5) {
-        color("#444") zview()
+        color("#444") %zview()
             translate([93.5,-104,-10.5]) import("AS5600.stl");
-        color("#eee") down(1.5) zview() up(1.5) zview(true)
+        color("#eee") %down(1.5) zview() up(1.5) zview(true)
             translate([93.5,-104,-10.5]) import("AS5600.stl");
         *color("#444") down(1.5) zview(true) up(1.5)
             translate([93.5,-104,-10.5]) import("AS5600.stl");
     }
 }
 
-module xiao_sense(camera_angle=180) {
-    camera_offset = [-0.66,-4.1,0.9-1];
+module magnet() {
+    color("#888") %cyl(d=4,l=1,anchor=BOT);
+}
+
+module xiao_sense(camera_angle=180,camera_z=-1) {
+    camera_offset = [-0.66,-4.1,0.9-1+camera_z];
     left(0.66) up(2) back(4) xrot(camera_angle) yrot(180) {
-        render()
+        color("#dc9") render()
         difference() {
             yrot(-90) fwd(12) up(6.75) left(8.75) import("xiao_sense.stl");
             fwd(6.1) down(3.1) {
@@ -52,6 +57,64 @@ module inr14500() {
         color("#888d") cyl(d=11,h=50);
         color("#888d") up(25) cyl(d=5,h=2,anchor=BOT,chamfer2=0.5);
     }
+}
+
+module battery_tab_vcc() {
+    %color("#888d") render() {
+        difference() {
+            union() {
+                cuboid([12,12,0.25],rounding=1,edges="Z",anchor=BOT);
+                left(6) cuboid([7,3,0.25],rounding=1.5,edges=[LEFT+FWD,LEFT+BACK],anchor=BOT+RIGHT);
+                up(0.25) {
+                    cyl(d1=7,d2=4,h=1.6,rounding1=-1,rounding2=1,anchor=BOT);
+                    yflip_copy() fwd(5.75) cuboid([2.5,1,0.75],chamfer=0.75,edges=[LEFT+TOP,RIGHT+TOP],anchor=BOT+FWD);
+                }
+            }
+            down(ep) {
+                cyl(d1=7,d2=4,h=1.6,rounding1=-1,rounding2=1,anchor=BOT);
+                yflip_copy() fwd(5.75) cuboid([2.5,1,0.75],chamfer=0.75,edges=[LEFT+TOP,RIGHT+TOP],anchor=BOT+FWD);
+                left(6+7-1.5) cyl(d=1.25,h=1);
+            }
+        }
+    }
+}
+
+module battery_tab_gnd() {
+    %color("#888d") render() {
+        difference() {
+            union() {
+                cuboid([12,12,0.25],rounding=1,edges="Z",anchor=BOT);
+                left(6) cuboid([7,3,0.25],rounding=1.5,edges=[LEFT+FWD,LEFT+BACK],anchor=BOT+RIGHT);
+                up(0.25) {
+                    cyl(d1=7,d2=6,h=4,rounding=0.25, anchor=BOT);
+                    yflip_copy() fwd(5.75) cuboid([2.5,1,0.75],chamfer=0.75,edges=[LEFT+TOP,RIGHT+TOP],anchor=BOT+FWD);
+                }
+            }
+            down(ep) {
+                up(0.25+ep) {
+                    cyl(d1=6,d2=5,h=5,rounding=-0.25, anchor=BOT);
+                }
+                cyl(d=2.5,h=1,anchor=BOT);
+                yflip_copy() fwd(5.75) cuboid([2.5,1,0.75],chamfer=0.75,edges=[LEFT+TOP,RIGHT+TOP],anchor=BOT+FWD);
+                left(6+7-1.5) cyl(d=1.25,h=1);
+            }
+        }
+    }
+}
+
+module battery_tab_neg(len=2,top=false,bot=true) {
+    cuboid([12,12,1+$slop],anchor=BOT);
+    cyl(d=7,h=6,anchor=BOT);
+    if(bot) cuboid([len+6,7,6],anchor=BOT+LEFT);
+    if(top) cuboid([len+6,7,6],anchor=BOT+RIGHT);
+    left(6-ep) cuboid([len+ep,3,1+$slop],anchor=BOT+RIGHT);
+    right(6-ep) cuboid([len+ep,12,1+$slop],anchor=BOT+LEFT);
+}
+*!union() {
+    battery_tab_vcc();
+    battery_tab_gnd();
+    #%battery_tab_neg();
+
 }
 
 module form(x,wall,with_foot=true) {
@@ -153,11 +216,11 @@ module hat(x,wall) {
 
 
 
-module n20() {
-    color("#888") {
+module n20(a=0) {
+    color("#888") %nop() {
         cuboid([12,9,10],rounding=0.5,edges="Y",anchor=FWD);
         ycyl(d=4,h=1,anchor=BACK);
-        difference() {
+        yrot(a) difference() {
             ycyl(d=3,h=10,anchor=BACK);
             fwd(4) left(0.75) cuboid([2,7,4],anchor=RIGHT+BACK);
         }
@@ -178,53 +241,60 @@ module n20() {
 
 module drive_gear(a) {
     yrot(a) color("#588") difference() {
-        fwd(8+5.25) bevel_gear(
-            mod=1,teeth=10,mate_teeth=10,
-            shaft_diam=0,spiral=35,
-            backing=3+4.25,cone_backing=false,
-            orient=FWD,anchor="apex",spin=17
-        );
+        fwd(10) crown_gear(spin=24,mod=0.8,teeth=8,backing=7.5,face_width=2,orient=FWD);
         difference() {
             ycyl(d=3+$slop,h=20,anchor=BACK);
             fwd(4) left(0.75+$slop)
                 cuboid([2,17,4],anchor=RIGHT+BACK);
         }
     }
-    children();
+    fwd(8+5.25) children();
 }
-// !xrot(-90) drive_gear(); // print
+// !xrot(-90) render() drive_gear(0); // print
 
 module crank(a,de) {
-    color("#858") fwd(8+5.25) xrot(-90) yrot(-a) difference() {
-        union() {
-            bevel_gear(
-                mod=1,teeth=10,mate_teeth=10,
-                shaft_diam=0,spiral=35,right_handed=true,
-                backing=3,cone_backing=false,
-                spin=0,orient=FWD,anchor="apex",
-                face_width=2.1
-            );
-            back(9.9) {
-                r=1.75+1-$slop;
-                ycyl(d=12,h=4,anchor=BACK);
-                ycyl(r=de+r,h=2,anchor=BACK);
-                down(de) {
-                    ycyl(r=r,h=1,anchor=FWD);
-                    ycyl(r=r-1,h=12.5,anchor=FWD,chamfer2=0.5);
+    xrot(-90) yrot(-a) {
+        r=1.75+1-$slop;
+        r2=3.814225;
+        r3=r-1+$slop/2;
+        color(color1) {
+            back(12.9) difference() {
+                union() {
+                    yrot(22.5) yrot_copies(n=8) fwd(2) left(r2)
+                        ycyl(d2=1.2,d1=0.7,h=5,anchor=BACK);
+                    ycyl(r=r2,h=7,anchor=BACK);
+                    back(1) ycyl(r=de+r,h=3,anchor=BACK);
+                    down(de) {
+                        ycyl(r=r,h=1,anchor=FWD);
+                    }
+                    fwd(7) intersection() {
+                        spur_gear(mod=0.7,teeth=8,thickness=4,orient=FWD,anchor=BOT);
+                        ycyl(d=7.75,h=4,anchor=BACK/*,chamfer1=1.66*/);
+                    }
+                }
+                down(de) fwd(2+ep) ycyl(r=r3,h=12.5,anchor=FWD);
+            }
+            back(12.9) down(de) fwd(2+ep) yrot_copies(n=6) down(r3)
+                ycyl(d1=0.75,d2=0.5,h=3,anchor=FWD);
+            back(4.4) {
+                ycyl(d=4.5,h=9.75,anchor=BACK);
+                fwd(9.25) difference() {
+                    fwd(1.6) ycyl(d=6,h=2,chamfer2=0.75,anchor=FWD);
+                    fwd(0.5) ycyl(d=4.1,h=2.4,anchor=BACK);
                 }
             }
-            back(4.4) {
-                ycyl(d=5,h=9,anchor=BACK);
-            }
+        }
+        back(12.9-2) down(de) {
+            color("#ddd") %ycyl(r=r-1,h=12.5+2,anchor=FWD);
         }
     }
-    fwd(8+5.25) down(6.9+ep) children();
+    up(5.3+$slop) magnet();
+    down(6.9+ep) children();
 }
-// !crank(); // print
 
-module M3x12() {
+module M3(len) {
     color("#bbbd")
-    screw("M3,12",head="socket",drive="hex",atype="shaft",anchor=TOP);
+    screw("M3,13",head="socket",drive="hex",atype="shaft",anchor=TOP);
 }
 
 module pip_joint(d=5,a=0,a2=0,upper_t=false,lower_t=false,anchor=CENTER,spin=0,orient=UP,color=undef,color2=undef) {
@@ -358,7 +428,7 @@ module tri_pivot(oab,ab,color=undef) {
     }
 }
 
-module leg(a,include_bushing=false) {
+module leg(a,include_bushing=false,color=undef) {
     points = [[30, 0], [0, 0], [-16, 0], [5.96186, 16.984], [17.6895, 3.32888], [-16, 5.25], [-7.50946, -12.6372], [-10.7278, -18.0531], [6.9617, -14.7242], [-5.86577, -38.4825]];
     sol=solve2d([
 
@@ -437,37 +507,37 @@ module leg(a,include_bushing=false) {
     chi=angle(sol,["c","h","i"])+180;
     gih=angle(sol,["g","i","h"])+180;
     abc_tri = ab / sqrt(3);
-    pip_screw_joint(a=oab,a2=oag,color=color1,color2=color1) {
-        skip() M3x12();
+    pip_screw_joint(a=oab,a2=oag,color=color,color2=color) {
+        %M3(12);
         union() {
-            tri_pivot(oab,ab,color=color1);
-            attach("lower",LEFT) bar(abc_tri-4.5,false,color=color1)
+            tri_pivot(oab,ab,color=color);
+            attach("lower",LEFT) bar(abc_tri-4.5,false,color=color)
                 attach(RIGHT,RIGHT) {
-                    yrot(60) bar(abc_tri-3,false,color=color1) 
-                        attach(LEFT,"lower") pip_joint(a=-abd,color=color1,color2=color1)
-                            attach("upper",RIGHT) bar(db-7.5,color=color1)
-                                attach(LEFT,"upper") pip_pin_joint(a=bdf,color=color1,color2=color1,include_bushing=include_bushing);
-                    yrot(-60) bar(abc_tri-3,false,color=color1)
-                        attach(LEFT,"lower") pip_joint(a=-ach,color=color1,color2=color1)
-                        attach("upper",RIGHT) bar(ch-6,color=color1)
-                        attach(LEFT,"upper") pip_joint(a=chi,color=color1,color2=color1);
+                    yrot(60) bar(abc_tri-3,false,color=color) 
+                        attach(LEFT,"lower") pip_joint(a=-abd,color=color,color2=color)
+                            attach("upper",RIGHT) bar(db-7.5,color=color)
+                                attach(LEFT,"upper") pip_pin_joint(a=bdf,color=color,color2=color,include_bushing=include_bushing);
+                    yrot(-60) bar(abc_tri-3,false,color=color)
+                        attach(LEFT,"lower") pip_joint(a=-ach,color=color,color2=color)
+                        attach("upper",RIGHT) bar(ch-6,color=color)
+                        attach(LEFT,"upper") pip_joint(a=chi,color=color,color2=color);
                 }
         }
-        attach("upper",LEFT) bar(af-7.5,color=color1)
-            attach(RIGHT,"upper") pip_joint(a=afd,upper_t=true,color=color1,color2=color1) {
-                attach("lower",LEFT) bar(df-7.5,false,color=color1);
-                attach("upper2",LEFT) bar(fg-6,color=color1)
-                attach(RIGHT,"upper") pip_joint(a=fgi,color=color1,color2=color1)
-                attach("lower",LEFT) foot(gi,hi,gih);
+        attach("upper",LEFT) bar(af-7.5,color=color)
+            attach(RIGHT,"upper") pip_joint(a=afd,upper_t=true,color=color,color2=color) {
+                attach("lower",LEFT) bar(df-7.5,false,color=color);
+                attach("upper2",LEFT) bar(fg-6,color=color)
+                attach(RIGHT,"upper") pip_joint(a=fgi,color=color,color2=color)
+                attach("lower",LEFT) foot(gi,hi,gih,color=color);
             };
     }
 }
 
-module foot(gi,hi,gih) {
-    color(color1) force_tag(color1) {
-        bar(gi-3,false,color=color1) {
+module foot(gi,hi,gih,color=undef) {
+    color(color) force_tag(color) {
+        bar(gi-3,false,color=color) {
             attach(RIGHT,CENTER) fwd(1.3) ycyl(d=5,h=2.4);
-            attach(RIGHT,LEFT) yrot(gih) bar(hi-3,false,color=color1);
+            attach(RIGHT,LEFT) yrot(gih) bar(hi-3,false,color=color);
         }
         hull() {
             cyl(d=5,h=5);
@@ -477,47 +547,191 @@ module foot(gi,hi,gih) {
     }
 }
 
-module body_form(head_y) {
-    %color("#dddb") 
-    render()
-    union() {
-        ch=5;
-        ch2=18;
-        fwd(75/2+head_y) down(26/2) {
-            ch=10;
-            y=22+head_y;
-            back(y/2) hull() xflip_copy() yflip_copy() {
-                left(29/2-ch) back(y/2-ch) cyl(r=ch,h=27,anchor=BOT,chamfer1=0.5,rounding=0.5);
-            }
-        }
-        fwd(16) difference() {
-            xcyl(d=6,h=46);
-            xcyl(d=3.2,h=46+ep);
-        }
-        back(16) difference() {
-            xcyl(d=6,h=57);
-            xcyl(d=3.2,h=57+ep);
-        }
-        back(75/2+5) up(13) difference() {
-            union() {
+module body_top(head_y) {
+    ch=7;
+    ch2=16;
+    difference() {
+        up(3) 
+        union() {
+            back(75/2+5) up(13) {
                 hull() {
-                    up(12) fwd(2) cuboid([18,57,ep],rounding=ch,edges="Z",anchor=BACK+TOP);
-                    fwd(20)down(ch) cuboid([44,47,16],rounding=ch,edges="Z",anchor=BACK+TOP);
+                    up(14) fwd(5) cuboid([18,57,ep],rounding=ch/2,edges="Z",anchor=BACK+TOP);
+                    fwd(20) down(3) cuboid([6+44,47,18],rounding=ch,edges="Z",anchor=BACK+TOP);
                     down(16+ch+5) fwd(2) cuboid([29,50-(sqrt(2)*2)+head_y,ep],rounding=ch,edges="Z",anchor=BACK+TOP);
                 }
                 back(2) hull() 
                 {
-                    up(12) fwd(2) cuboid([18,33,ep],rounding=ch,edges="Z",anchor=BACK+TOP);
-                    down(ch) xflip_copy() {
-                        right(55/2-ch) fwd(35-ch) cyl(r=ch,h=16,anchor=TOP);
-                        right(55/2-ch2) fwd(ch2) cyl(r=ch2,h=16,anchor=TOP);
+                    up(14) fwd(2) cuboid([18,33,ep],rounding=ch/2,edges="Z",anchor=BACK+TOP);
+                    down(3) xflip_copy() {
+                        right(3+55/2-ch) fwd(35-ch) cyl(r=ch,h=18,anchor=TOP);
+                        right(3+55/2-ch2) fwd(ch2) cyl(r=ch2,h=18,anchor=TOP);
                     }
                     down(16+ch+5) fwd(2) cuboid([29,33,1],rounding=ch,edges="Z",anchor=BACK+BOT);
                 }
             }
-            up(12+ep) fwd(2) cuboid([14,55,11],rounding=3,edges="Z",anchor=BACK+TOP);
+            fwd(75/2+head_y+2) down(26/2) {
+                offset=0;
+                ch=12;
+                y=22+head_y+2;
+                up(29+$slop) back(y/2) hull() xflip_copy() yflip_copy() {
+                    left(33/2-ch) back(y/2-ch) cyl(r=ch+offset,h=24+$slop,anchor=TOP,rounding2=0.5);
+                }
+            }
+            fwd(16) xflip_copy() left(20+$slop) xcyl(d=6,h=3-$slop,anchor=RIGHT);
+            back(16) xflip_copy() left(23.5) xcyl(d=6,h=5,anchor=RIGHT);
+        }
+        // crank hole
+        xflip_copy() right(19) {
+            xcyl(d=16+$slop*2,h=12+ep);
+            cuboid([12+ep,16+$slop*2,8+ep],anchor=TOP,chamfer=-1.5,edges=[BOT+BACK,BOT+FWD]);
+        }
+        // battery slot
+        up(3) {
+            back(75/2+4) up(15) up(12+ep) fwd(2.5) cuboid([15,55,13],rounding=3,edges="Z",anchor=BACK+TOP);
+            up(20) fwd(18.5) back(60/2) yflip_copy() fwd(60/2) xrot(-90) zrot(-90) battery_tab_neg();
+        }
+
+        // leg mounts
+        fwd(16) xflip_copy() left(18+$slop) xcyl(d=3.2,h=15-$slop+ep,anchor=RIGHT);
+        back(16) xflip_copy() left(23.5) xcyl(d=3.2,h=15+ep,anchor=RIGHT);
+        
+        // bottom pocket
+        up(3) difference() {
+            body_form(head_y,$slop*2);
+            fwd(head_y+8-$slop) up(8+$slop*2) cuboid([25.2,11,6],anchor=BOT+FWD,chamfer=-2.3,edges=[TOP+FWD]);
+        }
+        back(42.75) up(3+12+$slop) cuboid([25+$slop,65,6+3],anchor=BACK+TOP);
+        
+        // bottom clip
+        down(5) cuboid([100,100,30],anchor=TOP);
+        
+        // camera hole
+        fwd(head_y+38.5) down(6.4) ycyl(d=9.5,h=2+ep,chamfer1=-1.25);
+    }
+}
+
+module body_form(head_y,offset=0) {
+    ch=5;
+    ch2=13;
+    fwd(75/2+head_y) down(26/2) {
+        ch=10;
+        y=22+head_y;
+        back(y/2) hull() xflip_copy() yflip_copy() {
+            left(29/2-ch) back(y/2-ch) cyl(r=ch+offset,h=27+offset,anchor=BOT,chamfer1=0.5,rounding=0.5);
         }
     }
+    back(75/2+5) up(14) {
+        hull() {
+            fwd(22) down(ch-offset) cuboid([46+offset,43+offset,18+offset],rounding=ch,edges="Z",anchor=BACK+TOP);
+            down(17+ch+5+offset) fwd(14) cuboid([29+offset,38-(sqrt(2)*2)+head_y+offset,ep],rounding=ch,edges="Z",anchor=BACK+TOP);
+        }
+        back(2) hull() 
+        {
+            down(ch-offset) xflip_copy() {
+                ch=4.5;
+                offset2=2+$slop;
+                right(2+3+55/2-ch-2-offset2) fwd(35-ch-offset2) cyl(r=ch+offset,h=18+offset*2,anchor=TOP);
+                right(2+3+55/2-ch2-2-offset2) fwd(ch2+offset2) cyl(r=ch2+offset,h=18+offset*2,anchor=TOP);
+            }
+            down(17+ch+5) fwd(8-offset) cuboid([29+offset*2,31-7+offset,1],rounding=ch,edges="Z",anchor=BACK+BOT);
+        }
+    }
+}
+
+module body_bottom(head_y) {
+    ch=5;
+    ch2=13;
+    color(color1) 
+    // render()
+    union() {
+        difference() {
+            body_form(head_y);
+
+            // camera hole
+            fwd(head_y+36.5) down(6.4) ycyl(d=7.5,h=2.5,chamfer=-1);
+            // usb hole
+            fwd(head_y+26.12) down(11) cuboid([10,4,6],rounding=1.8,edges="Z");
+
+
+            // screw holes
+            xflip_copy() {
+                fwd(16) {
+                    right(17-ep) xcyl(d=3.2,h=15,anchor=LEFT);
+                    right(19) nut_trap_side(30,"M3",poke_len=13,orient=LEFT);
+                }
+                back(16) {
+                    right(20) xcyl(d=3.2,h=15,anchor=LEFT);
+                    right(24.5) nut_trap_side(30,"M3",poke_len=13,orient=LEFT);
+                }
+            }
+
+            fwd(75/2+head_y) down(26/2) {
+                inset=2;
+                ch=10;
+                y=22+head_y;
+                up(inset) back(y/2) hull() {
+                    xflip_copy() left(29/2-ch) fwd(y/2-ch) cyl(r=ch-inset,h=27,anchor=BOT);
+                    back(1.5) cuboid([29-inset*2,y/2,27],anchor=BOT+FWD);
+                }
+            }
+
+            // motor slots
+            xflip_copy() down(6)left(12.15) back(12.25-ep) difference() {
+                w=10+$slop*2;
+                union() {
+                    back(2) cuboid([w,26,20],rounding=3.5,edges=[BACK+LEFT,BACK+RIGHT],anchor=FWD+BOT);
+                    cuboid([w,3,20],chamfer=1,edges=[FRONT+LEFT,FRONT+RIGHT],anchor=FWD+BOT);
+                }
+                // crush ribs
+                xflip_copy() back(17) left(w/2) ycopies(n=4,l=10) cyl(d1=1.2,d2=0.5,h=15,anchor=BOT);
+            }
+
+            // encoder/drive pocket
+            back(75/2+5) up(13) {
+                inset=2;
+                up(inset) hull() {
+                    fwd(22+6.5+inset-$slop) down(16+ch) cuboid([40-inset*2,28.3+$slop-inset*2,30],rounding=ch-inset,edges=[FWD+LEFT,FWD+RIGHT],anchor=BACK+BOT);
+                    down(16+ch+6) fwd(30.5-$slop) cuboid([29,28.3+$slop-inset*2,ep],rounding=ch,edges="Z",anchor=BACK+TOP);
+                }
+            }
+
+            // crank hole
+            xflip_copy() right(23+ep) difference() {
+                r=8+$slop;
+                xcyl(r=r,h=6+ep*2,anchor=RIGHT,chamfer1=1);
+                xrot_copies(n=6) fwd(r) xcyl(d1=1,d2=0.5,h=10.2,anchor=RIGHT);
+            }
+
+            // center wire channel
+            down(2) fwd(15) cuboid([4,54.5,15],anchor=BOT+FWD);
+            // rear wire channel
+            down(2) back(39.5) cuboid([24,2.5,15],anchor=BOT+BACK);
+        
+        }
+        // encoder mounts
+        down(12.2) yflip_copy() fwd(12.5) xflip_copy() {
+            w=1.5+$slop*2;
+            difference() {
+                cuboid([6.5,3,10.2],anchor=BOT+FWD+RIGHT);
+                left(2.5-$slop) cuboid([w,3+ep,10.2+ep],anchor=BOT+FWD+RIGHT);
+            }
+            // crush ribs
+            left(2.25+w/2) xflip_copy() left(w/2) back(1.5) yflip_copy() back(1) cyl(d1=1.2,d2=0.5,h=10.2,anchor=BOT);
+        }
+
+        // board mount
+        fwd(head_y+21-$slop) down(12) cuboid([10,4,8],anchor=BOT);
+        // camera mount
+        fwd(head_y+28.5-$slop) down(12) hull() {
+            cuboid([10,2,2.5],anchor=BOT+BACK);
+            up(6) cuboid([10,nozzle,ep],anchor=BOT+BACK);
+        }
+        // board side mount
+        fwd(head_y+21-$slop) down(12) xflip_copy() left(9) 
+            cuboid([4,14,12],anchor=BOT+BACK+RIGHT,rounding=4,edges=[LEFT+FWD]);
+
+    }
+    children();
 }
 
 l=3;
@@ -544,40 +758,68 @@ module bot(t) {
     a2=floor(((-t*360+360*3)%360)/q)*q;
     b=floor(((t*360+360*3)%360)/q)*q;
     b2=floor(((t*360+360*3+180)%360)/q)*q;
-    head_y=10;
+    head_y=11.5;
 
-    body_form(head_y);
+    // !xview(true)
+    // !render() yview(true)
+    body_bottom(head_y)
+        color(color2) body_top(head_y);
+
+    *!xflip_copy() up(6) right(17.5) back(13) cuboid([10,20,6],anchor=BOT+FWD+RIGHT);
+
+    // !body_top(head_y); // print
+
+    //skip() 
+    up(24) fwd(18.5) {
+        xrot(-90) zrot(-90) battery_tab_vcc();
+        back(60) yflip() xrot(-90) zrot(-90) battery_tab_gnd();
+    }
+    //skip() 
+    up(24) back(36) xrot(90) inr14500();
+
+    xflip_copy() right(18) ball_bearing("688ZZ",anchor=BOT,orient=RIGHT);
 
     back(13.25) left(12+$slop/2) yrot(90) {
-        n20() drive_gear(a2) crank(a,de);
+        n20(a2) drive_gear(a2) crank(a,de);
     }
     xflip() back(13.25) left(12+$slop/2) yrot(90) {
-        n20() drive_gear(a) crank(a2,de);
+        n20(a) drive_gear(a) crank(a2,de);
     }
 
-    right(6+19.5+$slop) back(16) yrot(90) zrot(90) {
-        up(5.5) leg(a);
-        left(32) xflip() leg(b,include_bushing=true);
+    *!xrot(-90) drive_gear(a); // print
+    *!crank(a2,de); // print
+
+    nop() { // legs
+        right(3+6+19.5+$slop) back(16) yrot(90) zrot(90) {
+            up(5.5) leg(a,color="#eee");
+            left(32) xflip() leg(b,include_bushing=true,color="#eee");
+        }
+
+        xflip() right(3+6+19.5+$slop) back(16) yrot(90) zrot(90) {
+            up(5.5) leg(a2,color="#eee");
+            left(32) xflip() leg(b2,include_bushing=true,color="#eee");
+        }
     }
 
-    xflip() right(6+19.5+$slop) back(16) yrot(90) zrot(90) {
-        up(5.5) leg(a2);
-        left(32) xflip() leg(b2,include_bushing=true);
+    *!back(20) { // print legs
+        left(15) leg(90,include_bushing=true);
+        right(15) fwd(30) zrot(170) xflip() leg(90,include_bushing=true);
     }
 
-    up(22) back(38) xrot(90) inr14500();
 
-    down(4.5) fwd(40+head_y) {
-        down(1) yrot(180) xiao_sense();
+    %down(4.5) fwd(40+head_y) {
+        down(0.8) back(0.5) yrot(180) xiao_sense(camera_z=-0.8);
         back(23) up(4) xrot(90) mx1508();
     }
-    xflip_copy() right(5.5) yrot(90) as5600();
+    *xflip_copy() right(5.5) yrot(90) as5600();
 }
 
 // zview(true) 
 // yrot(cos($t*2*360+45)*2) up(25)
-// zrot($t*360)
-bot(t=$t*2);
+//zrot($t*360)
+// render() xview(true)
+color("#555") circle(r=70);
+physics() up(44) bot(t=$t*2);
 
 
 
