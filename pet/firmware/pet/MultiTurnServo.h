@@ -146,6 +146,10 @@ class MultiTurnServo {
     int minPwm = 40;          // feedforward to overcome H-bridge deadband + stiction
     int32_t tolerance = 8;    // counts (~0.7 deg at the magnet); inside this we brake & rest
     float maxSpeedTps = 0;    // setpoint slew limit in turns/sec, 0 = unlimited
+    // Per-gait-segment speeds: position 0 is the cycle bottom, so the setpoint's
+    // fractional turn says where the foot is — [0, 0.5) ground, [0.5, 1) air.
+    float groundSpeedTps = 0; // 0 = use maxSpeedTps
+    float airSpeedTps = 0;    // 0 = use maxSpeedTps
 
     // --- control loop, call at a fixed rate (e.g. 1 kHz) ---
 
@@ -173,9 +177,17 @@ class MultiTurnServo {
             return;
         }
 
-        // Slew the setpoint toward the target for velocity-limited moves.
-        if (maxSpeedTps > 0) {
-            double maxStep = (double)maxSpeedTps * COUNTS_PER_REV * dt;
+        // Slew the setpoint toward the target for velocity-limited moves, at
+        // the speed of whichever gait segment the setpoint is currently in.
+        float speed = maxSpeedTps;
+        if (groundSpeedTps > 0 || airSpeedTps > 0) {
+            int64_t sp = (int64_t)llround(_setpoint);
+            int32_t phase = (int32_t)(((sp % COUNTS_PER_REV) + COUNTS_PER_REV) % COUNTS_PER_REV);
+            float seg = (phase < COUNTS_PER_REV / 2) ? groundSpeedTps : airSpeedTps;
+            if (seg > 0) speed = seg;
+        }
+        if (speed > 0) {
+            double maxStep = (double)speed * COUNTS_PER_REV * dt;
             double remain = (double)target - _setpoint;
             if (remain > maxStep) remain = maxStep;
             if (remain < -maxStep) remain = -maxStep;

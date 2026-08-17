@@ -3,6 +3,11 @@
 #include <AS5600.h>
 #include <Preferences.h>
 #include "MultiTurnServo.h"
+#include "src/pet_generated.h"
+#include "Comms.h"
+#include "Net.h"
+
+namespace pw = pet::wire;
 
 TwoWire I2C_0 = TwoWire(0);
 TwoWire I2C_1 = TwoWire(1);
@@ -38,65 +43,79 @@ void controlTask(void*) {
     }
 }
 
-void printHelp() {
-    Serial.println("commands:");
-    Serial.println("  g <1|2> <turns>     go to absolute position (multiturn ok, e.g. g 1 2500.25)");
-    Serial.println("  r <1|2> <turns>     move relative");
-    Serial.println("  o <1|2> <pwm> <ms>  open-loop pulse (-255..255, <=1000ms), reports encoder delta");
-    Serial.println("  v <turns/sec>       max speed for moves (0 = unlimited)");
-    Serial.println("  pwm <val>           max PWM cap, both servos (default 255)");
-    Serial.println("  minpwm <val>        stiction feedforward PWM, both servos (default 40)");
-    Serial.println("  dir <1|2> <-1|1>    set encoder feedback sign");
-    Serial.println("  cal [1|2]           record current pose as cycle bottom (saved to flash)");
-    Serial.println("  stand               move both legs to nearest cycle bottom");
-    Serial.println("  walk <n>            walk n half-turn steps (cranks 180 deg out of phase), ends standing");
-    Serial.println("  z                   zero both position counters here (debug; cal/stand preferred)");
-    Serial.println("  x                   stop/disable both");
-    Serial.println("  kp|ki|kd <val>      set PID gains (both servos)");
-    Serial.println("  enc                 encoder health (magnet detect, AGC, magnitude)");
-    Serial.println("  s                   print status once");
-    Serial.println("  watch               toggle status stream");
-    Serial.println("  raw                 toggle raw encoder angle stream");
-    Serial.println("  reset               restart MCU (returns to off state)");
+// Help describes the talk.py command syntax; talk.py encodes these to packets.
+const char* HELP_TEXT =
+    "commands:\n"
+    "  g <1|2> <turns>     go to absolute position (multiturn ok, e.g. g 1 2500.25)\n"
+    "  r <1|2> <turns>     move relative\n"
+    "  o <1|2> <pwm> <ms>  open-loop pulse (-255..255, <=1000ms), reports encoder delta\n"
+    "  v <turns/sec>       max speed for moves (0 = unlimited)\n"
+    "  vg <turns/sec>      ground-segment speed, crank 0-180 deg from bottom (0 = use v)\n"
+    "  va <turns/sec>      air-segment speed, crank 180-360 deg (0 = use v)\n"
+    "  pwm <val>           max PWM cap, both servos (default 255)\n"
+    "  minpwm <val>        stiction feedforward PWM, both servos (default 40)\n"
+    "  dir <1|2> <-1|1>    set encoder feedback sign\n"
+    "  cal [1|2]           record current pose as cycle bottom (saved to flash)\n"
+    "  stand               move both legs to nearest cycle bottom\n"
+    "  walk <n> [deg]      walk n half-turn steps, crank phase offset deg (default 180), ends standing\n"
+    "  z                   zero both position counters here (debug; cal/stand preferred)\n"
+    "  x                   stop/disable both\n"
+    "  kp|ki|kd <val>      set PID gains (both servos)\n"
+    "  enc                 encoder health (magnet detect, AGC, magnitude)\n"
+    "  s                   print status once\n"
+    "  watch               toggle status stream\n"
+    "  raw                 toggle raw encoder angle stream\n"
+    "  wifi [ssid pass]    connect to wifi (saved to flash); bare wifi shows status\n"
+    "  reset               restart MCU (returns to off state)";
+
+// -1 for BOTH (callers that need a specific servo treat that as an error).
+int chanIndex(pw::Channel ch) {
+    if (ch == pw::Channel::ONE) return 0;
+    if (ch == pw::Channel::TWO) return 1;
+    return -1;
 }
 
-void printStatusLine() {
-    const char* state[2];
+flatbuffers::Offset<pw::Status> buildStatus(flatbuffers::FlatBufferBuilder& fbb) {
+    flatbuffers::Offset<pw::ServoState> states[2];
     for (int i = 0; i < 2; i++) {
-        state[i] = servos[i]->fault() ? "FAULT" : (servos[i]->enabled() ? "on" : "off");
+        MultiTurnServo& s = *servos[i];
+        bool faulted = s.fault() != MultiTurnServo::FAULT_NONE;
+        auto name = faulted ? fbb.CreateString(s.faultName())
+                            : flatbuffers::Offset<flatbuffers::String>();
+        states[i] = pw::CreateServoState(fbb, (pw::Channel)(i + 1), s.enabled(), faulted,
+                                         name, s.positionTurns(), s.targetTurns(),
+                                         s.velocityTps(), (int16_t)s.lastPwm());
     }
-    Serial.printf("1[%s]: pos %.3f tgt %.3f vel %.2f pwm %d | 2[%s]: pos %.3f tgt %.3f vel %.2f pwm %d\n",
-                  state[0], servo1.positionTurns(), servo1.targetTurns(), servo1.velocityTps(), servo1.lastPwm(),
-                  state[1], servo2.positionTurns(), servo2.targetTurns(), servo2.velocityTps(), servo2.lastPwm());
+    return pw::CreateStatus(fbb, fbb.CreateVector(states, 2));
 }
 
 // AS5600 health: the chip reports whether it sees a magnet at all, and whether
 // the field is in range. AGC mid-scale (~64 at 3.3V) = ideal air gap; pegged at
 // 0 = magnet too close/strong, pegged at 128 = too far/weak. A frozen angle with
-// "magnet NO" or AGC pegged high means the magnet isn't over the chip.
-void printEncoderHealth() {
+// no magnet or AGC pegged high means the magnet isn't over the chip.
+flatbuffers::Offset<pw::EncoderHealth> buildEncoderHealth(flatbuffers::FlatBufferBuilder& fbb) {
     AS5600* encs[2] = { &encoder1, &encoder2 };
+    flatbuffers::Offset<pw::EncoderInfo> infos[2];
     for (int i = 0; i < 2; i++) {
         AS5600& e = *encs[i];
-        if (!e.isConnected()) {
-            Serial.printf("encoder%d: NOT RESPONDING on I2C\n", i + 1);
+        bool connected = e.isConnected();
+        if (!connected) {
+            infos[i] = pw::CreateEncoderInfo(fbb, (pw::Channel)(i + 1), false);
             continue;
         }
-        Serial.printf("encoder%d: magnet %s%s%s  agc %u  magnitude %u  angle %.2f deg\n",
-                      i + 1,
-                      e.detectMagnet() ? "YES" : "NO",
-                      e.magnetTooWeak() ? " (too weak/far)" : "",
-                      e.magnetTooStrong() ? " (too strong/close)" : "",
-                      e.readAGC(), e.readMagnitude(),
-                      e.readAngle() * 360.0 / 4096.0);
+        infos[i] = pw::CreateEncoderInfo(fbb, (pw::Channel)(i + 1), true,
+                                         e.detectMagnet(), e.magnetTooWeak(), e.magnetTooStrong(),
+                                         e.readAGC(), e.readMagnitude(),
+                                         e.readAngle() * 360.0f / 4096.0f);
     }
+    return pw::CreateEncoderHealth(fbb, fbb.CreateVector(infos, 2));
 }
 
 // Open-loop pulse: drive one motor for a capped time, then report how BOTH
 // encoders moved — this catches cross-wired encoders, not just direction signs.
 // Servos are disabled first so the control task won't fight us, but its update()
 // keeps accumulating position, including coast-down after the motor stops.
-void pulseTest(int idx, int pwm, int ms) {
+void pulseTest(int idx, int pwm, int ms, const Comms::ReplyTarget& tgt) {
     pwm = constrain(pwm, -255, 255);
     ms = constrain(ms, 1, 1000);
     MX1508& m = *motors[idx - 1];
@@ -110,29 +129,31 @@ void pulseTest(int idx, int pwm, int ms) {
     delay(500);  // let inertia coast down so the deltas include the whole motion
     int64_t d[2];
     for (int i = 0; i < 2; i++) d[i] = servos[i]->positionCounts() - before[i];
-    Serial.printf("pulse motor%d pwm %d for %dms: enc1 delta %lld counts (%.3f turns), enc2 delta %lld counts (%.3f turns)\n",
-                  idx, pwm, ms,
-                  (long long)d[0], (float)d[0] / MultiTurnServo::COUNTS_PER_REV,
-                  (long long)d[1], (float)d[1] / MultiTurnServo::COUNTS_PER_REV);
     int other = (idx == 1) ? 1 : 0;  // array index of the other encoder
-    if (llabs(d[other]) > 4 * llabs(d[idx - 1]) && llabs(d[other]) > 100) {
-        Serial.printf("  note: encoder%d responded to motor%d — encoders look CROSS-WIRED\n", other + 1, idx);
-    }
+    bool crossWired = llabs(d[other]) > 4 * llabs(d[idx - 1]) && llabs(d[other]) > 100;
+    flatbuffers::FlatBufferBuilder fbb(256);
+    auto res = pw::CreatePulseResult(fbb, (pw::Channel)idx, (int16_t)pwm, (int16_t)ms,
+                                     d[0], (float)d[0] / MultiTurnServo::COUNTS_PER_REV,
+                                     d[1], (float)d[1] / MultiTurnServo::COUNTS_PER_REV,
+                                     crossWired);
+    Comms::reply(tgt, fbb, pw::Msg::PulseResult, res.Union());
 }
 
 // --- walk sequencer ---
-// Walking runs the cranks 180 deg out of phase: the lead leg moves +half a turn
-// while the other holds stance (lead-in), both legs then advance together half a
-// turn per step (the PID keeps them phase-locked), and finally whichever leg
-// sits at half phase advances forward to the next whole turn (lead-out) so the
-// walk ends standing. After N steps that's the lead leg if N is even, the other
-// leg if N is odd. The lead foot alternates between walks: on even-step walks
-// the lead leg travels one extra full turn, and alternating cancels the
-// sideways drift that asymmetry would build up over many walks.
+// Walking runs the cranks a fixed phase apart (default 180 deg): the lead leg
+// advances +phase while the other holds stance (lead-in), both legs then
+// advance together half a turn per step (the PID keeps them phase-locked), and
+// finally each leg advances forward to its own next whole turn (lead-out) so
+// the walk ends standing. At 180 deg exactly one leg is at half phase after N
+// steps; at other offsets both legs may have a remainder. The lead foot
+// alternates between walks: the lead leg travels extra distance (a full turn
+// at 180 deg / even N), and alternating cancels the sideways drift that
+// asymmetry would build up over many walks.
 enum WalkState { W_IDLE, W_STAND, W_LEADIN, W_STEPS, W_LEADOUT };
 WalkState walkState = W_IDLE;
 int walkLead = 0;  // index of the leg that starts the next walk
 int walkSteps = 0;
+float walkPhase = 0.5f;  // crank offset of the lead leg, turns in [0,1)
 
 // Start the next phase while the legs are still ~0.1 turn from finishing the
 // current one. Moves extend the target, and the slewed setpoint never
@@ -145,13 +166,23 @@ bool legsWithin(int32_t counts) {
            llabs(servo2.targetCounts() - servo2.positionCounts()) <= counts;
 }
 
-void startWalk(int steps) {
+// Broadcast walk progress; `servo` is the 1-based leg the phase concerns
+// (lead-in/lead-out leg, or the next walk's lead for DONE).
+void walkEvent(pw::WalkPhase phase, int servo) {
+    flatbuffers::FlatBufferBuilder fbb(128);
+    auto ev = pw::CreateWalkEvent(fbb, phase, walkSteps, (int8_t)servo);
+    Comms::broadcast(fbb, pw::Msg::WalkEvent, ev.Union());
+}
+
+void startWalk(int steps, float phaseDeg) {
     // Cap keeps the big STEPS move within float-exact count range (and ~80 min).
     walkSteps = constrain(steps, 1, 8000);
+    float t = phaseDeg / 360.0f;
+    walkPhase = t - floorf(t);  // wrap to [0,1); negatives mean the lead lags
     walkState = W_STAND;
     servo1.standAtBottom();
     servo2.standAtBottom();
-    Serial.printf("walk: %d steps, servo%d leads\n", walkSteps, walkLead + 1);
+    walkEvent(pw::WalkPhase::START, walkLead + 1);
 }
 
 void walkSequencer() {
@@ -159,7 +190,7 @@ void walkSequencer() {
     // Abort on fault or external disable (`x` mid-walk).
     if (!servo1.enabled() || !servo2.enabled() || servo1.fault() || servo2.fault()) {
         walkState = W_IDLE;
-        Serial.println("walk: aborted");
+        walkEvent(pw::WalkPhase::ABORTED, walkLead + 1);
         return;
     }
     // Blend mid-walk transitions; only the final "done" requires a true settle.
@@ -168,28 +199,35 @@ void walkSequencer() {
     if (!ready) return;
     switch (walkState) {
         case W_STAND:
-            servos[walkLead]->moveByTurns(0.5f);
+            servos[walkLead]->moveByTurns(walkPhase);
             walkState = W_LEADIN;
-            Serial.printf("walk: lead-in servo%d\n", walkLead + 1);
+            walkEvent(pw::WalkPhase::LEADIN, walkLead + 1);
             break;
         case W_LEADIN:
             servo1.moveByTurns(walkSteps * 0.5f);
             servo2.moveByTurns(walkSteps * 0.5f);
             walkState = W_STEPS;
-            Serial.printf("walk: stepping x%d\n", walkSteps);
+            walkEvent(pw::WalkPhase::STEPPING, walkLead + 1);
             break;
         case W_STEPS: {
-            int halfLeg = (walkSteps % 2 == 0) ? walkLead : 1 - walkLead;
-            servos[halfLeg]->moveByTurns(0.5f);
+            // Targets are exact commanded counts, so integer modulo gives each
+            // leg's remainder to its next whole turn (0 if already standing).
+            const int32_t CPR = MultiTurnServo::COUNTS_PER_REV;
+            int32_t rem[2];
+            for (int i = 0; i < 2; i++) {
+                int64_t t = servos[i]->targetCounts();
+                rem[i] = (int32_t)((CPR - (((t % CPR) + CPR) % CPR)) % CPR);
+                if (rem[i]) servos[i]->moveToCounts(t + rem[i]);
+            }
             walkState = W_LEADOUT;
-            Serial.printf("walk: lead-out servo%d\n", halfLeg + 1);
+            // Report the leg with the longer lead-out move.
+            walkEvent(pw::WalkPhase::LEADOUT, (rem[0] >= rem[1] ? 0 : 1) + 1);
             break;
         }
         case W_LEADOUT:
             walkState = W_IDLE;
             walkLead = 1 - walkLead;
-            Serial.printf("walk: done (%d steps), standing; servo%d leads next\n",
-                          walkSteps, walkLead + 1);
+            walkEvent(pw::WalkPhase::DONE, walkLead + 1);  // next walk's lead
             break;
         default:
             break;
@@ -200,103 +238,181 @@ void walkSequencer() {
 // encoder's absolute angle to flash. Survives power cycles: the AS5600 is
 // absolute within a turn, so phase is recoverable at every boot even though the
 // turn count isn't.
-void calibrateBottom(int idx) {
+void calibrateBottom(int idx, const Comms::ReplyTarget& tgt) {
     MultiTurnServo& s = *servos[idx - 1];
     s.disable();
     s.calibrateBottomHere();
     prefs.putUShort(BOTTOM_KEYS[idx - 1], s.bottomOffset);
-    Serial.printf("servo%d: bottom = raw %u (%.2f deg), saved; position re-zeroed here\n",
-                  idx, s.bottomOffset, s.bottomOffset * 360.0 / 4096.0);
+    char buf[96];
+    snprintf(buf, sizeof(buf), "servo%d: bottom = raw %u (%.2f deg), saved; position re-zeroed here",
+             idx, s.bottomOffset, s.bottomOffset * 360.0 / 4096.0);
+    Comms::replyLog(tgt, pw::LogLevel::INFO, buf);
 }
 
-void handleCommand(char* line) {
-    int idx, iv, ms;
-    float val;
-    if (sscanf(line, "g %d %f", &idx, &val) == 2 && idx >= 1 && idx <= 2) {
-        servos[idx - 1]->moveToTurns(val);
-        Serial.printf("servo%d -> %.3f turns\n", idx, val);
-    } else if (sscanf(line, "r %d %f", &idx, &val) == 2 && idx >= 1 && idx <= 2) {
-        servos[idx - 1]->moveByTurns(val);
-        Serial.printf("servo%d -> %.3f turns\n", idx, servos[idx - 1]->targetTurns());
-    } else if (sscanf(line, "o %d %d %d", &idx, &iv, &ms) == 3 && idx >= 1 && idx <= 2) {
-        pulseTest(idx, iv, ms);
-    } else if (sscanf(line, "v %f", &val) == 1) {
-        servo1.maxSpeedTps = servo2.maxSpeedTps = val;
-        Serial.printf("max speed %.2f turns/s\n", val);
-    } else if (sscanf(line, "pwm %d", &iv) == 1) {
-        servo1.maxPwm = servo2.maxPwm = constrain(iv, 0, 255);
-        Serial.printf("max pwm %d\n", servo1.maxPwm);
-    } else if (sscanf(line, "minpwm %d", &iv) == 1) {
-        servo1.minPwm = servo2.minPwm = constrain(iv, 0, 255);
-        Serial.printf("min pwm %d\n", servo1.minPwm);
-    } else if (sscanf(line, "dir %d %d", &idx, &iv) == 2 && idx >= 1 && idx <= 2) {
-        servos[idx - 1]->setDirection(iv);
-        Serial.printf("servo%d direction %+d (disabled)\n", idx, servos[idx - 1]->direction());
-    } else if (sscanf(line, "cal %d", &idx) == 1 && idx >= 1 && idx <= 2) {
-        calibrateBottom(idx);
-    } else if (strcmp(line, "cal") == 0) {
-        calibrateBottom(1);
-        calibrateBottom(2);
-    } else if (sscanf(line, "walk %d", &iv) == 1) {
-        startWalk(iv);
-    } else if (strcmp(line, "stand") == 0) {
-        for (int i = 0; i < 2; i++) {
-            if (!servos[i]->hasBottom) Serial.printf("servo%d: not calibrated (run `cal`) — using current zero\n", i + 1);
-            servos[i]->standAtBottom();
+// --- packet command handlers (replaces the old sscanf text parser) ---
+
+void handleNumber(const pw::NumberCmd* c, const Comms::ReplyTarget& tgt) {
+    float v = c->value();
+    int idx = chanIndex(c->channel());
+    char buf[96];
+    switch (c->cmd()) {
+        case pw::NumCmd::GOTO:
+        case pw::NumCmd::MOVE_BY:
+            if (idx < 0) { Comms::replyAck(tgt, "move needs servo 1 or 2", false); return; }
+            if (c->cmd() == pw::NumCmd::GOTO) servos[idx]->moveToTurns(v);
+            else servos[idx]->moveByTurns(v);
+            snprintf(buf, sizeof(buf), "servo%d -> %.3f turns", idx + 1, servos[idx]->targetTurns());
+            break;
+        case pw::NumCmd::MAX_SPEED:
+            servo1.maxSpeedTps = servo2.maxSpeedTps = v;
+            snprintf(buf, sizeof(buf), "max speed %.2f turns/s", v);
+            break;
+        case pw::NumCmd::GROUND_SPEED:
+            servo1.groundSpeedTps = servo2.groundSpeedTps = v;
+            snprintf(buf, sizeof(buf), "ground speed %.2f turns/s%s", v, v > 0 ? "" : " (= v)");
+            break;
+        case pw::NumCmd::AIR_SPEED:
+            servo1.airSpeedTps = servo2.airSpeedTps = v;
+            snprintf(buf, sizeof(buf), "air speed %.2f turns/s%s", v, v > 0 ? "" : " (= v)");
+            break;
+        case pw::NumCmd::MAX_PWM:
+            servo1.maxPwm = servo2.maxPwm = constrain((int)v, 0, 255);
+            snprintf(buf, sizeof(buf), "max pwm %d", servo1.maxPwm);
+            break;
+        case pw::NumCmd::MIN_PWM:
+            servo1.minPwm = servo2.minPwm = constrain((int)v, 0, 255);
+            snprintf(buf, sizeof(buf), "min pwm %d", servo1.minPwm);
+            break;
+        case pw::NumCmd::KP:
+            servo1.kp = servo2.kp = v;
+            snprintf(buf, sizeof(buf), "kp=%.4f", v);
+            break;
+        case pw::NumCmd::KI:
+            servo1.ki = servo2.ki = v;
+            snprintf(buf, sizeof(buf), "ki=%.4f", v);
+            break;
+        case pw::NumCmd::KD:
+            servo1.kd = servo2.kd = v;
+            snprintf(buf, sizeof(buf), "kd=%.4f", v);
+            break;
+        case pw::NumCmd::SET_DIR:
+            if (idx < 0) { Comms::replyAck(tgt, "dir needs servo 1 or 2", false); return; }
+            servos[idx]->setDirection((int)v);
+            snprintf(buf, sizeof(buf), "servo%d direction %+d (disabled)", idx + 1, servos[idx]->direction());
+            break;
+        default:
+            Comms::replyAck(tgt, "unknown numeric command", false);
+            return;
+    }
+    Comms::replyAck(tgt, buf);
+}
+
+void handleSimple(const pw::SimpleAction* c, const Comms::ReplyTarget& tgt) {
+    char buf[96];
+    switch (c->cmd()) {
+        case pw::SimpleCmd::STAND: {
+            for (int i = 0; i < 2; i++) {
+                if (!servos[i]->hasBottom) {
+                    Comms::logf(pw::LogLevel::WARN,
+                                "servo%d: not calibrated (run `cal`) — using current zero", i + 1);
+                }
+                servos[i]->standAtBottom();
+            }
+            snprintf(buf, sizeof(buf), "standing: servo1 -> %.3f, servo2 -> %.3f turns",
+                     servo1.targetTurns(), servo2.targetTurns());
+            Comms::replyAck(tgt, buf);
+            break;
         }
-        Serial.printf("standing: servo1 -> %.3f, servo2 -> %.3f turns\n",
-                      servo1.targetTurns(), servo2.targetTurns());
-    } else if (strcmp(line, "z") == 0) {
-        servo1.zeroHere();
-        servo2.zeroHere();
-        Serial.println("zeroed");
-    } else if (strcmp(line, "x") == 0) {
-        servo1.disable();
-        servo2.disable();
-        Serial.println("disabled");
-    } else if (sscanf(line, "kp %f", &val) == 1) {
-        servo1.kp = servo2.kp = val;
-        Serial.printf("kp=%.4f\n", val);
-    } else if (sscanf(line, "ki %f", &val) == 1) {
-        servo1.ki = servo2.ki = val;
-        Serial.printf("ki=%.4f\n", val);
-    } else if (sscanf(line, "kd %f", &val) == 1) {
-        servo1.kd = servo2.kd = val;
-        Serial.printf("kd=%.4f\n", val);
-    } else if (strcmp(line, "enc") == 0) {
-        printEncoderHealth();
-    } else if (strcmp(line, "s") == 0) {
-        printStatusLine();
-    } else if (strcmp(line, "watch") == 0) {
-        streamStatus = !streamStatus;
-    } else if (strcmp(line, "raw") == 0) {
-        printRaw = !printRaw;
-    } else if (strcmp(line, "reset") == 0) {
-        servo1.disable();
-        servo2.disable();
-        Serial.println("resetting...");
-        Serial.flush();
-        delay(50);
-        ESP.restart();
-    } else {
-        printHelp();
+        case pw::SimpleCmd::ZERO:
+            servo1.zeroHere();
+            servo2.zeroHere();
+            Comms::replyAck(tgt, "zeroed");
+            break;
+        case pw::SimpleCmd::STOP:
+            servo1.disable();
+            servo2.disable();
+            Comms::replyAck(tgt, "disabled");
+            break;
+        case pw::SimpleCmd::ENC_HEALTH: {
+            flatbuffers::FlatBufferBuilder fbb(512);
+            auto h = buildEncoderHealth(fbb);
+            Comms::reply(tgt, fbb, pw::Msg::EncoderHealth, h.Union());
+            break;
+        }
+        case pw::SimpleCmd::STATUS: {
+            flatbuffers::FlatBufferBuilder fbb(512);
+            auto st = buildStatus(fbb);
+            Comms::reply(tgt, fbb, pw::Msg::Status, st.Union());
+            break;
+        }
+        case pw::SimpleCmd::RESET:
+            servo1.disable();
+            servo2.disable();
+            Comms::replyAck(tgt, "resetting");
+            Comms::broadcastLog(pw::LogLevel::WARN, "resetting...");
+            Serial.flush();
+            delay(50);
+            ESP.restart();
+            break;
+        case pw::SimpleCmd::HELP:
+        default:
+            Comms::replyLog(tgt, pw::LogLevel::INFO, HELP_TEXT);
+            break;
     }
 }
 
-void pollSerial() {
-    static char buf[64];
-    static size_t len = 0;
-    while (Serial.available()) {
-        char c = Serial.read();
-        if (c == '\n' || c == '\r') {
-            if (len > 0) {
-                buf[len] = '\0';
-                handleCommand(buf);
-                len = 0;
+void dispatchPacket(const pw::Packet* pkt, const Comms::ReplyTarget& tgt) {
+    switch (pkt->msg_type()) {
+        case pw::Msg::NumberCmd:
+            handleNumber(pkt->msg_as_NumberCmd(), tgt);
+            break;
+        case pw::Msg::SimpleAction:
+            handleSimple(pkt->msg_as_SimpleAction(), tgt);
+            break;
+        case pw::Msg::Calibrate: {
+            int idx = chanIndex(pkt->msg_as_Calibrate()->channel());
+            if (idx >= 0) {
+                calibrateBottom(idx + 1, tgt);
+            } else {
+                calibrateBottom(1, tgt);
+                calibrateBottom(2, tgt);
             }
-        } else if (len < sizeof(buf) - 1) {
-            buf[len++] = c;
+            break;
         }
+        case pw::Msg::PulseCmd: {
+            const pw::PulseCmd* c = pkt->msg_as_PulseCmd();
+            int idx = chanIndex(c->channel());
+            if (idx < 0) { Comms::replyAck(tgt, "pulse needs servo 1 or 2", false); break; }
+            pulseTest(idx + 1, c->pwm(), c->ms(), tgt);
+            break;
+        }
+        case pw::Msg::ToggleCmd: {
+            char buf[48];
+            if (pkt->msg_as_ToggleCmd()->which() == pw::Toggle::STATUS_STREAM) {
+                streamStatus = !streamStatus;
+                snprintf(buf, sizeof(buf), "status stream %s", streamStatus ? "on" : "off");
+            } else {
+                printRaw = !printRaw;
+                snprintf(buf, sizeof(buf), "raw stream %s", printRaw ? "on" : "off");
+            }
+            Comms::replyAck(tgt, buf);
+            break;
+        }
+        case pw::Msg::WalkCmd: {
+            char buf[80];
+            const pw::WalkCmd* c = pkt->msg_as_WalkCmd();
+            startWalk(c->steps(), c->phase_deg());
+            snprintf(buf, sizeof(buf), "walk: %d steps, phase %.0f deg, servo%d leads",
+                     walkSteps, walkPhase * 360.0f, walkLead + 1);
+            Comms::replyAck(tgt, buf);
+            break;
+        }
+        case pw::Msg::WifiCmd:
+            Net::handleWifiCmd(pkt->msg_as_WifiCmd(), tgt);
+            break;
+        default:
+            Comms::replyLog(tgt, pw::LogLevel::ERROR, "unsupported message type");
+            break;
     }
 }
 
@@ -307,8 +423,8 @@ void setup() {
     I2C_0.begin(SDA, SCL, 400000);
     I2C_1.begin(D9, D8, 400000);
 
-    if (!encoder1.begin()) Serial.println("Encoder1 not detected!");
-    if (!encoder2.begin()) Serial.println("Encoder2 not detected!");
+    if (!encoder1.begin()) Comms::broadcastLog(pw::LogLevel::ERROR, "Encoder1 not detected!");
+    if (!encoder2.begin()) Comms::broadcastLog(pw::LogLevel::ERROR, "Encoder2 not detected!");
 
     servo1.begin();
     servo2.begin();
@@ -321,22 +437,27 @@ void setup() {
             servos[i]->bottomOffset = prefs.getUShort(BOTTOM_KEYS[i]);
             servos[i]->hasBottom = true;
             servos[i]->alignZeroToBottom();
-            Serial.printf("servo%d: bottom calibration loaded, phase %.3f turns from stance\n",
-                          i + 1, servos[i]->positionTurns());
+            Comms::logf(pw::LogLevel::INFO,
+                        "servo%d: bottom calibration loaded, phase %.3f turns from stance",
+                        i + 1, servos[i]->positionTurns());
         } else {
-            Serial.printf("servo%d: no bottom calibration (run `cal` with leg at cycle bottom)\n", i + 1);
+            Comms::logf(pw::LogLevel::INFO,
+                        "servo%d: no bottom calibration (run `cal` with leg at cycle bottom)", i + 1);
         }
     }
 
-    // Control loop on core 0; loop()/Serial stay on core 1 and can't stall it.
+    // WiFi auto-connect if credentials are stored (non-blocking).
+    Net::begin(prefs);
+
+    // Control loop on core 0; loop()/comms stay on core 1 and can't stall it.
     xTaskCreatePinnedToCore(controlTask, "servo", 4096, nullptr, configMAX_PRIORITIES - 2, nullptr, 0);
 
-    Serial.println("pet servo console ready");
-    printHelp();
+    Comms::broadcastLog(pw::LogLevel::INFO, "pet servo console ready");
 }
 
 void loop() {
-    pollSerial();
+    Comms::pollSerial();
+    Net::loop();
     walkSequencer();
 
     // Announce faults as they happen (servo auto-disables itself).
@@ -345,18 +466,28 @@ void loop() {
         uint8_t f = servos[i]->fault();
         if (f != lastFault[i]) {
             lastFault[i] = f;
-            if (f) Serial.printf("servo%d FAULT: %s — motor disabled\n", i + 1, servos[i]->faultName());
+            if (f) Comms::logf(pw::LogLevel::ERROR, "servo%d FAULT: %s — motor disabled",
+                               i + 1, servos[i]->faultName());
         }
     }
 
     static uint32_t lastPrint = 0;
     if (millis() - lastPrint >= 200) {
         lastPrint = millis();
-        if (streamStatus) printStatusLine();
+        if (streamStatus) {
+            flatbuffers::FlatBufferBuilder fbb(512);
+            auto st = buildStatus(fbb);
+            Comms::broadcast(fbb, pw::Msg::Status, st.Union());
+        }
         if (printRaw) {
-            Serial.printf("Encoder 1 angle: %.2f deg\tEncoder 2 angle: %.2f deg\n",
-                          encoder1.readAngle() * 360.0 / 4096.0,
-                          encoder2.readAngle() * 360.0 / 4096.0);
+            // Built inline (not logf) so the stream doesn't flood the boot log ring.
+            char buf[96];
+            snprintf(buf, sizeof(buf), "Encoder 1 angle: %.2f deg\tEncoder 2 angle: %.2f deg",
+                     encoder1.readAngle() * 360.0 / 4096.0,
+                     encoder2.readAngle() * 360.0 / 4096.0);
+            flatbuffers::FlatBufferBuilder fbb(256);
+            auto log = pw::CreateLogDirect(fbb, pw::LogLevel::INFO, buf);
+            Comms::broadcast(fbb, pw::Msg::Log, log.Union());
         }
     }
     delay(2);

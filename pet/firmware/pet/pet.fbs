@@ -1,0 +1,147 @@
+// pet.fbs — wire protocol for the pet walking robot.
+// One Packet per serial frame / per websocket binary message.
+// Serial framing: 0xBE 0xEF magic, u16 LE payload length, then the buffer.
+// Regenerate bindings with ../gen.sh after editing; commit the outputs.
+namespace pet.wire;
+
+// ---- enums ----
+
+// Which servo a command targets. BOTH applies to servo1 and servo2.
+enum Channel : byte { BOTH = 0, ONE = 1, TWO = 2 }
+
+// Numeric/parameter commands share a (channel, value) shape, so they collapse
+// into one table keyed by this verb. Keeps the union small.
+enum NumCmd : byte {
+  GOTO = 0,       // g  : moveToTurns(value), channel ONE|TWO
+  MOVE_BY = 1,    // r  : moveByTurns(value), channel ONE|TWO
+  MAX_SPEED = 2,  // v  : maxSpeedTps; value turns/sec, 0 = unlimited
+  MAX_PWM = 3,    // pwm: maxPwm cap, 0..255
+  MIN_PWM = 4,    // minpwm: stiction feedforward, 0..255
+  KP = 5,
+  KI = 6,
+  KD = 7,
+  SET_DIR = 8,      // dir: encoder feedback sign, value -1|+1, channel ONE|TWO
+  GROUND_SPEED = 9, // vg : speed over crank 0-180 deg from bottom (turns/sec), 0 = use MAX_SPEED
+  AIR_SPEED = 10    // va : speed over crank 180-360 deg (turns/sec), 0 = use MAX_SPEED
+}
+
+// Parameterless actions.
+enum SimpleCmd : byte {
+  STAND = 0,       // move both legs to nearest cycle bottom
+  ZERO = 1,        // z: zero both position counters
+  STOP = 2,        // x: disable both motors
+  ENC_HEALTH = 3,  // -> EncoderHealth reply
+  STATUS = 4,      // -> Status reply
+  RESET = 5,       // restart MCU
+  HELP = 6         // -> Log reply with command help
+}
+
+enum Toggle : byte { STATUS_STREAM = 0, RAW_STREAM = 1 }  // watch / raw
+
+enum LogLevel : byte { INFO = 0, WARN = 1, ERROR = 2 }
+
+// Note: enum value names must dodge Arduino core macros (e.g. DISABLED,
+// RISING, CHANGE in esp32-hal-gpio.h) — the preprocessor mangles even
+// scoped-enum members.
+enum WifiState : byte {
+  UNCONFIGURED = 0,  // no credentials stored
+  CONNECTING = 1,
+  CONNECTED = 2,
+  FAILED = 3         // credentials present but not associated
+}
+
+enum WalkPhase : byte { START = 0, LEADIN = 1, STEPPING = 2, LEADOUT = 3, DONE = 4, ABORTED = 5 }
+
+// ---- command tables (host -> robot) ----
+
+table NumberCmd { cmd:NumCmd; channel:Channel = BOTH; value:float; }
+
+table SimpleAction { cmd:SimpleCmd; }
+
+table Calibrate { channel:Channel = BOTH; }  // record cycle bottom (cal / cal n)
+
+// Open-loop pulse test: drive one motor, report both encoder deltas.
+table PulseCmd { channel:Channel; pwm:short; ms:short; }
+
+table ToggleCmd { which:Toggle; }
+
+// Walk n half-turn steps. phase_deg = crank phase offset between the legs
+// (180 = alternating gait, 0 = both in phase / pronk); wrapped into [0, 360).
+table WalkCmd { steps:int; phase_deg:float = 180.0; }
+
+// Connect & persist credentials. Empty/absent ssid = status query only.
+table WifiCmd { ssid:string; password:string; }
+
+// ---- response / event tables (robot -> host) ----
+
+// Generic confirmation for commands whose only result is "applied".
+table Ack { ok:bool = true; detail:string; }
+
+// Free-text: boot banner, faults, help, calibration confirmations, raw stream.
+table Log { level:LogLevel = INFO; text:string; }
+
+table ServoState {
+  channel:Channel;
+  enabled:bool;
+  fault:bool;
+  fault_name:string;       // only set when faulted
+  position_turns:float;
+  target_turns:float;
+  velocity_tps:float;
+  pwm:short;
+}
+
+// Reply to STATUS; also the periodic status stream (req_id 0 when streamed).
+table Status { servos:[ServoState]; }
+
+table EncoderInfo {
+  channel:Channel;
+  connected:bool;
+  magnet_detected:bool;
+  magnet_too_weak:bool;
+  magnet_too_strong:bool;
+  agc:ubyte;
+  magnitude:ushort;
+  angle_deg:float;
+}
+
+table EncoderHealth { encoders:[EncoderInfo]; }
+
+// Reply to PulseCmd.
+table PulseResult {
+  channel:Channel;
+  pwm:short;
+  ms:short;
+  enc1_delta_counts:long;
+  enc1_delta_turns:float;
+  enc2_delta_counts:long;
+  enc2_delta_turns:float;
+  cross_wired:bool;        // heuristic: other encoder moved much more
+}
+
+// Walk lifecycle, broadcast as the sequencer advances (req_id 0).
+table WalkEvent { phase:WalkPhase; steps:int; lead_servo:byte; }
+
+table WifiStatus {
+  state:WifiState;
+  ssid:string;             // configured SSID, may be empty
+  ip:string;               // dotted quad when CONNECTED
+  hostname:string;         // "bug" -> bug.local
+  rssi:short;              // dBm when connected
+  ws_clients:ubyte;
+}
+
+// ---- union + root ----
+
+union Msg {
+  NumberCmd, SimpleAction, Calibrate, PulseCmd, ToggleCmd, WalkCmd, WifiCmd,
+  Ack, Log, Status, EncoderHealth, PulseResult, WalkEvent, WifiStatus
+}
+
+table Packet {
+  req_id:uint = 0;   // echoed in the reply; 0 = async/broadcast event
+  msg:Msg;
+}
+
+root_type Packet;
+file_identifier "PET1";
