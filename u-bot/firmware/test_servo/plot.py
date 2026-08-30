@@ -10,16 +10,24 @@ was told to go, the error between them, the step rate the loop is asking for, an
 the slip between commanded pulses and observed motion. Slip is the one to watch
 -- it is the only panel that can tell you the motor didn't do as it was told.
 
+A control bar runs along the bottom for driving the axis by hand. Everything
+on it is a shortcut for a line the sketch already parses, so the bar cannot ask
+for a state the serial console couldn't: buttons for the toggles, a nudge pad,
+a target slider you can drag to jog the axis live, a vmax slider, and a cmd box
+that takes any word command (spin 400, jog 1000, kp 12, amp 0.5, ratio ...).
+
 Keys in the plot window are sent to the board:
 
   e  driver on/off       z  zero here          , .  nudge -/+0.05 turn
   l  loop on/off         f  clear fault        < >  nudge -/+0.25 turn
   c  calibrate           x  stop + disable     w    wiggle demo
   d  flip DIR            i  info banner        space pause stream   q quit
+  left/right nudge -/+0.05 turn, up/down -/+0.25 turn
 
 Usage:
   ./plot.py                             # /dev/cu.usbmodem2101 at 115200
   ./plot.py -p /dev/cu.usbmodem1101
+  ./plot.py --span 6                    # target slider reaches +/-6 turns
   ./plot.py --log run.csv               # tee the raw stream to a file
   ./plot.py --replay run.csv            # plot a capture instead of the board
 """
@@ -32,10 +40,14 @@ from collections import deque
 import matplotlib.pyplot as plt
 import serial
 from matplotlib.gridspec import GridSpec
+from matplotlib.widgets import Button, Slider, TextBox
 
 DEFAULT_PORT = "/dev/cu.usbmodem2101"
 BAUD = 115200
 COUNTS_PER_REV = 4096
+# The sketch clamps vmax here (measured on this axis: clean to 1.0 turns/s,
+# shedding steps by 2.76), so the slider stops where the board would anyway.
+VMAX_LIMIT = 2.0
 
 # STATUS bits and the flags byte, both matching test_servo.ino.
 MAGNET_HIGH, MAGNET_LOW, MAGNET_DETECT = 0x08, 0x10, 0x20
@@ -52,6 +64,15 @@ ERR_C = "#d95926"    # slot 2, orange
 RATE_C = "#199e70"   # slot 3, aqua
 SLIP_C = "#c98500"   # slot 4, yellow
 GOOD, WARNING, CRITICAL = "#0ca30c", "#fab219", "#d03b3b"
+# Controls sit a step off the surface so the bar reads as chrome, not data.
+CTRL, CTRL_HOVER, TRACK = "#262623", "#35352f", "#212120"
+
+
+def mix(a, b, t):
+    """Blend two #rrggbb colours; t=0 is all a, t=1 is all b."""
+    ai = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    bi = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#%02x%02x%02x" % tuple(round(x + (y - x) * t) for x, y in zip(ai, bi))
 
 
 def magnet_state(status):
@@ -129,10 +150,11 @@ class ReplaySource:
 class Scope:
     """The plot window: rolling buffers and the artists over them."""
 
-    def __init__(self, source, window=10.0, sample_hz=50, maxslip=200):
+    def __init__(self, source, window=10.0, sample_hz=50, maxslip=200, span=3.0):
         self.source = source
         self.window = window
         self.maxslip = maxslip
+        self.span = span
         size = int(window * sample_hz * 1.5)
         self.t = deque(maxlen=size)
         self.pos = deque(maxlen=size)
@@ -143,8 +165,19 @@ class Scope:
         self.latest = None
         self.note = "waiting for data..."
         self.bad_lines = 0
+        self.paused = False
+        self.vmax = None       # learned from the board's banner
         self._pending = []
         self._lock = threading.Lock()
+        # Slider bookkeeping: _echo suppresses the callback while we are the
+        # ones moving the handle, _sent_at throttles the stream of commands a
+        # drag would otherwise produce, and _queued is the value a throttled
+        # move still owes the board when the mouse comes up.
+        self._echo = False
+        self._sent_at = 0.0
+        self._queued = None
+        self.cmd = None         # the cmd box, once _build_controls has run
+        self._entered = False
         self._build()
 
     # ---- data ------------------------------------------------------------
@@ -167,6 +200,15 @@ class Scope:
                         self.maxslip = int(text.split("maxslip ")[1].split()[0])
                     except (ValueError, IndexError):
                         pass
+                # Same trick for vmax, so the speed slider starts where the
+                # board actually is rather than at some guess of ours.
+                if "vmax " in text:
+                    try:
+                        self.vmax = float(text.split("vmax ")[1].split()[0])
+                    except (ValueError, IndexError):
+                        pass
+                if text in ("paused", "streaming"):
+                    self.paused = text == "paused"
                 if text and not text.startswith("t_ms,"):
                     self.note = text
                 continue
@@ -210,10 +252,12 @@ class Scope:
         for key in [k for k in plt.rcParams if k.startswith("keymap.")]:
             plt.rcParams[key] = []
 
-        self.fig = plt.figure(figsize=(11.5, 7.5))
+        # Taller than the panels need: the bottom eighth is the control bar,
+        # and the note line moves up top so nothing sits under the widgets.
+        self.fig = plt.figure(figsize=(11.5, 8.6))
         self.fig.canvas.manager.set_window_title("stepper servo scope")
         gs = GridSpec(4, 2, width_ratios=[1, 2.2], hspace=0.40, wspace=0.16,
-                      left=0.04, right=0.97, top=0.92, bottom=0.07)
+                      left=0.04, right=0.97, top=0.905, bottom=0.195)
 
         self.ax_dial = self.fig.add_subplot(gs[0:2, 0], polar=True)
         self.ax_read = self.fig.add_subplot(gs[2:4, 0])
@@ -278,9 +322,16 @@ class Scope:
         self.readout = self.ax_read.text(0.0, 0.69, "", transform=self.ax_read.transAxes,
                                          va="top", ha="left", family="monospace",
                                          fontsize=9.5, color=INK_2, linespacing=1.75)
-        self.note_txt = self.fig.text(0.04, 0.012, "", color=MUTED, fontsize=8.5,
+        self.note_txt = self.fig.text(0.378, 0.955, "", color=MUTED, fontsize=8,
                                       family="monospace")
+
+        # Registered before the controls, so this runs ahead of the cmd box's
+        # own key handler -- the one chance to see an enter before the box acts.
         self.fig.canvas.mpl_connect("key_press_event", self._on_key)
+        self._build_controls()
+        # A throttled drag can end owing the board one last value; the button
+        # coming up is when we settle that debt.
+        self.fig.canvas.mpl_connect("button_release_event", self._on_release)
 
     def _build_dial(self):
         ax = self.ax_dial
@@ -314,6 +365,178 @@ class Scope:
         ax.tick_params(colors=MUTED, labelsize=8, length=3)
         if not bottom:
             ax.tick_params(labelbottom=False)
+
+    # ---- controls --------------------------------------------------------
+    # label, what to send, and the colour the button wears while that state is
+    # live. A None accent is a one-shot with no state to report back.
+    ACTIONS = [
+        ("driver", "e", GOOD),
+        ("loop", "l", POS_C),
+        ("wiggle", "w", SLIP_C),
+        ("calibrate", "c", None),
+        ("zero", "z", None),
+        ("clear fault", "f", CRITICAL),
+        ("flip DIR", "d", None),
+        ("pause", "p", WARNING),
+        ("info", "i", None),
+        ("STOP", "x", None),
+    ]
+    LIT_BY_FLAG = {"e": F_DRIVER, "l": F_LOOP, "w": F_WIGGLE, "f": F_FAULT}
+
+    def _build_controls(self):
+        """The bottom bar. Every widget sends a command the sketch already has."""
+        self._widgets = []          # widgets die if only their axes hold them
+        self.buttons, self.accents, self.lit = {}, {}, {}
+
+        # Row one: the toggles and one-shots, in the order the help text lists
+        # them, sized to their labels so the row fills the width evenly.
+        left, right, gap, h, row = 0.045, 0.968, 0.011, 0.032, 0.104
+        weights = [len(label) + 3 for label, _, _ in self.ACTIONS]
+        free = (right - left) - gap * (len(self.ACTIONS) - 1)
+        x = left
+        for (label, key, accent), weight in zip(self.ACTIONS, weights):
+            w = free * weight / sum(weights)
+            # STOP wears its warning at rest: it is the one to hit blind.
+            rest = mix(CRITICAL, SURFACE, 0.55) if key == "x" else CTRL
+            self.buttons[key] = self._button([x, row, w, h], label, key, rest)
+            self.accents[key] = accent
+            self.lit[key] = None
+            x += w + gap
+
+        # Row two: nudge pad, then the target itself. Dragging the slider
+        # streams goto at ~8 Hz, so the axis chases the handle as you move it.
+        row, h = 0.060, 0.028
+        pad = [("\u2212.25", "<"), ("\u2212.05", ","), ("\u2192 0", "goto 0\n"),
+               ("+.05", "."), ("+.25", ">")]
+        for i, (label, cmd) in enumerate(pad):
+            self._button([left + i * 0.055, row, 0.050, h], label, cmd, CTRL)
+        self.s_target = self._slider([0.395, row, 0.440, h], "target",
+                                     -self.span, self.span, 0.0, "%+.3f turns",
+                                     POS_C, 0.005)
+        self.s_target.on_changed(lambda v: self._slide("goto %.4f\n", v))
+
+        # Row three: how fast the loop is allowed to chase it, and a way in for
+        # every command that did not earn a button.
+        row, h = 0.016, 0.028
+        self.s_vmax = self._slider([0.115, row, 0.240, h], "vmax", 0.05,
+                                   VMAX_LIMIT, 0.5, "%.2f turns/s", RATE_C, 0.01)
+        self.s_vmax.on_changed(lambda v: self._slide("vmax %.3f\n", v))
+
+        ax = self.fig.add_axes([0.500, row, 0.330, h])
+        self.cmd = TextBox(ax, "cmd", color=CTRL, hovercolor=CTRL_HOVER)
+        self.cmd.label.set_color(MUTED)
+        self.cmd.label.set_fontsize(9)
+        self.cmd.text_disp.set_color(INK)
+        self.cmd.text_disp.set_fontsize(9)
+        self.cmd.cursor.set_color(INK)
+        for side in ax.spines.values():
+            side.set_color(AXIS)
+        self.cmd.on_submit(self._on_cmd)
+        self._widgets.append(self.cmd)
+        self.fig.text(0.845, row + h / 2, "\u21b5 sends \u00b7 esc frees the keys",
+                      color=MUTED, fontsize=7.5, va="center")
+
+    def _button(self, rect, label, cmd, rest):
+        ax = self.fig.add_axes(rect)
+        b = Button(ax, label, color=rest, hovercolor=CTRL_HOVER)
+        b.label.set_color(INK_2)
+        b.label.set_fontsize(8.5)
+        for side in ax.spines.values():
+            side.set_color(AXIS)
+        b.on_clicked(lambda _event, c=cmd: self._send(c))
+        self._widgets.append(b)
+        return b
+
+    def _slider(self, rect, label, lo, hi, init, fmt, color, step):
+        ax = self.fig.add_axes(rect, facecolor=SURFACE)
+        s = Slider(ax, label, lo, hi, valinit=init, valfmt=fmt, valstep=step,
+                   color=color, track_color=TRACK, initcolor="none",
+                   handle_style=dict(facecolor=INK, edgecolor=AXIS, size=11))
+        s.label.set_color(MUTED)
+        s.label.set_fontsize(9)
+        s.valtext.set_color(INK_2)
+        s.valtext.set_fontsize(9)
+        s.valtext.set_family("monospace")
+        self._widgets.append(s)
+        return s
+
+    # ---- sending ---------------------------------------------------------
+    def _send(self, text):
+        self._sent_at = time.monotonic()
+        try:
+            self.source.send(text)
+        except Exception as exc:  # port yanked mid-run
+            self.note = f"send failed: {exc}"
+
+    def _slide(self, fmt, value):
+        """Slider moved. Rate-limit the wire; the rest is settled on release."""
+        if self._echo:
+            return
+        if time.monotonic() - self._sent_at >= 0.12:
+            self._queued = None
+            self._send(fmt % value)
+        else:
+            self._queued = fmt % value
+
+    def _on_release(self, _event):
+        if self._queued is not None:
+            cmd, self._queued = self._queued, None
+            self._send(cmd)
+
+    def _on_cmd(self, text):
+        # A TextBox submits on the way out as well as on enter, so clicking off
+        # it -- or hitting escape -- would fire whatever was half-typed at the
+        # motor. Only a keystroke we saw ourselves counts as meaning it.
+        entered, self._entered = self._entered, False
+        text = text.strip()
+        self.cmd.eventson = False       # set_val re-fires submit otherwise
+        self.cmd.set_val("")
+        self.cmd.cursor_index = 0
+        self.cmd.eventson = True
+        if not entered or not text:
+            return
+        # A bare number is a target on the board, but only an unsigned one --
+        # and a leading '.' would be eaten as the nudge key. Spell it out.
+        try:
+            text = f"goto {float(text):g}"
+        except ValueError:
+            pass
+        self._send(text + "\n")
+
+    def _follow(self, slider, value):
+        """Move a handle to the board's value without echoing it back."""
+        v = min(max(value, slider.valmin), slider.valmax)
+        if abs(v - slider.val) < 1e-4:
+            return
+        self._echo = True
+        try:
+            slider.set_val(v)
+        finally:
+            self._echo = False
+
+    def _refresh_controls(self, s):
+        """Light the toggles from the flags byte -- the board's word, not ours."""
+        lit = {key: bool(s["flags"] & bit) for key, bit in self.LIT_BY_FLAG.items()}
+        lit["p"] = self.paused
+        for key, on in lit.items():
+            if self.lit[key] == on:
+                continue
+            self.lit[key] = on
+            b = self.buttons[key]
+            fill = mix(self.accents[key], SURFACE, 0.40) if on else CTRL
+            b.color = fill
+            b.hovercolor = fill if on else CTRL_HOVER
+            b.ax.set_facecolor(fill)
+            b.label.set_color(INK if on else INK_2)
+
+        # Follow the board while the user is not the one moving the handle, and
+        # not so soon after a send that our own echo would fight the drag.
+        if time.monotonic() - self._sent_at < 0.5:
+            return
+        if not self.s_target.drag_active:
+            self._follow(self.s_target, s["target"])
+        if self.vmax is not None and not self.s_vmax.drag_active:
+            self._follow(self.s_vmax, self.vmax)
 
     # ---- redraw ----------------------------------------------------------
     def update(self, _frame=None):
@@ -383,6 +606,7 @@ class Scope:
             f"raw angle  {s['enc']:>9} / 4096\n"
             f"stream     {self._rate_hz():>9.1f} Hz  bad {self.bad_lines}"
         )
+        self._refresh_controls(s)
         self.note_txt.set_text(self.note)
         return ()
 
@@ -399,19 +623,27 @@ class Scope:
         ax.set_ylim(mid - span * 0.65, mid + span * 0.65)
 
     # ---- input -----------------------------------------------------------
-    KEYS = set("elcdzfxwi,.<>")
+    KEYS = set("elcdzfxwpih?,.<>")
+    # Arrows are the nudge pad without the mouse: a turn of the wheel is far
+    # enough that 0.05 and 0.25 are the two sizes worth having on one hand.
+    ARROWS = {"left": ",", "right": ".", "down": "<", "up": ">",
+              "shift+left": "<", "shift+right": ">", " ": "p"}
 
     def _on_key(self, event):
+        # The cmd box owns the keyboard while it has focus, or every character
+        # typed into it would also go down the wire as a command of its own.
+        if getattr(self.cmd, "capturekeystrokes", False):
+            self._entered = event.key in ("enter", "return")
+            if event.key == "escape":
+                self.cmd.stop_typing()   # discards the line, see _on_cmd
+            return
         if event.key == "q":
             plt.close(self.fig)
             return
-        key = "p" if event.key == " " else event.key
-        if key not in self.KEYS and key != "p":
+        key = self.ARROWS.get(event.key, event.key)
+        if key not in self.KEYS:
             return
-        try:
-            self.source.send(key)
-        except Exception as exc:  # port yanked mid-run
-            self.note = f"send failed: {exc}"
+        self._send(key)
 
 
 def main():
@@ -420,6 +652,8 @@ def main():
     ap.add_argument("-b", "--baud", type=int, default=BAUD)
     ap.add_argument("-w", "--window", type=float, default=10.0,
                     help="seconds of history on the strip charts (default 10)")
+    ap.add_argument("--span", type=float, default=3.0,
+                    help="target slider reach in output turns (default +/-3)")
     ap.add_argument("--log", metavar="FILE", help="tee every received line to FILE")
     ap.add_argument("--replay", metavar="FILE", help="plot a capture ('-' for stdin)")
     ap.add_argument("--speed", type=float, default=1.0, help="replay speed multiplier")
@@ -440,7 +674,7 @@ def main():
         import matplotlib
         matplotlib.use("Agg")
 
-    scope = Scope(source, window=args.window)
+    scope = Scope(source, window=args.window, span=args.span)
     log = open(args.log, "w") if args.log else None
     done = threading.Event()
 
