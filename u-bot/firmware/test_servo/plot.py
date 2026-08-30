@@ -5,10 +5,18 @@
 # ///
 """Live scope for the closed-loop stepper servo sketch (test_servo.ino).
 
-Four measures, four panels, one series each: where the shaft is against where it
-was told to go, the error between them, the step rate the loop is asking for, and
-the slip between commanded pulses and observed motion. Slip is the one to watch
--- it is the only panel that can tell you the motor didn't do as it was told.
+Two wheels, one driver so far. Wheel A is the servo -- driver, encoder and the
+whole loop. Wheel B is an encoder only, on the bit-banged bus, so it reads as a
+dial and a trace and nothing more until it gets a driver of its own.
+
+Four measures, four panels: where wheel A is against where it was told to go,
+the error between them, the step rate the loop is asking for, and the slip
+between commanded pulses and observed motion. Slip is the one to watch -- it is
+the only panel that can tell you the motor didn't do as it was told. Wheel B
+rides along on the position panel, which is the only measure it has.
+
+Columns come from the header line the sketch prints at boot, indexed by name --
+so the board can grow columns without this needing a matching edit.
 
 A control bar runs along the bottom for driving the axis by hand. Everything
 on it is a shortcut for a line the sketch already parses, so the bar cannot ask
@@ -32,6 +40,7 @@ Usage:
   ./plot.py --replay run.csv            # plot a capture instead of the board
 """
 import argparse
+import math
 import sys
 import threading
 import time
@@ -51,7 +60,11 @@ VMAX_LIMIT = 2.0
 
 # STATUS bits and the flags byte, both matching test_servo.ino.
 MAGNET_HIGH, MAGNET_LOW, MAGNET_DETECT = 0x08, 0x10, 0x20
-F_DRIVER, F_LOOP, F_AT, F_FAULT, F_WIGGLE = 0x01, 0x02, 0x04, 0x08, 0x10
+F_DRIVER, F_LOOP, F_AT, F_FAULT, F_WIGGLE, F_ENCB = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
+
+# What a sketch that never printed a header line is assumed to be sending. Only
+# old captures reach this: the board announces its columns at boot.
+LEGACY_COLUMNS = "t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags".split(",")
 
 # Dark chart surface, same palette as test_encoder/plot.py: categorical slots
 # 1-4 stepped for a dark surface. Each panel holds one series and its title
@@ -63,6 +76,7 @@ POS_C = "#3987e5"    # slot 1, blue
 ERR_C = "#d95926"    # slot 2, orange
 RATE_C = "#199e70"   # slot 3, aqua
 SLIP_C = "#c98500"   # slot 4, yellow
+WHEEL_B = "#9d6ee8"  # slot 5, violet -- the second wheel, wherever both appear
 GOOD, WARNING, CRITICAL = "#0ca30c", "#fab219", "#d03b3b"
 # Controls sit a step off the surface so the bar reads as chrome, not data.
 CTRL, CTRL_HOVER, TRACK = "#262623", "#35352f", "#212120"
@@ -75,14 +89,24 @@ def mix(a, b, t):
     return "#%02x%02x%02x" % tuple(round(x + (y - x) * t) for x, y in zip(ai, bi))
 
 
+def num(row, name, cast=float, default=0):
+    """One named field, or `default` if this firmware doesn't send it."""
+    text = row.get(name)
+    return default if text is None else cast(text)
+
+
+def hexint(text):
+    return int(text, 16)
+
+
 def magnet_state(status):
     if not status & MAGNET_DETECT:
         return "no magnet", CRITICAL
     if status & MAGNET_LOW:
-        return "too weak", WARNING
+        return "magnet too weak", WARNING
     if status & MAGNET_HIGH:
-        return "too strong", WARNING
-    return "ok", GOOD
+        return "magnet too strong", WARNING
+    return "magnet ok", GOOD
 
 
 class SerialSource:
@@ -162,6 +186,8 @@ class Scope:
         self.err = deque(maxlen=size)
         self.rate = deque(maxlen=size)
         self.slip = deque(maxlen=size)
+        self.bpos = deque(maxlen=size)
+        self.columns = LEGACY_COLUMNS
         self.latest = None
         self.note = "waiting for data..."
         self.bad_lines = 0
@@ -209,32 +235,44 @@ class Scope:
                         pass
                 if text in ("paused", "streaming"):
                     self.paused = text == "paused"
-                if text and not text.startswith("t_ms,"):
+                # The sketch names its own columns; take it at its word rather
+                # than counting on a fixed order that is about to change again.
+                if text.startswith("t_ms,"):
+                    self.columns = text.split(",")
+                    continue
+                if text:
                     self.note = text
                 continue
             parts = line.split(",")
-            if len(parts) != 12:
+            if len(parts) != len(self.columns):
                 self.bad_lines += 1
                 continue
+            row = dict(zip(self.columns, parts))
             try:
-                t_ms = int(parts[0])
-                pos, target = float(parts[1]), float(parts[2])
-                err, vel = int(parts[3]), float(parts[4])
-                steps, rate, slip = int(parts[5]), float(parts[6]), int(parts[7])
-                enc, agc = int(parts[8]), int(parts[9])
-                status, flags = int(parts[10], 16), int(parts[11], 16)
-            except ValueError:
+                s = dict(
+                    pos=num(row, "pos"), target=num(row, "target"),
+                    err=num(row, "err", int), vel=num(row, "vel"),
+                    steps=num(row, "steps", int), rate=num(row, "rate"),
+                    slip=num(row, "slip", int), enc=num(row, "enc", int),
+                    agc=num(row, "agc", int), status=num(row, "status", hexint),
+                    flags=num(row, "flags", hexint),
+                    bpos=num(row, "bpos"), bvel=num(row, "bvel"),
+                    benc=num(row, "benc", int), bagc=num(row, "bagc", int),
+                    bstatus=num(row, "bstatus", hexint),
+                    busus=num(row, "busus", int),
+                )
+                t_ms = int(row["t_ms"])
+            except (KeyError, ValueError):
                 self.bad_lines += 1
                 continue
             self.t.append(t_ms / 1000.0)
-            self.pos.append(pos)
-            self.target.append(target)
-            self.err.append(err)
-            self.rate.append(rate)
-            self.slip.append(slip)
-            self.latest = dict(pos=pos, target=target, err=err, vel=vel, steps=steps,
-                               rate=rate, slip=slip, enc=enc, agc=agc,
-                               status=status, flags=flags)
+            self.pos.append(s["pos"])
+            self.target.append(s["target"])
+            self.err.append(s["err"])
+            self.rate.append(s["rate"])
+            self.slip.append(s["slip"])
+            self.bpos.append(s["bpos"])
+            self.latest = s
 
     def _rate_hz(self):
         if len(self.t) < 2:
@@ -254,35 +292,50 @@ class Scope:
 
         # Taller than the panels need: the bottom eighth is the control bar,
         # and the note line moves up top so nothing sits under the widgets.
-        self.fig = plt.figure(figsize=(11.5, 8.6))
-        self.fig.canvas.manager.set_window_title("stepper servo scope")
-        gs = GridSpec(4, 2, width_ratios=[1, 2.2], hspace=0.40, wspace=0.16,
-                      left=0.04, right=0.97, top=0.905, bottom=0.195)
+        self.fig = plt.figure(figsize=(12.2, 8.8))
+        self.fig.canvas.manager.set_window_title("u-bot wheel scope")
+        gs = GridSpec(4, 2, width_ratios=[1.2, 2.2], hspace=0.40, wspace=0.16,
+                      left=0.035, right=0.97, top=0.905, bottom=0.195)
 
-        self.ax_dial = self.fig.add_subplot(gs[0:2, 0], polar=True)
+        # The two dials share the cell the single one used to have. They are the
+        # per-wheel readout now: magnet health belongs under the dial it
+        # describes, because with two encoders one shared line could only ever
+        # be ambiguous about which of them is complaining.
+        from matplotlib.gridspec import GridSpecFromSubplotSpec
+        dials = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0:2, 0], wspace=0.30)
+        self.ax_dial_a = self.fig.add_subplot(dials[0], polar=True)
+        self.ax_dial_b = self.fig.add_subplot(dials[1], polar=True)
         self.ax_read = self.fig.add_subplot(gs[2:4, 0])
         self.ax_pos = self.fig.add_subplot(gs[0, 1])
         self.ax_err = self.fig.add_subplot(gs[1, 1], sharex=self.ax_pos)
         self.ax_rate = self.fig.add_subplot(gs[2, 1], sharex=self.ax_pos)
         self.ax_slip = self.fig.add_subplot(gs[3, 1], sharex=self.ax_pos)
 
-        self._build_dial()
+        self.dial_a = self._build_dial(self.ax_dial_a, "wheel A", POS_C, True)
+        self.dial_b = self._build_dial(self.ax_dial_b, "wheel B", WHEEL_B, False)
+        # Only wheel A has a driver, so three of the four panels are about it
+        # alone -- say so, now that there is a second wheel on screen to confuse
+        # them with. The position panel carries both and names them in its legend.
         for ax, title in ((self.ax_pos, "position (output turns)"),
-                          (self.ax_err, "error (encoder counts)"),
-                          (self.ax_rate, "step rate (steps/s)"),
-                          (self.ax_slip, "slip (steps commanded but not moved)")):
+                          (self.ax_err, "wheel A error (encoder counts)"),
+                          (self.ax_rate, "wheel A step rate (steps/s)"),
+                          (self.ax_slip, "wheel A slip (steps commanded but not moved)")):
             self._style_strip(ax, title, bottom=(ax is self.ax_slip))
 
-        # Position panel carries two marks, so both are named rather than left
-        # to colour: the target is a reference, drawn dashed and recessive.
+        # The one panel where hue has to carry identity, so everything on it is
+        # named in the legend: A's target is a reference, drawn dashed and
+        # recessive, and B is here because position is the only measure it has.
         self.line_target, = self.ax_pos.plot([], [], lw=1.4, color=MUTED, ls="--",
-                                             label="target")
+                                             label="A target")
         self.line_pos, = self.ax_pos.plot([], [], lw=2, color=POS_C,
-                                          solid_capstyle="round", label="position")
+                                          solid_capstyle="round", label="wheel A")
+        self.line_bpos, = self.ax_pos.plot([], [], lw=2, color=WHEEL_B,
+                                           solid_capstyle="round", label="wheel B")
         leg = self.ax_pos.legend(loc="upper left", frameon=False, fontsize=8,
-                                 labelcolor=INK_2, handlelength=1.6, ncols=2,
+                                 labelcolor=INK_2, handlelength=1.6, ncols=3,
                                  borderpad=0, handletextpad=0.5, columnspacing=1.2)
         leg.set_zorder(6)
+        self.leg_b = (leg.legend_handles[2], leg.get_texts()[2])
 
         self.line_err, = self.ax_err.plot([], [], lw=2, color=ERR_C, solid_capstyle="round")
         self.line_rate, = self.ax_rate.plot([], [], lw=2, color=RATE_C, solid_capstyle="round")
@@ -315,14 +368,10 @@ class Scope:
                                            va="center", ha="left", fontsize=13, color=MUTED)
         self.fault_txt = self.ax_read.text(0.075, 0.87, "", transform=self.ax_read.transAxes,
                                            va="center", ha="left", fontsize=10, color=INK)
-        self.magnet_dot = self.ax_read.text(0.0, 0.79, "", transform=self.ax_read.transAxes,
-                                            va="center", ha="left", fontsize=13, color=MUTED)
-        self.magnet_txt = self.ax_read.text(0.075, 0.79, "", transform=self.ax_read.transAxes,
-                                            va="center", ha="left", fontsize=10, color=INK)
-        self.readout = self.ax_read.text(0.0, 0.69, "", transform=self.ax_read.transAxes,
+        self.readout = self.ax_read.text(0.0, 0.74, "", transform=self.ax_read.transAxes,
                                          va="top", ha="left", family="monospace",
                                          fontsize=9.5, color=INK_2, linespacing=1.75)
-        self.note_txt = self.fig.text(0.378, 0.955, "", color=MUTED, fontsize=8,
+        self.note_txt = self.fig.text(0.395, 0.955, "", color=MUTED, fontsize=8,
                                       family="monospace")
 
         # Registered before the controls, so this runs ahead of the cmd box's
@@ -333,26 +382,63 @@ class Scope:
         # coming up is when we settle that debt.
         self.fig.canvas.mpl_connect("button_release_event", self._on_release)
 
-    def _build_dial(self):
-        ax = self.ax_dial
-        ax.set_title("shaft angle within the turn", color=INK_2, fontsize=10, pad=14)
+    def _build_dial(self, ax, title, color, target_needle):
+        """One wheel's dial: angle within the turn, plus that wheel's health."""
+        ax.set_title(title, color=INK_2, fontsize=10, pad=10)
         ax.set_theta_zero_location("N")
         ax.set_theta_direction(-1)
         ax.set_ylim(0, 1)
         ax.set_yticklabels([])
         ax.set_xticks([0, 1.5707963, 3.1415927, 4.712389])
-        ax.set_xticklabels(["0", "90", "180", "270"], color=MUTED, fontsize=8)
+        # Grid at all four quarters, but only the vertical pair is labelled:
+        # side labels on adjacent dials collide in the gap between them.
+        ax.set_xticklabels(["0", "", "180", ""], color=MUTED, fontsize=7.5)
         ax.grid(color=GRID, lw=0.6)
         ax.spines["polar"].set_color(AXIS)
-        ax.tick_params(pad=1)
-        self.needle_t, = ax.plot([0, 0], [0, 0.86], lw=1.4, color=MUTED, ls="--")
-        self.needle, = ax.plot([0, 0], [0, 0.86], lw=2, color=POS_C, solid_capstyle="round")
-        self.needle_tip, = ax.plot([0], [0.86], marker="o", ms=8, color=POS_C)
+        ax.tick_params(pad=0)
+        d = {"color": color}
+        # Only the servo wheel has a target to point at; B's stays hidden until
+        # it has a driver that could chase one.
+        d["target"] = ax.plot([0, 0], [0, 0.86], lw=1.3, color=MUTED, ls="--",
+                              visible=target_needle)[0]
+        d["needle"] = ax.plot([0, 0], [0, 0.86], lw=2, color=color,
+                              solid_capstyle="round")[0]
+        d["tip"] = ax.plot([0], [0.86], marker="o", ms=7, color=color)[0]
         # The hub sits on the surface colour so the needle passes behind the
         # value rather than striking through it.
-        self.dial_hero = ax.text(0.5, 0.5, "--", transform=ax.transAxes, ha="center",
-                                 va="center", fontsize=19, color=INK, zorder=5,
-                                 bbox=dict(facecolor=SURFACE, edgecolor="none", pad=5))
+        d["hero"] = ax.text(0.5, 0.5, "--", transform=ax.transAxes, ha="center",
+                            va="center", fontsize=15, color=INK, zorder=5,
+                            bbox=dict(facecolor=SURFACE, edgecolor="none", pad=4))
+        d["magnet"] = ax.text(0.5, -0.17, "", transform=ax.transAxes, ha="center",
+                              va="top", fontsize=8.5, color=MUTED)
+        d["raw"] = ax.text(0.5, -0.30, "", transform=ax.transAxes, ha="center",
+                           va="top", fontsize=8, color=MUTED, family="monospace")
+        return d
+
+    def _update_dial(self, d, turns, raw, agc, status, live, target=None):
+        theta = (turns % 1.0) * math.tau
+        d["needle"].set_data([theta, theta], [0, 0.86])
+        d["tip"].set_data([theta], [0.86])
+        if target is not None:
+            t = (target % 1.0) * math.tau
+            d["target"].set_data([t, t], [0, 0.86])
+        d["hero"].set_text(f"{turns:+.3f}")
+        # A wheel that is not answering shows the last angle it gave, greyed:
+        # a stale needle at full strength is indistinguishable from a stopped
+        # one, which is the confusion worth designing out.
+        ink = d["color"] if live else mix(d["color"], SURFACE, 0.72)
+        d["needle"].set_color(ink)
+        d["tip"].set_color(ink)
+        d["hero"].set_color(INK if live else MUTED)
+        if not live:
+            d["magnet"].set_text("not responding")
+            d["magnet"].set_color(CRITICAL)
+            d["raw"].set_text("--")
+            return
+        label, color = magnet_state(status)
+        d["magnet"].set_text(label)
+        d["magnet"].set_color(color)
+        d["raw"].set_text(f"{raw:>4} / 4096   agc {agc}")
 
     def _style_strip(self, ax, title, bottom):
         ax.set_title(title, color=INK_2, fontsize=10, loc="left", pad=6)
@@ -553,14 +639,22 @@ class Scope:
         err = list(self.err)[first:]
         rate = list(self.rate)[first:]
         slip = list(self.slip)[first:]
+        bpos = list(self.bpos)[first:]
 
         self.line_pos.set_data(x, pos)
         self.line_target.set_data(x, target)
+        self.line_bpos.set_data(x, bpos)
         self.line_err.set_data(x, err)
         self.line_rate.set_data(x, rate)
         self.line_slip.set_data(x, slip)
         self.ax_pos.set_xlim(-self.window, 0)
-        self._fit(self.ax_pos, pos + target, floor=0.05)
+        b_live = bool(self.latest["flags"] & F_ENCB)
+        self.line_bpos.set_visible(b_live)
+        for artist in self.leg_b:
+            artist.set_alpha(1.0 if b_live else 0.3)
+        # B only earns a say in the shared scale while it is actually reporting,
+        # or a dead wheel parked at zero would stretch the axis around nothing.
+        self._fit(self.ax_pos, pos + target + (bpos if b_live else []), floor=0.05)
         self._fit(self.ax_err, err, floor=20.0, symmetric=True)
         self._fit(self.ax_rate, rate, floor=100.0, symmetric=True)
         self._fit(self.ax_slip, slip + [self.maxslip * 1.1, -self.maxslip * 1.1],
@@ -572,12 +666,10 @@ class Scope:
 
         s = self.latest
         # Dial in the same zeroed frame as the target, so both needles agree.
-        theta = (s["pos"] % 1.0) * 2 * 3.14159265
-        theta_t = (s["target"] % 1.0) * 2 * 3.14159265
-        self.needle.set_data([theta, theta], [0, 0.86])
-        self.needle_tip.set_data([theta], [0.86])
-        self.needle_t.set_data([theta_t, theta_t], [0, 0.86])
-        self.dial_hero.set_text(f"{s['pos']:+.3f}")
+        self._update_dial(self.dial_a, s["pos"], s["enc"], s["agc"], s["status"],
+                          live=True, target=s["target"])
+        self._update_dial(self.dial_b, s["bpos"], s["benc"], s["bagc"],
+                          s["bstatus"], live=b_live)
 
         f = s["flags"]
         chips = [("driver", f & F_DRIVER), ("loop", f & F_LOOP),
@@ -590,20 +682,20 @@ class Scope:
         self.fault_dot.set_color(CRITICAL if faulted else GOOD)
         self.fault_txt.set_text("FAULT: slip" if faulted else "no fault")
 
-        label, color = magnet_state(s["status"])
-        self.magnet_dot.set_text("●")
-        self.magnet_dot.set_color(color)
-        self.magnet_txt.set_text(f"magnet {label}  (agc {s['agc']})")
-
+        # Position, raw angle and magnet health live on the dials now; what is
+        # left here is the servo, which is still wheel A alone -- plus what the
+        # bit-banged bus is costing, the one number worth watching while wheel B
+        # is new.
+        bus = f"{s['busus']:>9} us" if b_live else f"{'--':>9}   "
         self.readout.set_text(
-            f"position   {s['pos']:>+9.4f} turns\n"
             f"target     {s['target']:>+9.4f} turns\n"
             f"error      {s['err']:>+9} counts ({s['err'] * 360.0 / COUNTS_PER_REV:+.2f}\N{DEGREE SIGN})\n"
-            f"speed      {s['vel']:>+9.3f} turns/s\n"
             f"step rate  {s['rate']:>+9.0f} steps/s\n"
             f"steps      {s['steps']:>+9}\n"
             f"slip       {s['slip']:>+9} steps\n"
-            f"raw angle  {s['enc']:>9} / 4096\n"
+            f"speed A    {s['vel']:>+9.3f} turns/s\n"
+            f"speed B    {s['bvel']:>+9.3f} turns/s\n"
+            f"B soft bus {bus}  worst read\n"
             f"stream     {self._rate_hz():>9.1f} Hz  bad {self.bad_lines}"
         )
         self._refresh_controls(s)

@@ -14,11 +14,17 @@
 //   speed ceiling  clean to 1.0 turns/s, marginal by 2.0, sheds steps at 2.76
 //
 // Wiring, XIAO ESP32-C6:
-//   TMC2209 EN   -> D0 / GPIO0     AS5600 SDA -> D4 / GPIO22
-//   TMC2209 STEP -> D1 / GPIO1     AS5600 SCL -> D5 / GPIO23
-//   TMC2209 DIR  -> D2 / GPIO2     AS5600 VCC -> 3V3, GND -> GND
+//   TMC2209 EN   -> D0 / GPIO0     wheel A AS5600 SDA -> D4 / GPIO22
+//   TMC2209 STEP -> D1 / GPIO1     wheel A AS5600 SCL -> D5 / GPIO23
+//   TMC2209 DIR  -> D2 / GPIO2     wheel B AS5600 SDA -> D9 / GPIO20
+//   both AS5600  -> 3V3, GND       wheel B AS5600 SCL -> D8 / GPIO19
 // EN is active low on the TMC2209, so the pin is parked high and the driver
 // boots disabled. Motor power is separate: nothing turns until it is connected.
+//
+// Wheel B is an encoder only: there is one driver on the bench, so only wheel A
+// is a servo. B rides a bit-banged I2C bus because the AS5600's address is fixed
+// at 0x36 and the C6's second I2C controller is LP_I2C, which can only live on
+// GPIO6/7 -- pins the XIAO does not break out. See AS5600Soft.h.
 //
 // Start here:
 //   e        enable the driver
@@ -26,12 +32,16 @@
 //   l        close the loop
 //   0.5      go to half an output turn (a bare number is a target in turns)
 //
-// One CSV sample per line at SAMPLE_HZ for plot.py; '#' lines are notes:
-//   t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags
+// One CSV sample per line at SAMPLE_HZ for plot.py; '#' lines are notes. The
+// column header is printed once at boot and plot.py indexes by name, so adding
+// a column here does not need a matching edit over there:
+//   t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,
+//   bpos,bvel,benc,bagc,bstatus,busus
 
 #include <AS5600.h>
 #include <Wire.h>
 
+#include "AS5600Soft.h"
 #include "StepGen.h"
 #include "StepperServo.h"
 
@@ -44,6 +54,10 @@ static const uint32_t CONTROL_US   = 1000000UL / CONTROL_HZ;
 static const uint8_t PIN_EN   = D0;
 static const uint8_t PIN_STEP = D1;
 static const uint8_t PIN_DIR  = D2;
+
+// Wheel B's encoder, on the bit-banged bus.
+static const uint8_t PIN_B_SDA = D9;  // GPIO20
+static const uint8_t PIN_B_SCL = D8;  // GPIO19
 
 // Drivetrain, from u-bot.scad: drive_teeth=12 on the motor, wheel_teeth=40 on
 // the output shaft, so the motor turns 40/12 times per output turn.
@@ -83,10 +97,68 @@ static const uint8_t F_LOOP   = 0x02;
 static const uint8_t F_AT     = 0x04;
 static const uint8_t F_FAULT  = 0x08;
 static const uint8_t F_WIGGLE = 0x10;
+static const uint8_t F_ENCB   = 0x20;  // wheel B's encoder answered this tick
+
+// Multiturn tracking for an encoder with no servo behind it yet: the same
+// wrap-and-accumulate StepperServo::readEncoder does, without the control loop.
+// Wheel B gets this until it has a driver of its own.
+struct EncoderTrack {
+  int32_t counts = 0;      // multiturn, output shaft
+  float vel = 0;           // counts/s, filtered the same way the servo does
+  uint16_t raw = 0;
+  bool ok = false;
+  uint32_t worstUs = 0;    // worst read since boot
+  uint32_t recentUs = 0;   // worst since the last sample line, then reset
+  uint32_t retryMs = 0;
+
+  void begin(AS5600 &e) {
+    raw = e.readAngle();
+    ok = e.lastError() == AS5600_OK;
+    counts = 0;
+  }
+
+  void update(AS5600 &e, float dt) {
+    // A missing or miswired encoder must not cost the control loop a
+    // millisecond every tick: with no pull-ups SCL never rises and each read
+    // burns the full stretch timeout. Back off to 10 Hz until it answers.
+    if (!ok && (int32_t)(millis() - retryMs) < 0) return;
+
+    uint32_t t0 = micros();
+    uint16_t r = e.readAngle();
+    uint32_t took = micros() - t0;
+    if (took > worstUs) worstUs = took;
+    if (took > recentUs) recentUs = took;
+
+    ok = e.lastError() == AS5600_OK;
+    if (!ok) {
+      retryMs = millis() + 100;
+      return;  // hold position rather than jump on a dropped byte
+    }
+    int16_t d = (int16_t)((r - raw) & 0x0FFF);
+    if (d > 2048) d -= 4096;
+    raw = r;
+    counts += d;
+    if (dt > 0) vel += 0.1f * ((float)d / dt - vel);  // ~17 Hz at 1 kHz
+  }
+
+  void zero() { counts = 0; }
+  float turns() const { return (float)counts / StepperServo::COUNTS_PER_REV; }
+  float tps() const { return vel / StepperServo::COUNTS_PER_REV; }
+  uint32_t takeRecent() { uint32_t v = recentUs; recentUs = 0; return v; }
+};
 
 AS5600 enc;
+AS5600Soft encB(PIN_B_SDA, PIN_B_SCL);
 StepGen gen;
 StepperServo servo(enc, gen);
+EncoderTrack trackB;
+
+// Magnet health is polled slowly and cached. It cannot change fast, and on the
+// bit-banged bus each of these reads costs as much as an angle read does -- at
+// the sample rate they would be the most expensive thing in the loop.
+static const uint32_t HEALTH_US = 500000;
+static uint32_t nextHealth  = 0;
+static uint8_t  agcA = 0, statusA = 0, agcB = 0, statusB = 0;
 
 static bool     streaming   = true;
 static uint32_t nextSample  = 0;
@@ -105,6 +177,14 @@ static char line[64];
 static uint8_t lineLen = 0;
 
 // ---------------------------------------------------------------- reporting
+
+// Refresh the cached magnet health for both encoders.
+static void pollHealth() {
+  statusA = enc.readStatus();
+  agcA = enc.readAGC();
+  statusB = encB.readStatus();
+  agcB = encB.readAGC();
+}
 
 static const char *magnetText(uint8_t status) {
   if (!(status & MAGNET_DETECT)) return "none";
@@ -141,8 +221,18 @@ static void printInfo() {
                 (long)servo.tolCounts, (long)servo.slipLimit);
   Serial.printf("# step rate ceiling %.0f steps/s = %.2f out turns/s\n",
                 gen.maxRate(), gen.maxRate() / stepsPerOutRev());
-  Serial.printf("# magnet %s, agc %u (0..128 on 3V3, aim for ~64), magnitude %u\n",
-                magnetText(enc.readStatus()), enc.readAGC(), enc.readMagnitude());
+  Serial.printf("# wheel A magnet %s, agc %u (0..128 on 3V3, aim for ~64),"
+                " magnitude %u\n",
+                magnetText(statusA), agcA, enc.readMagnitude());
+  Serial.printf("# wheel B on bit-banged I2C SDA=GPIO%u SCL=GPIO%u: %s,"
+                " magnet %s, agc %u\n",
+                PIN_B_SDA, PIN_B_SCL,
+                trackB.ok ? "responding" : "NOT RESPONDING",
+                magnetText(statusB), agcB);
+  Serial.printf("# wheel B pos %.4f turns, worst soft-bus read %lu us"
+                " (%.0f%% of the %lu us control tick)\n",
+                trackB.turns(), (unsigned long)trackB.worstUs,
+                100.0f * trackB.worstUs / CONTROL_US, (unsigned long)CONTROL_US);
 }
 
 static void printHelp() {
@@ -243,8 +333,9 @@ static void doImmediate(char c) {
       break;
     case 'z':
       servo.zeroHere();
+      trackB.zero();
       wiggleBase = 0;
-      Serial.println(F("# position zeroed here"));
+      Serial.println(F("# both wheels zeroed here"));
       break;
     case 'f':
       servo.clearFault();
@@ -271,7 +362,10 @@ static void doImmediate(char c) {
       Serial.printf("# %s\n", streaming ? "streaming" : "paused");
       if (streaming) nextSample = micros();
       break;
-    case 'i': printInfo(); break;
+    case 'i':
+      pollHealth();  // an explicit ask deserves a fresh read, not the cache
+      printInfo();
+      break;
     case 'h':
     case '?': printHelp(); break;
     default: Serial.printf("# unknown key '%c', h for help\n", c); break;
@@ -399,15 +493,29 @@ void setup() {
     waited += 100;
   }
 
+  // Wheel B is not fatal: it has no driver yet, so the bench is still useful
+  // without it. Say so once and carry on.
+  bool bOk = encB.begin();
+  encB.setDirection(AS5600_CLOCK_WISE);
+  if (!bOk) {
+    Serial.printf("# no AS5600 answering on the bit-banged bus (SDA=GPIO%u,"
+                  " SCL=GPIO%u) -- check the wiring and the 4.7k pull-ups\n",
+                  PIN_B_SDA, PIN_B_SCL);
+  }
+
   servo.stepsPerCount = nominalStepsPerCount();
   servo.begin();
+  trackB.begin(encB);
+  pollHealth();
 
   printInfo();
   printHelp();
   Serial.println(F("# driver starts disabled -- 'e' to enable, then 'c' to calibrate"));
-  Serial.println(F("# t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags"));
+  Serial.println(F("# t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
+                   "bpos,bvel,benc,bagc,bstatus,busus"));
   nextSample = micros();
   nextControl = lastControl = micros();
+  nextHealth = micros() + HEALTH_US;
 }
 
 static void runWiggle() {
@@ -431,7 +539,13 @@ void loop() {
     lastControl = now;
     if (dt > 0.05f) dt = 0.05f;  // resync after a USB stall
     servo.update(dt);
+    trackB.update(encB, dt);
     runWiggle();
+  }
+
+  if ((int32_t)(micros() - nextHealth) >= 0) {
+    nextHealth = micros() + HEALTH_US;
+    pollHealth();
   }
 
   if (!streaming) return;
@@ -445,6 +559,7 @@ void loop() {
   if (servo.atTarget()) flags |= F_AT;
   if (servo.fault() != StepperServo::FAULT_NONE) flags |= F_FAULT;
   if (wiggle) flags |= F_WIGGLE;
+  if (trackB.ok) flags |= F_ENCB;
 
   static uint8_t lastFault = StepperServo::FAULT_NONE;
   if (servo.fault() != lastFault) {
@@ -455,9 +570,12 @@ void loop() {
     }
   }
 
-  Serial.printf("%lu,%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,0x%02X\n",
+  Serial.printf("%lu,%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,0x%02X,"
+                "%.4f,%.3f,%u,%u,0x%02X,%lu\n",
                 millis(), servo.positionTurns(), servo.targetTurns(),
                 (long)servo.errorCounts(), servo.velocityTps(),
                 (long)gen.position(), gen.rate(), (long)servo.slipSteps(),
-                servo.rawAngle(), enc.readAGC(), enc.readStatus(), flags);
+                servo.rawAngle(), agcA, statusA, flags,
+                trackB.turns(), trackB.tps(), trackB.raw, agcB, statusB,
+                (unsigned long)trackB.takeRecent());
 }
