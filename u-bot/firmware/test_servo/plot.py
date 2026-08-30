@@ -16,7 +16,9 @@ the only panel that can tell you the motor didn't do as it was told. Wheel B
 rides along on the position panel, which is the only measure it has.
 
 Columns come from the header line the sketch prints at boot, indexed by name --
-so the board can grow columns without this needing a matching edit.
+so the board can grow columns without this needing a matching edit. Attaching to
+a board that booted before the port was opened means that line has long gone, so
+the scope asks for it ('i') rather than guessing from the field count.
 
 A control bar runs along the bottom for driving the axis by hand. Everything
 on it is a shortcut for a line the sketch already parses, so the bar cannot ask
@@ -62,8 +64,8 @@ VMAX_LIMIT = 2.0
 MAGNET_HIGH, MAGNET_LOW, MAGNET_DETECT = 0x08, 0x10, 0x20
 F_DRIVER, F_LOOP, F_AT, F_FAULT, F_WIGGLE, F_ENCB = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
 
-# What a sketch that never printed a header line is assumed to be sending. Only
-# old captures reach this: the board announces its columns at boot.
+# What a stream that never named its columns is assumed to be sending: captures
+# taken before the header line existed. A live board is asked instead.
 LEGACY_COLUMNS = "t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags".split(",")
 
 # Dark chart surface, same palette as test_encoder/plot.py: categorical slots
@@ -188,6 +190,9 @@ class Scope:
         self.slip = deque(maxlen=size)
         self.bpos = deque(maxlen=size)
         self.columns = LEGACY_COLUMNS
+        self.header_seen = False
+        self._header_asked = 0.0
+        self._header_tries = 0
         self.latest = None
         self.note = "waiting for data..."
         self.bad_lines = 0
@@ -238,7 +243,13 @@ class Scope:
                 # The sketch names its own columns; take it at its word rather
                 # than counting on a fixed order that is about to change again.
                 if text.startswith("t_ms,"):
-                    self.columns = text.split(",")
+                    columns = text.split(",")
+                    # Lines dropped before this arrived were dropped for want of
+                    # it, and are now explained -- don't leave them on the tally
+                    # looking like line noise.
+                    if columns != self.columns:
+                        self.bad_lines = 0
+                    self.columns, self.header_seen = columns, True
                     continue
                 if text:
                     self.note = text
@@ -246,6 +257,14 @@ class Scope:
             parts = line.split(",")
             if len(parts) != len(self.columns):
                 self.bad_lines += 1
+                # Say which way the mismatch runs. Silently dropping every line
+                # is what made this look like a dead port rather than a parser
+                # reading the stream against the wrong header.
+                self.note = (
+                    f"stream has {len(parts)} columns, header says"
+                    f" {len(self.columns)}" if self.header_seen else
+                    f"stream has {len(parts)} columns and has not named them"
+                    " -- asking the board (i)")
                 continue
             row = dict(zip(self.columns, parts))
             try:
@@ -625,8 +644,29 @@ class Scope:
             self._follow(self.s_vmax, self.vmax)
 
     # ---- redraw ----------------------------------------------------------
+    HEADER_TRIES = 4
+    HEADER_RETRY_S = 1.5
+
+    def _chase_header(self):
+        """Ask an already-running board to re-announce its columns.
+
+        The banner is printed once at boot, so a scope started later never saw
+        it. 'i' reprints it. A few tries covers a port that is not listening
+        yet; a replay source swallows the send and falls back to LEGACY_COLUMNS.
+        """
+        if self.header_seen or self._header_tries >= self.HEADER_TRIES:
+            return
+        if time.monotonic() - self._header_asked < self.HEADER_RETRY_S:
+            return
+        self._header_asked = time.monotonic()
+        self._header_tries += 1
+        self._send("i\n")
+
     def update(self, _frame=None):
+        # Drain first: on a normal boot the header is already in this batch, and
+        # asking for one we are holding would only reprint the banner.
         self._drain()
+        self._chase_header()
         if not self.t:
             self.note_txt.set_text(self.note)
             return ()

@@ -233,6 +233,15 @@ static void printInfo() {
                 " (%.0f%% of the %lu us control tick)\n",
                 trackB.turns(), (unsigned long)trackB.worstUs,
                 100.0f * trackB.worstUs / CONTROL_US, (unsigned long)CONTROL_US);
+  printColumns();
+}
+
+// The stream's column names. Printed at boot and again by 'i': a scope that
+// attaches to an already-running board never saw the banner, and it indexes the
+// stream by name, so this line is how it finds out what it is reading.
+static void printColumns() {
+  Serial.println(F("# t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
+                   "bpos,bvel,benc,bagc,bstatus,busus"));
 }
 
 static void printHelp() {
@@ -511,8 +520,7 @@ void setup() {
   printInfo();
   printHelp();
   Serial.println(F("# driver starts disabled -- 'e' to enable, then 'c' to calibrate"));
-  Serial.println(F("# t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
-                   "bpos,bvel,benc,bagc,bstatus,busus"));
+  printColumns();
   nextSample = micros();
   nextControl = lastControl = micros();
   nextHealth = micros() + HEALTH_US;
