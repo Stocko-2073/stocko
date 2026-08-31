@@ -240,6 +240,72 @@ Two rules that follow:
   already does, so the driver is disabled from the first instruction.
 
 
+## Encoder magnets, and what a knock does
+
+Both wheels read **AGC 128** -- maximum gain on 3V3, meaning the weakest field
+the part will still accept -- and wheel B has tripped `MAGNET_LOW`. There is no
+headroom left in the direction a knock is most likely to push things.
+
+The cause looks systematic rather than assembly scatter. `magnet()` in
+u-bot.scad is `cyl(d=4, l=2)`, and the AS5600's reference magnet is 6 mm by
+2.5 mm: roughly three times the volume, and field scales about with volume at
+these distances. The part wants 30-70 mT at the die. Two independently built
+wheels pegged at exactly the same limit is what a design constant looks like,
+not what tolerance looks like.
+
+So the order of attack is **magnet size, then air gap, then tolerance**.
+Tolerance holds a good nominal in place; it cannot create one, and tightening
+the pocket around an undersized magnet just holds it precisely where the field
+is still too weak.
+
+AGC is the acceptance test, and it is readable over serial with the robot
+assembled -- no teardown needed to find out whether a magnet is right. Aim for
+~64, which leaves room in both directions. It also works as a live aid while
+shimming: power the board and watch the number instead of tuning a dimension
+that is only a proxy for it.
+
+### What the loop catches if a magnet moves in the field
+
+The slip detector does double duty here. It was built to catch pulses sent with
+no shaft following, but the divergence is symmetric, so a shaft that appears to
+move without being commanded -- a magnet slipping on its mount -- trips it just
+as readily. At `slipLimit` 200 steps and 1.302083 steps/count:
+
+    sudden encoder jump    154 counts    25 mm of apparent travel, 13.5 deg
+    sustained drift rate   154 counts/s  25 mm/s of apparent error
+
+The fault check in `update()` sits *before* the velocity computation, so the
+loop opens within one 5 ms tick and no lurch command is ever issued on the
+faulting tick. `servoOn(false)` stops the step generator without disabling the
+driver, so a faulted wheel holds position rather than free-wheeling -- the right
+failure on a slope. A magnet lost entirely is caught either way: garbage
+readings blow through the threshold immediately, and a dead-constant reading
+looks exactly like a stall.
+
+### What it does not catch
+
+- **`STATUS` is read but never acted on.** `pollHealth()` samples
+  `MAGNET_DETECT`/`LOW`/`HIGH` into each Wheel at 2 Hz and they reach the CSV,
+  `i`, and the pre-calibration warning, but `StepperServo::update()` never looks
+  at them. Note this is a different layer from the `lastError()` check added
+  with the two-wheel port: that catches an I2C failure, where a maladjusted
+  magnet is a healthy bus reporting an unhappy sensor.
+- **Anything degrading slower than 25 mm/s of apparent error** is absorbed by
+  the 1 s leak. An off-axis magnet growing 100 counts of nonlinearity across a
+  revolution drifts at ~130 steps/s at full speed, under the threshold: silently
+  wrong positions, ~16 mm at the rim, with no indication.
+- **Open loop, nothing is checked.** Slip is computed but only acted on with the
+  loop closed, and closing it calls `resyncSlip()` and sets the target to the
+  present position -- adopting whatever the degraded encoder claims as truth.
+- **One wheel faulting does not stop the other.** The faulted wheel holds while
+  its partner drives, which pivots a differential drive rather than stopping it.
+
+Three mitigations worth building, none a substitute for the mechanical fix:
+fault when `MAGNET_DETECT` clears (the encoder declaring it does not know where
+it is); track AGC min/max since boot and report drift, since AGC moves well
+before a status bit latches; and propagate a fault across wheels.
+
+
 ## Free-wheeling and recovery (not built yet)
 
 EN high switches the power stage off, so the coils go open and the wheels free-
