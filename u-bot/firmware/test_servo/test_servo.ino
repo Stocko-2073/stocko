@@ -1,10 +1,29 @@
 // Bench test for the u-bot drive axis as a closed-loop servo: NEMA 17 -> TMC2209
-// (STEP/DIR, 1/8 microstep) -> 12:40 bevel pair -> output shaft, with an AS5600
-// magnetic encoder on the output shaft.
+// (UART velocity mode, 1/8 microstep) -> 12:40 bevel pair -> output shaft, with
+// an AS5600 magnetic encoder on the output shaft.
 //
-// Follows on from test_encoder. Measured on this axis, 2026-08-21:
+// Ported off STEP/DIR on 2026-08-30. The driver now runs its own step generator
+// from the VACTUAL register and the MCU only updates a setpoint, which changes
+// three things worth knowing before reading the rest:
 //
-//   DIR polarity   LOW is the direction the encoder counts up (DIR_PLUS_LEVEL)
+//   no pulse count   nothing counts steps any more. The `steps` column is the
+//                    integral of what was COMMANDED, and `slip` is its gap from
+//                    the encoder -- which now carries clock error as well as
+//                    real slip. Run 'c' before trusting either at speed.
+//   clock gain       the TMC2209's internal oscillator is only good to ~+/-10%,
+//                    so commanded velocity is off by that much until measured.
+//                    calibrate() pins it down; see DRIVE_MECHANISM.md.
+//   200 Hz loop      1 kHz was needed to feed a pulse generator. It is not
+//                    needed to update a velocity, and one UART write is ~118 us.
+//
+// Measured in velocity mode, 2026-08-30:
+//
+//   clock gain     1.0158 on wheel A's driver -- 1.6% fast, baked in below
+//   round trip     3 turns out and back, residual +0 counts, no steps lost
+//   step response  0.5 turn move settles in 740 ms, peak 5333 sps, |slip| 26
+//
+// Measured on this axis under STEP/DIR, 2026-08-21, and still the reference:
+//
 //   ratio          1.302083 steps/count, 0.000% off nominal over 3 output turns
 //                  -- exactly 1/8 microstep and exactly 12:40, nothing to fudge
 //   lost steps     none: 16000 steps out and back returned +0 counts
@@ -15,45 +34,41 @@
 //
 // Wiring, XIAO ESP32-C6:
 //   TMC2209 EN   -> D0 / GPIO0     wheel A AS5600 SDA -> D4 / GPIO22
-//   TMC2209 STEP -> D1 / GPIO1     wheel A AS5600 SCL -> D5 / GPIO23
-//   TMC2209 DIR  -> D2 / GPIO2     wheel B AS5600 SDA -> D9 / GPIO20
-//   both AS5600  -> 3V3, GND       wheel B AS5600 SCL -> D8 / GPIO19
-// EN is active low on the TMC2209, so the pin is parked high and the driver
-// boots disabled. Motor power is separate: nothing turns until it is connected.
+//   TMC2209 UART -> D6/D7          wheel A AS5600 SCL -> D5 / GPIO23
+//   both AS5600  -> 3V3, GND       wheel B AS5600 SDA -> D9 / GPIO20
+//                                  wheel B AS5600 SCL -> D8 / GPIO19
 //
-// Wheel B is an encoder only: there is one driver on the bench, so only wheel A
-// is a servo. B rides a bit-banged I2C bus because the AS5600's address is fixed
-// at 0x36 and the C6's second I2C controller is LP_I2C, which can only live on
-// GPIO6/7 -- pins the XIAO does not break out. See AS5600Soft.h.
+// The UART is one wire: D6 (TX) through a 1k to D7 (RX), and the junction to
+// the driver's PDN_UART -- which on a BTT V1.3 module is the pin silkscreened
+// RX, pin 4. Pin 5 (TX) is an unpopulated alternate and will not answer.
 //
-// Start here:
-//   e        enable the driver
-//   c        calibrate -- probes one motor turn and reports DIR polarity + ratio
-//   l        close the loop
-//   0.5      go to half an output turn (a bare number is a target in turns)
-//
-// One CSV sample per line at SAMPLE_HZ for plot.py; '#' lines are notes. The
-// column header is printed once at boot and plot.py indexes by name, so adding
-// a column here does not need a matching edit over there:
-//   t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,
-//   bpos,bvel,benc,bagc,bstatus,busus
+// EN is active low, parked high, and hardwired on purpose: it is the killswitch
+// that still works when the bus is down or the MCU is in reset. That matters
+// more here than it did under STEP/DIR, because VACTUAL keeps the driver
+// stepping whether or not anyone is talking to it. Motor power is separate:
+// nothing turns until it is connected.
 
 #include <AS5600.h>
 #include <Wire.h>
 
 #include "AS5600Soft.h"
-#include "StepGen.h"
+#include "VelGen.h"
 #include "StepperServo.h"
 
 static const uint32_t SERIAL_BAUD  = 115200;
 static const uint32_t SAMPLE_HZ    = 50;
 static const uint32_t SAMPLE_US    = 1000000UL / SAMPLE_HZ;
-static const uint32_t CONTROL_HZ   = 1000;
+static const uint32_t CONTROL_HZ   = 200;
 static const uint32_t CONTROL_US   = 1000000UL / CONTROL_HZ;
 
-static const uint8_t PIN_EN   = D0;
-static const uint8_t PIN_STEP = D1;
-static const uint8_t PIN_DIR  = D2;
+static const uint8_t PIN_EN = D0;   // active low; the hardwired killswitch
+static const uint8_t PIN_TX = D6;   // GPIO16, through 1k to the shared node
+static const uint8_t PIN_RX = D7;   // GPIO17, on the node itself
+
+// 250k is comfortably clear of the floor: writes fail at 57600 and below,
+// because an 8-byte datagram takes longer than the driver's receive window.
+static const uint32_t UART_BAUD   = 250000;
+static const uint8_t  DRIVER_ADDR = 0;   // MS1=MS2=0
 
 // Wheel B's encoder, on the bit-banged bus.
 static const uint8_t PIN_B_SDA = D9;  // GPIO20
@@ -67,14 +82,22 @@ static const float GEAR_OUT_TEETH   = 40.0f;
 static const float GEAR_RATIO       = GEAR_OUT_TEETH / GEAR_MOTOR_TEETH;
 static float microsteps = 8.0f;  // TMC2209 with MS1/MS2 low
 
-// Which DIR level drives the output shaft the way the encoder counts up. This
-// is a wiring fact, not a preference: run 'c' once and set it to what it says.
-// Measured on this axis 2026-08-21: LOW, three calibration runs agreeing.
-static const bool DIR_PLUS_LEVEL = false;
+// Whether the driver's shaft bit has to be inverted for +velocity to make the
+// encoder count up. A wiring fact, not a preference: run 'c' once and set it to
+// what it says. This lives in GCONF now rather than on a DIR pin, so it reads
+// back -- 'i' prints what the driver actually thinks.
+static const bool SHAFT_INVERT = false;
+
+// The TMC2209's internal oscillator, as a multiplier on commanded velocity.
+// Measured on wheel A's driver 2026-08-30: 1.0158, i.e. it runs 1.6% fast --
+// well inside the +/-10% the part allows. This is a property of the individual
+// chip, so wheel B's driver will need its own; 'c' measures it and prints the
+// number to bake in here.
+static const float CLOCK_GAIN = 1.0158f;
 
 static float stepsPerMotorRev() { return MOTOR_FULL_STEPS * microsteps; }
-// Calibration probes whole output revolutions, or the encoder's angle-dependent
-// nonlinearity warps the ratio. At 1/8 and 12:40 that is exactly 16000 steps.
+// Calibration times whole output revolutions, or the encoder's angle-dependent
+// nonlinearity warps the answer. Three turns is 12288 counts.
 static const int CAL_OUT_REVS = 3;
 static const float CAL_SPS = 1500.0f;
 
@@ -138,7 +161,7 @@ struct EncoderTrack {
     if (d > 2048) d -= 4096;
     raw = r;
     counts += d;
-    if (dt > 0) vel += 0.1f * ((float)d / dt - vel);  // ~17 Hz at 1 kHz
+    if (dt > 0) vel += (dt / (0.01f + dt)) * ((float)d / dt - vel);  // ~16 Hz
   }
 
   void zero() { counts = 0; }
@@ -149,7 +172,8 @@ struct EncoderTrack {
 
 AS5600 enc;
 AS5600Soft encB(PIN_B_SDA, PIN_B_SCL);
-StepGen gen;
+Tmc2209Uart tmc(Serial1, PIN_RX, PIN_TX);
+VelGen gen(tmc, DRIVER_ADDR);
 StepperServo servo(enc, gen);
 EncoderTrack trackB;
 
@@ -194,17 +218,20 @@ static const char *magnetText(uint8_t status) {
 }
 
 static void printInfo() {
-  Serial.printf("# EN=GPIO%u STEP=GPIO%u DIR=GPIO%u (EN active low),"
-                " AS5600 on SDA=GPIO%u SCL=GPIO%u\n",
-                PIN_EN, PIN_STEP, PIN_DIR, SDA, SCL);
+  Serial.printf("# EN=GPIO%u (active low), TMC2209 UART TX=GPIO%u RX=GPIO%u"
+                " at %lu baud, address %u, AS5600 on SDA=GPIO%u SCL=GPIO%u\n",
+                PIN_EN, PIN_TX, PIN_RX, (unsigned long)UART_BAUD,
+                gen.address(), SDA, SCL);
+  if (!gen.ok()) {
+    Serial.println(F("# DRIVER NOT ANSWERING on the UART -- nothing will move"));
+  }
   Serial.printf("# driver %s, loop %s, fault %s\n",
                 gen.enabled() ? "ENABLED" : "disabled",
                 servo.servoOn() ? "CLOSED" : "open",
                 servo.faultName());
-  Serial.printf("# DIR positive level %s (positive = encoder counts up),"
-                " pin is %s now\n",
-                gen.dirPlusLevel() ? "HIGH" : "LOW",
-                gen.dirPinLevel() ? "HIGH" : "LOW");
+  Serial.printf("# shaft polarity %s (positive = encoder counts up),"
+                " driver's GCONF.shaft reads %d\n",
+                gen.inverted() ? "INVERTED" : "normal", gen.shaftBit());
   Serial.printf("# %.0f full steps x 1/%.0f x %.0f/%.0f gear = %.1f steps/out-rev"
                 " vs %ld encoder counts\n",
                 MOTOR_FULL_STEPS, microsteps, GEAR_OUT_TEETH, GEAR_MOTOR_TEETH,
@@ -212,6 +239,12 @@ static void printInfo() {
   Serial.printf("# steps/count nominal %.6f, in use %.6f (%.2f%% off)\n",
                 nominalStepsPerCount(), servo.stepsPerCount,
                 100.0f * (servo.stepsPerCount / nominalStepsPerCount() - 1.0f));
+  Serial.printf("# clock gain %.4f %s -- VACTUAL LSB %.4f steps/s,"
+                " quantisation %.4f out turns/s\n",
+                gen.clockGain(),
+                gen.calibrated() ? "(measured this session)"
+                                 : "(preset -- 'c' measures this driver)",
+                VelGen::VACTUAL_LSB, VelGen::VACTUAL_LSB / stepsPerOutRev());
   Serial.printf("# pos %.4f turns  target %.4f  err %ld counts  slip %ld steps\n",
                 servo.positionTurns(), servo.targetTurns(),
                 (long)servo.errorCounts(), (long)servo.slipSteps());
@@ -219,8 +252,15 @@ static void printInfo() {
                 "  tol %ld counts  maxslip %ld steps\n",
                 servo.kp, servo.vmaxTps, servo.accelTps2, servo.vminSps,
                 (long)servo.tolCounts, (long)servo.slipLimit);
-  Serial.printf("# step rate ceiling %.0f steps/s = %.2f out turns/s\n",
+  Serial.printf("# step rate ceiling %.0f steps/s = %.2f out turns/s (a guard,"
+                " not a hardware limit)\n",
                 gen.maxRate(), gen.maxRate() / stepsPerOutRev());
+  bool drvOk = false;
+  uint32_t drv = gen.readReg(Tmc2209Uart::DRVSTATUS, &drvOk);
+  Serial.printf("# driver VERSION 0x%02X, DRV_STATUS %s0x%08lX"
+                " (standstill %d, overtemp warn %d, overtemp %d)\n",
+                gen.version(), drvOk ? "" : "unread ", (unsigned long)drv,
+                (int)((drv >> 31) & 1), (int)(drv & 1), (int)((drv >> 1) & 1));
   Serial.printf("# wheel A magnet %s, agc %u (0..128 on 3V3, aim for ~64),"
                 " magnitude %u\n",
                 magnetText(statusA), agcA, enc.readMagnitude());
@@ -251,7 +291,7 @@ static void printHelp() {
   Serial.println(F("#        w wiggle demo    p pause stream   i info   h help"));
   Serial.println(F("# words: <turns>|goto T   move T    spin SPS   jog STEPS"));
   Serial.println(F("#        kp K  vmax T/s  vmin SPS  accel T/s2  tol N  maxslip N"));
-  Serial.println(F("#        ratio STEPS/COUNT   micro N   amp TURNS   secs S"));
+  Serial.println(F("#        ratio STEPS/COUNT   micro N   gain G   amp TURNS   secs S"));
 }
 
 static void printCal(const StepperServo::CalResult &r) {
@@ -259,25 +299,30 @@ static void printCal(const StepperServo::CalResult &r) {
     Serial.printf("# calibrate FAILED: %s\n", r.note);
     return;
   }
-  Serial.printf("# calibrate: %ld steps -> %+ld counts, DIR positive level is %s%s\n",
-                (long)r.steps, (long)r.counts,
-                gen.dirPlusLevel() ? "HIGH" : "LOW",
+  Serial.printf("# calibrate: %+ld counts in %.3f s at %.0f steps/s commanded,"
+                " shaft polarity %s%s\n",
+                (long)r.counts, r.seconds, r.sps,
+                gen.inverted() ? "INVERTED" : "normal",
                 r.flipped ? " (flipped from the default)" : " (default was right)");
-  float outRev = stepsPerOutRev();
-  float measured = r.stepsPerCount * StepperServo::COUNTS_PER_REV;
-  Serial.printf("# measured %.6f steps/count = %.1f steps/out-rev"
-                " (nominal %.1f, %.3f%% off)\n",
-                r.stepsPerCount, measured, outRev, 100.0f * (measured / outRev - 1.0f));
-  Serial.printf("# round trip came back %+ld counts%s\n", (long)r.residual,
+  Serial.printf("# clock gain %.4f: asked %.0f steps/s, got %.0f -- %+.1f%%,"
+                " which is the TMC2209's oscillator, not the gearing\n",
+                r.clockGain, r.sps, r.sps * r.clockGain,
+                100.0f * (r.clockGain - 1.0f));
+  Serial.printf("# return leg %+ld counts against %+ld out, residual %+ld%s\n",
+                (long)r.back, (long)r.counts, (long)r.residual,
                 labs((long)r.residual) > 8
                     ? " -- steps were lost, check current and speed"
                     : " (no steps lost)");
-  Serial.printf("# implies %.2f microsteps at 12:40, or %.3f:1 gear at 1/%.0f\n",
-                measured / (MOTOR_FULL_STEPS * GEAR_RATIO),
-                measured / stepsPerMotorRev(), microsteps);
-  if (gen.dirPlusLevel() != DIR_PLUS_LEVEL) {
-    Serial.printf("# bake it in: set DIR_PLUS_LEVEL = %s in test_servo.ino\n",
-                  gen.dirPlusLevel() ? "true" : "false");
+  Serial.printf("# ratio held at %.6f steps/count: the gearing is exact, so the"
+                " whole error is attributed to the clock\n",
+                servo.stepsPerCount);
+  if (fabsf(r.clockGain - CLOCK_GAIN) > 0.002f) {
+    Serial.printf("# bake it in: set CLOCK_GAIN = %.4ff in test_servo.ino\n",
+                  r.clockGain);
+  }
+  if (gen.inverted() != SHAFT_INVERT) {
+    Serial.printf("# bake it in: set SHAFT_INVERT = %s in test_servo.ino\n",
+                  gen.inverted() ? "true" : "false");
   }
 }
 
@@ -328,17 +373,16 @@ static void doImmediate(char c) {
       Serial.printf("# calibrating: %d output turns out and back at %.0f steps/s,"
                     " ~%.0f s (any key aborts)...\n",
                     CAL_OUT_REVS, CAL_SPS,
-                    2.0f * stepsPerOutRev() * CAL_OUT_REVS / CAL_SPS);
-      printCal(servo.calibrate((int32_t)lroundf(stepsPerOutRev() * CAL_OUT_REVS),
-                               CAL_SPS, abortRequested));
+                    2.0f * stepsPerOutRev() * CAL_OUT_REVS / CAL_SPS + 1.5f);
+      printCal(servo.calibrate(CAL_OUT_REVS, CAL_SPS, abortRequested));
       break;
     }
     case 'd':
-      gen.flipDirPlusLevel();
+      gen.flipInvert();
       servo.servoOn(false);
       servo.resyncSlip();
-      Serial.printf("# DIR positive level now %s, loop opened\n",
-                    gen.dirPlusLevel() ? "HIGH" : "LOW");
+      Serial.printf("# shaft polarity now %s, loop opened\n",
+                    gen.inverted() ? "INVERTED" : "normal");
       break;
     case 'z':
       servo.zeroHere();
@@ -426,8 +470,8 @@ static void doWord(char *buf) {
                         abortRequested);
       int32_t moved = servo.positionCounts() - before;
       int32_t want = (int32_t)((float)n / servo.stepsPerCount);
-      Serial.printf("# open-loop jog %ld steps: encoder %+ld counts, expected %+ld"
-                    " (%.1f%%), now %.4f turns\n",
+      Serial.printf("# open-loop jog %ld commanded steps: encoder %+ld counts,"
+                    " expected %+ld (%.1f%%), now %.4f turns\n",
                     (long)n, (long)moved, (long)want,
                     want ? 100.0f * (float)moved / (float)want : 0.0f,
                     servo.positionTurns());
@@ -445,8 +489,25 @@ static void doWord(char *buf) {
   else if (matches(tok, "maxslip")) { if (arg) servo.slipLimit = (int32_t)v; Serial.printf("# maxslip %ld steps\n", (long)servo.slipLimit); }
   else if (matches(tok, "ratio")) { if (arg) { servo.stepsPerCount = v; servo.resyncSlip(); } Serial.printf("# ratio %.6f steps/count\n", servo.stepsPerCount); }
   else if (matches(tok, "micro")) {
-    if (arg && v >= 1) { microsteps = v; servo.stepsPerCount = nominalStepsPerCount(); servo.resyncSlip(); }
-    Serial.printf("# 1/%.0f microstep -> %.6f steps/count nominal\n", microsteps, servo.stepsPerCount);
+    // Real now, not just bookkeeping: mstep_reg_select is set, so MRES in
+    // CHOPCONF overrides MS1/MS2 and this actually changes the driver.
+    if (arg && v >= 1) {
+      if (!gen.setMicrosteps((uint16_t)v)) {
+        Serial.printf("# 1/%.0f is not a TMC2209 setting (1 2 4 8 16 32 64 128 256)\n", v);
+      } else {
+        microsteps = v;
+        servo.stepsPerCount = nominalStepsPerCount();
+        servo.resyncSlip();
+      }
+    }
+    Serial.printf("# 1/%u microstep -> %.6f steps/count (driver's MRES, not the pins;"
+                  " it interpolates to 256 either way)\n",
+                  gen.microsteps(), servo.stepsPerCount);
+  }
+  else if (matches(tok, "gain")) {
+    if (arg) { gen.setClockGain(v); servo.resyncSlip(); }
+    Serial.printf("# clock gain %.4f%s\n", gen.clockGain(),
+                  gen.calibrated() ? "" : " (default -- 'c' measures it)");
   }
   else if (matches(tok, "amp")) { if (arg) wiggleAmp = v; Serial.printf("# wiggle amplitude %.3f turns\n", wiggleAmp); }
   else if (matches(tok, "secs")) { if (arg) wiggleSecs = fmaxf(0.2f, v); Serial.printf("# wiggle period %.2f s\n", wiggleSecs); }
@@ -484,9 +545,16 @@ void setup() {
   uint32_t start = millis();
   while (!Serial && (millis() - start) < 2000) delay(10);
 
-  // Driver first, so EN is parked high before anything else runs.
-  gen.begin(PIN_EN, PIN_STEP, PIN_DIR);
-  gen.setDirPlusLevel(DIR_PLUS_LEVEL);
+  // Driver first, so EN is parked high before the bus is even opened.
+  if (!gen.begin(PIN_EN, UART_BAUD, (uint16_t)microsteps)) {
+    Serial.println(F("# TMC2209 did not answer over UART. Check, in this order:"));
+    Serial.println(F("#   the wire is on module pin 4 (RX) -- pin 5 is unpopulated"));
+    Serial.println(F("#   1k between D6 and D7, motor power on, VIO to 3V3"));
+    Serial.println(F("# carrying on so the encoders still stream, but nothing"));
+    Serial.println(F("# will move until the driver answers."));
+  }
+  gen.setInvert(SHAFT_INVERT);
+  gen.presetClockGain(CLOCK_GAIN);
 
   Wire.begin(SDA, SCL);
   Wire.setClock(400000);
@@ -520,6 +588,8 @@ void setup() {
   printInfo();
   printHelp();
   Serial.println(F("# driver starts disabled -- 'e' to enable, then 'c' to calibrate"));
+  Serial.println(F("# 'c' is not optional here: it measures the driver's clock, and"));
+  Serial.println(F("# until it has run, commanded speed can be 10% off and slip reads high"));
   printColumns();
   nextSample = micros();
   nextControl = lastControl = micros();
@@ -582,7 +652,7 @@ void loop() {
                 "%.4f,%.3f,%u,%u,0x%02X,%lu\n",
                 millis(), servo.positionTurns(), servo.targetTurns(),
                 (long)servo.errorCounts(), servo.velocityTps(),
-                (long)gen.position(), gen.rate(), (long)servo.slipSteps(),
+                (long)llround(gen.position()), gen.rate(), (long)servo.slipSteps(),
                 servo.rawAngle(), agcA, statusA, flags,
                 trackB.turns(), trackB.tps(), trackB.raw, agcB, statusB,
                 (unsigned long)trackB.takeRecent());

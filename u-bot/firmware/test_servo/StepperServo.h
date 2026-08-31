@@ -1,18 +1,26 @@
 #pragma once
 #include <AS5600.h>
 
-#include "StepGen.h"
+#include "VelGen.h"
 
-// Closed-loop position servo: NEMA 17 through a TMC2209 in STEP/DIR mode, with
-// an AS5600 magnetic encoder reading the *output* shaft through a 12:40 bevel
-// pair. Every public number is in output-shaft units -- turns, or the encoder's
-// 4096 counts per output turn -- because that is the shaft that matters.
+// Closed-loop position servo: NEMA 17 through a TMC2209 in UART velocity mode,
+// with an AS5600 magnetic encoder reading the *output* shaft through a 12:40
+// bevel pair. Every public number is in output-shaft units -- turns, or the
+// encoder's 4096 counts per output turn -- because that is the shaft that
+// matters.
 //
 // Why closed loop on a stepper at all: open-loop steps are already precise, so
 // the loop is not there to fix resolution. It is there to (a) give an absolute
 // reference the step counter cannot have, and (b) notice when the motor did not
-// actually go where it was told. That second job is the whole point, and it
-// falls out of comparing StepGen's pulse count against the encoder.
+// actually go where it was told.
+//
+// What changed when this moved off STEP/DIR: the driver now generates its own
+// steps from VACTUAL, so there is no pulse count any more. VelGen::position()
+// is the integral of the commanded rate, and the gap between it and the encoder
+// carries the driver's clock error as well as any real slip. calibrate()
+// measures the clock into VelGen's clockGain so the two are comparable; until
+// it has run, expect the gap to grow with speed by however far the TMC2209's
+// oscillator is off, which can be 10%.
 //
 // Control law: position error -> velocity command -> step rate. A P term sets
 // the velocity, a sqrt(2*a*e) ceiling makes sure there is always room to brake,
@@ -29,13 +37,14 @@ class StepperServo {
 
     enum Fault : uint8_t { FAULT_NONE = 0, FAULT_SLIP };
 
-    StepperServo(AS5600 &enc, StepGen &gen) : _enc(enc), _gen(gen) {}
+    StepperServo(AS5600 &enc, VelGen &gen) : _enc(enc), _gen(gen) {}
 
     // --- tuning (output-shaft units unless noted) ---
     //
-    // Defaults are the fastest setting measured clean on this axis. Slip at
-    // speed is drivetrain lag, not lost steps -- it returns to zero at rest --
-    // and it climbs gently right up to the point where the motor gives up:
+    // Defaults are the fastest setting measured clean on this axis under
+    // STEP/DIR. Slip at speed is drivetrain lag, not lost steps -- it returns
+    // to zero at rest -- and it climbs gently right up to the point where the
+    // motor gives up:
     //
     //   vmax  accel  kp | peak rate   worst |slip|
     //   0.5     4    12 |  2667 sps        25   clean
@@ -44,16 +53,15 @@ class StepperServo {
     //   2.0    20    24 | 10667 sps        38   marginal
     //   3.0    30    30 | 14721 sps       144   SKIPPED, faulted
     //
-    // The last row never even reached its 3.0 turns/s -- the motor topped out
-    // at 2.76 and shed steps, and slip detection caught it. vmax and accel were
-    // raised together in that sweep, so which of the two broke it is not
-    // separated; treat both as being near their limit up there.
+    // Those slip figures were taken with an exact pulse count as the reference.
+    // In velocity mode they will read higher until calibrate() has pinned the
+    // clock down, and they are worth re-measuring rather than trusted.
     float kp = 16.0f;          // (counts/s) per count of error, i.e. 1/s
     float vmaxTps = 1.0f;      // turns/s ceiling
     float accelTps2 = 8.0f;    // turns/s^2, also the brake authority
     float vminSps = 12.0f;     // steps/s floor while outside tolerance
     int32_t tolCounts = 3;     // ~0.26 deg at the output shaft
-    float stepsPerCount = 1.302083f;  // 200 * 8 * 40/12 / 4096; calibrate() measures it
+    float stepsPerCount = 1.302083f;  // 200 * 8 * 40/12 / 4096, exact by gearing
     int32_t slipLimit = 200;   // steps of sudden divergence before faulting
 
     // --- lifecycle ---
@@ -90,10 +98,10 @@ class StepperServo {
     }
     bool servoOn() const { return _servo; }
 
-    // Call this the moment anything makes the step count and the encoder
-    // disagree on purpose (zeroing, calibrating, open-loop jogging).
+    // Call this the moment anything makes the commanded integral and the
+    // encoder disagree on purpose (zeroing, calibrating, open-loop jogging).
     void resyncSlip() {
-        _gen.zero((int32_t)lroundf((float)_encPos * stepsPerCount));
+        _gen.zero((double)_encPos * (double)stepsPerCount);
         _slipRaw = 0;
         _slipRef = 0;
     }
@@ -133,22 +141,29 @@ class StepperServo {
     const char *faultName() const {
         switch (_fault) {
             case FAULT_SLIP:
-                return "slip (pulses sent, shaft did not follow -- stalled, "
-                       "current too low, or DIR polarity backwards)";
+                return "slip (velocity commanded, shaft did not follow -- "
+                       "stalled, current too low, or shaft polarity backwards)";
             default: return "none";
         }
     }
 
-    // --- control loop, call at a fixed rate (1 kHz here) ---
+    // --- control loop, call at a fixed rate (200 Hz here) ---
 
     void update(float dt) {
+        _gen.tick();          // integrate the commanded rate, close out budgets
         readEncoder(dt);
 
-        // Commanded pulses vs. where the shaft actually got to. The reference is
-        // high-passed with a slow leak so a few tenths of a percent of error in
-        // stepsPerCount drifts harmlessly, while a real stall -- which piles up
-        // hundreds of steps in under a tenth of a second -- still trips.
-        _slipRaw = (float)_gen.position() - (float)_encPos * stepsPerCount;
+        // What we asked for vs. where the shaft actually got to. The reference
+        // is high-passed with a leak so a steady gain error -- an uncalibrated
+        // clock, a few tenths of a percent in stepsPerCount -- drifts off
+        // harmlessly, while a real stall still trips.
+        //
+        // The leak is faster than it was under STEP/DIR (1 s, was 3 s) because
+        // the systematic term is bigger now. A gain error e at rate R settles at
+        // e*R*TAU steps of offset; a stall diverges at the full R. Two orders of
+        // magnitude apart, so a shorter TAU costs nothing in detection and buys
+        // back the headroom the clock error eats.
+        _slipRaw = (float)(_gen.position() - (double)_encPos * (double)stepsPerCount);
         if (_fault == FAULT_NONE) _slipRef += (_slipRaw - _slipRef) * (dt / SLIP_TAU);
 
         if (!_servo) return;
@@ -164,9 +179,9 @@ class StepperServo {
         float vmax = vmaxTps * COUNTS_PER_REV;
         bool goal = fabsf(err) <= (float)tolCounts;
 
-        // Inside tolerance and no longer coasting: stop pulsing and let the
-        // driver hold. (A TMC2209 in standalone mode falls back to its hold
-        // current after ~1 s of no steps, so holding torque is not full torque.)
+        // Inside tolerance and no longer coasting: stop the step generator and
+        // let the driver hold. VACTUAL of zero is a real standstill, not an
+        // absence of pulses, so the chopper holds position properly.
         if (goal && fabsf(_vel) < SETTLE_VEL) {
             _vcmd = 0;
             _gen.setRate(0);
@@ -191,80 +206,109 @@ class StepperServo {
 
     // --- calibration -----------------------------------------------------
     //
-    // Open-loop probe: hand the driver a known number of steps and watch which
-    // way, and how far, the encoder goes. Settles both unknowns at once -- the
-    // DIR level that counts as positive, and the real steps-per-count -- then
-    // walks back to where it started.
+    // Two unknowns, one probe: which sign of VACTUAL makes the encoder count
+    // up, and how fast the driver's oscillator really is.
     //
-    // The probe must span a whole number of OUTPUT revolutions. The AS5600's
-    // integral nonlinearity is a fixed function of shaft angle, not noise: it is
-    // dead repeatable at any given angle (p-p 0 counts measured standing still)
-    // but it warps a partial arc. On this axis the same 1600-step move reads
-    // anywhere from 1216 to 1236 counts depending on where in the turn it
-    // happens -- 20 counts, plenty to fake a 0.5% ratio error. Over whole
-    // revolutions the warp cancels and the number is honest: 16000 steps
-    // measured 12288.0 counts, exactly 3.000 turns, +0.000% off nominal.
+    // Under STEP/DIR this measured steps-per-count by handing over an exact
+    // pulse count. Velocity mode cannot do that -- there is no exact count to
+    // hand over -- so it measures the other way round: hold a known rate, time
+    // a known distance, and see what velocity actually came out. The gearing
+    // and the clock both sit in that ratio, but the gearing is exact (12:40 at
+    // 1/8, measured 0.000% off over 3 output turns), so what is left is clock.
     //
-    // The return leg's residual is the integrity check that matters -- it is the
-    // only number here that cannot be explained by nonlinearity, so anything
-    // beyond a couple of counts means the motor really did lose steps. Blocks
-    // for roughly 2 * steps / sps seconds. Needs the driver enabled and motor
-    // power connected.
+    // The timed window spans whole OUTPUT revolutions on purpose. The AS5600's
+    // integral nonlinearity is a fixed function of shaft angle, not noise: dead
+    // repeatable at any given angle (p-p 0 counts standing still) but it warps
+    // a partial arc by up to 20 counts, plenty to fake a 0.5% error. Over whole
+    // revolutions the warp cancels.
+    //
+    // Spin-up is excluded from the window at both ends, so the number is the
+    // steady-state velocity and not an average over the ramp. Blocks for
+    // roughly twice the travel time. Needs the driver enabled and motor power.
     struct CalResult {
         bool ok;
-        bool flipped;        // DIR polarity was inverted to agree with the encoder
-        int32_t steps;       // pulses commanded
-        int32_t counts;      // signed encoder counts observed
-        int32_t residual;    // round-trip error in counts; nonzero = lost steps
-        float stepsPerCount; // measured
+        bool flipped;      // shaft polarity was inverted to agree with the encoder
+        int32_t counts;    // signed counts over the timed window
+        int32_t back;      // counts over the equal-length return window
+        float seconds;     // length of the timed window
+        float sps;         // rate held during it
+        float clockGain;   // measured actual/commanded velocity
+        int32_t residual;  // counts + back; nonzero means a leg lost steps
         const char *note;
     };
 
-    CalResult calibrate(int32_t steps = 16000, float sps = 1500.0f,
+    CalResult calibrate(int32_t outRevs = 3, float sps = 1500.0f,
                         bool (*abort)() = nullptr) {
-        CalResult r = {false, false, steps, 0, 0, stepsPerCount, "ok"};
+        CalResult r = {false, false, 0, 0, 0, sps, _gen.clockGain(), 0, "ok"};
         if (!_gen.enabled()) {
             r.note = "driver disabled -- enable it first (e)";
             return r;
         }
         servoOn(false);
 
-        int32_t start = _encPos;
-        _gen.moveSteps(steps, sps);
-        if (!pumpEncoder(moveTimeoutMs(steps, sps), 150, abort)) {
-            resyncSlip();
-            r.note = "aborted";
-            return r;
+        const int32_t travel = outRevs * COUNTS_PER_REV;
+        const int32_t home = _encPos;
+        const uint32_t timeout = legTimeoutMs(travel, sps);
+
+        // Measure with the correction out of circuit, then put the answer back.
+        _gen.setClockGain(1.0f);
+
+        // --- outbound: settle, then time a whole number of revolutions ---
+        _gen.setRate(sps);
+        if (!pumpMs(SPINUP_MS, abort)) return calBail(r, "aborted");
+
+        int32_t p0 = _encPos;
+        uint32_t t0 = micros();
+        if (!pumpTravel(p0, travel, timeout, abort)) {
+            return calBail(r, "shaft did not cover the probe distance in time");
         }
-        r.counts = _encPos - start;
+        r.counts = _encPos - p0;
+        r.seconds = (float)(micros() - t0) * 1e-6f;
+        _gen.stop();
+        pumpMs(SETTLE_MS, nullptr);
 
-        // A quarter of the expected travel is a generous floor; below it the
-        // shaft is not really following and the ratio would be noise.
-        int32_t expect = (int32_t)((float)steps / stepsPerCount);
-        if (labs((long)r.counts) < labs((long)expect) / 4) {
-            _gen.stop();
-            resyncSlip();
-            r.note = "encoder barely moved -- motor power off, Vref too low, "
-                     "or STEP/EN not landing on the driver";
-            return r;
+        if (labs((long)r.counts) < (long)travel / 2) {
+            return calBail(r, "encoder barely moved -- motor power off, Vref "
+                              "too low, or EN not landing on the driver");
         }
 
-        r.stepsPerCount = (float)steps / (float)labs((long)r.counts);
-        stepsPerCount = r.stepsPerCount;
+        float achievedSps = fabsf((float)r.counts) / r.seconds * stepsPerCount;
+        r.clockGain = achievedSps / sps;
 
-        // Walk back before adopting the corrected polarity, not after: -steps
-        // is only the way home while the outbound move's polarity still stands.
-        // Flipping first would re-resolve -steps to the same DIR level and send
-        // the shaft another turn the wrong way.
-        _gen.moveSteps(-steps, sps);
-        pumpEncoder(moveTimeoutMs(steps, sps), 400, abort);
-        r.residual = _encPos - start;
+        // --- return: the mirror image of that window, then home ---
+        //
+        // Deliberately NOT closed on the encoder. Driving back to a target
+        // would arrive by construction and prove nothing; running the same
+        // window at the opposite sign and comparing distances is the only
+        // integrity check velocity mode still allows.
+        // Always the opposite of the outbound rate. Reversing the MOTOR is the
+        // point; which way the encoder happened to count is a separate question
+        // and using its sign here would drive the axis further away in exactly
+        // the inverted case this probe exists to find.
+        _gen.setRate(-sps);
+        if (!pumpMs(SPINUP_MS, abort)) return calBail(r, "aborted");
+        int32_t p1 = _encPos;
+        if (!pumpMs((uint32_t)(r.seconds * 1000.0f), abort)) {
+            return calBail(r, "aborted");
+        }
+        r.back = _encPos - p1;
+        r.residual = r.counts + r.back;
 
+        // Coast the rest of the way home so the axis ends where it started
+        // rather than a spin-up short of it. The return leg moves the encoder
+        // opposite to the outbound leg, whatever the polarity turned out to be.
+        pumpToMark(home, (r.counts > 0) ? -1 : +1, timeout, abort);
+        _gen.stop();
+        pumpMs(SETTLE_MS, nullptr);
+
+        // Adopt the polarity only after the return leg: flipping first would
+        // re-resolve the sign and send the shaft another turn the wrong way.
         if (r.counts < 0) {
-            _gen.flipDirPlusLevel();
+            _gen.flipInvert();
             r.flipped = true;
         }
 
+        _gen.setClockGain(r.clockGain);
         resyncSlip();
         _target = _encPos;
         r.ok = true;
@@ -274,18 +318,21 @@ class StepperServo {
     // Open-loop jog, for poking at the mechanism with the loop out of the way.
     void jogSteps(int32_t n, float sps) {
         servoOn(false);
-        _gen.moveSteps(n, sps);
+        _gen.moveSteps((double)n, sps);
     }
     void spin(float sps) {
         servoOn(false);
         _gen.setRate(sps);
     }
 
-    // Keep the encoder integrated at ~1 kHz while the generator runs a budgeted
-    // move on its own, then hold on for `settleMs` so the last steps land in the
-    // measurement. `timeoutMs` is only a backstop against a wedged generator.
-    // `abort` is polled throughout; returning true stops the generator and
-    // bails out, so a blocking move never traps the caller.
+    // --- pumps ----------------------------------------------------------
+    //
+    // Blocking moves still have to keep the encoder integrated and the
+    // commanded integral advancing, since neither has an ISR behind it. All of
+    // these poll `abort` throughout, so a blocking move never traps the caller.
+
+    // Keep pumping while a budgeted move runs itself out, then hold on for
+    // `settleMs` so the last of the motion lands in the measurement.
     bool pumpEncoder(uint32_t timeoutMs, uint32_t settleMs = 150,
                      bool (*abort)() = nullptr) {
         uint32_t t0 = millis();
@@ -302,34 +349,85 @@ class StepperServo {
         return true;
     }
 
-  private:
-    static constexpr float VEL_ALPHA = 0.1f;     // ~17 Hz one-pole at 1 kHz
-    static constexpr float SETTLE_VEL = 205.0f;  // counts/s, ~0.05 turns/s
-    static constexpr float SLIP_TAU = 3.0f;      // s, slip reference leak
+    bool pumpMs(uint32_t ms, bool (*abort)() = nullptr) {
+        uint32_t t0 = millis();
+        uint32_t last = micros();
+        while (millis() - t0 < ms) {
+            if (abort && abort()) { _gen.stop(); return false; }
+            pumpOnce(last);
+        }
+        return true;
+    }
 
-    // Twice the ideal duration, so a slow-but-working move is never cut short.
-    static uint32_t moveTimeoutMs(int32_t steps, float sps) {
-        return (uint32_t)(2000.0f * fabsf((float)steps) / fmaxf(fabsf(sps), 1.0f)) + 500;
+    bool pumpTravel(int32_t from, int32_t travel, uint32_t timeoutMs,
+                    bool (*abort)() = nullptr) {
+        uint32_t t0 = millis();
+        uint32_t last = micros();
+        while (labs((long)(_encPos - from)) < (long)travel) {
+            if (millis() - t0 > timeoutMs) return false;
+            if (abort && abort()) { _gen.stop(); return false; }
+            pumpOnce(last);
+        }
+        return true;
+    }
+
+    // Run until the encoder crosses `mark` travelling in `sign`. Falling short
+    // is not fatal -- the caller stops where it got to.
+    bool pumpToMark(int32_t mark, int sign, uint32_t timeoutMs,
+                    bool (*abort)() = nullptr) {
+        uint32_t t0 = millis();
+        uint32_t last = micros();
+        while (millis() - t0 < timeoutMs) {
+            if (abort && abort()) { _gen.stop(); return false; }
+            if (sign > 0 ? (_encPos >= mark) : (_encPos <= mark)) return true;
+            pumpOnce(last);
+        }
+        return false;
+    }
+
+  private:
+    static constexpr float VEL_TAU = 0.01f;      // s, ~16 Hz one-pole
+    static constexpr float SETTLE_VEL = 205.0f;  // counts/s, ~0.05 turns/s
+    static constexpr float SLIP_TAU = 1.0f;      // s, slip reference leak
+    static const uint32_t SPINUP_MS = 400;       // excluded from the timed window
+    static const uint32_t SETTLE_MS = 250;
+
+    // Twice the ideal duration, so a slow-but-working leg is never cut short.
+    uint32_t legTimeoutMs(int32_t travel, float sps) const {
+        float ideal = (float)travel * stepsPerCount / fmaxf(fabsf(sps), 1.0f);
+        return (uint32_t)(2000.0f * ideal) + 1000;
+    }
+
+    CalResult calBail(CalResult r, const char *note) {
+        _gen.stop();
+        resyncSlip();
+        r.ok = false;
+        r.note = note;
+        return r;
     }
 
     void pumpOnce(uint32_t &last) {
         uint32_t now = micros();
         if (now - last < 1000) return;
+        _gen.tick();
         readEncoder((float)(now - last) * 1e-6f);
         last = now;
     }
 
+    // One-pole on a time constant rather than a fixed alpha: the control rate
+    // moved from 1 kHz to 200 Hz with the port, and a hardcoded alpha would
+    // have quietly dropped the corner from 16 Hz to 3 Hz along with it.
     void readEncoder(float dt) {
         uint16_t raw = _enc.readAngle();
         int16_t d = (int16_t)((raw - _lastRaw) & 0x0FFF);
         if (d > 2048) d -= 4096;
         _lastRaw = raw;
         _encPos += d;
-        if (dt > 0) _vel += VEL_ALPHA * ((float)d / dt - _vel);
+        if (dt > 0) _vel += (dt / (VEL_TAU + dt)) * ((float)d / dt - _vel);
     }
 
     AS5600 &_enc;
-    StepGen &_gen;
+    VelGen &_gen;
 
     uint16_t _lastRaw = 0;
     int32_t _encPos = 0;   // multiturn output-shaft counts

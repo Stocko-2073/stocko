@@ -22,13 +22,13 @@
 // angle read is ~40 bit periods either way, and arduino-esp32's Wire blocks for
 // the whole transaction anyway -- so the hardware encoder is already costing
 // ~135 us of stalled CPU per read. At halfUs=2 this costs ~200 us. Both fit
-// inside the 1 kHz control tick with room to spare.
+// inside the 5 ms control tick with room to spare -- and with the STEP/DIR
+// pulse generator gone there is no longer a 40 kHz ISR competing for the gaps.
 //
-// Interrupts are harmless here. The 40 kHz StepGen ISR fires every 25 us and
-// will stretch bit periods all over a transaction, and I2C does not care: it is
-// a fully static protocol with no slave-side timeout, so a clock held high or
-// low for an extra microsecond is legal. Treat the nominal bit rate as a
-// ceiling, not a promise.
+// Interrupts are harmless here regardless. Anything that stretches bit periods
+// mid-transaction is fine: I2C is a fully static protocol with no slave-side
+// timeout, so a clock held high or low for an extra microsecond is legal. Treat
+// the nominal bit rate as a ceiling, not a promise.
 //
 // Wiring: SDA and SCL each need a pull-up to 3V3 (4.7k). Most AS5600 breakouts
 // carry their own -- check you have not ended up with three in parallel across
@@ -258,8 +258,8 @@ class AS5600Soft : public AS5600 {
 
     // --- pins ---
     //
-    // Open drain, so "high" is a release and the pull-up does the work. Same
-    // single 32-bit register StepGen uses -- the C6 tops out at GPIO30.
+    // Open drain, so "high" is a release and the pull-up does the work. One
+    // 32-bit set/clear register covers every pin -- the C6 tops out at GPIO30.
     inline void driveLow(uint32_t mask) { REG_WRITE(GPIO_OUT_W1TC_REG, mask); }
     inline void release(uint32_t mask) { REG_WRITE(GPIO_OUT_W1TS_REG, mask); }
     inline bool readSda() const { return (REG_READ(GPIO_IN_REG) & _sdaMask) != 0; }
