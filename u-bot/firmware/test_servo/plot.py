@@ -786,9 +786,17 @@ def main():
                     help="seconds of history on the strip charts (default 10)")
     ap.add_argument("--span", type=float, default=3.0,
                     help="target slider reach in output turns (default +/-3)")
+    ap.add_argument("--send", metavar="CMD", action="append", default=[],
+                    help="send CMD to the board once the scope is up, so a run "
+                         "can be filmed with the traces already live. Repeatable "
+                         "and ordered; '~N' pauses N seconds between sends "
+                         "(e.g. --send e --send '~1' --send M). Keys go bare, "
+                         "word commands need a trailing newline.")
     ap.add_argument("--log", metavar="FILE", help="tee every received line to FILE")
     ap.add_argument("--replay", metavar="FILE", help="plot a capture ('-' for stdin)")
     ap.add_argument("--speed", type=float, default=1.0, help="replay speed multiplier")
+    ap.add_argument("--send-after", type=float, default=3.0, metavar="SECS",
+                    help="delay before the first --send (default 3)")
     ap.add_argument("--save", metavar="FILE",
                     help="render one frame to FILE after the stream ends and exit")
     args = ap.parse_args()
@@ -824,6 +832,19 @@ def main():
         done.set()
 
     threading.Thread(target=reader, daemon=True).start()
+
+    # Kick off a scripted run once the window is up and the header chase has
+    # settled, so the first move is not spent waiting for matplotlib.
+    if args.send:
+        def kick():
+            time.sleep(args.send_after)
+            for cmd in args.send:
+                if cmd.startswith("~"):
+                    time.sleep(float(cmd[1:]))
+                    continue
+                source.send(cmd)
+                time.sleep(0.2)
+        threading.Thread(target=kick, daemon=True).start()
 
     try:
         if args.save:

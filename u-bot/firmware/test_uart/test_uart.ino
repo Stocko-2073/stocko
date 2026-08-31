@@ -386,6 +386,26 @@ static void enPinTest(uint8_t addr) {
   Serial.print((int)low); Serial.println(F("  (enabled)"));
   Serial.print(F("  D0 released    -> driver reads ENN="));
   Serial.println((int)released);
+
+  // Every driver on the bus, not just the one that answered first: a second
+  // driver whose EN never reached D0 reads high because the module pulls it
+  // there, which is indistinguishable from a working killswitch until you
+  // drive the pin low and watch whether it follows.
+  Serial.println(F("  per driver, with D0 driven LOW:"));
+  pinMode(PIN_EN, OUTPUT);
+  digitalWrite(PIN_EN, LOW);
+  delay(5);
+  for (uint8_t a = 0; a < 4; a++) {
+    Tmc2209Uart::Result q = tmc.read(a, Tmc2209Uart::IOIN);
+    if (q.st != Tmc2209Uart::OK) continue;
+    Serial.print(F("    addr ")); Serial.print(a);
+    Serial.print(F(": ENN=")); Serial.print((int)(q.value & 1));
+    Serial.println((q.value & 1) ? F("  NOT following D0 -- EN is not wired")
+                                 : F("  follows D0, killswitch covers it"));
+    delay(2);
+  }
+  digitalWrite(PIN_EN, HIGH);
+  delay(2);
   if (released == 1) {
     Serial.println(F("  -> floats HIGH: the driver disables itself while the MCU"));
     Serial.println(F("     is in reset. The killswitch is fail-safe as wired."));

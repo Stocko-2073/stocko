@@ -90,9 +90,17 @@ D7 side to **module pin 4, silkscreened `RX`**. On the BTT TMC2209 V1.3, pin 5
 use it. Both header pins are marked `PDN` on the card that ships with the
 module, which is how an afternoon gets lost.
 
-**Address 0**, from MS1=MS2=0. A second driver needs MS1 high for address 1,
-which in pin mode would also switch it to 1/2 microstep — so set
-`mstep_reg_select=1` and put MRES in `CHOPCONF`, making the pins address-only.
+**Wheel A is address 0** (MS1=MS2=0), **wheel B is address 1** (MS1 jumpered to
+3V3). Both drivers share the one bus. MS1 high would also mean 1/2 microstep in
+pin mode, which is why `mstep_reg_select=1` is set and MRES lives in `CHOPCONF`
+so the pins carry nothing but the address. The driver confirms its own jumper:
+`IOIN` reads MS1=1 at address 1.
+
+Two things changed when the second driver joined the bus. Address 1 answers at
+250k and 500k but **not at 115200**, where address 0 still does, which is another
+reason to stay high. And **open-drain TX stopped working entirely**: two drivers
+pulling on the node beat the ~22k internal pull-up, so push-pull is now the only
+option rather than merely the preferred one.
 
 **Baud: 250000 or 500000. Never below 115200.** At 57600 reads work but writes
 fail outright, 0/20. The discriminator is datagram duration against the driver's
@@ -155,6 +163,37 @@ velocity mode can still produce that open-loop step counting used to give, and
 it says the motor did exactly what it was told in both directions.
 
 
+## Wheel B, measured 2026-08-31
+
+Calibration, the same probe wheel A got:
+
+    -12289 counts in 10.571 s         shaft polarity INVERTED
+    clock gain 1.0091                 asked 1500 steps/s, got 1514
+    return leg +12292 vs -12289       residual +3 counts, no steps lost
+
+The polarity came out inverted, which is what the mechanism predicts: wheel B is
+on the other side of the robot, so the bevel pair drives it the opposite way.
+The magnet's orientation was also unknown. Both collapse into the same single
+bit, does +VACTUAL make the encoder count up, so `c` settles them together
+without anyone having to work out which one flipped.
+
+The clock gain differs from wheel A's 1.0158, which is the point: it belongs to
+the individual chip and every driver needs its own. Baked in as `SHAFT_INVERT_B`
+and `CLOCK_GAIN_B`.
+
+Residual is +3 counts against wheel A's +0. Wheel B's magnet reads weak
+(`MAGNET_LOW`, AGC pinned at 128), which is the likely cause and is worth fixing
+before leaning on B's closed loop.
+
+**What calibration does not settle** is the robot. It makes each wheel
+self-consistent, and with both reading +VACTUAL as counting up, commanding both
+positive turns them the same way in *encoder* terms. They are mirrored, so that
+is opposite in world terms. Which sign means "the robot drives forward" has to
+be decided by watching it move once, and belongs in a layer above the servo,
+never in the shaft bit. Flipping the shaft bit to fix a robot convention would
+break the loop it was measured for.
+
+
 ## EN is the killswitch, and it is fail-safe
 
 `ENN` is active low and gates the power stage in hardware. It does not go
@@ -166,11 +205,26 @@ Measured on 2026-08-30 by reading `IOIN` back over UART while driving D0:
     D0 driven HIGH  -> ENN=1, disabled
     D0 driven LOW   -> ENN=0, enabled
     D0 released     -> ENN=1, disabled
+    with D0 low     -> address 0 ENN=0, address 1 ENN=0, both follow
 
-It floats high. So MCU reset, watchdog reset, and a broken EN wire all fail to
+It floats high, and one pin covers both drivers. So MCU reset, watchdog reset, and a broken EN wire all fail to
 the safe state on their own. Keep this pin hardwired; do not be tempted to save
 it by disabling the driver with `toff=0` over the bus, which fails exactly when
-you need it.
+you need it. Per-wheel disable is a separate concern, and `toff=0` is the right
+tool for that one: it costs no pins and cuts a single driver's power stage.
+
+EN is shared on purpose rather than one pin per driver, even though pins are now
+spare. Everything the hardware line does that software cannot, surviving a
+wedged loop or a watchdog reset or a dead bus, is a case where both wheels
+should stop. On a differential drive, disabling one wheel while the other drives
+pivots the robot rather than stopping it.
+
+A 4.7k pull-up to 3V3 went on D0 on 2026-08-31. It makes the released state
+stiffer than the module's internal pull-up alone, costs 0.7 mA while enabled,
+and GPIO0 is not a strapping pin on the C6 so it cannot affect boot. When a
+physical E-stop arrives, the clean topology is a normally-closed contact in
+series between D0 and the drivers with **the pull-up on the driver side**:
+breaking the loop then leaves the pull-up holding EN high.
 
 **This matters more under UART than it did under STEP/DIR.** Before, a hung MCU
 stopped the robot for free: no pulses, no motion. Now the driver keeps stepping
@@ -219,17 +273,22 @@ a 12:40 bevel pair is not.
 
 ## Pins, XIAO ESP32-C6
 
-| pin | now | under UART |
-|---|---|---|
-| D0 / GPIO0 | EN, driver A | EN, both drivers |
-| D1 / GPIO1 | STEP | free |
-| D2 / GPIO2 | DIR | free |
-| D4 / GPIO22 | encoder A SDA | unchanged |
-| D5 / GPIO23 | encoder A SCL | unchanged |
-| D6 / GPIO16 | — | UART TX, shared |
-| D7 / GPIO17 | — | UART RX, shared |
-| D8 / GPIO19 | encoder B SCL | unchanged |
-| D9 / GPIO20 | encoder B SDA | unchanged |
+| pin | use |
+|---|---|
+| D0 / GPIO0 | EN, both drivers, active low, 4.7k pull-up to 3V3 |
+| D1 / GPIO1 | free (was STEP) |
+| D2 / GPIO2 | free (was DIR) |
+| D3 / GPIO21 | free |
+| D4 / GPIO22 | wheel A encoder SDA |
+| D5 / GPIO23 | wheel A encoder SCL |
+| D6 / GPIO16 | UART TX, through 1k to the shared node |
+| D7 / GPIO17 | UART RX, on the node |
+| D8 / GPIO19 | wheel B encoder SCL |
+| D9 / GPIO20 | wheel B encoder SDA |
+| D10 / GPIO18 | free |
+
+Four pins spare with both wheels driven. On STEP/DIR the same robot would have
+needed six driver pins and left one.
 
 Wheel B's encoder is on a bit-banged bus because the AS5600's address is fixed
 at 0x36 and the C6's second I2C controller is LP_I2C, which only lives on

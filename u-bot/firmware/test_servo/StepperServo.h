@@ -76,9 +76,11 @@ class StepperServo {
         _slipRaw = 0;
     }
 
+    // The EN pin itself is shared and belongs to the sketch; this is only this
+    // axis's half of the transaction.
     void enableDriver(bool on) {
         if (!on) servoOn(false);
-        _gen.enable(on);
+        _gen.setEnabled(on);
     }
     bool driverEnabled() const { return _gen.enabled(); }
 
@@ -135,6 +137,9 @@ class StepperServo {
     int32_t errorCounts() const { return _target - _encPos; }
     float velocityTps() const { return _vel / COUNTS_PER_REV; }
     uint16_t rawAngle() const { return _lastRaw; }
+    bool encoderOk() const { return _encOk; }
+    uint32_t worstReadUs() const { return _worstUs; }
+    uint32_t takeRecentReadUs() { uint32_t v = _recentUs; _recentUs = 0; return v; }
     int32_t slipSteps() const { return (int32_t)lroundf(_slipRaw - _slipRef); }
     bool atTarget() const { return labs((long)(_target - _encPos)) <= tolCounts; }
     uint8_t fault() const { return _fault; }
@@ -417,8 +422,27 @@ class StepperServo {
     // One-pole on a time constant rather than a fixed alpha: the control rate
     // moved from 1 kHz to 200 Hz with the port, and a hardcoded alpha would
     // have quietly dropped the corner from 16 Hz to 3 Hz along with it.
+    //
+    // A failed read holds position instead of integrating, because readAngle()
+    // hands back the stale angle on error and treating that as real motion
+    // would inject a step into the loop. The backoff matters on the bit-banged
+    // bus wheel B rides: with no pull-ups SCL never rises and every read burns
+    // the full stretch timeout, so a wiring fault must not cost the control
+    // loop a millisecond on every tick.
     void readEncoder(float dt) {
+        if (!_encOk && (int32_t)(millis() - _retryMs) < 0) return;
+
+        uint32_t t0 = micros();
         uint16_t raw = _enc.readAngle();
+        uint32_t took = micros() - t0;
+        if (took > _worstUs) _worstUs = took;
+        if (took > _recentUs) _recentUs = took;
+
+        _encOk = (_enc.lastError() == AS5600_OK);
+        if (!_encOk) {
+            _retryMs = millis() + 100;
+            return;
+        }
         int16_t d = (int16_t)((raw - _lastRaw) & 0x0FFF);
         if (d > 2048) d -= 4096;
         _lastRaw = raw;
@@ -438,4 +462,8 @@ class StepperServo {
     float _slipRef = 0;
     bool _servo = false;
     uint8_t _fault = FAULT_NONE;
+    bool _encOk = true;
+    uint32_t _retryMs = 0;
+    uint32_t _worstUs = 0;   // worst encoder read since boot
+    uint32_t _recentUs = 0;  // worst since the last sample line
 };

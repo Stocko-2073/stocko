@@ -36,12 +36,10 @@ class VelGen {
 
     VelGen(Tmc2209Uart &uart, uint8_t addr) : _uart(uart), _addr(addr) {}
 
-    // EN is parked high before the bus is touched, so the driver is disabled
-    // from the first instruction whatever else goes wrong here.
-    bool begin(uint8_t enPin, uint32_t baud, uint16_t microsteps = 8) {
-        _enPin = enPin;
-        pinMode(_enPin, OUTPUT);
-        digitalWrite(_enPin, HIGH);
+    // EN is deliberately not ours. It is one pin shared by every driver on the
+    // bus, so the sketch owns it and parks it high before any of this runs --
+    // two VelGens each driving the same GPIO would just disagree.
+    bool begin(uint32_t baud, uint16_t microsteps = 8) {
         _enabled = false;
 
         _uart.begin(baud, false);
@@ -81,13 +79,13 @@ class VelGen {
     // --- driver enable ---
 
     // Zero velocity before energising, always. Re-enabling with a live VACTUAL
-    // is the one way this axis can lurch without being told to.
-    void enable(bool on) {
+    // is the one way this axis can lurch without being told to. Call this on
+    // every driver BEFORE the shared EN goes low, and after it goes high.
+    void setEnabled(bool on) {
         if (on) {
             writeVactual(0);
             _rate = 0;
         }
-        digitalWrite(_enPin, on ? LOW : HIGH);   // EN is active low
         _enabled = on;
         if (!on) stop();
     }
@@ -269,7 +267,6 @@ class VelGen {
 
     Tmc2209Uart &_uart;
     uint8_t _addr;
-    uint8_t _enPin = 0;
     bool _ok = false;
     uint8_t _version = 0;
 
