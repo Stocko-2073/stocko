@@ -1,0 +1,360 @@
+{
+ "chunk": "A8",
+ "tool_profile": {
+  "name": "placeholder_awaiting_C3",
+  "clearance": 0.01,
+  "clearance_units": "rdu"
+ },
+ "note": "Ablations are computed from the floor-0.00 rejection report by set inclusion, which is exact because the gate evaluates every condition for every instance and never short-circuits.",
+ "identity_cross_check": {
+  "claim": "dropping `confidence_below_floor` from the shipped rejection report reproduces the floor-0.00 re-run exactly",
+  "holds": true,
+  "target_ids": [
+   104
+  ]
+ },
+ "ablations_at_floor_000": [
+  {
+   "dropped": [],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "the shipped gate, floor 0.00 (all conditions)"
+  },
+  {
+   "dropped": [
+    "label_not_remove"
+   ],
+   "n_targets": 3,
+   "target_ids": [
+    81,
+    104,
+    205
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12573,
+   "gt_weed_fraction_reached": 0.717228,
+   "crop_bearing_targets": [],
+   "name": "without `label_not_remove`"
+  },
+  {
+   "dropped": [
+    "not_unanimous"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `not_unanimous`"
+  },
+  {
+   "dropped": [
+    "insufficient_repeats"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `insufficient_repeats`"
+  },
+  {
+   "dropped": [
+    "component_unlabelled"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `component_unlabelled`"
+  },
+  {
+   "dropped": [
+    "label_discarded_r3"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `label_discarded_r3`"
+  },
+  {
+   "dropped": [
+    "mixed_component"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `mixed_component`"
+  },
+  {
+   "dropped": [
+    "no_contact_point"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `no_contact_point`"
+  },
+  {
+   "dropped": [
+    "contact_not_observed"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `contact_not_observed`"
+  },
+  {
+   "dropped": [
+    "contact_not_arm_admissible"
+   ],
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [],
+   "name": "without `contact_not_arm_admissible`"
+  },
+  {
+   "dropped": [
+    "inside_keepout"
+   ],
+   "n_targets": 3,
+   "target_ids": [
+    5,
+    104,
+    120
+   ],
+   "gt_crop_px_under_the_tool": 477,
+   "gt_crop_fraction_under_the_tool": 0.001131,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [
+    5,
+    120
+   ],
+   "name": "without `inside_keepout`"
+  },
+  {
+   "dropped": [
+    "contact_not_arm_admissible",
+    "contact_not_observed",
+    "inside_keepout",
+    "no_contact_point"
+   ],
+   "n_targets": 3,
+   "target_ids": [
+    5,
+    104,
+    120
+   ],
+   "gt_crop_px_under_the_tool": 477,
+   "gt_crop_fraction_under_the_tool": 0.001131,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_fraction_reached": 0.713063,
+   "crop_bearing_targets": [
+    5,
+    120
+   ],
+   "name": "semantics only (every geometric condition dropped)"
+  },
+  {
+   "dropped": [
+    "component_unlabelled",
+    "confidence_below_floor",
+    "insufficient_repeats",
+    "label_discarded_r3",
+    "label_not_remove",
+    "mixed_component",
+    "not_unanimous"
+   ],
+   "n_targets": 10,
+   "target_ids": [
+    1,
+    81,
+    83,
+    84,
+    91,
+    94,
+    104,
+    108,
+    109,
+    205
+   ],
+   "gt_crop_px_under_the_tool": 414003,
+   "gt_crop_fraction_under_the_tool": 0.981222,
+   "gt_weed_px_reached": 17055,
+   "gt_weed_fraction_reached": 0.972904,
+   "crop_bearing_targets": [
+    1
+   ],
+   "name": "geometry only (every semantic condition dropped)"
+  }
+ ],
+ "ablations_at_registered_floor": [
+  {
+   "dropped": [],
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "crop_bearing_targets": [],
+   "name": "the shipped gate, floor 0.7"
+  },
+  {
+   "dropped": [
+    "contact_not_arm_admissible",
+    "contact_not_observed",
+    "inside_keepout",
+    "no_contact_point"
+   ],
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "crop_bearing_targets": [],
+   "name": "semantics only, at the registered floor"
+  },
+  {
+   "dropped": [
+    "component_unlabelled",
+    "confidence_below_floor",
+    "insufficient_repeats",
+    "label_discarded_r3",
+    "label_not_remove",
+    "mixed_component",
+    "not_unanimous"
+   ],
+   "n_targets": 10,
+   "target_ids": [
+    1,
+    81,
+    83,
+    84,
+    91,
+    94,
+    104,
+    108,
+    109,
+    205
+   ],
+   "gt_crop_px_under_the_tool": 414003,
+   "gt_crop_fraction_under_the_tool": 0.981222,
+   "gt_weed_px_reached": 17055,
+   "gt_weed_fraction_reached": 0.972904,
+   "crop_bearing_targets": [
+    1
+   ],
+   "name": "geometry only, at the registered floor"
+  }
+ ],
+ "n_conditions_failed_histogram": {
+  "1": 4,
+  "2": 54,
+  "3": 14,
+  "4": 2,
+  "5": 132
+ },
+ "the_three_unanimous_removes": [
+  {
+   "instance_id": 5,
+   "gt_crop_px": 453,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6205,
+   "admitted_at_floor_000": false,
+   "reasons_at_floor_000": [
+    "inside_keepout"
+   ],
+   "detail": {
+    "nearest_keep_plant_instance": 1,
+    "distance_to_nearest_keep_plant_rdu": 0.0,
+    "clearance_rdu": 0.01,
+    "voxel_bracket_rdu": 0.003031088913245535
+   }
+  },
+  {
+   "instance_id": 104,
+   "gt_crop_px": 0,
+   "gt_weed_px": 12500,
+   "gt_crop_fraction": 0.0,
+   "admitted_at_floor_000": true,
+   "reasons_at_floor_000": [],
+   "detail": {}
+  },
+  {
+   "instance_id": 120,
+   "gt_crop_px": 24,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0101,
+   "admitted_at_floor_000": false,
+   "reasons_at_floor_000": [
+    "inside_keepout"
+   ],
+   "detail": {
+    "nearest_keep_plant_instance": 1,
+    "distance_to_nearest_keep_plant_rdu": 0.0,
+    "clearance_rdu": 0.01,
+    "voxel_bracket_rdu": 0.003031088913245535
+   }
+  }
+ ],
+ "r3_discard": {
+  "n_instances": 134,
+  "cause": "A7's own code-authored triage rationale names a pixel count (\"A0's 25 px minimum\", \"A7's 75 px call budget floor\"), and A7's R3 validator rejects a measurement in a free-text field. A8 validates every label record the same way regardless of who wrote it, so those 134 policy labels are discarded to `unsure`.",
+  "consequence": "None for safety: the discarded label already said `unsure`, and the discard produces `unsure` too. It is reported because a validator that fires on 65 % of its input is a thing the next chunk needs to know about, not because anything went wrong.",
+  "all_discarded_labels_were_unsure": true
+ }
+}

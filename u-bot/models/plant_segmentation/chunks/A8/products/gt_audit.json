@@ -1,0 +1,2681 @@
+{
+ "note": "A0 ground truth per A4 merge component. Used ONLY to score A8's gate in RESULTS.md. No tool reads this file and no field of it reaches a tool output.",
+ "instances": {
+  "1": {
+   "gt_instance_px": {
+    "0": 37776,
+    "1": 414003,
+    "8": 223,
+    "9": 3428,
+    "10": 831,
+    "255": 88417
+   },
+   "gt_material_px": {
+    "unlabelled": 7539,
+    "squash_leaf": 346579,
+    "squash_petiole": 50823,
+    "grass": 88417,
+    "broadleaf_weed": 4482,
+    "straw": 30237,
+    "fruit": 16601
+   },
+   "gt_crop_px": 414003,
+   "gt_weed_px": 4482,
+   "gt_crop_fraction": 0.7601,
+   "crop_majority": true
+  },
+  "2": {
+   "gt_instance_px": {
+    "255": 76
+   },
+   "gt_material_px": {
+    "grass": 76
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "3": {
+   "gt_instance_px": {
+    "255": 14
+   },
+   "gt_material_px": {
+    "grass": 14
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "4": {
+   "gt_instance_px": {
+    "255": 30
+   },
+   "gt_material_px": {
+    "grass": 30
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "5": {
+   "gt_instance_px": {
+    "1": 453,
+    "255": 277
+   },
+   "gt_material_px": {
+    "squash_leaf": 453,
+    "grass": 277
+   },
+   "gt_crop_px": 453,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6205,
+   "crop_majority": true
+  },
+  "6": {
+   "gt_instance_px": {
+    "0": 39,
+    "1": 1202,
+    "255": 474
+   },
+   "gt_material_px": {
+    "squash_leaf": 1202,
+    "grass": 474,
+    "straw": 39
+   },
+   "gt_crop_px": 1202,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.7009,
+   "crop_majority": true
+  },
+  "7": {
+   "gt_instance_px": {
+    "1": 58,
+    "255": 25
+   },
+   "gt_material_px": {
+    "squash_leaf": 58,
+    "grass": 25
+   },
+   "gt_crop_px": 58,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6988,
+   "crop_majority": true
+  },
+  "8": {
+   "gt_instance_px": {
+    "1": 2,
+    "255": 61
+   },
+   "gt_material_px": {
+    "squash_leaf": 2,
+    "grass": 61
+   },
+   "gt_crop_px": 2,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0317,
+   "crop_majority": true
+  },
+  "9": {
+   "gt_instance_px": {
+    "255": 14
+   },
+   "gt_material_px": {
+    "grass": 14
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "10": {
+   "gt_instance_px": {
+    "1": 452,
+    "255": 207
+   },
+   "gt_material_px": {
+    "squash_leaf": 452,
+    "grass": 207
+   },
+   "gt_crop_px": 452,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6859,
+   "crop_majority": true
+  },
+  "11": {
+   "gt_instance_px": {
+    "255": 568
+   },
+   "gt_material_px": {
+    "grass": 568
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "12": {
+   "gt_instance_px": {
+    "1": 202,
+    "255": 44
+   },
+   "gt_material_px": {
+    "squash_leaf": 202,
+    "grass": 44
+   },
+   "gt_crop_px": 202,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.8211,
+   "crop_majority": true
+  },
+  "13": {
+   "gt_instance_px": {
+    "255": 143
+   },
+   "gt_material_px": {
+    "grass": 143
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "14": {
+   "gt_instance_px": {
+    "1": 172,
+    "255": 46
+   },
+   "gt_material_px": {
+    "squash_leaf": 172,
+    "grass": 46
+   },
+   "gt_crop_px": 172,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.789,
+   "crop_majority": true
+  },
+  "15": {
+   "gt_instance_px": {
+    "1": 72
+   },
+   "gt_material_px": {
+    "squash_leaf": 72
+   },
+   "gt_crop_px": 72,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "16": {
+   "gt_instance_px": {
+    "1": 733,
+    "255": 20
+   },
+   "gt_material_px": {
+    "squash_leaf": 733,
+    "grass": 20
+   },
+   "gt_crop_px": 733,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9734,
+   "crop_majority": true
+  },
+  "17": {
+   "gt_instance_px": {
+    "1": 22
+   },
+   "gt_material_px": {
+    "squash_leaf": 22
+   },
+   "gt_crop_px": 22,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "18": {
+   "gt_instance_px": {
+    "0": 42,
+    "255": 22
+   },
+   "gt_material_px": {
+    "unlabelled": 42,
+    "grass": 22
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "19": {
+   "gt_instance_px": {
+    "255": 26
+   },
+   "gt_material_px": {
+    "grass": 26
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "20": {
+   "gt_instance_px": {
+    "1": 1033,
+    "255": 56
+   },
+   "gt_material_px": {
+    "squash_leaf": 1033,
+    "grass": 56
+   },
+   "gt_crop_px": 1033,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9486,
+   "crop_majority": true
+  },
+  "21": {
+   "gt_instance_px": {
+    "0": 4,
+    "1": 174,
+    "255": 31
+   },
+   "gt_material_px": {
+    "squash_leaf": 174,
+    "grass": 31,
+    "straw": 4
+   },
+   "gt_crop_px": 174,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.8325,
+   "crop_majority": true
+  },
+  "22": {
+   "gt_instance_px": {
+    "0": 211,
+    "1": 29
+   },
+   "gt_material_px": {
+    "squash_leaf": 16,
+    "squash_petiole": 13,
+    "straw": 211
+   },
+   "gt_crop_px": 29,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1208,
+   "crop_majority": true
+  },
+  "23": {
+   "gt_instance_px": {
+    "0": 18
+   },
+   "gt_material_px": {
+    "unlabelled": 18
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "24": {
+   "gt_instance_px": {
+    "0": 35
+   },
+   "gt_material_px": {
+    "unlabelled": 35
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "25": {
+   "gt_instance_px": {
+    "1": 94
+   },
+   "gt_material_px": {
+    "squash_leaf": 94
+   },
+   "gt_crop_px": 94,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "26": {
+   "gt_instance_px": {
+    "0": 5,
+    "1": 58,
+    "255": 15
+   },
+   "gt_material_px": {
+    "squash_leaf": 58,
+    "grass": 15,
+    "straw": 5
+   },
+   "gt_crop_px": 58,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.7436,
+   "crop_majority": true
+  },
+  "27": {
+   "gt_instance_px": {
+    "0": 1,
+    "1": 57
+   },
+   "gt_material_px": {
+    "unlabelled": 1,
+    "squash_leaf": 57
+   },
+   "gt_crop_px": 57,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9828,
+   "crop_majority": true
+  },
+  "28": {
+   "gt_instance_px": {
+    "1": 24,
+    "255": 3
+   },
+   "gt_material_px": {
+    "squash_leaf": 12,
+    "squash_petiole": 12,
+    "grass": 3
+   },
+   "gt_crop_px": 24,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.8889,
+   "crop_majority": true
+  },
+  "29": {
+   "gt_instance_px": {
+    "1": 13
+   },
+   "gt_material_px": {
+    "squash_leaf": 13
+   },
+   "gt_crop_px": 13,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "30": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "31": {
+   "gt_instance_px": {
+    "0": 33
+   },
+   "gt_material_px": {
+    "straw": 33
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "32": {
+   "gt_instance_px": {
+    "0": 15,
+    "255": 2
+   },
+   "gt_material_px": {
+    "grass": 2,
+    "straw": 15
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "33": {
+   "gt_instance_px": {
+    "0": 20
+   },
+   "gt_material_px": {
+    "straw": 20
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "34": {
+   "gt_instance_px": {
+    "0": 98
+   },
+   "gt_material_px": {
+    "straw": 98
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "35": {
+   "gt_instance_px": {
+    "0": 69,
+    "255": 1
+   },
+   "gt_material_px": {
+    "grass": 1,
+    "straw": 69
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "36": {
+   "gt_instance_px": {
+    "0": 19,
+    "1": 7
+   },
+   "gt_material_px": {
+    "squash_petiole": 7,
+    "straw": 19
+   },
+   "gt_crop_px": 7,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.2692,
+   "crop_majority": true
+  },
+  "37": {
+   "gt_instance_px": {
+    "0": 69
+   },
+   "gt_material_px": {
+    "straw": 69
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "38": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "39": {
+   "gt_instance_px": {
+    "1": 22
+   },
+   "gt_material_px": {
+    "squash_petiole": 22
+   },
+   "gt_crop_px": 22,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "40": {
+   "gt_instance_px": {
+    "0": 156,
+    "255": 8
+   },
+   "gt_material_px": {
+    "grass": 8,
+    "straw": 156
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "41": {
+   "gt_instance_px": {
+    "0": 1545,
+    "1": 321,
+    "255": 559
+   },
+   "gt_material_px": {
+    "squash_leaf": 165,
+    "squash_petiole": 156,
+    "grass": 559,
+    "straw": 1545
+   },
+   "gt_crop_px": 321,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1324,
+   "crop_majority": true
+  },
+  "42": {
+   "gt_instance_px": {
+    "1": 15
+   },
+   "gt_material_px": {
+    "squash_petiole": 15
+   },
+   "gt_crop_px": 15,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "43": {
+   "gt_instance_px": {
+    "0": 2,
+    "1": 14
+   },
+   "gt_material_px": {
+    "squash_petiole": 14,
+    "straw": 2
+   },
+   "gt_crop_px": 14,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.875,
+   "crop_majority": true
+  },
+  "44": {
+   "gt_instance_px": {
+    "0": 24
+   },
+   "gt_material_px": {
+    "straw": 24
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "45": {
+   "gt_instance_px": {
+    "0": 34
+   },
+   "gt_material_px": {
+    "straw": 34
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "46": {
+   "gt_instance_px": {
+    "0": 24
+   },
+   "gt_material_px": {
+    "straw": 24
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "47": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "48": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "49": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "50": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "51": {
+   "gt_instance_px": {
+    "0": 24
+   },
+   "gt_material_px": {
+    "straw": 24
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "52": {
+   "gt_instance_px": {
+    "0": 58
+   },
+   "gt_material_px": {
+    "straw": 58
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "53": {
+   "gt_instance_px": {
+    "0": 8
+   },
+   "gt_material_px": {
+    "straw": 8
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "54": {
+   "gt_instance_px": {
+    "0": 13,
+    "1": 23
+   },
+   "gt_material_px": {
+    "squash_leaf": 23,
+    "straw": 13
+   },
+   "gt_crop_px": 23,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6389,
+   "crop_majority": true
+  },
+  "55": {
+   "gt_instance_px": {
+    "0": 45
+   },
+   "gt_material_px": {
+    "straw": 45
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "56": {
+   "gt_instance_px": {
+    "0": 27,
+    "255": 1
+   },
+   "gt_material_px": {
+    "grass": 1,
+    "straw": 27
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "57": {
+   "gt_instance_px": {
+    "0": 15
+   },
+   "gt_material_px": {
+    "straw": 15
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "58": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "59": {
+   "gt_instance_px": {
+    "0": 26
+   },
+   "gt_material_px": {
+    "straw": 26
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "60": {
+   "gt_instance_px": {
+    "1": 18
+   },
+   "gt_material_px": {
+    "squash_petiole": 18
+   },
+   "gt_crop_px": 18,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "61": {
+   "gt_instance_px": {
+    "1": 18
+   },
+   "gt_material_px": {
+    "squash_petiole": 18
+   },
+   "gt_crop_px": 18,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "62": {
+   "gt_instance_px": {
+    "1": 249,
+    "10": 16,
+    "255": 2
+   },
+   "gt_material_px": {
+    "squash_petiole": 249,
+    "grass": 2,
+    "broadleaf_weed": 16
+   },
+   "gt_crop_px": 249,
+   "gt_weed_px": 16,
+   "gt_crop_fraction": 0.9326,
+   "crop_majority": true
+  },
+  "63": {
+   "gt_instance_px": {
+    "1": 41,
+    "255": 193
+   },
+   "gt_material_px": {
+    "squash_petiole": 41,
+    "grass": 193
+   },
+   "gt_crop_px": 41,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1752,
+   "crop_majority": true
+  },
+  "64": {
+   "gt_instance_px": {
+    "1": 8,
+    "255": 9
+   },
+   "gt_material_px": {
+    "squash_petiole": 8,
+    "grass": 9
+   },
+   "gt_crop_px": 8,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.4706,
+   "crop_majority": true
+  },
+  "65": {
+   "gt_instance_px": {
+    "1": 48
+   },
+   "gt_material_px": {
+    "squash_petiole": 48
+   },
+   "gt_crop_px": 48,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "66": {
+   "gt_instance_px": {
+    "1": 21
+   },
+   "gt_material_px": {
+    "squash_petiole": 21
+   },
+   "gt_crop_px": 21,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "67": {
+   "gt_instance_px": {
+    "0": 356,
+    "255": 18
+   },
+   "gt_material_px": {
+    "grass": 18,
+    "straw": 356
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "68": {
+   "gt_instance_px": {
+    "0": 20
+   },
+   "gt_material_px": {
+    "straw": 20
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "69": {
+   "gt_instance_px": {
+    "0": 88,
+    "1": 26
+   },
+   "gt_material_px": {
+    "squash_leaf": 26,
+    "straw": 88
+   },
+   "gt_crop_px": 26,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.2281,
+   "crop_majority": true
+  },
+  "70": {
+   "gt_instance_px": {
+    "0": 29
+   },
+   "gt_material_px": {
+    "straw": 29
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "71": {
+   "gt_instance_px": {
+    "0": 85,
+    "255": 82
+   },
+   "gt_material_px": {
+    "grass": 82,
+    "straw": 85
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "72": {
+   "gt_instance_px": {
+    "0": 50
+   },
+   "gt_material_px": {
+    "straw": 50
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "73": {
+   "gt_instance_px": {
+    "0": 40
+   },
+   "gt_material_px": {
+    "straw": 40
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "74": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "75": {
+   "gt_instance_px": {
+    "0": 390
+   },
+   "gt_material_px": {
+    "straw": 390
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "76": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "77": {
+   "gt_instance_px": {
+    "0": 49,
+    "255": 37
+   },
+   "gt_material_px": {
+    "grass": 37,
+    "straw": 49
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "78": {
+   "gt_instance_px": {
+    "0": 486,
+    "255": 85
+   },
+   "gt_material_px": {
+    "grass": 85,
+    "straw": 486
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "79": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "80": {
+   "gt_instance_px": {
+    "0": 25
+   },
+   "gt_material_px": {
+    "straw": 25
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "81": {
+   "gt_instance_px": {
+    "0": 173,
+    "255": 60
+   },
+   "gt_material_px": {
+    "grass": 60,
+    "straw": 173
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "82": {
+   "gt_instance_px": {
+    "0": 44
+   },
+   "gt_material_px": {
+    "straw": 44
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "83": {
+   "gt_instance_px": {
+    "0": 631,
+    "255": 1163
+   },
+   "gt_material_px": {
+    "grass": 1163,
+    "straw": 631
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "84": {
+   "gt_instance_px": {
+    "0": 188,
+    "255": 578
+   },
+   "gt_material_px": {
+    "grass": 578,
+    "straw": 188
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "85": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "86": {
+   "gt_instance_px": {
+    "0": 45
+   },
+   "gt_material_px": {
+    "straw": 45
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "87": {
+   "gt_instance_px": {
+    "0": 40
+   },
+   "gt_material_px": {
+    "straw": 40
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "88": {
+   "gt_instance_px": {
+    "0": 1206,
+    "255": 9
+   },
+   "gt_material_px": {
+    "grass": 9,
+    "straw": 1206
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "89": {
+   "gt_instance_px": {
+    "0": 33
+   },
+   "gt_material_px": {
+    "straw": 33
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "90": {
+   "gt_instance_px": {
+    "0": 42
+   },
+   "gt_material_px": {
+    "straw": 42
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "91": {
+   "gt_instance_px": {
+    "0": 324
+   },
+   "gt_material_px": {
+    "straw": 324
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "92": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "93": {
+   "gt_instance_px": {
+    "0": 49
+   },
+   "gt_material_px": {
+    "straw": 49
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "94": {
+   "gt_instance_px": {
+    "0": 98
+   },
+   "gt_material_px": {
+    "straw": 98
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "95": {
+   "gt_instance_px": {
+    "0": 40
+   },
+   "gt_material_px": {
+    "straw": 40
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "96": {
+   "gt_instance_px": {
+    "0": 129
+   },
+   "gt_material_px": {
+    "straw": 129
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "97": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "98": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "99": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "100": {
+   "gt_instance_px": {
+    "0": 37
+   },
+   "gt_material_px": {
+    "straw": 37
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "101": {
+   "gt_instance_px": {
+    "0": 101
+   },
+   "gt_material_px": {
+    "straw": 101
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "102": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "103": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "104": {
+   "gt_instance_px": {
+    "0": 6091,
+    "2": 2594,
+    "3": 3862,
+    "4": 3369,
+    "5": 1134,
+    "6": 1541,
+    "255": 423
+   },
+   "gt_material_px": {
+    "grass": 423,
+    "broadleaf_weed": 12500,
+    "straw": 6091
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 12500,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "105": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "106": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "107": {
+   "gt_instance_px": {
+    "0": 20
+   },
+   "gt_material_px": {
+    "straw": 20
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "108": {
+   "gt_instance_px": {
+    "0": 31
+   },
+   "gt_material_px": {
+    "straw": 31
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "109": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "110": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "111": {
+   "gt_instance_px": {
+    "0": 8,
+    "5": 8
+   },
+   "gt_material_px": {
+    "broadleaf_weed": 8,
+    "straw": 8
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 8,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "112": {
+   "gt_instance_px": {
+    "0": 77
+   },
+   "gt_material_px": {
+    "straw": 77
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "113": {
+   "gt_instance_px": {
+    "0": 44
+   },
+   "gt_material_px": {
+    "straw": 44
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "114": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "115": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "116": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "117": {
+   "gt_instance_px": {
+    "0": 24
+   },
+   "gt_material_px": {
+    "straw": 24
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "118": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "119": {
+   "gt_instance_px": {
+    "0": 77
+   },
+   "gt_material_px": {
+    "straw": 77
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "120": {
+   "gt_instance_px": {
+    "0": 115,
+    "1": 24,
+    "255": 2242
+   },
+   "gt_material_px": {
+    "squash_leaf": 24,
+    "grass": 2242,
+    "straw": 115
+   },
+   "gt_crop_px": 24,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0101,
+   "crop_majority": true
+  },
+  "121": {
+   "gt_instance_px": {
+    "0": 33
+   },
+   "gt_material_px": {
+    "straw": 33
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "122": {
+   "gt_instance_px": {
+    "0": 37
+   },
+   "gt_material_px": {
+    "straw": 37
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "123": {
+   "gt_instance_px": {
+    "0": 86
+   },
+   "gt_material_px": {
+    "straw": 86
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "124": {
+   "gt_instance_px": {
+    "0": 122,
+    "255": 118
+   },
+   "gt_material_px": {
+    "grass": 118,
+    "straw": 122
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "125": {
+   "gt_instance_px": {
+    "0": 30
+   },
+   "gt_material_px": {
+    "straw": 30
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "126": {
+   "gt_instance_px": {
+    "0": 7,
+    "255": 13
+   },
+   "gt_material_px": {
+    "grass": 13,
+    "straw": 7
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "127": {
+   "gt_instance_px": {
+    "1": 16
+   },
+   "gt_material_px": {
+    "squash_petiole": 16
+   },
+   "gt_crop_px": 16,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "128": {
+   "gt_instance_px": {
+    "1": 31
+   },
+   "gt_material_px": {
+    "squash_leaf": 31
+   },
+   "gt_crop_px": 31,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "129": {
+   "gt_instance_px": {
+    "0": 25,
+    "255": 19
+   },
+   "gt_material_px": {
+    "grass": 19,
+    "straw": 25
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "130": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "131": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "132": {
+   "gt_instance_px": {
+    "0": 171
+   },
+   "gt_material_px": {
+    "straw": 171
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "133": {
+   "gt_instance_px": {
+    "0": 100
+   },
+   "gt_material_px": {
+    "straw": 100
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "134": {
+   "gt_instance_px": {
+    "0": 97,
+    "255": 215
+   },
+   "gt_material_px": {
+    "grass": 215,
+    "straw": 97
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "135": {
+   "gt_instance_px": {
+    "0": 105,
+    "255": 7
+   },
+   "gt_material_px": {
+    "grass": 7,
+    "straw": 105
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "136": {
+   "gt_instance_px": {
+    "0": 3,
+    "255": 3
+   },
+   "gt_material_px": {
+    "grass": 3,
+    "straw": 3
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "137": {
+   "gt_instance_px": {
+    "0": 3,
+    "255": 5
+   },
+   "gt_material_px": {
+    "grass": 5,
+    "straw": 3
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "138": {
+   "gt_instance_px": {
+    "1": 16
+   },
+   "gt_material_px": {
+    "squash_leaf": 16
+   },
+   "gt_crop_px": 16,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "139": {
+   "gt_instance_px": {
+    "0": 7,
+    "1": 7
+   },
+   "gt_material_px": {
+    "squash_leaf": 7,
+    "straw": 7
+   },
+   "gt_crop_px": 7,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.5,
+   "crop_majority": true
+  },
+  "140": {
+   "gt_instance_px": {
+    "0": 7,
+    "1": 7
+   },
+   "gt_material_px": {
+    "squash_leaf": 7,
+    "straw": 7
+   },
+   "gt_crop_px": 7,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.5,
+   "crop_majority": true
+  },
+  "141": {
+   "gt_instance_px": {
+    "255": 12
+   },
+   "gt_material_px": {
+    "grass": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "142": {
+   "gt_instance_px": {
+    "1": 510,
+    "255": 128
+   },
+   "gt_material_px": {
+    "squash_leaf": 510,
+    "grass": 128
+   },
+   "gt_crop_px": 510,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.7994,
+   "crop_majority": true
+  },
+  "143": {
+   "gt_instance_px": {
+    "0": 22
+   },
+   "gt_material_px": {
+    "straw": 22
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "144": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "145": {
+   "gt_instance_px": {
+    "0": 79,
+    "255": 13
+   },
+   "gt_material_px": {
+    "grass": 13,
+    "straw": 79
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "146": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "147": {
+   "gt_instance_px": {
+    "255": 39
+   },
+   "gt_material_px": {
+    "grass": 39
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "148": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "149": {
+   "gt_instance_px": {
+    "255": 21
+   },
+   "gt_material_px": {
+    "grass": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "150": {
+   "gt_instance_px": {
+    "1": 37,
+    "255": 880
+   },
+   "gt_material_px": {
+    "squash_leaf": 37,
+    "grass": 880
+   },
+   "gt_crop_px": 37,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0403,
+   "crop_majority": true
+  },
+  "151": {
+   "gt_instance_px": {
+    "255": 16
+   },
+   "gt_material_px": {
+    "grass": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "152": {
+   "gt_instance_px": {
+    "0": 33
+   },
+   "gt_material_px": {
+    "straw": 33
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "153": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "154": {
+   "gt_instance_px": {
+    "1": 12
+   },
+   "gt_material_px": {
+    "squash_leaf": 12
+   },
+   "gt_crop_px": 12,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "155": {
+   "gt_instance_px": {
+    "1": 28
+   },
+   "gt_material_px": {
+    "squash_leaf": 28
+   },
+   "gt_crop_px": 28,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "156": {
+   "gt_instance_px": {
+    "1": 18,
+    "255": 558
+   },
+   "gt_material_px": {
+    "squash_leaf": 18,
+    "grass": 558
+   },
+   "gt_crop_px": 18,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0312,
+   "crop_majority": true
+  },
+  "157": {
+   "gt_instance_px": {
+    "1": 282,
+    "255": 21
+   },
+   "gt_material_px": {
+    "squash_leaf": 282,
+    "grass": 21
+   },
+   "gt_crop_px": 282,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9307,
+   "crop_majority": true
+  },
+  "158": {
+   "gt_instance_px": {
+    "0": 63
+   },
+   "gt_material_px": {
+    "straw": 63
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "159": {
+   "gt_instance_px": {
+    "0": 90,
+    "1": 10,
+    "255": 5
+   },
+   "gt_material_px": {
+    "squash_leaf": 10,
+    "grass": 5,
+    "straw": 90
+   },
+   "gt_crop_px": 10,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0952,
+   "crop_majority": true
+  },
+  "160": {
+   "gt_instance_px": {
+    "0": 39
+   },
+   "gt_material_px": {
+    "straw": 39
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "161": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "162": {
+   "gt_instance_px": {
+    "0": 34,
+    "1": 1
+   },
+   "gt_material_px": {
+    "squash_leaf": 1,
+    "straw": 34
+   },
+   "gt_crop_px": 1,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0286,
+   "crop_majority": true
+  },
+  "163": {
+   "gt_instance_px": {
+    "0": 20
+   },
+   "gt_material_px": {
+    "straw": 20
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "164": {
+   "gt_instance_px": {
+    "0": 28
+   },
+   "gt_material_px": {
+    "straw": 28
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "165": {
+   "gt_instance_px": {
+    "0": 39
+   },
+   "gt_material_px": {
+    "straw": 39
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "166": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "167": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "168": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "169": {
+   "gt_instance_px": {
+    "0": 91
+   },
+   "gt_material_px": {
+    "straw": 91
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "170": {
+   "gt_instance_px": {
+    "0": 21
+   },
+   "gt_material_px": {
+    "straw": 21
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "171": {
+   "gt_instance_px": {
+    "1": 261,
+    "255": 28
+   },
+   "gt_material_px": {
+    "squash_petiole": 261,
+    "grass": 28
+   },
+   "gt_crop_px": 261,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9031,
+   "crop_majority": true
+  },
+  "172": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "173": {
+   "gt_instance_px": {
+    "1": 41,
+    "255": 563
+   },
+   "gt_material_px": {
+    "squash_leaf": 41,
+    "grass": 563
+   },
+   "gt_crop_px": 41,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0679,
+   "crop_majority": true
+  },
+  "174": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "175": {
+   "gt_instance_px": {
+    "0": 81,
+    "255": 473
+   },
+   "gt_material_px": {
+    "unlabelled": 81,
+    "grass": 473
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "176": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "177": {
+   "gt_instance_px": {
+    "0": 35,
+    "255": 393
+   },
+   "gt_material_px": {
+    "grass": 393,
+    "straw": 35
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "178": {
+   "gt_instance_px": {
+    "0": 48,
+    "7": 381,
+    "255": 4
+   },
+   "gt_material_px": {
+    "grass": 4,
+    "broadleaf_weed": 381,
+    "straw": 48
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 381,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "179": {
+   "gt_instance_px": {
+    "0": 18,
+    "1": 31,
+    "255": 438
+   },
+   "gt_material_px": {
+    "squash_leaf": 31,
+    "grass": 438,
+    "straw": 18
+   },
+   "gt_crop_px": 31,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0637,
+   "crop_majority": true
+  },
+  "180": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "181": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "182": {
+   "gt_instance_px": {
+    "0": 56
+   },
+   "gt_material_px": {
+    "straw": 56
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "183": {
+   "gt_instance_px": {
+    "0": 49,
+    "1": 36,
+    "255": 243
+   },
+   "gt_material_px": {
+    "unlabelled": 49,
+    "squash_leaf": 36,
+    "grass": 243
+   },
+   "gt_crop_px": 36,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1098,
+   "crop_majority": true
+  },
+  "184": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "185": {
+   "gt_instance_px": {
+    "0": 102
+   },
+   "gt_material_px": {
+    "straw": 102
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "186": {
+   "gt_instance_px": {
+    "0": 12
+   },
+   "gt_material_px": {
+    "straw": 12
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "187": {
+   "gt_instance_px": {
+    "1": 25,
+    "255": 12
+   },
+   "gt_material_px": {
+    "squash_petiole": 25,
+    "grass": 12
+   },
+   "gt_crop_px": 25,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.6757,
+   "crop_majority": true
+  },
+  "188": {
+   "gt_instance_px": {
+    "0": 12,
+    "1": 14,
+    "255": 59
+   },
+   "gt_material_px": {
+    "squash_leaf": 14,
+    "grass": 59,
+    "straw": 12
+   },
+   "gt_crop_px": 14,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1647,
+   "crop_majority": true
+  },
+  "189": {
+   "gt_instance_px": {
+    "1": 19,
+    "10": 70
+   },
+   "gt_material_px": {
+    "squash_petiole": 19,
+    "broadleaf_weed": 70
+   },
+   "gt_crop_px": 19,
+   "gt_weed_px": 70,
+   "gt_crop_fraction": 0.2135,
+   "crop_majority": false
+  },
+  "190": {
+   "gt_instance_px": {
+    "1": 47,
+    "255": 228
+   },
+   "gt_material_px": {
+    "squash_leaf": 47,
+    "grass": 228
+   },
+   "gt_crop_px": 47,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1709,
+   "crop_majority": true
+  },
+  "191": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "192": {
+   "gt_instance_px": {
+    "0": 7,
+    "1": 63
+   },
+   "gt_material_px": {
+    "unlabelled": 7,
+    "squash_petiole": 63
+   },
+   "gt_crop_px": 63,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9,
+   "crop_majority": true
+  },
+  "193": {
+   "gt_instance_px": {
+    "1": 61,
+    "255": 170
+   },
+   "gt_material_px": {
+    "squash_leaf": 61,
+    "grass": 170
+   },
+   "gt_crop_px": 61,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.2641,
+   "crop_majority": true
+  },
+  "194": {
+   "gt_instance_px": {
+    "1": 28,
+    "255": 195
+   },
+   "gt_material_px": {
+    "squash_leaf": 28,
+    "grass": 195
+   },
+   "gt_crop_px": 28,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1256,
+   "crop_majority": true
+  },
+  "195": {
+   "gt_instance_px": {
+    "0": 16
+   },
+   "gt_material_px": {
+    "straw": 16
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "196": {
+   "gt_instance_px": {
+    "0": 42
+   },
+   "gt_material_px": {
+    "straw": 42
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "197": {
+   "gt_instance_px": {
+    "1": 166,
+    "255": 3
+   },
+   "gt_material_px": {
+    "squash_leaf": 166,
+    "grass": 3
+   },
+   "gt_crop_px": 166,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.9822,
+   "crop_majority": true
+  },
+  "198": {
+   "gt_instance_px": {
+    "0": 9
+   },
+   "gt_material_px": {
+    "straw": 9
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "199": {
+   "gt_instance_px": {
+    "0": 13,
+    "255": 41
+   },
+   "gt_material_px": {
+    "grass": 41,
+    "straw": 13
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "200": {
+   "gt_instance_px": {
+    "0": 2,
+    "255": 10
+   },
+   "gt_material_px": {
+    "grass": 10,
+    "straw": 2
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "201": {
+   "gt_instance_px": {
+    "1": 139
+   },
+   "gt_material_px": {
+    "squash_petiole": 139
+   },
+   "gt_crop_px": 139,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "202": {
+   "gt_instance_px": {
+    "1": 119
+   },
+   "gt_material_px": {
+    "squash_leaf": 119
+   },
+   "gt_crop_px": 119,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "203": {
+   "gt_instance_px": {
+    "1": 19,
+    "255": 88
+   },
+   "gt_material_px": {
+    "squash_leaf": 19,
+    "grass": 88
+   },
+   "gt_crop_px": 19,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1776,
+   "crop_majority": true
+  },
+  "204": {
+   "gt_instance_px": {
+    "0": 3,
+    "1": 12,
+    "255": 62
+   },
+   "gt_material_px": {
+    "squash_leaf": 12,
+    "grass": 62,
+    "straw": 3
+   },
+   "gt_crop_px": 12,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 0.1558,
+   "crop_majority": true
+  },
+  "205": {
+   "gt_instance_px": {
+    "0": 23,
+    "6": 73
+   },
+   "gt_material_px": {
+    "broadleaf_weed": 73,
+    "straw": 23
+   },
+   "gt_crop_px": 0,
+   "gt_weed_px": 73,
+   "gt_crop_fraction": 0.0,
+   "crop_majority": false
+  },
+  "206": {
+   "gt_instance_px": {
+    "1": 87
+   },
+   "gt_material_px": {
+    "squash_leaf": 87
+   },
+   "gt_crop_px": 87,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  },
+  "207": {
+   "gt_instance_px": {
+    "1": 75
+   },
+   "gt_material_px": {
+    "squash_petiole": 75
+   },
+   "gt_crop_px": 75,
+   "gt_weed_px": 0,
+   "gt_crop_fraction": 1.0,
+   "crop_majority": true
+  }
+ }
+}

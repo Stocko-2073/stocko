@@ -1,0 +1,51 @@
+{
+ "chunk": "A8",
+ "tool": "plan_removals",
+ "scale_confidence": "scale_free",
+ "units": "rdu (relative depth units; 1 rdu = median scene depth of the A1 primary raster). Image distances are px on the named grid. No absolute scale exists for this image; A1b bounds the focal length, not the scale.",
+ "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL (A2). Every height and every contact point is measured against the top of the mulch; the offset to the soil is the straw depth, which is unmeasured and unobservable from one overhead photograph.",
+ "product_target": "lowest visible stem / datum contact \u2014 NOT the stem-soil intersection, which is unobservable in this image. See chunks/A5/FINDINGS.md.",
+ "ends_at": "a target list. No motion is planned, ordered or commanded here, and nothing in this module can move anything.",
+ "summary": {
+  "n_instances": 207,
+  "n_targets_admitted": 0,
+  "n_rejected": 207,
+  "rejections_by_reason": {
+   "component_unlabelled": 134,
+   "label_discarded_r3": 134,
+   "insufficient_repeats": 134,
+   "not_unanimous": 15,
+   "label_not_remove": 204,
+   "confidence_below_floor": 59,
+   "mixed_component": 4,
+   "no_contact_point": 29,
+   "contact_not_observed": 11,
+   "contact_not_arm_admissible": 23,
+   "inside_keepout": 134
+  },
+  "rejections_by_reason_note": "Reasons are not exclusive. Every condition is evaluated for every instance and every failure is reported, so these counts sum to more than the number of rejections. That is the point: it shows how many independent conditions had to fail together.",
+  "n_keep_plants": 204,
+  "keep_plant_policy": "r2_default_keep",
+  "keep_plant_policy_note": "SHIPPED. Every instance that is not unanimously `remove` is a keep-plant. This is R2 read literally: an instance the labeller was unsure about is kept, and an instance that is kept is protected. It is deliberately NOT a function of the confidence floor, so raising the floor cannot enlarge or shrink the protected region.",
+  "confidence_floor": 0.7,
+  "min_label_repeats": 2,
+  "clearance_rdu": 0.01,
+  "unlabelled_ids_supplied_by_caller": 0,
+  "refusal": null
+ },
+ "targets": [],
+ "rejection_reason_vocabulary": {
+  "metric_tool_profile_refused": "The tool profile carries a length in metric units. Every length in this stack is in rdu and no absolute scale exists for this image (roadmap, Known gaps #2). A8 refuses rather than converting: a fabricated scale factor would silently resize the keep-out volume.",
+  "component_unlabelled": "No label was supplied for this instance id. R2 defaults to keep.",
+  "label_discarded_r3": "The label failed A7's R3 validator (a geometric key, a coordinate or a measurement in a free-text field) and was discarded to `unsure` rather than patched.",
+  "insufficient_repeats": "Fewer independent looks than R4 requires. A single look is not evidence: A7 measured a 20.5 % flip rate between two repeats of the shipped condition.",
+  "not_unanimous": "The repeats disagreed about this instance. Unanimity-else-`unsure` is R4 applied to the semantic layer; A7 measured that it removes a third of the catastrophic errors for the price of one extra call.",
+  "label_not_remove": "The unanimous label is not `remove`. Note a `keep` may mean 'this is crop' OR 'there is nothing here to cut' \u2014 A7's label vocabulary does not distinguish them and A8 must not read one as the other.",
+  "confidence_below_floor": "The lowest confidence across the repeats is below the registered removal floor (a8_constants.REMOVAL_CONFIDENCE_FLOOR).",
+  "mixed_component": "The instance was flagged `mixed` \u2014 it is not one plant. A `remove` inside a mixed component is a claim about a component that contains material the labeller itself said was of more than one kind, so under R2 it is refused outright.",
+  "no_contact_point": "A5 emitted no defensible contact point for any part of this instance (status `occluded`). R4: no point is reported rather than one invented.",
+  "contact_not_observed": "No contact candidate has status `observed`. An `extrapolated` point is a guess with a distance attached and R2 does not admit one.",
+  "contact_not_arm_admissible": "A contact is `observed` but fails A5's `admissible()`: either the datum beneath it was interpolated rather than observed, or the component carries a `leaves_frame` unresolved edge and may continue outside the photograph.",
+  "inside_keepout": "The point lies inside the keep-out volume of at least one keep-plant. A6's `is_inside` is conservative by default and resolves UNKNOWN (a point the camera never saw) to inside; A8 does not flip either."
+ }
+}
