@@ -1,0 +1,32 @@
+{
+ "split": {
+  "observed": 472,
+  "extrapolated": 59,
+  "occluded": 211,
+  "total": 742,
+  "arm_admissible": 378,
+  "with_lowest_visible_point": 741,
+  "with_lowest_visible_stem_point": 299,
+  "fabricated_points": 0
+ },
+ "merge": {
+  "observed": 164,
+  "extrapolated": 11,
+  "occluded": 32,
+  "total": 207,
+  "arm_admissible": 137,
+  "with_lowest_visible_point": 207,
+  "with_lowest_visible_stem_point": 40,
+  "fabricated_points": 0
+ },
+ "gt_instances": {
+  "observed": 8,
+  "extrapolated": 1,
+  "occluded": 1,
+  "total": 10,
+  "arm_admissible": 7,
+  "with_lowest_visible_point": 10,
+  "with_lowest_visible_stem_point": 3,
+  "fabricated_points": 0
+ }
+}

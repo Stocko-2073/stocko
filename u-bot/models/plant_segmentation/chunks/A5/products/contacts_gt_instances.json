@@ -1,0 +1,885 @@
+{
+ "chunk": "A5",
+ "policy": "gt_instances",
+ "scale_confidence": "scale_free",
+ "units": "3-D distances in rdu (1 rdu = median scene depth); image distances in px on the named grid. No metric claim.",
+ "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+ "product_target": "lowest visible stem / datum contact \u2014 NOT the stem-soil intersection, which is unobservable in this image. See chunks/A5/FINDINGS.md.",
+ "constants": {
+  "GROUND_BAND_K": 3.0,
+  "BASAL_BAND_K": 1.0,
+  "MEDIAN_WINDOW": 3,
+  "MIN_MEDIAN_SUPPORT": 3,
+  "MIN_AXIS_POINTS": 9,
+  "MAX_EXTRAPOLATION_SIGMA": 20.0,
+  "MARCH_CEILING_RDU": 1.0,
+  "sigma_datum_rdu": 0.005469617460760942
+ },
+ "provenance": {
+  "a1_product": "primary_raster",
+  "a2_manifest": "chunks/A2/products/A2_MANIFEST.json",
+  "a4_policy": "gt_instances",
+  "material": "chunks/A3 segment_material(), lifted to the depth grid"
+ },
+ "components": [
+  {
+   "component": 1,
+   "n_px": 746141,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     0.4406590223785669,
+     -0.42390901631083083,
+     1.359016140382255
+    ],
+    "depth_grid_xy": [
+     990.0,
+     202.0
+    ],
+    "gt_grid_xy": [
+     754.2857142857143,
+     153.9047619047619
+    ],
+    "height_above_datum_rdu": -0.056020023949828975,
+    "height_above_datum_sigma": -10.242036916057998,
+    "n_band_px": 102,
+    "material": "grass",
+    "datum_coverage": "interpolated",
+    "on_a2_ground_inlier": false
+   },
+   "lowest_visible_stem_point": {
+    "xyz_rdu": [
+     0.03218232146694183,
+     -0.1828500631864528,
+     1.4093785617483268
+    ],
+    "depth_grid_xy": [
+     539.0,
+     477.0
+    ],
+    "gt_grid_xy": [
+     410.6666666666667,
+     363.42857142857144
+    ],
+    "height_above_datum_rdu": -0.026980560400025364,
+    "height_above_datum_sigma": -4.932805738899295,
+    "n_band_px": 32
+   },
+   "status": "occluded",
+   "reason": "the component's lowest material sits 6.2\u00b7\u03c3 BELOW A2's fitted datum. Nothing lies under the ground, so this is the surface disagreeing with the material, not a contact \u2014 the datum here is interpolated",
+   "point": null,
+   "extrapolation_distance_rdu": null,
+   "extrapolation_distance_sigma": null,
+   "extrapolation_px_gt": null,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": null,
+   "confidence_terms": {},
+   "datum_coverage": "interpolated",
+   "datum_sigma_rdu": 0.009100020984104963,
+   "height_at_base_rdu": -0.05602042376995087,
+   "height_at_base_sigma": -10.242110014428178,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "squash_leaf": 491865,
+     "squash_petiole": 80890,
+     "grass": 113145,
+     "broadleaf_weed": 11556,
+     "straw": 18932,
+     "fruit": 29749,
+     "other": 4
+    },
+    "basal_surround": {
+     "grass": 19
+    }
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": false
+  },
+  {
+   "component": 2,
+   "n_px": 4507,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.2632028855749994,
+     0.2872655232366324,
+     1.1588776147877031
+    ],
+    "depth_grid_xy": [
+     165.0,
+     1047.0
+    ],
+    "gt_grid_xy": [
+     125.71428571428571,
+     797.7142857142857
+    ],
+    "height_above_datum_rdu": -0.008337533340439749,
+    "height_above_datum_sigma": -1.524335732846629,
+    "n_band_px": 18,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 0.69\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.2632028855749994,
+     0.2872655232366324,
+     1.1588776147877031
+    ],
+    "depth_grid_xy": [
+     165.0,
+     1047.0
+    ],
+    "gt_grid_xy": [
+     125.71428571428571,
+     797.7142857142857
+    ],
+    "height_above_datum_rdu": -0.008337533340439749,
+    "height_above_datum_sigma": -1.524335732846629,
+    "n_band_px": 18,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.77106031919873,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.77106031919873
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": -0.006107017397880554,
+   "height_at_base_sigma": -1.1165346464706758,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "broadleaf_weed": 4485,
+     "straw": 22
+    },
+    "basal_surround": {
+     "broadleaf_weed": 14
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 3,
+   "n_px": 7178,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.17976953835781728,
+     0.30363294892578846,
+     1.0986477253249953
+    ],
+    "depth_grid_xy": [
+     260.0,
+     1090.0
+    ],
+    "gt_grid_xy": [
+     198.0952380952381,
+     830.4761904761905
+    ],
+    "height_above_datum_rdu": -0.004220353801549884,
+    "height_above_datum_sigma": -0.7715994458162239,
+    "n_band_px": 332,
+    "material": "straw",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 0.51\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.17976953835781728,
+     0.30363294892578846,
+     1.0986477253249953
+    ],
+    "depth_grid_xy": [
+     260.0,
+     1090.0
+    ],
+    "gt_grid_xy": [
+     198.0952380952381,
+     830.4761904761905
+    ],
+    "height_above_datum_rdu": -0.004220353801549884,
+    "height_above_datum_sigma": -0.7715994458162239,
+    "n_band_px": 332,
+    "material": "straw",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.8284691953751708,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.8284691953751708
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": -0.004575622733682394,
+   "height_at_base_sigma": -0.8365526047311225,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "grass": 147,
+     "broadleaf_weed": 6539,
+     "straw": 492
+    },
+    "basal_surround": {
+     "broadleaf_weed": 38,
+     "straw": 11
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 4,
+   "n_px": 6326,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.34419611740976774,
+     0.3702035199591061,
+     1.1423596406340324
+    ],
+    "depth_grid_xy": [
+     54.0,
+     1162.0
+    ],
+    "gt_grid_xy": [
+     41.142857142857146,
+     885.3333333333334
+    ],
+    "height_above_datum_rdu": -0.004215120204138818,
+    "height_above_datum_sigma": -0.7706425969234791,
+    "n_band_px": 87,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 0.47\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.34419611740976774,
+     0.3702035199591061,
+     1.1423596406340324
+    ],
+    "depth_grid_xy": [
+     54.0,
+     1162.0
+    ],
+    "gt_grid_xy": [
+     41.142857142857146,
+     885.3333333333334
+    ],
+    "height_above_datum_rdu": -0.004215120204138818,
+    "height_above_datum_sigma": -0.7706425969234791,
+    "n_band_px": 87,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.8419853041411678,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.8419853041411678
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": -0.004215077497065067,
+   "height_at_base_sigma": -0.7706347888685179,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "broadleaf_weed": 5769,
+     "straw": 557
+    },
+    "basal_surround": {
+     "broadleaf_weed": 27,
+     "straw": 8
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 5,
+   "n_px": 2132,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.24208662811051482,
+     0.35881626117403415,
+     1.0916004220069604
+    ],
+    "depth_grid_xy": [
+     173.0,
+     1169.0
+    ],
+    "gt_grid_xy": [
+     131.8095238095238,
+     890.6666666666666
+    ],
+    "height_above_datum_rdu": -0.0024285372282260727,
+    "height_above_datum_sigma": -0.4440049501904674,
+    "n_band_px": 27,
+    "material": "straw",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 0.24\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.24208662811051482,
+     0.35881626117403415,
+     1.0916004220069604
+    ],
+    "depth_grid_xy": [
+     173.0,
+     1169.0
+    ],
+    "gt_grid_xy": [
+     131.8095238095238,
+     890.6666666666666
+    ],
+    "height_above_datum_rdu": -0.0024285372282260727,
+    "height_above_datum_sigma": -0.4440049501904674,
+    "n_band_px": 27,
+    "material": "straw",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.9212472928958435,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.9212472928958435
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": -0.0021007461473345757,
+   "height_at_base_sigma": -0.38407551577515925,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "broadleaf_weed": 2038,
+     "straw": 94
+    },
+    "basal_surround": {
+     "straw": 13
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 6,
+   "n_px": 2898,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.0702983129307107,
+     0.24623595041161214,
+     1.0862578394393396
+    ],
+    "depth_grid_xy": [
+     408.0,
+     1015.0
+    ],
+    "gt_grid_xy": [
+     310.85714285714283,
+     773.3333333333334
+    ],
+    "height_above_datum_rdu": 0.0005790291141057958,
+    "height_above_datum_sigma": 0.10586281732858889,
+    "n_band_px": 167,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 0.06\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.0702983129307107,
+     0.24623595041161214,
+     1.0862578394393396
+    ],
+    "depth_grid_xy": [
+     408.0,
+     1015.0
+    ],
+    "gt_grid_xy": [
+     310.85714285714283,
+     773.3333333333334
+    ],
+    "height_above_datum_rdu": 0.0005790291141057958,
+    "height_above_datum_sigma": 0.10586281732858889,
+    "n_band_px": 167,
+    "material": "broadleaf_weed",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.9791115008036656,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.9791115008036656
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": 0.0005572054069489241,
+   "height_at_base_sigma": 0.10187282948877466,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "broadleaf_weed": 2833,
+     "straw": 65
+    },
+    "basal_surround": {
+     "broadleaf_weed": 9,
+     "straw": 55
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 7,
+   "n_px": 842,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.5226100659830213,
+     -0.09665769988821843,
+     1.60623974125991
+    ],
+    "depth_grid_xy": [
+     18.0,
+     582.0
+    ],
+    "gt_grid_xy": [
+     13.714285714285714,
+     443.42857142857144
+    ],
+    "height_above_datum_rdu": -0.02274584566672879,
+    "height_above_datum_sigma": -4.158580710608663,
+    "n_band_px": 5,
+    "material": "straw",
+    "datum_coverage": "interpolated",
+    "on_a2_ground_inlier": false
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 2.19\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.5226100659830213,
+     -0.09665769988821843,
+     1.60623974125991
+    ],
+    "depth_grid_xy": [
+     18.0,
+     582.0
+    ],
+    "gt_grid_xy": [
+     13.714285714285714,
+     443.42857142857144
+    ],
+    "height_above_datum_rdu": -0.02274584566672879,
+    "height_above_datum_sigma": -4.158580710608663,
+    "n_band_px": 5,
+    "material": "straw",
+    "datum_coverage": "interpolated",
+    "on_a2_ground_inlier": false
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.2700470059571733,
+   "confidence_terms": {
+    "kappa_datum": 0.995362439043894,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.2713052003615586
+   },
+   "datum_coverage": "interpolated",
+   "datum_sigma_rdu": 0.008933169641381326,
+   "height_at_base_rdu": -0.019528662785887718,
+   "height_at_base_sigma": -3.57038914073725,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "grass": 28,
+     "broadleaf_weed": 656,
+     "straw": 158
+    },
+    "basal_surround": {
+     "broadleaf_weed": 1,
+     "straw": 5
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": false
+  },
+  {
+   "component": 8,
+   "n_px": 425,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     -0.27730706453540654,
+     -0.0803418427880867,
+     1.4465858636185074
+    ],
+    "depth_grid_xy": [
+     218.0,
+     589.0
+    ],
+    "gt_grid_xy": [
+     166.0952380952381,
+     448.76190476190476
+    ],
+    "height_above_datum_rdu": 0.01513651098212695,
+    "height_above_datum_sigma": 2.76738018530845,
+    "n_band_px": 2,
+    "material": "grass",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": null,
+   "status": "observed",
+   "reason": "material reaches within 2.53\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     -0.27730706453540654,
+     -0.0803418427880867,
+     1.4465858636185074
+    ],
+    "depth_grid_xy": [
+     218.0,
+     589.0
+    ],
+    "gt_grid_xy": [
+     166.0952380952381,
+     448.76190476190476
+    ],
+    "height_above_datum_rdu": 0.01513651098212695,
+    "height_above_datum_sigma": 2.76738018530845,
+    "n_band_px": 2,
+    "material": "grass",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.158015229445866,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.158015229445866
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": 0.022460132837295532,
+   "height_at_base_sigma": 4.106344364742986,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "grass": 373,
+     "broadleaf_weed": 34,
+     "straw": 18
+    },
+    "basal_surround": {
+     "grass": 2,
+     "straw": 4
+    },
+    "stem_note": "no `squash_petiole` material in this component; A0/A3 have no other stem class"
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 9,
+   "n_px": 6268,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     0.21738497577289712,
+     -0.04293809506748953,
+     1.2039561342714578
+    ],
+    "depth_grid_xy": [
+     775.0,
+     619.0
+    ],
+    "gt_grid_xy": [
+     590.4761904761905,
+     471.6190476190476
+    ],
+    "height_above_datum_rdu": -0.0058839808825757395,
+    "height_above_datum_sigma": -1.0757572946897005,
+    "n_band_px": 132,
+    "material": "grass",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "lowest_visible_stem_point": {
+    "xyz_rdu": [
+     0.2188289694090611,
+     -0.04036634626885669,
+     1.1986434456378596
+    ],
+    "depth_grid_xy": [
+     778.0,
+     622.0
+    ],
+    "gt_grid_xy": [
+     592.7619047619048,
+     473.9047619047619
+    ],
+    "height_above_datum_rdu": -0.0040189829642233756,
+    "height_above_datum_sigma": -0.7347831896939001,
+    "n_band_px": 8
+   },
+   "status": "observed",
+   "reason": "material reaches within 0.69\u00b7\u03c3 of the datum (band is 3.0\u00b7\u03c3)",
+   "point": {
+    "xyz_rdu": [
+     0.21738497577289712,
+     -0.04293809506748953,
+     1.2039561342714578
+    ],
+    "depth_grid_xy": [
+     775.0,
+     619.0
+    ],
+    "gt_grid_xy": [
+     590.4761904761905,
+     471.6190476190476
+    ],
+    "height_above_datum_rdu": -0.0058839808825757395,
+    "height_above_datum_sigma": -1.0757572946897005,
+    "n_band_px": 132,
+    "material": "grass",
+    "datum_coverage": "observed",
+    "on_a2_ground_inlier": true
+   },
+   "extrapolation_distance_rdu": 0.0,
+   "extrapolation_distance_sigma": 0.0,
+   "extrapolation_px_gt": 0.0,
+   "lateral_uncertainty_rdu": null,
+   "axis_half_angle_deg": null,
+   "confidence": 0.7701566209576909,
+   "confidence_terms": {
+    "kappa_datum": 1.0,
+    "lambda_axis": 1.0,
+    "rho_reach": 1.0,
+    "rho_band": 0.7701566209576909
+   },
+   "datum_coverage": "observed",
+   "datum_sigma_rdu": 0.008891741522638184,
+   "height_at_base_rdu": -0.006131123751401901,
+   "height_at_base_sigma": -1.1209419663050677,
+   "occluder": "none",
+   "occluder_profile": {},
+   "material": {
+    "composition": {
+     "squash_leaf": 52,
+     "squash_petiole": 864,
+     "grass": 2422,
+     "broadleaf_weed": 2602,
+     "straw": 328
+    },
+    "basal_surround": {
+     "squash_petiole": 12,
+     "grass": 12
+    }
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": true
+  },
+  {
+   "component": 10,
+   "n_px": 1587,
+   "lowest_visible_point": {
+    "xyz_rdu": [
+     0.055948945686247226,
+     -0.040544647397037795,
+     1.228097231936686
+    ],
+    "depth_grid_xy": [
+     573.0,
+     623.0
+    ],
+    "gt_grid_xy": [
+     436.57142857142856,
+     474.6666666666667
+    ],
+    "height_above_datum_rdu": 0.023310734083437427,
+    "height_above_datum_sigma": 4.261858210499862,
+    "n_band_px": 2,
+    "material": "grass",
+    "datum_coverage": "interpolated",
+    "on_a2_ground_inlier": false
+   },
+   "lowest_visible_stem_point": {
+    "xyz_rdu": [
+     0.062260250867253904,
+     -0.02226076510138486,
+     1.2072411454657141
+    ],
+    "depth_grid_xy": [
+     582.0,
+     645.0
+    ],
+    "gt_grid_xy": [
+     443.42857142857144,
+     491.42857142857144
+    ],
+    "height_above_datum_rdu": 0.026114846737986776,
+    "height_above_datum_sigma": 4.774528918216821,
+    "n_band_px": 1
+   },
+   "status": "extrapolated",
+   "reason": "basal axis continued 5.8\u00b7\u03c3 to the datum across material A3 reads as none",
+   "point": {
+    "xyz_rdu": [
+     0.0575830988256045,
+     -0.04197312885668542,
+     1.259823796322612
+    ],
+    "depth_grid_xy": [
+     573.2242033386505,
+     622.5434416928931
+    ],
+    "gt_grid_xy": [
+     436.74225016278126,
+     474.3188127183947
+    ],
+    "height_above_datum_rdu": -1.7520707107365752e-16,
+    "height_above_datum_sigma": -3.203278334007703e-14
+   },
+   "extrapolation_distance_rdu": 0.031800721744918395,
+   "extrapolation_distance_sigma": 5.814066883663602,
+   "extrapolation_px_gt": 0.38753372163034144,
+   "lateral_uncertainty_rdu": 0.0007502925484652182,
+   "axis_half_angle_deg": 1.3515612257887377,
+   "confidence": 0.6971561694426881,
+   "confidence_terms": {
+    "kappa_datum": 0.9896716579776755,
+    "lambda_axis": 0.9931412703553053,
+    "rho_reach": 0.7092966558168199,
+    "rho_band": 1.0
+   },
+   "datum_coverage": "interpolated",
+   "datum_sigma_rdu": 0.008984536892576911,
+   "height_at_base_rdu": 0.05643415451049805,
+   "height_at_base_sigma": 10.317751637176988,
+   "occluder": "none",
+   "occluder_profile": {
+    "grass": 2
+   },
+   "material": {
+    "composition": {
+     "squash_petiole": 1463,
+     "grass": 124
+    },
+    "basal_surround": {
+     "grass": 5
+    }
+   },
+   "unresolved_edges": {},
+   "extent_uncertain": false,
+   "leaves_frame": false,
+   "arm_admissible": false
+  }
+ ],
+ "status_counts": {
+  "observed": 8,
+  "extrapolated": 1,
+  "occluded": 1,
+  "total": 10,
+  "arm_admissible": 7,
+  "with_lowest_visible_point": 10,
+  "with_lowest_visible_stem_point": 3,
+  "fabricated_points": 0
+ },
+ "note": "A5's algorithm run on A0's own instance masks. Diagnostic only: it removes A4's grouping from the loop so the contact stage can be judged on its own."
+}

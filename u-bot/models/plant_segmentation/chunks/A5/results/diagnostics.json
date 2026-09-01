@@ -1,0 +1,1209 @@
+{
+ "chunk": "A5",
+ "scale_confidence": "scale_free",
+ "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+ "counts": {
+  "split": {
+   "by_status": {
+    "observed": 472,
+    "extrapolated": 59,
+    "occluded": 211
+   },
+   "by_status_px": {
+    "observed": 868099,
+    "extrapolated": 18164,
+    "occluded": 138419
+   },
+   "by_status_excluding_grass_components": {
+    "observed": 193,
+    "extrapolated": 32,
+    "occluded": 101
+   },
+   "total": 742,
+   "total_excluding_grass_components": 326,
+   "fabricated_points": 0,
+   "with_lowest_visible_point": 741,
+   "with_lowest_visible_stem_point": 299,
+   "arm_admissible": 378,
+   "occluded_reasons": {
+    "beyond_max_extrapolation": 152,
+    "axis_not_descending": 9,
+    "datum_not_trusted_at_landing": 1,
+    "basal_support_too_small": 34,
+    "material_below_datum": 12,
+    "never_reaches_datum": 3
+   },
+   "occluder_of_non_observed": {
+    "squash_petiole": 40,
+    "foliage": 98,
+    "none": 97,
+    "unknown": 2,
+    "straw": 33
+   },
+   "straw_occlusion_rate_of_non_observed": 0.12222222222222222,
+   "basal_surround_px_all_components": {
+    "squash_leaf": 705,
+    "grass": 4910,
+    "straw": 6905,
+    "squash_petiole": 1619,
+    "broadleaf_weed": 945,
+    "fruit": 172,
+    "other": 10
+   },
+   "components_whose_basal_surround_is_mostly_straw": 294,
+   "extrapolation_distance_sigma": {
+    "n": 59,
+    "pct": {
+     "0": 2.66413437167148,
+     "25": 9.07491641302522,
+     "50": 11.370300273321389,
+     "75": 13.927400460658642,
+     "90": 17.254851730964486,
+     "100": 19.3005004012316
+    }
+   },
+   "confidence": {
+    "n": 531,
+    "pct": {
+     "5": 0.09672499663513154,
+     "50": 0.7145622112252279,
+     "95": 0.9728641387904355
+    }
+   }
+  },
+  "merge": {
+   "by_status": {
+    "observed": 164,
+    "extrapolated": 11,
+    "occluded": 32
+   },
+   "by_status_px": {
+    "observed": 71997,
+    "extrapolated": 2216,
+    "occluded": 950469
+   },
+   "by_status_excluding_grass_components": {
+    "observed": 47,
+    "extrapolated": 7,
+    "occluded": 8
+   },
+   "total": 207,
+   "total_excluding_grass_components": 62,
+   "fabricated_points": 0,
+   "with_lowest_visible_point": 207,
+   "with_lowest_visible_stem_point": 40,
+   "arm_admissible": 137,
+   "occluded_reasons": {
+    "material_below_datum": 6,
+    "beyond_max_extrapolation": 20,
+    "axis_not_descending": 2,
+    "basal_support_too_small": 4
+   },
+   "occluder_of_non_observed": {
+    "unknown": 2,
+    "squash_petiole": 4,
+    "foliage": 7,
+    "none": 20,
+    "straw": 10
+   },
+   "straw_occlusion_rate_of_non_observed": 0.23255813953488372,
+   "basal_surround_px_all_components": {
+    "straw": 3357,
+    "squash_leaf": 82,
+    "squash_petiole": 131,
+    "grass": 1047,
+    "broadleaf_weed": 166,
+    "other": 10,
+    "fruit": 12
+   },
+   "components_whose_basal_surround_is_mostly_straw": 140,
+   "extrapolation_distance_sigma": {
+    "n": 11,
+    "pct": {
+     "0": 2.66413437167148,
+     "25": 9.165988554316296,
+     "50": 11.087721711888205,
+     "75": 13.042212706937786,
+     "90": 13.485210501445632,
+     "100": 18.464376959858328
+    }
+   },
+   "confidence": {
+    "n": 175,
+    "pct": {
+     "5": 0.18310138560239933,
+     "50": 0.8125332044895378,
+     "95": 0.9811662504859247
+    }
+   }
+  },
+  "gt_instances": {
+   "by_status": {
+    "observed": 8,
+    "extrapolated": 1,
+    "occluded": 1
+   },
+   "by_status_px": {
+    "observed": 30576,
+    "extrapolated": 1587,
+    "occluded": 746141
+   },
+   "by_status_excluding_grass_components": {
+    "observed": 7,
+    "extrapolated": 1,
+    "occluded": 1
+   },
+   "total": 10,
+   "total_excluding_grass_components": 9,
+   "fabricated_points": 0,
+   "with_lowest_visible_point": 10,
+   "with_lowest_visible_stem_point": 3,
+   "arm_admissible": 7,
+   "occluded_reasons": {
+    "material_below_datum": 1
+   },
+   "occluder_of_non_observed": {
+    "none": 2
+   },
+   "straw_occlusion_rate_of_non_observed": 0.0,
+   "basal_surround_px_all_components": {
+    "grass": 38,
+    "broadleaf_weed": 89,
+    "straw": 96,
+    "squash_petiole": 12
+   },
+   "components_whose_basal_surround_is_mostly_straw": 4,
+   "extrapolation_distance_sigma": {
+    "n": 1,
+    "pct": {
+     "0": 5.814066883663602,
+     "25": 5.814066883663602,
+     "50": 5.814066883663602,
+     "75": 5.814066883663602,
+     "90": 5.814066883663602,
+     "100": 5.814066883663602
+    }
+   },
+   "confidence": {
+    "n": 9,
+    "pct": {
+     "5": 0.2028279400503889,
+     "50": 0.77106031919873,
+     "95": 0.9559658176405368
+    }
+   }
+  }
+ },
+ "circularity": {
+  "split": {
+   "fit_scale_px": 147,
+   "n_components_with_a_point": 741,
+   "base_pixel_is_an_A2_ground_inlier": 420,
+   "base_pixel_is_an_A2_ground_inlier_fraction": 0.5668016194331984,
+   "observed_status_base_is_a_ground_inlier": 410,
+   "observed_status_n": 472,
+   "observed_status_base_is_a_ground_inlier_fraction": 0.8686440677966102,
+   "non_plant_share_of_local_datum_support_pct": {
+    "5": 0.0,
+    "25": 0.3615288957953453,
+    "50": 0.5233719348907471,
+    "75": 0.7624047845602036,
+    "95": 0.9397136509418488
+   },
+   "note": "A2 selected ground inliers as everything within 3\u03c3 of the fitted surface, plant material included. Where the base pixel is itself an inlier, `observed` is partly a restatement of A2's inlier decision rather than an independent observation. The support fraction says how much of the datum under that pixel is nevertheless pinned by non-plant material."
+  },
+  "merge": {
+   "fit_scale_px": 147,
+   "n_components_with_a_point": 207,
+   "base_pixel_is_an_A2_ground_inlier": 151,
+   "base_pixel_is_an_A2_ground_inlier_fraction": 0.7294685990338164,
+   "observed_status_base_is_a_ground_inlier": 150,
+   "observed_status_n": 164,
+   "observed_status_base_is_a_ground_inlier_fraction": 0.9146341463414634,
+   "non_plant_share_of_local_datum_support_pct": {
+    "5": 0.17889104932546618,
+    "25": 0.5026454627513885,
+    "50": 0.7502659559249878,
+    "75": 0.8782444596290588,
+    "95": 0.9567017197608948
+   },
+   "note": "A2 selected ground inliers as everything within 3\u03c3 of the fitted surface, plant material included. Where the base pixel is itself an inlier, `observed` is partly a restatement of A2's inlier decision rather than an independent observation. The support fraction says how much of the datum under that pixel is nevertheless pinned by non-plant material."
+  },
+  "gt_instances": {
+   "fit_scale_px": 147,
+   "n_components_with_a_point": 10,
+   "base_pixel_is_an_A2_ground_inlier": 7,
+   "base_pixel_is_an_A2_ground_inlier_fraction": 0.7,
+   "observed_status_base_is_a_ground_inlier": 7,
+   "observed_status_n": 8,
+   "observed_status_base_is_a_ground_inlier_fraction": 0.875,
+   "non_plant_share_of_local_datum_support_pct": {
+    "5": 0.07585504353046417,
+    "25": 0.5623858869075775,
+    "50": 0.6709436774253845,
+    "75": 0.7691196203231812,
+    "95": 0.8391825199127196
+   },
+   "note": "A2 selected ground inliers as everything within 3\u03c3 of the fitted surface, plant material included. Where the base pixel is itself an inlier, `observed` is partly a restatement of A2's inlier decision rather than an independent observation. The support fraction says how much of the datum under that pixel is nevertheless pinned by non-plant material."
+  }
+ },
+ "gt_consistency": {
+  "split": {
+   "label": "split",
+   "WARNING": "consistency, NOT accuracy. All ten A0 points are `under_straw` with localisation `estimated`; A0's SCHEMA.md says they must not be used as a scoring target. The roadmap's done-criterion (error over `visible` GT points) is EMPTY for this image.",
+   "n_visible_gt_points": 0,
+   "rows": [
+    {
+     "gt": 1,
+     "name": "squash",
+     "crop": true,
+     "gt_point": [
+      330,
+      552
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 37,
+     "assigned_px_of_gt_instance": 203075,
+     "assigned_coverage_of_gt_instance": 0.4688827625697292,
+     "a5_status": "observed",
+     "a5_confidence": 0.08768362030057449,
+     "err_contact_px": 142.3366072047767,
+     "err_lowest_visible_px": 142.3366072047767,
+     "err_lowest_visible_stem_px": 142.3366072047767,
+     "baseline_err_component_centroid_px": 252.04418284681734,
+     "baseline_err_bottom_most_pixel_px": 477.9142182442368
+    },
+    {
+     "gt": 2,
+     "name": "weed_purslane",
+     "crop": false,
+     "gt_point": [
+      125,
+      833
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 348,
+     "assigned_px_of_gt_instance": 1958,
+     "assigned_coverage_of_gt_instance": 0.7470431133155284,
+     "a5_status": "observed",
+     "a5_confidence": 0.7196368029397444,
+     "err_contact_px": 47.46169239395028,
+     "err_lowest_visible_px": 47.46169239395028,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 50.723481999275975,
+     "baseline_err_bottom_most_pixel_px": 3.605551275463989
+    },
+    {
+     "gt": 3,
+     "name": "weed_clover_patch_lower_left",
+     "crop": false,
+     "gt_point": [
+      183,
+      847
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 350,
+     "assigned_px_of_gt_instance": 3832,
+     "assigned_coverage_of_gt_instance": 0.9233734939759036,
+     "a5_status": "observed",
+     "a5_confidence": 0.7701511919252197,
+     "err_contact_px": 149.15418372121496,
+     "err_lowest_visible_px": 149.15418372121496,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 29.990189225435103,
+     "baseline_err_bottom_most_pixel_px": 141.66156853571826
+    },
+    {
+     "gt": 4,
+     "name": "weed_mallow",
+     "crop": false,
+     "gt_point": [
+      59,
+      913
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 350,
+     "assigned_px_of_gt_instance": 3369,
+     "assigned_coverage_of_gt_instance": 0.914246947082768,
+     "a5_status": "observed",
+     "a5_confidence": 0.7701511919252197,
+     "err_contact_px": 29.07656637256439,
+     "err_lowest_visible_px": 29.07656637256439,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 122.1926273184153,
+     "baseline_err_bottom_most_pixel_px": 6.324555320336759
+    },
+    {
+     "gt": 5,
+     "name": "weed_small_right_of_mallow",
+     "crop": false,
+     "gt_point": [
+      140,
+      905
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 350,
+     "assigned_px_of_gt_instance": 1131,
+     "assigned_coverage_of_gt_instance": 0.9187652315190902,
+     "a5_status": "observed",
+     "a5_confidence": 0.7701511919252197,
+     "err_contact_px": 100.64491588237591,
+     "err_lowest_visible_px": 100.64491588237591,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 69.5357641269742,
+     "baseline_err_bottom_most_pixel_px": 80.23091673413684
+    },
+    {
+     "gt": 6,
+     "name": "weed_clover_by_fruit",
+     "crop": false,
+     "gt_point": [
+      258,
+      780
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 350,
+     "assigned_px_of_gt_instance": 1541,
+     "assigned_coverage_of_gt_instance": 0.916716240333135,
+     "a5_status": "observed",
+     "a5_confidence": 0.7701511919252197,
+     "err_contact_px": 244.1416822210669,
+     "err_lowest_visible_px": 244.1416822210669,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 117.99021540667397,
+     "baseline_err_bottom_most_pixel_px": 241.1016383187804
+    },
+    {
+     "gt": 7,
+     "name": "weed_seedling_left",
+     "crop": false,
+     "gt_point": [
+      26,
+      455
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 597,
+     "assigned_px_of_gt_instance": 381,
+     "assigned_coverage_of_gt_instance": 0.7759674134419552,
+     "a5_status": "observed",
+     "a5_confidence": 0.5086746561702842,
+     "err_contact_px": 19.158546046642364,
+     "err_lowest_visible_px": 19.158546046642364,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 6.747950556311166,
+     "baseline_err_bottom_most_pixel_px": 8.602325267042627
+    },
+    {
+     "gt": 8,
+     "name": "weed_seedling_mid",
+     "crop": false,
+     "gt_point": [
+      177,
+      458
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 674,
+     "assigned_px_of_gt_instance": 209,
+     "assigned_coverage_of_gt_instance": 0.8565573770491803,
+     "a5_status": "observed",
+     "a5_confidence": 0.5060106945264979,
+     "err_contact_px": 14.573373664139956,
+     "err_lowest_visible_px": 14.573373664139956,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 7.4869701630380785,
+     "baseline_err_bottom_most_pixel_px": 7.280109889280518
+    },
+    {
+     "gt": 9,
+     "name": "weed_ovate_upper",
+     "crop": false,
+     "gt_point": [
+      515,
+      490
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 37,
+     "assigned_px_of_gt_instance": 2215,
+     "assigned_coverage_of_gt_instance": 0.609353507565337,
+     "a5_status": "observed",
+     "a5_confidence": 0.08768362030057449,
+     "err_contact_px": 61.391369318149046,
+     "err_lowest_visible_px": 61.391369318149046,
+     "err_lowest_visible_stem_px": 61.391369318149046,
+     "baseline_err_component_centroid_px": 151.09457887542683,
+     "baseline_err_bottom_most_pixel_px": 543.051562929341
+    },
+    {
+     "gt": 10,
+     "name": "weed_ovate_lower",
+     "crop": false,
+     "gt_point": [
+      425,
+      498
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 593,
+     "assigned_px_of_gt_instance": 481,
+     "assigned_coverage_of_gt_instance": 0.52453653217012,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 13.442832683883774,
+     "err_lowest_visible_stem_px": 13.442832683883774,
+     "baseline_err_component_centroid_px": 18.01063782302679,
+     "baseline_err_bottom_most_pixel_px": 22.360679774997898
+    }
+   ],
+   "summary": {
+    "err_contact_px": {
+     "n": 9,
+     "median_px": 61.391369318149046,
+     "mean_px": 89.77099298054227,
+     "max_px": 244.1416822210669
+    },
+    "err_lowest_visible_px": {
+     "n": 10,
+     "median_px": 54.426530856049666,
+     "mean_px": 82.13817695087643,
+     "max_px": 244.1416822210669
+    },
+    "err_lowest_visible_stem_px": {
+     "n": 3,
+     "median_px": 61.391369318149046,
+     "mean_px": 72.39026973560318,
+     "max_px": 142.3366072047767
+    },
+    "baseline_err_component_centroid_px": {
+     "n": 10,
+     "median_px": 60.12962306312509,
+     "mean_px": 82.58165983413947,
+     "max_px": 252.04418284681734
+    },
+    "baseline_err_bottom_most_pixel_px": {
+     "n": 10,
+     "median_px": 51.29579825456737,
+     "mean_px": 153.21331262893352,
+     "max_px": 543.051562929341
+    }
+   }
+  },
+  "merge": {
+   "label": "merge",
+   "WARNING": "consistency, NOT accuracy. All ten A0 points are `under_straw` with localisation `estimated`; A0's SCHEMA.md says they must not be used as a scoring target. The roadmap's done-criterion (error over `visible` GT points) is EMPTY for this image.",
+   "n_visible_gt_points": 0,
+   "rows": [
+    {
+     "gt": 1,
+     "name": "squash",
+     "crop": true,
+     "gt_point": [
+      330,
+      552
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 1,
+     "assigned_px_of_gt_instance": 414003,
+     "assigned_coverage_of_gt_instance": 0.9558974287930844,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 131.86844953156694,
+     "err_lowest_visible_stem_px": 131.86844953156694,
+     "baseline_err_component_centroid_px": 161.09438553410402,
+     "baseline_err_bottom_most_pixel_px": 474.08543533839975
+    },
+    {
+     "gt": 2,
+     "name": "weed_purslane",
+     "crop": false,
+     "gt_point": [
+      125,
+      833
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 104,
+     "assigned_px_of_gt_instance": 2594,
+     "assigned_coverage_of_gt_instance": 0.9896985883250667,
+     "a5_status": "observed",
+     "a5_confidence": 0.4834211712254569,
+     "err_contact_px": 34.30773102615885,
+     "err_lowest_visible_px": 34.30773102615885,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 25.401780106814247,
+     "baseline_err_bottom_most_pixel_px": 107.20074626605917
+    },
+    {
+     "gt": 3,
+     "name": "weed_clover_patch_lower_left",
+     "crop": false,
+     "gt_point": [
+      183,
+      847
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 104,
+     "assigned_px_of_gt_instance": 3862,
+     "assigned_coverage_of_gt_instance": 0.9306024096385542,
+     "a5_status": "observed",
+     "a5_confidence": 0.4834211712254569,
+     "err_contact_px": 85.84965500982587,
+     "err_lowest_visible_px": 85.84965500982587,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 40.166540678516256,
+     "baseline_err_bottom_most_pixel_px": 141.66156853571826
+    },
+    {
+     "gt": 4,
+     "name": "weed_mallow",
+     "crop": false,
+     "gt_point": [
+      59,
+      913
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 104,
+     "assigned_px_of_gt_instance": 3369,
+     "assigned_coverage_of_gt_instance": 0.914246947082768,
+     "a5_status": "observed",
+     "a5_confidence": 0.4834211712254569,
+     "err_contact_px": 121.77681157237893,
+     "err_lowest_visible_px": 121.77681157237893,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 125.81484651471634,
+     "baseline_err_bottom_most_pixel_px": 6.324555320336759
+    },
+    {
+     "gt": 5,
+     "name": "weed_small_right_of_mallow",
+     "crop": false,
+     "gt_point": [
+      140,
+      905
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 104,
+     "assigned_px_of_gt_instance": 1134,
+     "assigned_coverage_of_gt_instance": 0.9212022745735174,
+     "a5_status": "observed",
+     "a5_confidence": 0.4834211712254569,
+     "err_contact_px": 107.0861754830745,
+     "err_lowest_visible_px": 107.0861754830745,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 80.23689802476535,
+     "baseline_err_bottom_most_pixel_px": 80.23091673413684
+    },
+    {
+     "gt": 6,
+     "name": "weed_clover_by_fruit",
+     "crop": false,
+     "gt_point": [
+      258,
+      780
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 104,
+     "assigned_px_of_gt_instance": 1541,
+     "assigned_coverage_of_gt_instance": 0.916716240333135,
+     "a5_status": "observed",
+     "a5_confidence": 0.4834211712254569,
+     "err_contact_px": 149.95101240888297,
+     "err_lowest_visible_px": 149.95101240888297,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 117.84708571677317,
+     "baseline_err_bottom_most_pixel_px": 241.1016383187804
+    },
+    {
+     "gt": 7,
+     "name": "weed_seedling_left",
+     "crop": false,
+     "gt_point": [
+      26,
+      455
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 178,
+     "assigned_px_of_gt_instance": 381,
+     "assigned_coverage_of_gt_instance": 0.7759674134419552,
+     "a5_status": "observed",
+     "a5_confidence": 0.5086746561702842,
+     "err_contact_px": 19.158546046642364,
+     "err_lowest_visible_px": 19.158546046642364,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 6.747950556311166,
+     "baseline_err_bottom_most_pixel_px": 8.602325267042627
+    },
+    {
+     "gt": 8,
+     "name": "weed_seedling_mid",
+     "crop": false,
+     "gt_point": [
+      177,
+      458
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 1,
+     "assigned_px_of_gt_instance": 223,
+     "assigned_coverage_of_gt_instance": 0.9139344262295082,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 147.0801607836527,
+     "err_lowest_visible_stem_px": 147.0801607836527,
+     "baseline_err_component_centroid_px": 252.61787368704262,
+     "baseline_err_bottom_most_pixel_px": 601.7258511980352
+    },
+    {
+     "gt": 9,
+     "name": "weed_ovate_upper",
+     "crop": false,
+     "gt_point": [
+      515,
+      490
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 1,
+     "assigned_px_of_gt_instance": 3428,
+     "assigned_coverage_of_gt_instance": 0.9430536451169188,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 207.70905104646093,
+     "err_lowest_visible_stem_px": 207.70905104646093,
+     "baseline_err_component_centroid_px": 110.04295187071372,
+     "baseline_err_bottom_most_pixel_px": 548.8624600025037
+    },
+    {
+     "gt": 10,
+     "name": "weed_ovate_lower",
+     "crop": false,
+     "gt_point": [
+      425,
+      498
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 1,
+     "assigned_px_of_gt_instance": 831,
+     "assigned_coverage_of_gt_instance": 0.906215921483097,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 131.0754140650931,
+     "err_lowest_visible_stem_px": 131.0754140650931,
+     "baseline_err_component_centroid_px": 74.45356250724211,
+     "baseline_err_bottom_most_pixel_px": 526.598518797765
+    }
+   ],
+   "summary": {
+    "err_contact_px": {
+     "n": 6,
+     "median_px": 96.46791524645019,
+     "mean_px": 86.35498859116059,
+     "max_px": 149.95101240888297
+    },
+    "err_lowest_visible_px": {
+     "n": 10,
+     "median_px": 126.42611281873602,
+     "mean_px": 113.58630069737372,
+     "max_px": 207.70905104646093
+    },
+    "err_lowest_visible_stem_px": {
+     "n": 4,
+     "median_px": 139.47430515760982,
+     "mean_px": 154.43326885669342,
+     "max_px": 207.70905104646093
+    },
+    "baseline_err_component_centroid_px": {
+     "n": 10,
+     "median_px": 95.13992494773953,
+     "mean_px": 99.4423875196999,
+     "max_px": 252.61787368704262
+    },
+    "baseline_err_bottom_most_pixel_px": {
+     "n": 10,
+     "median_px": 191.38160342724933,
+     "mean_px": 273.6394015778777,
+     "max_px": 601.7258511980352
+    }
+   }
+  },
+  "gt_instances": {
+   "label": "gt_instances",
+   "WARNING": "consistency, NOT accuracy. All ten A0 points are `under_straw` with localisation `estimated`; A0's SCHEMA.md says they must not be used as a scoring target. The roadmap's done-criterion (error over `visible` GT points) is EMPTY for this image.",
+   "n_visible_gt_points": 0,
+   "rows": [
+    {
+     "gt": 1,
+     "name": "squash",
+     "crop": true,
+     "gt_point": [
+      330,
+      552
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 1,
+     "assigned_px_of_gt_instance": 433104,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "occluded",
+     "a5_confidence": null,
+     "err_contact_px": null,
+     "err_lowest_visible_px": 581.8059693240034,
+     "err_lowest_visible_stem_px": 205.1006942567004,
+     "baseline_err_component_centroid_px": 148.569107339362,
+     "baseline_err_bottom_most_pixel_px": 477.9142182442368
+    },
+    {
+     "gt": 2,
+     "name": "weed_purslane",
+     "crop": false,
+     "gt_point": [
+      125,
+      833
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 2,
+     "assigned_px_of_gt_instance": 2621,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.77106031919873,
+     "err_contact_px": 35.2929431577291,
+     "err_lowest_visible_px": 35.2929431577291,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 50.6241604947299,
+     "baseline_err_bottom_most_pixel_px": 2.8284271247461903
+    },
+    {
+     "gt": 3,
+     "name": "weed_clover_patch_lower_left",
+     "crop": false,
+     "gt_point": [
+      183,
+      847
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 3,
+     "assigned_px_of_gt_instance": 4150,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.8284691953751708,
+     "err_contact_px": 22.38085106360046,
+     "err_lowest_visible_px": 22.38085106360046,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 23.29923907059389,
+     "baseline_err_bottom_most_pixel_px": 38.2099463490856
+    },
+    {
+     "gt": 4,
+     "name": "weed_mallow",
+     "crop": false,
+     "gt_point": [
+      59,
+      913
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 4,
+     "assigned_px_of_gt_instance": 3685,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.8419853041411678,
+     "err_contact_px": 32.929044861107805,
+     "err_lowest_visible_px": 32.929044861107805,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 44.13309770576923,
+     "baseline_err_bottom_most_pixel_px": 11.40175425099138
+    },
+    {
+     "gt": 5,
+     "name": "weed_small_right_of_mallow",
+     "crop": false,
+     "gt_point": [
+      140,
+      905
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 5,
+     "assigned_px_of_gt_instance": 1231,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.9212472928958435,
+     "err_contact_px": 16.508432532230405,
+     "err_lowest_visible_px": 16.508432532230405,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 19.203335324995177,
+     "baseline_err_bottom_most_pixel_px": 13.601470508735444
+    },
+    {
+     "gt": 6,
+     "name": "weed_clover_by_fruit",
+     "crop": false,
+     "gt_point": [
+      258,
+      780
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 6,
+     "assigned_px_of_gt_instance": 1681,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.9791115008036656,
+     "err_contact_px": 53.27590445468617,
+     "err_lowest_visible_px": 53.27590445468617,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 15.461351282977583,
+     "baseline_err_bottom_most_pixel_px": 12.529964086141668
+    },
+    {
+     "gt": 7,
+     "name": "weed_seedling_left",
+     "crop": false,
+     "gt_point": [
+      26,
+      455
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 7,
+     "assigned_px_of_gt_instance": 491,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.2700470059571733,
+     "err_contact_px": 16.877106822375605,
+     "err_lowest_visible_px": 16.877106822375605,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 7.116733399263833,
+     "baseline_err_bottom_most_pixel_px": 7.615773105863909
+    },
+    {
+     "gt": 8,
+     "name": "weed_seedling_mid",
+     "crop": false,
+     "gt_point": [
+      177,
+      458
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 8,
+     "assigned_px_of_gt_instance": 244,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.158015229445866,
+     "err_contact_px": 14.291824090285477,
+     "err_lowest_visible_px": 14.291824090285477,
+     "err_lowest_visible_stem_px": null,
+     "baseline_err_component_centroid_px": 7.756291280041947,
+     "baseline_err_bottom_most_pixel_px": 0.0
+    },
+    {
+     "gt": 9,
+     "name": "weed_ovate_upper",
+     "crop": false,
+     "gt_point": [
+      515,
+      490
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 9,
+     "assigned_px_of_gt_instance": 3635,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "observed",
+     "a5_confidence": 0.7701566209576909,
+     "err_contact_px": 77.68213912624334,
+     "err_lowest_visible_px": 77.68213912624334,
+     "err_lowest_visible_stem_px": 79.41014117568334,
+     "baseline_err_component_centroid_px": 42.679665815140304,
+     "baseline_err_bottom_most_pixel_px": 18.681541692269406
+    },
+    {
+     "gt": 10,
+     "name": "weed_ovate_lower",
+     "crop": false,
+     "gt_point": [
+      425,
+      498
+     ],
+     "gt_status": "under_straw",
+     "gt_localisation": "estimated",
+     "assigned": 10,
+     "assigned_px_of_gt_instance": 917,
+     "assigned_coverage_of_gt_instance": 1.0,
+     "a5_status": "extrapolated",
+     "a5_confidence": 0.6971561694426881,
+     "err_contact_px": 26.4325380913714,
+     "err_lowest_visible_px": 26.045007268728426,
+     "err_lowest_visible_stem_px": 19.565171053873957,
+     "baseline_err_component_centroid_px": 13.680828402606759,
+     "baseline_err_bottom_most_pixel_px": 34.48187929913333
+    }
+   ],
+   "summary": {
+    "err_contact_px": {
+     "n": 9,
+     "median_px": 26.4325380913714,
+     "mean_px": 32.852309355514414,
+     "max_px": 77.68213912624334
+    },
+    "err_lowest_visible_px": {
+     "n": 10,
+     "median_px": 29.487026064918116,
+     "mean_px": 87.70892227009901,
+     "max_px": 581.8059693240034
+    },
+    "err_lowest_visible_stem_px": {
+     "n": 3,
+     "median_px": 79.41014117568334,
+     "mean_px": 101.35866882875256,
+     "max_px": 205.1006942567004
+    },
+    "baseline_err_component_centroid_px": {
+     "n": 10,
+     "median_px": 21.251287197794532,
+     "mean_px": 37.25238101154807,
+     "max_px": 148.569107339362
+    },
+    "baseline_err_bottom_most_pixel_px": {
+     "n": 10,
+     "median_px": 13.065717297438557,
+     "mean_px": 61.72649746612037,
+     "max_px": 477.9142182442368
+    }
+   }
+  }
+ },
+ "policy_disagreement": {
+  "n_components": {
+   "split": 742,
+   "merge": 207,
+   "ratio": 3.5845410628019323
+  },
+  "n_actionable_points": {
+   "split": 531,
+   "merge": 175,
+   "ratio": 3.0342857142857143
+  },
+  "largest_merge_components": [
+   {
+    "merge_component": 1,
+    "n_px": 938112,
+    "merge_status": "occluded",
+    "n_split_components_inside": 488,
+    "n_split_points_inside": 319,
+    "split_status": {
+     "observed": 274,
+     "extrapolated": 45,
+     "occluded": 169
+    },
+    "dist_split_points_to_merge_point_px": null
+   },
+   {
+    "merge_component": 104,
+    "n_px": 32658,
+    "merge_status": "observed",
+    "n_split_components_inside": 10,
+    "n_split_points_inside": 10,
+    "split_status": {
+     "observed": 10,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 70.89024276912009,
+     "max": 113.87354246474194
+    }
+   },
+   {
+    "merge_component": 41,
+    "n_px": 4225,
+    "merge_status": "observed",
+    "n_split_components_inside": 2,
+    "n_split_points_inside": 2,
+    "split_status": {
+     "observed": 2,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 30.87829962538581,
+     "max": 61.75659925077162
+    }
+   },
+   {
+    "merge_component": 120,
+    "n_px": 4118,
+    "merge_status": "observed",
+    "n_split_components_inside": 2,
+    "n_split_points_inside": 2,
+    "split_status": {
+     "observed": 2,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 22.98398845340776,
+     "max": 43.220890220747684
+    }
+   },
+   {
+    "merge_component": 83,
+    "n_px": 3083,
+    "merge_status": "observed",
+    "n_split_components_inside": 3,
+    "n_split_points_inside": 3,
+    "split_status": {
+     "observed": 3,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 27.47086686067803,
+     "max": 44.64787908261675
+    }
+   },
+   {
+    "merge_component": 6,
+    "n_px": 2965,
+    "merge_status": "occluded",
+    "n_split_components_inside": 6,
+    "n_split_points_inside": 4,
+    "split_status": {
+     "observed": 4,
+     "extrapolated": 0,
+     "occluded": 2
+    },
+    "dist_split_points_to_merge_point_px": null
+   },
+   {
+    "merge_component": 88,
+    "n_px": 2124,
+    "merge_status": "observed",
+    "n_split_components_inside": 2,
+    "n_split_points_inside": 2,
+    "split_status": {
+     "observed": 2,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 5.827450872677475,
+     "max": 11.65490174535495
+    }
+   },
+   {
+    "merge_component": 20,
+    "n_px": 1865,
+    "merge_status": "observed",
+    "n_split_components_inside": 1,
+    "n_split_points_inside": 1,
+    "split_status": {
+     "observed": 1,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 0.0,
+     "max": 0.0
+    }
+   },
+   {
+    "merge_component": 150,
+    "n_px": 1581,
+    "merge_status": "occluded",
+    "n_split_components_inside": 4,
+    "n_split_points_inside": 0,
+    "split_status": {
+     "observed": 0,
+     "extrapolated": 0,
+     "occluded": 4
+    },
+    "dist_split_points_to_merge_point_px": null
+   },
+   {
+    "merge_component": 84,
+    "n_px": 1332,
+    "merge_status": "observed",
+    "n_split_components_inside": 3,
+    "n_split_points_inside": 3,
+    "split_status": {
+     "observed": 3,
+     "extrapolated": 0,
+     "occluded": 0
+    },
+    "dist_split_points_to_merge_point_px": {
+     "median": 10.828701259849105,
+     "max": 36.85603542079337
+    }
+   }
+  ],
+  "merge_components_holding_more_than_one_split_point": 17
+ },
+ "a0_eval_contacts": {
+  "split": {
+   "visible": {
+    "n": 0,
+    "mean_px": null,
+    "median_px": null,
+    "max_px": null
+   },
+   "under_straw": {
+    "n": 6,
+    "mean_px": 121.12422078669131,
+    "median_px": 121.4907615435763,
+    "max_px": 244.1416822210669
+   },
+   "out_of_frame": {
+    "n": 0,
+    "mean_px": null,
+    "median_px": null,
+    "max_px": null
+   }
+  },
+  "split_scoreable_n": 0,
+  "merge": {
+   "visible": {
+    "n": 0,
+    "mean_px": null,
+    "median_px": null,
+    "max_px": null
+   },
+   "under_straw": {
+    "n": 5,
+    "mean_px": 99.79427710006424,
+    "median_px": 107.0861754830745,
+    "max_px": 149.95101240888297
+   },
+   "out_of_frame": {
+    "n": 0,
+    "mean_px": null,
+    "median_px": null,
+    "max_px": null
+   }
+  },
+  "merge_scoreable_n": 0
+ }
+}
