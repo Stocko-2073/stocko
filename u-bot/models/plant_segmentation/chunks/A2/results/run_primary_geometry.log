@@ -1,0 +1,19 @@
+[11:38:53] primary_geometry: depth 504x378, camera f=(561.1,566.0) provenance=model_estimated usable=True
+[11:38:53]   local planarity win9: p10=2.687e-04 p50=2.065e-03 rdu (n=2352)
+[11:38:53]   local planarity win17: p10=6.194e-04 p50=4.915e-03 rdu (n=638)
+[11:38:53]   local planarity win33: p10=1.940e-03 p50=1.071e-02 rdu (n=165)
+[11:38:53]   local planarity win49: p10=5.127e-03 p50=1.631e-02 rdu (n=70)
+[11:38:53]   local planarity win65: p10=8.042e-03 p50=2.127e-02 rdu (n=35)
+[11:38:53]   local planarity win97: p10=1.530e-02 p50=3.576e-02 rdu (n=15)
+[11:38:53]   local planarity win129: p10=4.037e-02 p50=5.272e-02 rdu (n=6)
+[11:38:55]   RANSAC @ 1.940e-03 rdu: inliers 5.28%, normal [-0.232 -0.634 -0.738]
+[11:39:11]   outer 0: sigma_datum=5.8888e-03 band=1.7666e-02 cand=24.2% lam=316 edf=35.2 scale=74px churn=18.94%
+[11:39:17]   outer 1: sigma_datum=4.6644e-03 band=1.3993e-02 cand=25.5% lam=316 edf=37.2 scale=72px churn=2.07%
+[11:39:22]   outer 2: sigma_datum=4.7909e-03 band=1.4373e-02 cand=26.5% lam=1e+03 edf=25.3 scale=87px churn=1.11%
+[11:39:28]   outer 3: sigma_datum=5.4355e-03 band=1.6307e-02 cand=27.7% lam=1e+03 edf=26.3 scale=85px churn=1.29%
+[11:39:34]   outer 4: sigma_datum=5.6876e-03 band=1.7063e-02 cand=28.4% lam=3.16e+03 edf=17.7 scale=104px churn=0.80%
+[11:39:40]   outer 5: sigma_datum=6.2861e-03 band=1.8858e-02 cand=29.2% lam=1e+03 edf=27.3 scale=84px churn=0.76%
+[11:39:47]   outer 6: sigma_datum=5.9670e-03 band=1.7901e-02 cand=29.3% lam=1e+03 edf=27.5 scale=83px churn=0.41%
+[11:39:53]   outer 7: sigma_datum=6.0077e-03 band=1.8023e-02 cand=29.5% lam=1e+03 edf=28.3 scale=82px churn=0.24%
+[11:39:53]   fit: inliers 29.5%  rms 6.9289e-03 rdu (plane-only 1.6804e-02)
+[11:39:57] wrote /Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/chunks/A2/products_primary_geometry and results/fit_report_primary_geometry.json
