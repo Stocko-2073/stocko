@@ -1,0 +1,13 @@
+# Upstream clone + ~6.7 GB of weights + venv. Rebuild with port/README.md.
+ZeroPlantSeg/
+
+# Chunk working artifacts: commit FINDINGS.md and small figures, not bulk data.
+chunks/**/*.npy
+chunks/**/*.pth
+chunks/**/*.ckpt
+chunks/**/cache/
+chunks/**/__pycache__/
+
+*.pyc
+__pycache__/
+.DS_Store
