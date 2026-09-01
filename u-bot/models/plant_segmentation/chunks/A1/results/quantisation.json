@@ -1,0 +1,752 @@
+{
+  "per_run": {
+    "da3-large_res1120": {
+      "representation": {
+        "n_pixels": 940800,
+        "n_distinct_values": 894428,
+        "distinct_fraction": 0.9507100340136054,
+        "range": [
+          0.6036977767944336,
+          2.4421896934509277
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 8.344650268554688e-07,
+        "min_gap_over_range": 3.242040078358812e-08,
+        "effective_bits": 19.77060582678255
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3-large_res1344": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 1266610,
+        "distinct_fraction": 0.9349386455971277,
+        "range": [
+          0.6285664439201355,
+          2.4167981147766113
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 5.960464477539062e-07,
+        "min_gap_over_range": 3.333161231108434e-08,
+        "effective_bits": 20.272540944095255
+      },
+      "immerkaer_sigma_rdu": 5.755038481433496e-05,
+      "noise_floor_rdu": {
+        "n_windows": 16688,
+        "p01": 5.997125961199185e-05,
+        "p05": 9.038741208285167e-05,
+        "p10": 0.0001158097079565677,
+        "p25": 0.00021940169649693772,
+        "p50": 0.0005471419599371769,
+        "p90": 0.0010914549233157194,
+        "recommended_sigma_rdu": 0.0001158097079565677,
+        "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+      },
+      "noise_floor_by_window_rdu": {
+        "win3": {
+          "n_windows": 150528,
+          "p01": 9.898848370954924e-06,
+          "p05": 1.8639245194173876e-05,
+          "p10": 2.6331860818848348e-05,
+          "p25": 4.806230582147504e-05,
+          "p50": 9.796360711066094e-05,
+          "p90": 0.00026578813305964076,
+          "recommended_sigma_rdu": 2.6331860818848348e-05,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win5": {
+          "n_windows": 53868,
+          "p01": 2.9187776042089212e-05,
+          "p05": 4.529746711425935e-05,
+          "p10": 5.9574894834543204e-05,
+          "p25": 0.00010573877964997628,
+          "p50": 0.00022893847723152625,
+          "p90": 0.0005407889062457868,
+          "recommended_sigma_rdu": 5.9574894834543204e-05,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win9": {
+          "n_windows": 16688,
+          "p01": 5.997125961199185e-05,
+          "p05": 9.038741208285167e-05,
+          "p10": 0.0001158097079565677,
+          "p25": 0.00021940169649693772,
+          "p50": 0.0005471419599371769,
+          "p90": 0.0010914549233157194,
+          "recommended_sigma_rdu": 0.0001158097079565677,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win17": {
+          "n_windows": 4661,
+          "p01": 0.00012595749319262517,
+          "p05": 0.00017936252235616266,
+          "p10": 0.0002410929987366427,
+          "p25": 0.0004923551109450945,
+          "p50": 0.0012947481183060705,
+          "p90": 0.002183737853237941,
+          "recommended_sigma_rdu": 0.0002410929987366427,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win33": {
+          "n_windows": 1200,
+          "p01": 0.0002638170804153842,
+          "p05": 0.00038002289202222707,
+          "p10": 0.0005351016295437682,
+          "p25": 0.0014871925510059082,
+          "p50": 0.00286284522128736,
+          "p90": 0.004421678524048435,
+          "recommended_sigma_rdu": 0.0005351016295437682,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        }
+      },
+      "normaliser_depth_units_per_rdu": 1.1657166481018066,
+      "intrinsics": {
+        "fx": 1150.6107177734375,
+        "fy": 2663.97802734375,
+        "cx": 504.0,
+        "cy": 672.0,
+        "width": 1008,
+        "height": 1344,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured",
+        "fov_horizontal_deg": 47.30955369493,
+        "fov_vertical_deg": 28.315489454298223
+      }
+    },
+    "da3-large_res1680": {
+      "representation": {
+        "n_pixels": 2116800,
+        "n_distinct_values": 1880606,
+        "distinct_fraction": 0.8884193121693121,
+        "range": [
+          0.7024821043014526,
+          2.030637502670288
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 3.5762786865234375e-07,
+        "min_gap_over_range": 4.4877764189788066e-08,
+        "effective_bits": 20.842766195226158
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3-large_res504": {
+      "representation": {
+        "n_pixels": 190512,
+        "n_distinct_values": 188609,
+        "distinct_fraction": 0.9900111279079533,
+        "range": [
+          0.5216609239578247,
+          2.1141140460968018
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 3.516674041748047e-06,
+        "min_gap_over_range": 3.742945016512002e-08,
+        "effective_bits": 17.525038994275768
+      },
+      "immerkaer_sigma_rdu": 0.0002554824777133363,
+      "noise_floor_rdu": {
+        "n_windows": 2352,
+        "p01": 0.00020945494364775757,
+        "p05": 0.0003442252859188993,
+        "p10": 0.0004934671356569503,
+        "p25": 0.0011984015925904732,
+        "p50": 0.0023911530885017337,
+        "p90": 0.004680287653793185,
+        "recommended_sigma_rdu": 0.0004934671356569503,
+        "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+      },
+      "noise_floor_by_window_rdu": {
+        "win3": {
+          "n_windows": 21168,
+          "p01": 3.6780778807250356e-05,
+          "p05": 6.869371807500018e-05,
+          "p10": 0.00010242951478181466,
+          "p25": 0.00019366377000253716,
+          "p50": 0.0003795349630297207,
+          "p90": 0.0009683199571245555,
+          "recommended_sigma_rdu": 0.00010242951478181466,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win5": {
+          "n_windows": 7500,
+          "p01": 9.828064476794266e-05,
+          "p05": 0.00016301323363876035,
+          "p10": 0.0002321396676436426,
+          "p25": 0.0004713762919872206,
+          "p50": 0.0009736992628220289,
+          "p90": 0.002147581784014641,
+          "recommended_sigma_rdu": 0.0002321396676436426,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win9": {
+          "n_windows": 2352,
+          "p01": 0.00020945494364775757,
+          "p05": 0.0003442252859188993,
+          "p10": 0.0004934671356569503,
+          "p25": 0.0011984015925904732,
+          "p50": 0.0023911530885017337,
+          "p90": 0.004680287653793185,
+          "recommended_sigma_rdu": 0.0004934671356569503,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win17": {
+          "n_windows": 638,
+          "p01": 0.000438428962537368,
+          "p05": 0.0007739763250133514,
+          "p10": 0.0013169496945132876,
+          "p25": 0.0035072904464433915,
+          "p50": 0.0054029614521139,
+          "p90": 0.009986959516498818,
+          "recommended_sigma_rdu": 0.0013169496945132876,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win33": {
+          "n_windows": 165,
+          "p01": 0.0011735374988189704,
+          "p05": 0.002101216960755431,
+          "p10": 0.004716243725060175,
+          "p25": 0.008238374013723494,
+          "p50": 0.011664287305137995,
+          "p90": 0.020065695879766473,
+          "recommended_sigma_rdu": 0.004716243725060175,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        }
+      },
+      "normaliser_depth_units_per_rdu": 0.9867201745510101,
+      "intrinsics": {
+        "fx": 524.0433959960938,
+        "fy": 531.375244140625,
+        "cx": 189.0,
+        "cy": 252.0,
+        "width": 378,
+        "height": 504,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured",
+        "fov_horizontal_deg": 39.66440335948348,
+        "fov_vertical_deg": 50.74446438237407
+      }
+    },
+    "da3-large_res700": {
+      "representation": {
+        "n_pixels": 372400,
+        "n_distinct_values": 363940,
+        "distinct_fraction": 0.9772824919441461,
+        "range": [
+          0.5875037312507629,
+          2.1403608322143555
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 1.6689300537109375e-06,
+        "min_gap_over_range": 3.8383856916650104e-08,
+        "effective_bits": 18.47334109838429
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3-large_res896": {
+      "representation": {
+        "n_pixels": 602112,
+        "n_distinct_values": 582867,
+        "distinct_fraction": 0.9680375079719388,
+        "range": [
+          0.48987090587615967,
+          2.2438948154449463
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 1.1920928955078125e-06,
+        "min_gap_over_range": 3.398166036975173e-08,
+        "effective_bits": 19.152807197776106
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3metric-large_res1344": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 1269384,
+        "distinct_fraction": 0.9369862528344671,
+        "range": [
+          0.11747317016124725,
+          0.6351598501205444
+        ],
+        "min_gap": 1.4901161193847656e-08,
+        "median_gap": 2.086162567138672e-07,
+        "min_gap_over_range": 2.878413096319042e-08,
+        "effective_bits": 20.27569713266635
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3metric-large_res504": {
+      "representation": {
+        "n_pixels": 190512,
+        "n_distinct_values": 188947,
+        "distinct_fraction": 0.9917852943646595,
+        "range": [
+          0.34733515977859497,
+          1.4662106037139893
+        ],
+        "min_gap": 2.9802322387695312e-08,
+        "median_gap": 2.7120113372802734e-06,
+        "min_gap_over_range": 2.6635960731135813e-08,
+        "effective_bits": 17.527622086871776
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3mono-large_res1344": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 1298196,
+        "distinct_fraction": 0.9582536139455783,
+        "range": [
+          0.1386926919221878,
+          1.89607834815979
+        ],
+        "min_gap": 1.4901161193847656e-08,
+        "median_gap": 6.556510925292969e-07,
+        "min_gap_over_range": 8.47916400191273e-09,
+        "effective_bits": 20.308076785389225
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3mono-large_res504": {
+      "representation": {
+        "n_pixels": 190512,
+        "n_distinct_values": 189166,
+        "distinct_fraction": 0.9929348282522885,
+        "range": [
+          0.21869367361068726,
+          1.8643465042114258
+        ],
+        "min_gap": 1.4901161193847656e-08,
+        "median_gap": 4.112720489501953e-06,
+        "min_gap_over_range": 9.054863162364599e-09,
+        "effective_bits": 17.52929328172244
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3nested-giant-large_res1120": {
+      "representation": {
+        "n_pixels": 940800,
+        "n_distinct_values": 886632,
+        "distinct_fraction": 0.9424234693877551,
+        "range": [
+          0.6999456882476807,
+          2.5208091735839844
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 9.5367431640625e-07,
+        "min_gap_over_range": 3.2734274290959254e-08,
+        "effective_bits": 19.75797590710488
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3nested-giant-large_res1344": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 1238305,
+        "distinct_fraction": 0.9140455227229781,
+        "range": [
+          0.7641634941101074,
+          2.5004663467407227
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 7.152557373046875e-07,
+        "min_gap_over_range": 3.4328484045905695e-08,
+        "effective_bits": 20.239935269816044
+      },
+      "immerkaer_sigma_rdu": 4.145862809411695e-05,
+      "noise_floor_rdu": {
+        "n_windows": 16688,
+        "p01": 7.234869624437923e-05,
+        "p05": 0.0001021148196795426,
+        "p10": 0.00012895677396270323,
+        "p25": 0.00022550108769761766,
+        "p50": 0.000630948401866988,
+        "p90": 0.0014750760722901555,
+        "recommended_sigma_rdu": 0.00012895677396270323,
+        "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+      },
+      "noise_floor_by_window_rdu": {
+        "win3": {
+          "n_windows": 150528,
+          "p01": 1.1793859612546069e-05,
+          "p05": 2.1198060774707057e-05,
+          "p10": 2.9462945118460555e-05,
+          "p25": 5.308716986669601e-05,
+          "p50": 0.00010856164517925801,
+          "p90": 0.00033480258405281,
+          "recommended_sigma_rdu": 2.9462945118460555e-05,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win5": {
+          "n_windows": 53868,
+          "p01": 3.4621159364964475e-05,
+          "p05": 5.203866799159229e-05,
+          "p10": 6.670238333267323e-05,
+          "p25": 0.00011212905632490824,
+          "p50": 0.0002468578217289601,
+          "p90": 0.0007121462288510339,
+          "recommended_sigma_rdu": 6.670238333267323e-05,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win9": {
+          "n_windows": 16688,
+          "p01": 7.234869624437923e-05,
+          "p05": 0.0001021148196795426,
+          "p10": 0.00012895677396270323,
+          "p25": 0.00022550108769761766,
+          "p50": 0.000630948401866988,
+          "p90": 0.0014750760722901555,
+          "recommended_sigma_rdu": 0.00012895677396270323,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win17": {
+          "n_windows": 4661,
+          "p01": 0.00015463286615520253,
+          "p05": 0.0002122835075945529,
+          "p10": 0.00027119812111501353,
+          "p25": 0.0005202479436153351,
+          "p50": 0.0016299307515779888,
+          "p90": 0.0029944733702734795,
+          "recommended_sigma_rdu": 0.00027119812111501353,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win33": {
+          "n_windows": 1200,
+          "p01": 0.0003507963220725579,
+          "p05": 0.00044984090217330797,
+          "p10": 0.0005673600187500496,
+          "p25": 0.0018459961015756103,
+          "p50": 0.0035676322269361464,
+          "p90": 0.006070147534078719,
+          "recommended_sigma_rdu": 0.0005673600187500496,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        }
+      },
+      "normaliser_depth_units_per_rdu": 1.3996973633766174,
+      "intrinsics": {
+        "fx": 987.555419921875,
+        "fy": 1820.3546142578125,
+        "cx": 504.0,
+        "cy": 672.0,
+        "width": 1008,
+        "height": 1344,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured",
+        "fov_horizontal_deg": 54.07508761240902,
+        "fov_vertical_deg": 40.52414130412153
+      }
+    },
+    "da3nested-giant-large_res1680": {
+      "representation": {
+        "n_pixels": 2116800,
+        "n_distinct_values": 1853396,
+        "distinct_fraction": 0.8755650037792895,
+        "range": [
+          0.8948659300804138,
+          2.9607839584350586
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 5.960464477539062e-07,
+        "min_gap_over_range": 2.885140840891032e-08,
+        "effective_bits": 20.821739732501854
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3nested-giant-large_res504": {
+      "representation": {
+        "n_pixels": 190512,
+        "n_distinct_values": 187772,
+        "distinct_fraction": 0.9856177038716721,
+        "range": [
+          0.8545607924461365,
+          2.496222734451294
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 3.814697265625e-06,
+        "min_gap_over_range": 3.630750232449707e-08,
+        "effective_bits": 17.51862242308973
+      },
+      "immerkaer_sigma_rdu": 0.00016209846183187806,
+      "noise_floor_rdu": {
+        "n_windows": 2352,
+        "p01": 0.0001363871005825009,
+        "p05": 0.00019663138674092136,
+        "p10": 0.00026865914363686865,
+        "p25": 0.000687505129006277,
+        "p50": 0.0020651876842167505,
+        "p90": 0.004206829807768595,
+        "recommended_sigma_rdu": 0.00026865914363686865,
+        "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+      },
+      "noise_floor_by_window_rdu": {
+        "win3": {
+          "n_windows": 21168,
+          "p01": 2.3389054470763907e-05,
+          "p05": 4.481871936883845e-05,
+          "p10": 6.490525714361424e-05,
+          "p25": 0.0001330534185243018,
+          "p50": 0.0003008320062492639,
+          "p90": 0.0008527269689441388,
+          "recommended_sigma_rdu": 6.490525714361424e-05,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win5": {
+          "n_windows": 7500,
+          "p01": 6.699286178597167e-05,
+          "p05": 0.00010260217012564292,
+          "p10": 0.00013632988517401937,
+          "p25": 0.00029023489132100474,
+          "p50": 0.0007895997481360673,
+          "p90": 0.0019264204581118849,
+          "recommended_sigma_rdu": 0.00013632988517401937,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win9": {
+          "n_windows": 2352,
+          "p01": 0.0001363871005825009,
+          "p05": 0.00019663138674092136,
+          "p10": 0.00026865914363686865,
+          "p25": 0.000687505129006277,
+          "p50": 0.0020651876842167505,
+          "p90": 0.004206829807768595,
+          "recommended_sigma_rdu": 0.00026865914363686865,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win17": {
+          "n_windows": 638,
+          "p01": 0.00029124740923596446,
+          "p05": 0.0004353319343118909,
+          "p10": 0.00061936747060661,
+          "p25": 0.0024204647691134402,
+          "p50": 0.004914947866341028,
+          "p90": 0.008828530360068166,
+          "recommended_sigma_rdu": 0.00061936747060661,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        },
+        "win33": {
+          "n_windows": 165,
+          "p01": 0.000681805973418479,
+          "p05": 0.0011037554108725076,
+          "p10": 0.0019395672121177686,
+          "p25": 0.006753948971423773,
+          "p50": 0.010712358208434533,
+          "p90": 0.016992540549360276,
+          "recommended_sigma_rdu": 0.0019395672121177686,
+          "rationale": "10th-percentile window residual: flat enough to be surface, common enough not to be a lucky window"
+        }
+      },
+      "normaliser_depth_units_per_rdu": 1.3999748229980469,
+      "intrinsics": {
+        "fx": 561.1050415039062,
+        "fy": 566.0443115234375,
+        "cx": 189.0,
+        "cy": 252.0,
+        "width": 378,
+        "height": 504,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured",
+        "fov_horizontal_deg": 37.23068640598429,
+        "fov_vertical_deg": 47.99676206007412
+      }
+    },
+    "da3nested-giant-large_res700": {
+      "representation": {
+        "n_pixels": 372400,
+        "n_distinct_values": 363963,
+        "distinct_fraction": 0.9773442534908701,
+        "range": [
+          0.8209317326545715,
+          3.1686649322509766
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 2.6226043701171875e-06,
+        "min_gap_over_range": 2.5388167950956762e-08,
+        "effective_bits": 18.4734322698342
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    },
+    "da3nested-giant-large_res896": {
+      "representation": {
+        "n_pixels": 602112,
+        "n_distinct_values": 579279,
+        "distinct_fraction": 0.9620784837372449,
+        "range": [
+          0.7356322407722473,
+          2.701331853866577
+        ],
+        "min_gap": 5.960464477539063e-08,
+        "median_gap": 1.430511474609375e-06,
+        "min_gap_over_range": 3.032235667054095e-08,
+        "effective_bits": 19.143898839869443
+      },
+      "noise_floor_rdu": null,
+      "note": "no Euclidean cloud for this run: either the preset has no camera head, or it is outside the shortlist the deep analysis runs on"
+    }
+  },
+  "cross_model_disagreement": {
+    "da3-large_res1344 vs da3metric-large_res1344": {
+      "affine_gain": 0.772428269075501,
+      "affine_offset": 0.2141303579176173,
+      "residual_rms_rdu": 0.13261218876133027,
+      "residual_p95_abs_rdu": 0.24487111837397538
+    },
+    "da3-large_res1344 vs da3mono-large_res1344": {
+      "affine_gain": 0.5991669131574073,
+      "affine_offset": 0.4056343746095909,
+      "residual_rms_rdu": 0.14274888428550217,
+      "residual_p95_abs_rdu": 0.2685164819084179
+    },
+    "da3-large_res1344 vs da3nested-giant-large_res1344": {
+      "affine_gain": 1.1110081048997422,
+      "affine_offset": -0.08396546079586341,
+      "residual_rms_rdu": 0.09788239172626817,
+      "residual_p95_abs_rdu": 0.19056122120727204
+    },
+    "da3metric-large_res1344 vs da3mono-large_res1344": {
+      "affine_gain": 0.7707398207260526,
+      "affine_offset": 0.25278425348147593,
+      "residual_rms_rdu": 0.07917293687616148,
+      "residual_p95_abs_rdu": 0.16748226675460381
+    },
+    "da3metric-large_res1344 vs da3nested-giant-large_res1344": {
+      "affine_gain": 1.318204516630755,
+      "affine_offset": -0.26941726253194365,
+      "residual_rms_rdu": 0.09733521980298435,
+      "residual_p95_abs_rdu": 0.1839724887577172
+    },
+    "da3mono-large_res1344 vs da3nested-giant-large_res1344": {
+      "affine_gain": 1.6698939340901469,
+      "affine_offset": -0.6383354305157297,
+      "residual_rms_rdu": 0.12182242656116717,
+      "residual_p95_abs_rdu": 0.24951144166359224
+    }
+  },
+  "soil_fit_sensitivity": {
+    "primary_run": "da3nested-giant-large_res1344",
+    "sigma_rdu": 0.00012895677396270323,
+    "sweep": {
+      "1sigma": {
+        "label": "1sigma",
+        "threshold_rdu": 0.00012895677396270323,
+        "inlier_fraction": 0.0029097576530612247,
+        "n_inliers": 438,
+        "inlier_residual_rms_rdu": 7.46263916226833e-05,
+        "inlier_residual_mad_rdu": 6.345864917683963e-05,
+        "all_point_residual_rms_rdu": 0.2956292714735672,
+        "plane_normal": [
+          -0.19375302571711325,
+          -0.6498101153180806,
+          -0.7349874686385931
+        ],
+        "plane_offset_rdu": -0.9195607131749823,
+        "tilt_from_camera_axis_deg": 42.69384276790553
+      },
+      "3sigma": {
+        "label": "3sigma",
+        "threshold_rdu": 0.0003868703218881097,
+        "inlier_fraction": 0.008463541666666666,
+        "n_inliers": 1274,
+        "inlier_residual_rms_rdu": 0.00022016766897174457,
+        "inlier_residual_mad_rdu": 0.00018617920215852068,
+        "all_point_residual_rms_rdu": 0.2903801034458189,
+        "plane_normal": [
+          0.2235848864989282,
+          0.6479351510550744,
+          0.7281413589108225
+        ],
+        "plane_offset_rdu": 0.9078579387335172,
+        "tilt_from_camera_axis_deg": 43.269196911809054
+      },
+      "10sigma": {
+        "label": "10sigma",
+        "threshold_rdu": 0.0012895677396270323,
+        "inlier_fraction": 0.02939652423469388,
+        "n_inliers": 4425,
+        "inlier_residual_rms_rdu": 0.0007398118955845474,
+        "inlier_residual_mad_rdu": 0.0006426353994476441,
+        "all_point_residual_rms_rdu": 0.2906031424518315,
+        "plane_normal": [
+          0.22054526999321333,
+          0.6255958859065821,
+          0.7483245094344954
+        ],
+        "plane_offset_rdu": 0.9259074119707253,
+        "tilt_from_camera_axis_deg": 41.55455057228655
+      },
+      "30sigma": {
+        "label": "30sigma",
+        "threshold_rdu": 0.0038687032188810967,
+        "inlier_fraction": 0.08135363520408163,
+        "n_inliers": 12246,
+        "inlier_residual_rms_rdu": 0.00220499381708,
+        "inlier_residual_mad_rdu": 0.0018713322650825148,
+        "all_point_residual_rms_rdu": 0.2902947818074654,
+        "plane_normal": [
+          0.21964436598513185,
+          0.6624063302968793,
+          0.716222176474319
+        ],
+        "plane_offset_rdu": 0.8969184211713603,
+        "tilt_from_camera_axis_deg": 44.25654930347864
+      },
+      "100sigma": {
+        "label": "100sigma",
+        "threshold_rdu": 0.012895677396270323,
+        "inlier_fraction": 0.2171091092687075,
+        "n_inliers": 32681,
+        "inlier_residual_rms_rdu": 0.006588899077055939,
+        "inlier_residual_mad_rdu": 0.005103165105113883,
+        "all_point_residual_rms_rdu": 0.2897673741383439,
+        "plane_normal": [
+          0.217878141023017,
+          0.6557160835220929,
+          0.7228869437711563
+        ],
+        "plane_offset_rdu": 0.9020448258424909,
+        "tilt_from_camera_axis_deg": 43.706650864025264
+      },
+      "300sigma": {
+        "label": "300sigma",
+        "threshold_rdu": 0.03868703218881097,
+        "inlier_fraction": 0.34060108418367346,
+        "n_inliers": 51270,
+        "inlier_residual_rms_rdu": 0.015040642549784341,
+        "inlier_residual_mad_rdu": 0.008818393707478,
+        "all_point_residual_rms_rdu": 0.28920676707104304,
+        "plane_normal": [
+          0.2217305461074149,
+          0.6500837422808416,
+          0.7267920561928585
+        ],
+        "plane_offset_rdu": 0.9049434237601732,
+        "tilt_from_camera_axis_deg": 43.38186935430307
+      },
+      "1000sigma": {
+        "label": "1000sigma",
+        "threshold_rdu": 0.12895677396270322,
+        "inlier_fraction": 0.5897175276360545,
+        "n_inliers": 88769,
+        "inlier_residual_rms_rdu": 0.06884420959278525,
+        "inlier_residual_mad_rdu": 0.054403419669819986,
+        "all_point_residual_rms_rdu": 0.18370790589078667,
+        "plane_normal": [
+          -0.557320339022552,
+          -0.6491718902017408,
+          -0.5176580885909989
+        ],
+        "plane_offset_rdu": -0.4975505519321341,
+        "tilt_from_camera_axis_deg": 58.824708589679744
+      }
+    }
+  }
+}

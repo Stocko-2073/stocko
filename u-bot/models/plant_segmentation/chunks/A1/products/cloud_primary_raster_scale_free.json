@@ -1,0 +1,38 @@
+{
+  "n_points": 1354752,
+  "scale_confidence": "scale_free",
+  "units": "rdu (relative depth units; 1 rdu = median scene depth)",
+  "mode": "scale_free",
+  "normaliser_depth_units_per_rdu": 1.3996973633766174,
+  "intrinsics": {
+    "fx": 1496.2801106770833,
+    "fy": 1509.4514973958333,
+    "cx": 504.8333333333333,
+    "cy": 672.8333333333333,
+    "width": 1008,
+    "height": 1344,
+    "provenance": "model_estimated",
+    "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured [rescaled from 378x504]",
+    "fov_horizontal_deg": 37.23068640598429,
+    "fov_vertical_deg": 47.996762060074126
+  },
+  "provenance": {
+    "source_depth_shape": [
+      1344,
+      1008
+    ],
+    "n_valid": 1354752,
+    "n_total": 1354752,
+    "subsample": 1,
+    "conf_min": null,
+    "camera_convention": "+x right, +y down, +z into the scene; camera at the origin; z-depth (not ray length); pixel centres at integer indices",
+    "intrinsics_provenance": "model_estimated",
+    "depth_provenance": {
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "revision": "b2359bdf726fb44ef62acca04d629dcf158053e7",
+      "process_res": 1344,
+      "is_metric_claim": 1,
+      "path": "/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/chunks/A1/depth/da3nested-giant-large_res1344"
+    }
+  }
+}

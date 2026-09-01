@@ -1,0 +1,134 @@
+{
+  "chunk": "A1",
+  "scale_confidence": "scale_free",
+  "absolute_scale": "UNRESOLVED. No fiducial, no known dimension, no EXIF. Every distance in every A1 product is in rdu (relative depth units), 1 rdu = the median scene depth of that raster. Do not convert to metres.",
+  "model": {
+    "hf_repo": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "hf_revision": "b2359bdf726fb44ef62acca04d629dcf158053e7",
+    "code_commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4"
+  },
+  "products": {
+    "primary_geometry": {
+      "depth": "depth/da3nested-giant-large_res504/depth.npy",
+      "conf": "depth/da3nested-giant-large_res504/conf.npy",
+      "provenance": "depth/da3nested-giant-large_res504/provenance.json",
+      "cloud": "products/cloud_primary_geometry_scale_free.npy",
+      "cloud_sidecar": "products/cloud_primary_geometry_scale_free.json",
+      "shape_hw": [
+        504,
+        378
+      ],
+      "camera": {
+        "fx": 561.1050415039062,
+        "fy": 566.0443115234375,
+        "cx": 189.0,
+        "cy": 252.0,
+        "width": 378,
+        "height": 504,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured",
+        "fov_horizontal_deg": 37.23068640598429,
+        "fov_vertical_deg": 47.99676206007412
+      },
+      "camera_usable": true,
+      "why": "camera head physically consistent at this resolution"
+    },
+    "primary_raster": {
+      "depth": "depth/da3nested-giant-large_res1344/depth.npy",
+      "conf": "depth/da3nested-giant-large_res1344/conf.npy",
+      "provenance": "depth/da3nested-giant-large_res1344/provenance.json",
+      "cloud": "products/cloud_primary_raster_scale_free.npy",
+      "cloud_sidecar": "products/cloud_primary_raster_scale_free.json",
+      "shape_hw": [
+        1344,
+        1008
+      ],
+      "camera": {
+        "fx": 1496.2801106770833,
+        "fy": 1509.4514973958333,
+        "cx": 504.8333333333333,
+        "cy": 672.8333333333333,
+        "width": 1008,
+        "height": 1344,
+        "provenance": "model_estimated",
+        "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured [rescaled from 378x504]",
+        "fov_horizontal_deg": 37.23068640598429,
+        "fov_vertical_deg": 47.996762060074126
+      },
+      "camera_usable": false,
+      "why": "this run's OWN camera estimate has fx/fy = 0.543, physically impossible for square pixels. The camera recorded here is the res-504 estimate rescaled to this grid."
+    }
+  },
+  "depth_semantics": {
+    "quantity": "depth (z along the optical axis), not disparity, not ray length",
+    "dtype": "float32",
+    "container": ".npy \u2014 no normalisation, no clipping, no 8-bit anywhere"
+  },
+  "instrument_constants_for_later_chunks": {
+    "depth_resolution_floor_rdu": 4.145862809411695e-05,
+    "depth_resolution_floor_method": "robust second-difference (Immerkaer) estimator on the primary raster, MAD-based; the smallest pixel-to-pixel depth step the raster can express distinguishably",
+    "local_planarity_p10_rdu_by_window": {
+      "win3": 2.9462945118460555e-05,
+      "win5": 6.670238333267323e-05,
+      "win9": 0.00012895677396270323,
+      "win17": 0.00027119812111501353,
+      "win33": 0.0005673600187500496
+    },
+    "for_A4_depth_continuity": "a tolerance below the resolution floor (4.15e-05 rdu) is meaningless; the practical value should be read off local_planarity_p10 at the window size A4 actually links over",
+    "for_A2_ransac_inlier_threshold": "the surface's own roughness dominates: p10 at win33 is 5.67e-04 rdu and the whole-scene dominant-plane fit only stabilises around 1e-2 rdu \u2014 see results/quantisation.json soil_fit_sensitivity"
+  },
+  "known_limits": {
+    "accuracy_is_not_resolution": "the resolution floor above is smoothness, not correctness. Independent DA3 variants disagree by 0.08-0.14 rdu rms after affine alignment \u2014 three orders of magnitude above the floor.",
+    "model_estimated_fov": {
+      "n_runs_with_a_camera": 12,
+      "n_physically_consistent": 4,
+      "consistent_runs": [
+        "da3-large_res504",
+        "da3-large_res700",
+        "da3nested-giant-large_res504",
+        "da3nested-giant-large_res700"
+      ],
+      "f_at_3000x4000_px": {
+        "min": 4159.074571397569,
+        "max": 4695.178727458294,
+        "mean": 4488.7250423829755,
+        "spread_over_mean": 0.119433503054604
+      },
+      "all_runs_f_at_3000x4000_px": {
+        "da3-large_res1120": 3730.999755859375,
+        "da3-large_res1344": 3424.4366600399926,
+        "da3-large_res1680": 3527.0118350074404,
+        "da3-large_res504": 4159.074571397569,
+        "da3-large_res700": 4695.178727458294,
+        "da3-large_res896": 4176.225934709822,
+        "da3nested-giant-large_res1120": 3204.477364676339,
+        "da3nested-giant-large_res1344": 2939.153035481771,
+        "da3nested-giant-large_res1680": 3013.4350004650296,
+        "da3nested-giant-large_res504": 4453.214615110367,
+        "da3nested-giant-large_res700": 4647.432255565672,
+        "da3nested-giant-large_res896": 3834.303174700056
+      },
+      "comparison_to_A1b_assumption": {
+        "A1b_f_initial_px": 3005,
+        "ratio_mean_over_A1b": 1.49375209397104,
+        "reading": "DA3 thinks the lens is longer than a 26 mm-equivalent phone main camera. If DA3's estimate is right, A1b's default f is too short; if A1b is right, DA3's depth carries the corresponding perspective error. Nothing in this image can settle which."
+      }
+    },
+    "preview_verdict": {
+      "float_noise_floor_rdu": 0.0001287660902870385,
+      "eight_bit_step_rdu": 0.0048726309090333375,
+      "step_over_float_noise_floor": 37.84094786268286,
+      "float_effective_bits": 20.239935269816044,
+      "preview_effective_bits": 7.78135971352466,
+      "soil_rms_float_rdu": 0.006316265599473364,
+      "soil_rms_8bit_rdu": 0.006266088975260512,
+      "soil_rms_actual_preview_rdu": 0.0063347224318295965,
+      "soil_rms_penalty_from_8bit": -0.007944033293507458,
+      "neighbour_pairs_flattened_float": 5.3931216274520234e-05,
+      "neighbour_pairs_flattened_preview": 0.7485128282416355,
+      "median_levels_per_9x9_float": 81.0,
+      "median_levels_per_9x9_preview": 3.0
+    }
+  },
+  "downstream_rule": "every artifact derived from these products must carry scale_confidence='scale_free' (or 'assumed_scale' if A1b intrinsics were substituted). depth_to_cloud.save_cloud enforces this."
+}
