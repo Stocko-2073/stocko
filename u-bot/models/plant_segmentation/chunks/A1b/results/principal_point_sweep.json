@@ -1,0 +1,609 @@
+{
+ "chunk": "A1b",
+ "what": "sensitivity of the soil-band geometry to the assumed principal point and a statement on distortion",
+ "product": "primary_raster (1344x1008)",
+ "offsets_percent_of_image_width": [
+  0.0,
+  1.0,
+  2.0,
+  5.0
+ ],
+ "rows": [
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 0.0,
+   "direction": "centre",
+   "offset_px_at_3000x4000": [
+    0.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004439612691946588,
+   "planarity_rms_change_vs_centre": 0.0,
+   "surface_variation_median": 0.05326378186080883,
+   "ground_normal": [
+    -0.2621862118272684,
+    -0.4307207430882809,
+    -0.8635612495944603
+   ],
+   "ground_normal_moved_deg": 0.0
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 1.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    30.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004432445076758813,
+   "planarity_rms_change_vs_centre": -0.001614468577580297,
+   "surface_variation_median": 0.053002471164346705,
+   "ground_normal": [
+    -0.26161047055895165,
+    -0.42974560656744776,
+    -0.8642214272568693
+   ],
+   "ground_normal_moved_deg": 0.0751034693917061
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 1.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -30.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004446714239429166,
+   "planarity_rms_change_vs_centre": 0.001599587165668881,
+   "surface_variation_median": 0.05346765796002362,
+   "ground_normal": [
+    -0.26276399659298993,
+    -0.43169945565277956,
+    -0.8628966694127247
+   ],
+   "ground_normal_moved_deg": 0.07543442715929934
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 1.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    30.0
+   ],
+   "planarity_rms_rdu": 0.0044280457781080045,
+   "planarity_rms_change_vs_centre": -0.0026053880464764756,
+   "surface_variation_median": 0.05283085038317752,
+   "ground_normal": [
+    -0.2612118912077493,
+    -0.42913615824047757,
+    -0.8646447279560979
+   ],
+   "ground_normal_moved_deg": 0.12334088631012251
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 1.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -30.0
+   ],
+   "planarity_rms_rdu": 0.00445115358774277,
+   "planarity_rms_change_vs_centre": 0.0025995276158023994,
+   "surface_variation_median": 0.053609064065326575,
+   "ground_normal": [
+    -0.2631665621999118,
+    -0.4323150276155691,
+    -0.8624656963831255
+   ],
+   "ground_normal_moved_deg": 0.12425483394003493
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 1.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    30.0,
+    30.0
+   ],
+   "planarity_rms_rdu": 0.004420895903775017,
+   "planarity_rms_change_vs_centre": -0.004215860587461373,
+   "surface_variation_median": 0.052478741612497395,
+   "ground_normal": [
+    -0.2606397335983504,
+    -0.4281670253083246,
+    -0.8652975948819004
+   ],
+   "ground_normal_moved_deg": 0.19788187409986954
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 2.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    60.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004425212094926934,
+   "planarity_rms_change_vs_centre": -0.003243660656655045,
+   "surface_variation_median": 0.052659193312719954,
+   "ground_normal": [
+    -0.26103676545085025,
+    -0.4287740327609061,
+    -0.8648772374810817
+   ],
+   "ground_normal_moved_deg": 0.14987787525039803
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 2.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -60.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004453748983395128,
+   "planarity_rms_change_vs_centre": 0.003184127181675933,
+   "surface_variation_median": 0.05362067921104344,
+   "ground_normal": [
+    -0.2633438321906853,
+    -0.4326817575860144,
+    -0.8622276513191871
+   ],
+   "ground_normal_moved_deg": 0.151201718492379
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 2.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    60.0
+   ],
+   "planarity_rms_rdu": 0.004416454966404919,
+   "planarity_rms_change_vs_centre": -0.005216158964424178,
+   "surface_variation_median": 0.052642921666428186,
+   "ground_normal": [
+    -0.26024356050227154,
+    -0.42756120981523343,
+    -0.865716293642689
+   ],
+   "ground_normal_moved_deg": 0.24577677440465676
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 2.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -60.0
+   ],
+   "planarity_rms_rdu": 0.004462666314807678,
+   "planarity_rms_change_vs_centre": 0.005192710369287257,
+   "surface_variation_median": 0.0540262605971546,
+   "ground_normal": [
+    -0.2641529822071867,
+    -0.43391907514077604,
+    -0.8613579036730454
+   ],
+   "ground_normal_moved_deg": 0.24943266569409842
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 2.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    60.0,
+    60.0
+   ],
+   "planarity_rms_rdu": 0.004402119817794762,
+   "planarity_rms_change_vs_centre": -0.00844507770234948,
+   "surface_variation_median": 0.05190179612978043,
+   "ground_normal": [
+    -0.2591083725202225,
+    -0.42563838577255625,
+    -0.8670033539997722
+   ],
+   "ground_normal_moved_deg": 0.3934335541684915
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 5.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    150.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004403126538843916,
+   "planarity_rms_change_vs_centre": -0.008218318946798475,
+   "surface_variation_median": 0.051893226057362324,
+   "ground_normal": [
+    -0.2593277936913052,
+    -0.4258805542973356,
+    -0.8668188097235744
+   ],
+   "ground_normal_moved_deg": 0.37224547300835986
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 5.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -150.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.004474443094724299,
+   "planarity_rms_change_vs_centre": 0.007845369674001956,
+   "surface_variation_median": 0.05435349029657116,
+   "ground_normal": [
+    -0.2650957172668541,
+    -0.4356503327545728,
+    -0.8601936109141954
+   ],
+   "ground_normal_moved_deg": 0.3805200258468572
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 5.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    150.0
+   ],
+   "planarity_rms_rdu": 0.00438155752458213,
+   "planarity_rms_change_vs_centre": -0.013076628839666427,
+   "surface_variation_median": 0.05144885434545917,
+   "ground_normal": [
+    -0.25737411032105506,
+    -0.4228935517511332,
+    -0.8688611000751254
+   ],
+   "ground_normal_moved_deg": 0.6077424537532198
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 5.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -150.0
+   ],
+   "planarity_rms_rdu": 0.004497013531750779,
+   "planarity_rms_change_vs_centre": 0.012929244911006776,
+   "surface_variation_median": 0.05487002487163477,
+   "ground_normal": [
+    -0.26714905926778065,
+    -0.43879042946490865,
+    -0.8579594041342171
+   ],
+   "ground_normal_moved_deg": 0.6305961838012594
+  },
+  {
+   "f_native_px": 3005.0,
+   "offset_pct": 5.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    150.0,
+    150.0
+   ],
+   "planarity_rms_rdu": 0.004345358886465606,
+   "planarity_rms_change_vs_centre": -0.021230186509727966,
+   "surface_variation_median": 0.04962859226133959,
+   "ground_normal": [
+    -0.2546033828858229,
+    -0.41820025939682515,
+    -0.8719436108278582
+   ],
+   "ground_normal_moved_deg": 0.9664704889532996
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 0.0,
+   "direction": "centre",
+   "offset_px_at_3000x4000": [
+    0.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0036073687920579306,
+   "planarity_rms_change_vs_centre": 0.0,
+   "surface_variation_median": 0.06048597109200755,
+   "ground_normal": [
+    -0.3406610407714597,
+    -0.5594796645056157,
+    -0.7556007942724714
+   ],
+   "ground_normal_moved_deg": 0.0
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 1.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    30.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.003603522707400023,
+   "planarity_rms_change_vs_centre": -0.0010661745110106535,
+   "surface_variation_median": 0.060394509668864595,
+   "ground_normal": [
+    -0.3400845703418766,
+    -0.5585042537102746,
+    -0.7565814454524447
+   ],
+   "ground_normal_moved_deg": 0.08585618245764505
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 1.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -30.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0036111810694999798,
+   "planarity_rms_change_vs_centre": 0.0010568028005459862,
+   "surface_variation_median": 0.060686981352642305,
+   "ground_normal": [
+    -0.34123869636517845,
+    -0.5604571427673505,
+    -0.7546150960748473
+   ],
+   "ground_normal_moved_deg": 0.0861487554516564
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 1.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    30.0
+   ],
+   "planarity_rms_rdu": 0.003601528894675372,
+   "planarity_rms_change_vs_centre": -0.0016188800533551984,
+   "surface_variation_median": 0.05999422751441795,
+   "ground_normal": [
+    -0.3396856690984985,
+    -0.5578946852940615,
+    -0.7572101203297178
+   ],
+   "ground_normal_moved_deg": 0.1409690717625548
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 1.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -30.0
+   ],
+   "planarity_rms_rdu": 0.0036131633030203345,
+   "planarity_rms_change_vs_centre": 0.0016062984675038194,
+   "surface_variation_median": 0.06091925271283835,
+   "ground_normal": [
+    -0.34163992470718846,
+    -0.5610702794538927,
+    -0.7539776544166262
+   ],
+   "ground_normal_moved_deg": 0.14177499731727616
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 1.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    30.0,
+    30.0
+   ],
+   "planarity_rms_rdu": 0.00359768498102872,
+   "planarity_rms_change_vs_centre": -0.002684452737555132,
+   "surface_variation_median": 0.05996860212040443,
+   "ground_normal": [
+    -0.3391113115354314,
+    -0.5569228036440859,
+    -0.7581823719725556
+   ],
+   "ground_normal_moved_deg": 0.2263274808515107
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 2.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    60.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0035996430695307245,
+   "planarity_rms_change_vs_centre": -0.0021416503198162795,
+   "surface_variation_median": 0.06002913498430593,
+   "ground_normal": [
+    -0.33950928645133643,
+    -0.5575309128863448,
+    -0.7575570774465931
+   ],
+   "ground_normal_moved_deg": 0.17142090457058515
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 2.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -60.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0036149591449709793,
+   "planarity_rms_change_vs_centre": 0.0021041244603989817,
+   "surface_variation_median": 0.06088555975559656,
+   "ground_normal": [
+    -0.3418175356826007,
+    -0.5614366858673489,
+    -0.7536243228971329
+   ],
+   "ground_normal_moved_deg": 0.17259119937743125
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 2.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    60.0
+   ],
+   "planarity_rms_rdu": 0.0035956450128261292,
+   "planarity_rms_change_vs_centre": -0.0032499530565360812,
+   "surface_variation_median": 0.05950192796283879,
+   "ground_normal": [
+    -0.3387138149206765,
+    -0.5563153504131471,
+    -0.7588057607033432
+   ],
+   "ground_normal_moved_deg": 0.2811374367383287
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 2.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -60.0
+   ],
+   "planarity_rms_rdu": 0.0036189110650200773,
+   "planarity_rms_change_vs_centre": 0.003199637638258146,
+   "surface_variation_median": 0.061304924017376514,
+   "ground_normal": [
+    -0.3426223151122961,
+    -0.562666520657491,
+    -0.7523405716284904
+   ],
+   "ground_normal_moved_deg": 0.28436116116076765
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 2.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    60.0,
+    60.0
+   ],
+   "planarity_rms_rdu": 0.003587926692198179,
+   "planarity_rms_change_vs_centre": -0.005389551493197975,
+   "surface_variation_median": 0.05931356441235429,
+   "ground_normal": [
+    -0.3375705201682847,
+    -0.5543807295997081,
+    -0.7607286970805092
+   ],
+   "ground_normal_moved_deg": 0.4505873601844184
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 5.0,
+   "direction": "+x",
+   "offset_px_at_3000x4000": [
+    150.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0035877891622786806,
+   "planarity_rms_change_vs_centre": -0.005427676211635757,
+   "surface_variation_median": 0.05908210947708942,
+   "ground_normal": [
+    -0.3377905667977823,
+    -0.5546233334806827,
+    -0.7604541346729654
+   ],
+   "ground_normal_moved_deg": 0.42637739252853085
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 5.0,
+   "direction": "-x",
+   "offset_px_at_3000x4000": [
+    -150.0,
+    0.0
+   ],
+   "planarity_rms_rdu": 0.0036260830999268767,
+   "planarity_rms_change_vs_centre": 0.005187800013724209,
+   "surface_variation_median": 0.06167206393657486,
+   "ground_normal": [
+    -0.3435611405724707,
+    -0.5643876760342876,
+    -0.7506212719002566
+   ],
+   "ground_normal_moved_deg": 0.4336918586690586
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 5.0,
+   "direction": "+y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    150.0
+   ],
+   "planarity_rms_rdu": 0.003577744222405972,
+   "planarity_rms_change_vs_centre": -0.008212237605753181,
+   "surface_variation_median": 0.0580606656253378,
+   "ground_normal": [
+    -0.33581940154121637,
+    -0.5516112848098434,
+    -0.7635118335814665
+   ],
+   "ground_normal_moved_deg": 0.6968901378021568
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 5.0,
+   "direction": "-y",
+   "offset_px_at_3000x4000": [
+    0.0,
+    -150.0
+   ],
+   "planarity_rms_rdu": 0.00363585996570286,
+   "planarity_rms_change_vs_centre": 0.007898048491093101,
+   "surface_variation_median": 0.06234316231629723,
+   "ground_normal": [
+    -0.3455904585122932,
+    -0.5674888932328784,
+    -0.747344359075912
+   ],
+   "ground_normal_moved_deg": 0.717039387063705
+  },
+  {
+   "f_native_px": 4453.214615110367,
+   "offset_pct": 5.0,
+   "direction": "+xy",
+   "offset_px_at_3000x4000": [
+    150.0,
+    150.0
+   ],
+   "planarity_rms_rdu": 0.0035582010634320977,
+   "planarity_rms_change_vs_centre": -0.013629803732316481,
+   "surface_variation_median": 0.0572600429245071,
+   "ground_normal": [
+    -0.3330019171542738,
+    -0.5468434792151353,
+    -0.7681613973713234
+   ],
+   "ground_normal_moved_deg": 1.1111775908394494
+  }
+ ],
+ "summary": {
+  "f=3005": {
+   "max_normal_move_deg_at_1pct": 0.19788187409986954,
+   "max_normal_move_deg_at_5pct": 0.9664704889532996,
+   "max_planarity_change_at_5pct": 0.021230186509727966
+  },
+  "f=4453": {
+   "max_normal_move_deg_at_1pct": 0.2263274808515107,
+   "max_normal_move_deg_at_5pct": 1.1111775908394494,
+   "max_planarity_change_at_5pct": 0.013629803732316481
+  }
+ },
+ "what_this_sweep_does_not_cover": "the downstream stack (A2's full fit, A4, A5) was re-run per FOCAL LENGTH only, not per principal point. The numbers above bound what the principal-point assumption does to the soil band's own geometry \u2014 the quantity every later stage is built on \u2014 and not what it does to an instance F1. A principal-point offset is a shear-like perturbation rather than a scaling, so it is NOT absorbed by the linear map that makes the focal sweep so well behaved.",
+ "distortion": {
+  "assumed": "zero, all coefficients",
+  "swept": false,
+  "why_not": "bounding a distortion model needs something known to be straight. plants.jpeg is a garden bed under straw: the longest linear features in it are grass blades and straw stalks, which are not straight and are not known to be. There is no calibration target, no building edge, no horizon. Any 'bound' computed here would be a bound on the straightness of straw.",
+  "what_would_bound_it": "C0's printed checkerboard, or a second photo of a straight edge from the same camera.",
+  "how_wrong_it_could_be": "phone ISPs pre-correct geometric distortion, so the residual after correction is typically well under a percent of image height for a main camera. That is a statement about phones in general, NOT a measurement of this camera, and it is recorded as such rather than as a bound."
+ }
+}

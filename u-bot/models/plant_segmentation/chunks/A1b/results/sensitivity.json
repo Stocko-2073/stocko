@@ -1,0 +1,1642 @@
+{
+ "chunk": "A1b",
+ "what": "sensitivity of the Phase A stack to the assumed focal length",
+ "scale_confidence": "scale_free \u2014 every distance below is in rdu; no metric claim is made anywhere in this table",
+ "f_native_px_by_tag": {
+  "f1502": 1502.0,
+  "f1502_freeseed": 1502.0,
+  "f2774": 2774.0,
+  "f2774_freeseed": 2774.0,
+  "f3005": 3005.0,
+  "f3005_freeseed": 3005.0,
+  "f3236": 3236.0,
+  "f3236_freeseed": 3236.0,
+  "f4159": 4159.0,
+  "f4159_freeseed": 4159.0,
+  "f4453": 4453.0,
+  "f4453_freeseed": 4453.0,
+  "f4489": 4489.0,
+  "f4489_freeseed": 4489.0,
+  "f4695": 4695.0,
+  "f4695_freeseed": 4695.0,
+  "f6009": 6009.0,
+  "f6009_freeseed": 6009.0,
+  "manifest": 4453.214615110367
+ },
+ "swept_tags_in_order": [
+  "f1502",
+  "f2774",
+  "f3005",
+  "f3236",
+  "f4159",
+  "f4453",
+  "f4489",
+  "f4695",
+  "f6009"
+ ],
+ "f_chosen_px": 4453.214615110367,
+ "f_initial_px": 3005.0,
+ "reference_row": "manifest \u2014 A1's own anisotropic camera; the only row whose numbers must reproduce RESULTS.md",
+ "columns": {
+  "A2 inlier fraction": {
+   "by_tag": {
+    "f1502": 0.29111453609221466,
+    "f1502_freeseed": 0.2934190169123205,
+    "f2774": 0.29111453609221466,
+    "f2774_freeseed": 0.2934190169123205,
+    "f3005": 0.29111453609221466,
+    "f3005_freeseed": 0.2934190169123205,
+    "f3236": 0.29111453609221466,
+    "f3236_freeseed": 0.2934190169123205,
+    "f4159": 0.29111453609221466,
+    "f4159_freeseed": 0.2934190169123205,
+    "f4453": 0.29111453609221466,
+    "f4453_freeseed": 0.45243778935185186,
+    "f4489": 0.29111453609221466,
+    "f4489_freeseed": 0.45243778935185186,
+    "f4695": 0.29111453609221466,
+    "f4695_freeseed": 0.45244590891912323,
+    "f6009": 0.29111453609221466,
+    "f6009_freeseed": 0.45245255220143615,
+    "manifest": 0.2910791052532124
+   },
+   "sensitivity": {
+    "min": 0.29111453609221466,
+    "max": 0.29111453609221466,
+    "median": 0.29111453609221466,
+    "spread_over_median": 0.0,
+    "loglog_slope": -5.693252893179436e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 inlier residual RMS (rdu)": {
+   "by_tag": {
+    "f1502": 0.008725451122262032,
+    "f1502_freeseed": 0.008331757790411398,
+    "f2774": 0.00800290943282238,
+    "f2774_freeseed": 0.007705909462859309,
+    "f3005": 0.00785140420995856,
+    "f3005_freeseed": 0.007572721059997892,
+    "f3236": 0.007697076338242911,
+    "f3236_freeseed": 0.007436335713062687,
+    "f4159": 0.007072875543283532,
+    "f4159_freeseed": 0.006877912767203585,
+    "f4453": 0.006877168250044354,
+    "f4453_freeseed": 0.0015704383964328062,
+    "f4489": 0.00685343249215877,
+    "f4489_freeseed": 0.0015631304174764384,
+    "f4695": 0.006718734525545289,
+    "f4695_freeseed": 0.0015221144323828589,
+    "f6009": 0.005916987179223878,
+    "f6009_freeseed": 0.0012935544392381818,
+    "manifest": 0.0068495974946936175
+   },
+   "sensitivity": {
+    "min": 0.005916987179223878,
+    "max": 0.008725451122262032,
+    "median": 0.007072875543283532,
+    "spread_over_median": 0.3970752667499003,
+    "loglog_slope": -0.27196018709387365,
+    "verdict": "MOVES"
+   }
+  },
+  "A2 datum sigma (rdu)": {
+   "by_tag": {
+    "f1502": 0.006966692457372289,
+    "f1502_freeseed": 0.0074733734720893895,
+    "f2774": 0.006389790969137344,
+    "f2774_freeseed": 0.006912001382216713,
+    "f3005": 0.006268824124146757,
+    "f3005_freeseed": 0.006792540656600112,
+    "f3236": 0.006145603581761184,
+    "f3236_freeseed": 0.006670179068436012,
+    "f4159": 0.005647220757859527,
+    "f4159_freeseed": 0.00616930075734899,
+    "f4453": 0.005490961499219774,
+    "f4453_freeseed": 0.0013499085633930784,
+    "f4489": 0.00547201007503383,
+    "f4489_freeseed": 0.001343626873465791,
+    "f4695": 0.005364462706435814,
+    "f4695_freeseed": 0.0013085901966411603,
+    "f6009": 0.0047243207685497305,
+    "f6009_freeseed": 0.0011120100699385277,
+    "manifest": 0.005469617460760942
+   },
+   "sensitivity": {
+    "min": 0.0047243207685497305,
+    "max": 0.006966692457372289,
+    "median": 0.005647220757859527,
+    "spread_over_median": 0.39707526674988486,
+    "loglog_slope": -0.27196018709387093,
+    "verdict": "MOVES"
+   }
+  },
+  "A2 RANSAC threshold (rdu)": {
+   "by_tag": {
+    "f1502": 0.0006966379413458446,
+    "f1502_freeseed": 0.0006966379413458446,
+    "f2774": 0.0006415885327672565,
+    "f2774_freeseed": 0.0006415885327672565,
+    "f3005": 0.0006253773106279306,
+    "f3005_freeseed": 0.0006253773106279306,
+    "f3236": 0.0006077932841633251,
+    "f3236_freeseed": 0.0006077932841633251,
+    "f4159": 0.0005606854407170427,
+    "f4159_freeseed": 0.0005606854407170427,
+    "f4453": 0.0005470602785496357,
+    "f4453_freeseed": 0.0005470602785496357,
+    "f4489": 0.0005447167051071759,
+    "f4489_freeseed": 0.0005447167051071759,
+    "f4695": 0.0005373708864143249,
+    "f4695_freeseed": 0.0005373708864143249,
+    "f6009": 0.00047450474027800285,
+    "f6009_freeseed": 0.00047450474027800285,
+    "manifest": 0.0005446066402624794
+   },
+   "sensitivity": {
+    "min": 0.00047450474027800285,
+    "max": 0.0006966379413458446,
+    "median": 0.0005606854407170427,
+    "spread_over_median": 0.396181503810341,
+    "loglog_slope": -0.27171582608127526,
+    "verdict": "MOVES"
+   }
+  },
+  "A2 lam": {
+   "by_tag": {
+    "f1502": 316.22776601683796,
+    "f1502_freeseed": 100.0,
+    "f2774": 316.22776601683796,
+    "f2774_freeseed": 100.0,
+    "f3005": 316.22776601683796,
+    "f3005_freeseed": 100.0,
+    "f3236": 316.22776601683796,
+    "f3236_freeseed": 100.0,
+    "f4159": 316.22776601683796,
+    "f4159_freeseed": 100.0,
+    "f4453": 316.22776601683796,
+    "f4453_freeseed": 0.001,
+    "f4489": 316.22776601683796,
+    "f4489_freeseed": 0.001,
+    "f4695": 316.22776601683796,
+    "f4695_freeseed": 0.001,
+    "f6009": 316.22776601683796,
+    "f6009_freeseed": 0.001,
+    "manifest": 316.22776601683796
+   },
+   "sensitivity": {
+    "min": 316.22776601683796,
+    "max": 316.22776601683796,
+    "median": 316.22776601683796,
+    "spread_over_median": 0.0,
+    "loglog_slope": 2.2411535198547623e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 fit scale (px)": {
+   "by_tag": {
+    "f1502": 146.72077302656024,
+    "f1502_freeseed": 119.78984984267078,
+    "f2774": 146.72077302656024,
+    "f2774_freeseed": 119.78984984267078,
+    "f3005": 146.72077302656024,
+    "f3005_freeseed": 119.79074726882934,
+    "f3236": 146.72077302656024,
+    "f3236_freeseed": 119.78984984267078,
+    "f4159": 146.72077302656024,
+    "f4159_freeseed": 119.78984984267078,
+    "f4453": 146.72077302656024,
+    "f4453_freeseed": 38.071553027501864,
+    "f4489": 146.72077302656024,
+    "f4489_freeseed": 38.071553027501864,
+    "f4695": 146.72077302656024,
+    "f4695_freeseed": 38.07452771762364,
+    "f6009": 146.72077302656024,
+    "f6009_freeseed": 38.071427519468806,
+    "manifest": 146.7076256826222
+   },
+   "sensitivity": {
+    "min": 146.72077302656024,
+    "max": 146.72077302656024,
+    "median": 146.72077302656024,
+    "spread_over_median": 0.0,
+    "loglog_slope": 1.0844291225103689e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 observed fraction": {
+   "by_tag": {
+    "f1502": 0.29111453609221466,
+    "f1502_freeseed": 0.2934190169123205,
+    "f2774": 0.29111453609221466,
+    "f2774_freeseed": 0.2934190169123205,
+    "f3005": 0.29111453609221466,
+    "f3005_freeseed": 0.2934190169123205,
+    "f3236": 0.29111453609221466,
+    "f3236_freeseed": 0.2934190169123205,
+    "f4159": 0.29111453609221466,
+    "f4159_freeseed": 0.2934190169123205,
+    "f4453": 0.29111453609221466,
+    "f4453_freeseed": 0.45243778935185186,
+    "f4489": 0.29111453609221466,
+    "f4489_freeseed": 0.45243778935185186,
+    "f4695": 0.29111453609221466,
+    "f4695_freeseed": 0.45244590891912323,
+    "f6009": 0.29111453609221466,
+    "f6009_freeseed": 0.45245255220143615,
+    "manifest": 0.2910791052532124
+   },
+   "sensitivity": {
+    "min": 0.29111453609221466,
+    "max": 0.29111453609221466,
+    "median": 0.29111453609221466,
+    "spread_over_median": 0.0,
+    "loglog_slope": -5.693252893179436e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 extrapolated fraction": {
+   "by_tag": {
+    "f1502": 0.011357060185185185,
+    "f1502_freeseed": 0.011324581916099773,
+    "f2774": 0.011357060185185185,
+    "f2774_freeseed": 0.011324581916099773,
+    "f3005": 0.011357060185185185,
+    "f3005_freeseed": 0.011324581916099773,
+    "f3236": 0.011357060185185185,
+    "f3236_freeseed": 0.011324581916099773,
+    "f4159": 0.011357060185185185,
+    "f4159_freeseed": 0.011324581916099773,
+    "f4453": 0.011357060185185185,
+    "f4453_freeseed": 0.14586654974489796,
+    "f4489": 0.011357060185185185,
+    "f4489_freeseed": 0.14586654974489796,
+    "f4695": 0.011357060185185185,
+    "f4695_freeseed": 0.14634708049886622,
+    "f6009": 0.011357060185185185,
+    "f6009_freeseed": 0.14613080475245654,
+    "manifest": 0.011357060185185185
+   },
+   "sensitivity": {
+    "min": 0.011357060185185185,
+    "max": 0.011357060185185185,
+    "median": 0.011357060185185185,
+    "spread_over_median": 0.0,
+    "loglog_slope": -1.0482814850933566e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 trust distance (px)": {
+   "by_tag": {
+    "f1502": 240.0,
+    "f1502_freeseed": 240.0,
+    "f2774": 240.0,
+    "f2774_freeseed": 240.0,
+    "f3005": 240.0,
+    "f3005_freeseed": 240.0,
+    "f3236": 240.0,
+    "f3236_freeseed": 240.0,
+    "f4159": 240.0,
+    "f4159_freeseed": 240.0,
+    "f4453": 240.0,
+    "f4453_freeseed": 10.0,
+    "f4489": 240.0,
+    "f4489_freeseed": 10.0,
+    "f4695": 240.0,
+    "f4695_freeseed": 10.0,
+    "f6009": 240.0,
+    "f6009_freeseed": 10.0,
+    "manifest": 240.0
+   },
+   "sensitivity": {
+    "min": 240.0,
+    "max": 240.0,
+    "median": 240.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 1.5182007715145165e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A2 ground tilt from optical axis (deg)": {
+   "by_tag": {
+    "f1502": 16.247117391579,
+    "f1502_freeseed": 15.353974268421268,
+    "f2774": 28.289712907013318,
+    "f2774_freeseed": 26.890421504587476,
+    "f3005": 30.243540497426697,
+    "f3005_freeseed": 28.781997206854218,
+    "f3236": 32.12267478427419,
+    "f3236_freeseed": 30.607743052726434,
+    "f4159": 38.90114868617967,
+    "f4159_freeseed": 37.2462189350797,
+    "f4453": 40.82614343683141,
+    "f4453_freeseed": 49.44624826244528,
+    "f4489": 41.05450146538777,
+    "f4489_freeseed": 49.67401158283773,
+    "f4695": 42.33121548389919,
+    "f4695_freeseed": 50.9371931605727,
+    "f6009": 49.37934995417426,
+    "f6009_freeseed": 57.61933003267229,
+    "manifest": 41.00811252830432
+   },
+   "sensitivity": {
+    "min": 16.247117391579,
+    "max": 49.37934995417426,
+    "median": 38.90114868617967,
+    "spread_over_median": 0.8517031933909469,
+    "loglog_slope": 0.8085642967783085,
+    "verdict": "MOVES"
+   }
+  },
+  "A4 split continuity tol (rdu)": {
+   "by_tag": {
+    "f1502": 0.004237532615661621,
+    "f1502_freeseed": 0.0042378902435302734,
+    "f2774": 0.004237532615661621,
+    "f2774_freeseed": 0.0042378902435302734,
+    "f3005": 0.004237532615661621,
+    "f3005_freeseed": 0.0042378902435302734,
+    "f3236": 0.004237532615661621,
+    "f3236_freeseed": 0.0042378902435302734,
+    "f4159": 0.004237532615661621,
+    "f4159_freeseed": 0.0042378902435302734,
+    "f4453": 0.004237532615661621,
+    "f4453_freeseed": 0.004260659217834473,
+    "f4489": 0.004237532615661621,
+    "f4489_freeseed": 0.004260659217834473,
+    "f4695": 0.004237532615661621,
+    "f4695_freeseed": 0.004260659217834473,
+    "f6009": 0.004237532615661621,
+    "f6009_freeseed": 0.00426095724105835,
+    "manifest": 0.004237532615661621
+   },
+   "sensitivity": {
+    "min": 0.004237532615661621,
+    "max": 0.004237532615661621,
+    "median": 0.004237532615661621,
+    "spread_over_median": 0.0,
+    "loglog_slope": 2.168858245020738e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split fragments": {
+   "by_tag": {
+    "f1502": 1776,
+    "f1502_freeseed": 1776,
+    "f2774": 1776,
+    "f2774_freeseed": 1776,
+    "f3005": 1776,
+    "f3005_freeseed": 1776,
+    "f3236": 1776,
+    "f3236_freeseed": 1776,
+    "f4159": 1776,
+    "f4159_freeseed": 1776,
+    "f4453": 1776,
+    "f4453_freeseed": 1776,
+    "f4489": 1776,
+    "f4489_freeseed": 1776,
+    "f4695": 1776,
+    "f4695_freeseed": 1776,
+    "f6009": 1776,
+    "f6009_freeseed": 1776,
+    "manifest": 1776
+   },
+   "sensitivity": {
+    "min": 1776.0,
+    "max": 1776.0,
+    "median": 1776.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 3.759354291369279e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split components": {
+   "by_tag": {
+    "f1502": 742,
+    "f1502_freeseed": 742,
+    "f2774": 742,
+    "f2774_freeseed": 742,
+    "f3005": 742,
+    "f3005_freeseed": 742,
+    "f3236": 742,
+    "f3236_freeseed": 742,
+    "f4159": 742,
+    "f4159_freeseed": 742,
+    "f4453": 742,
+    "f4453_freeseed": 749,
+    "f4489": 742,
+    "f4489_freeseed": 749,
+    "f4695": 742,
+    "f4695_freeseed": 749,
+    "f6009": 742,
+    "f6009_freeseed": 749,
+    "manifest": 742
+   },
+   "sensitivity": {
+    "min": 742.0,
+    "max": 742.0,
+    "median": 742.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 4.1931259403734265e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split instance F1": {
+   "by_tag": {
+    "f1502": 0.008771929824561405,
+    "f1502_freeseed": 0.008771929824561405,
+    "f2774": 0.008771929824561405,
+    "f2774_freeseed": 0.008771929824561405,
+    "f3005": 0.008771929824561405,
+    "f3005_freeseed": 0.008771929824561405,
+    "f3236": 0.008771929824561405,
+    "f3236_freeseed": 0.008771929824561405,
+    "f4159": 0.008771929824561405,
+    "f4159_freeseed": 0.008771929824561405,
+    "f4453": 0.008771929824561405,
+    "f4453_freeseed": 0.008708272859216255,
+    "f4489": 0.008771929824561405,
+    "f4489_freeseed": 0.008708272859216255,
+    "f4695": 0.008771929824561405,
+    "f4695_freeseed": 0.008708272859216255,
+    "f6009": 0.008771929824561405,
+    "f6009_freeseed": 0.008708272859216255,
+    "manifest": 0.008771929824561405
+   },
+   "sensitivity": {
+    "min": 0.008771929824561405,
+    "max": 0.008771929824561405,
+    "median": 0.008771929824561405,
+    "spread_over_median": 0.0,
+    "loglog_slope": -2.20500588243775e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split TP": {
+   "by_tag": {
+    "f1502": 3,
+    "f1502_freeseed": 3,
+    "f2774": 3,
+    "f2774_freeseed": 3,
+    "f3005": 3,
+    "f3005_freeseed": 3,
+    "f3236": 3,
+    "f3236_freeseed": 3,
+    "f4159": 3,
+    "f4159_freeseed": 3,
+    "f4453": 3,
+    "f4453_freeseed": 3,
+    "f4489": 3,
+    "f4489_freeseed": 3,
+    "f4695": 3,
+    "f4695_freeseed": 3,
+    "f6009": 3,
+    "f6009_freeseed": 3,
+    "manifest": 3
+   },
+   "sensitivity": {
+    "min": 3.0,
+    "max": 3.0,
+    "median": 3.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 4.066609209413883e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split squash best IoU": {
+   "by_tag": {
+    "f1502": 0.4618857539262848,
+    "f1502_freeseed": 0.4618857539262848,
+    "f2774": 0.4618857539262848,
+    "f2774_freeseed": 0.4618857539262848,
+    "f3005": 0.4618857539262848,
+    "f3005_freeseed": 0.4618857539262848,
+    "f3236": 0.4618857539262848,
+    "f3236_freeseed": 0.4618857539262848,
+    "f4159": 0.4618857539262848,
+    "f4159_freeseed": 0.4618857539262848,
+    "f4453": 0.4618857539262848,
+    "f4453_freeseed": 0.31387131742525076,
+    "f4489": 0.4618857539262848,
+    "f4489_freeseed": 0.31387131742525076,
+    "f4695": 0.4618857539262848,
+    "f4695_freeseed": 0.31387131742525076,
+    "f6009": 0.4618857539262848,
+    "f6009_freeseed": 0.31387131742525076,
+    "manifest": 0.4618857539262848
+   },
+   "sensitivity": {
+    "min": 0.4618857539262848,
+    "max": 0.4618857539262848,
+    "median": 0.4618857539262848,
+    "spread_over_median": 0.0,
+    "loglog_slope": -4.156978302956414e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split squash one component": {
+   "by_tag": {
+    "f1502": false,
+    "f1502_freeseed": false,
+    "f2774": false,
+    "f2774_freeseed": false,
+    "f3005": false,
+    "f3005_freeseed": false,
+    "f3236": false,
+    "f3236_freeseed": false,
+    "f4159": false,
+    "f4159_freeseed": false,
+    "f4453": false,
+    "f4453_freeseed": false,
+    "f4489": false,
+    "f4489_freeseed": false,
+    "f4695": false,
+    "f4695_freeseed": false,
+    "f6009": false,
+    "f6009_freeseed": false,
+    "manifest": false
+   },
+   "sensitivity": {
+    "min": 0.0,
+    "max": 0.0,
+    "median": 0.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": null,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split clover separate": {
+   "by_tag": {
+    "f1502": true,
+    "f1502_freeseed": true,
+    "f2774": true,
+    "f2774_freeseed": true,
+    "f3005": true,
+    "f3005_freeseed": true,
+    "f3236": true,
+    "f3236_freeseed": true,
+    "f4159": true,
+    "f4159_freeseed": true,
+    "f4453": true,
+    "f4453_freeseed": true,
+    "f4489": true,
+    "f4489_freeseed": true,
+    "f4695": true,
+    "f4695_freeseed": true,
+    "f6009": true,
+    "f6009_freeseed": true,
+    "manifest": true
+   },
+   "sensitivity": {
+    "min": 1.0,
+    "max": 1.0,
+    "median": 1.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 0.0,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split clover fraction in crop": {
+   "by_tag": {
+    "f1502": 0.0,
+    "f1502_freeseed": 0.0,
+    "f2774": 0.0,
+    "f2774_freeseed": 0.0,
+    "f3005": 0.0,
+    "f3005_freeseed": 0.0,
+    "f3236": 0.0,
+    "f3236_freeseed": 0.0,
+    "f4159": 0.0,
+    "f4159_freeseed": 0.0,
+    "f4453": 0.0,
+    "f4453_freeseed": 0.0,
+    "f4489": 0.0,
+    "f4489_freeseed": 0.0,
+    "f4695": 0.0,
+    "f4695_freeseed": 0.0,
+    "f6009": 0.0,
+    "f6009_freeseed": 0.0,
+    "manifest": 0.0
+   },
+   "sensitivity": {
+    "min": 0.0,
+    "max": 0.0,
+    "median": 0.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": null,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split grass absorbed": {
+   "by_tag": {
+    "f1502": 0.11758829018181133,
+    "f1502_freeseed": 0.11758829018181133,
+    "f2774": 0.11758829018181133,
+    "f2774_freeseed": 0.11758829018181133,
+    "f3005": 0.11758829018181133,
+    "f3005_freeseed": 0.11758829018181133,
+    "f3236": 0.11758829018181133,
+    "f3236_freeseed": 0.11758829018181133,
+    "f4159": 0.11758829018181133,
+    "f4159_freeseed": 0.11758829018181133,
+    "f4453": 0.11758829018181133,
+    "f4453_freeseed": 0.0812637253885522,
+    "f4489": 0.11758829018181133,
+    "f4489_freeseed": 0.0812637253885522,
+    "f4695": 0.11758829018181133,
+    "f4695_freeseed": 0.0812637253885522,
+    "f6009": 0.11758829018181133,
+    "f6009_freeseed": 0.0812637253885522,
+    "manifest": 0.11758829018181133
+   },
+   "sensitivity": {
+    "min": 0.11758829018181133,
+    "max": 0.11758829018181133,
+    "median": 0.11758829018181133,
+    "spread_over_median": 0.0,
+    "loglog_slope": -1.102502941218875e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 split unresolved boundaries": {
+   "by_tag": {
+    "f1502": 1237,
+    "f1502_freeseed": 1237,
+    "f2774": 1237,
+    "f2774_freeseed": 1237,
+    "f3005": 1237,
+    "f3005_freeseed": 1237,
+    "f3236": 1237,
+    "f3236_freeseed": 1237,
+    "f4159": 1237,
+    "f4159_freeseed": 1237,
+    "f4453": 1237,
+    "f4453_freeseed": 1247,
+    "f4489": 1237,
+    "f4489_freeseed": 1247,
+    "f4695": 1237,
+    "f4695_freeseed": 1247,
+    "f6009": 1237,
+    "f6009_freeseed": 1247,
+    "manifest": 1237
+   },
+   "sensitivity": {
+    "min": 1237.0,
+    "max": 1237.0,
+    "median": 1237.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 1.807381870850615e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge components": {
+   "by_tag": {
+    "f1502": 207,
+    "f1502_freeseed": 207,
+    "f2774": 207,
+    "f2774_freeseed": 207,
+    "f3005": 207,
+    "f3005_freeseed": 207,
+    "f3236": 207,
+    "f3236_freeseed": 207,
+    "f4159": 207,
+    "f4159_freeseed": 207,
+    "f4453": 207,
+    "f4453_freeseed": 202,
+    "f4489": 207,
+    "f4489_freeseed": 202,
+    "f4695": 207,
+    "f4695_freeseed": 202,
+    "f6009": 207,
+    "f6009_freeseed": 202,
+    "manifest": 207
+   },
+   "sensitivity": {
+    "min": 207.0,
+    "max": 207.0,
+    "median": 207.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 1.915824783101652e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge instance F1": {
+   "by_tag": {
+    "f1502": 0.019801980198019802,
+    "f1502_freeseed": 0.019801980198019802,
+    "f2774": 0.019801980198019802,
+    "f2774_freeseed": 0.019801980198019802,
+    "f3005": 0.019801980198019802,
+    "f3005_freeseed": 0.019801980198019802,
+    "f3236": 0.019801980198019802,
+    "f3236_freeseed": 0.019801980198019802,
+    "f4159": 0.019801980198019802,
+    "f4159_freeseed": 0.019801980198019802,
+    "f4453": 0.019801980198019802,
+    "f4453_freeseed": 0.020304568527918784,
+    "f4489": 0.019801980198019802,
+    "f4489_freeseed": 0.020304568527918784,
+    "f4695": 0.019801980198019802,
+    "f4695_freeseed": 0.020304568527918784,
+    "f6009": 0.019801980198019802,
+    "f6009_freeseed": 0.020304568527918784,
+    "manifest": 0.019801980198019802
+   },
+   "sensitivity": {
+    "min": 0.019801980198019802,
+    "max": 0.019801980198019802,
+    "median": 0.019801980198019802,
+    "spread_over_median": 0.0,
+    "loglog_slope": -5.422145612551844e-16,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge squash best IoU": {
+   "by_tag": {
+    "f1502": 0.8849564899545341,
+    "f1502_freeseed": 0.8849564899545341,
+    "f2774": 0.8849564899545341,
+    "f2774_freeseed": 0.8849564899545341,
+    "f3005": 0.8849564899545341,
+    "f3005_freeseed": 0.8849564899545341,
+    "f3236": 0.8849564899545341,
+    "f3236_freeseed": 0.8849564899545341,
+    "f4159": 0.8849564899545341,
+    "f4159_freeseed": 0.8849564899545341,
+    "f4453": 0.8849564899545341,
+    "f4453_freeseed": 0.8849971036054234,
+    "f4489": 0.8849564899545341,
+    "f4489_freeseed": 0.8849971036054234,
+    "f4695": 0.8849564899545341,
+    "f4695_freeseed": 0.8849971036054234,
+    "f6009": 0.8849564899545341,
+    "f6009_freeseed": 0.8849971036054234,
+    "manifest": 0.8849564899545341
+   },
+   "sensitivity": {
+    "min": 0.8849564899545341,
+    "max": 0.8849564899545341,
+    "median": 0.8849564899545341,
+    "spread_over_median": 0.0,
+    "loglog_slope": -1.9203432377787784e-17,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge squash one component": {
+   "by_tag": {
+    "f1502": true,
+    "f1502_freeseed": true,
+    "f2774": true,
+    "f2774_freeseed": true,
+    "f3005": true,
+    "f3005_freeseed": true,
+    "f3236": true,
+    "f3236_freeseed": true,
+    "f4159": true,
+    "f4159_freeseed": true,
+    "f4453": true,
+    "f4453_freeseed": true,
+    "f4489": true,
+    "f4489_freeseed": true,
+    "f4695": true,
+    "f4695_freeseed": true,
+    "f6009": true,
+    "f6009_freeseed": true,
+    "manifest": true
+   },
+   "sensitivity": {
+    "min": 1.0,
+    "max": 1.0,
+    "median": 1.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 0.0,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge clover separate": {
+   "by_tag": {
+    "f1502": true,
+    "f1502_freeseed": true,
+    "f2774": true,
+    "f2774_freeseed": true,
+    "f3005": true,
+    "f3005_freeseed": true,
+    "f3236": true,
+    "f3236_freeseed": true,
+    "f4159": true,
+    "f4159_freeseed": true,
+    "f4453": true,
+    "f4453_freeseed": true,
+    "f4489": true,
+    "f4489_freeseed": true,
+    "f4695": true,
+    "f4695_freeseed": true,
+    "f6009": true,
+    "f6009_freeseed": true,
+    "manifest": true
+   },
+   "sensitivity": {
+    "min": 1.0,
+    "max": 1.0,
+    "median": 1.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 0.0,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A4 merge grass absorbed": {
+   "by_tag": {
+    "f1502": 0.8333443293527742,
+    "f1502_freeseed": 0.8333443293527742,
+    "f2774": 0.8333443293527742,
+    "f2774_freeseed": 0.8333443293527742,
+    "f3005": 0.8333443293527742,
+    "f3005_freeseed": 0.8333443293527742,
+    "f3236": 0.8333443293527742,
+    "f3236_freeseed": 0.8333443293527742,
+    "f4159": 0.8333443293527742,
+    "f4159_freeseed": 0.8333443293527742,
+    "f4453": 0.8333443293527742,
+    "f4453_freeseed": 0.8341737433906069,
+    "f4489": 0.8333443293527742,
+    "f4489_freeseed": 0.8341737433906069,
+    "f4695": 0.8333443293527742,
+    "f4695_freeseed": 0.8341737433906069,
+    "f6009": 0.8333443293527742,
+    "f6009_freeseed": 0.8341737433906069,
+    "manifest": 0.8333443293527742
+   },
+   "sensitivity": {
+    "min": 0.8333443293527742,
+    "max": 0.8333443293527742,
+    "median": 0.8333443293527742,
+    "spread_over_median": 0.0,
+    "loglog_slope": -6.099913814120826e-17,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A5 split observed": {
+   "by_tag": {
+    "f1502": 475,
+    "f1502_freeseed": 484,
+    "f2774": 474,
+    "f2774_freeseed": 483,
+    "f3005": 475,
+    "f3005_freeseed": 484,
+    "f3236": 475,
+    "f3236_freeseed": 484,
+    "f4159": 476,
+    "f4159_freeseed": 483,
+    "f4453": 476,
+    "f4453_freeseed": 311,
+    "f4489": 476,
+    "f4489_freeseed": 311,
+    "f4695": 475,
+    "f4695_freeseed": 312,
+    "f6009": 475,
+    "f6009_freeseed": 313,
+    "manifest": 472
+   },
+   "sensitivity": {
+    "min": 474.0,
+    "max": 476.0,
+    "median": 475.0,
+    "spread_over_median": 0.004210526315789474,
+    "loglog_slope": 0.0013566073933524883,
+    "verdict": "invariant to <1%"
+   }
+  },
+  "A5 split extrapolated": {
+   "by_tag": {
+    "f1502": 58,
+    "f1502_freeseed": 61,
+    "f2774": 65,
+    "f2774_freeseed": 71,
+    "f3005": 64,
+    "f3005_freeseed": 71,
+    "f3236": 66,
+    "f3236_freeseed": 69,
+    "f4159": 62,
+    "f4159_freeseed": 68,
+    "f4453": 61,
+    "f4453_freeseed": 3,
+    "f4489": 57,
+    "f4489_freeseed": 3,
+    "f4695": 57,
+    "f4695_freeseed": 3,
+    "f6009": 53,
+    "f6009_freeseed": 1,
+    "manifest": 59
+   },
+   "sensitivity": {
+    "min": 53.0,
+    "max": 66.0,
+    "median": 61.0,
+    "spread_over_median": 0.21311475409836064,
+    "loglog_slope": -0.07034187589719397,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 split occluded": {
+   "by_tag": {
+    "f1502": 209,
+    "f1502_freeseed": 197,
+    "f2774": 203,
+    "f2774_freeseed": 188,
+    "f3005": 203,
+    "f3005_freeseed": 187,
+    "f3236": 201,
+    "f3236_freeseed": 189,
+    "f4159": 204,
+    "f4159_freeseed": 191,
+    "f4453": 205,
+    "f4453_freeseed": 435,
+    "f4489": 209,
+    "f4489_freeseed": 435,
+    "f4695": 210,
+    "f4695_freeseed": 434,
+    "f6009": 214,
+    "f6009_freeseed": 435,
+    "manifest": 211
+   },
+   "sensitivity": {
+    "min": 201.0,
+    "max": 214.0,
+    "median": 205.0,
+    "spread_over_median": 0.06341463414634146,
+    "loglog_slope": 0.01659475644306899,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 split arm-admissible": {
+   "by_tag": {
+    "f1502": 376,
+    "f1502_freeseed": 379,
+    "f2774": 376,
+    "f2774_freeseed": 381,
+    "f3005": 376,
+    "f3005_freeseed": 381,
+    "f3236": 377,
+    "f3236_freeseed": 381,
+    "f4159": 379,
+    "f4159_freeseed": 380,
+    "f4453": 379,
+    "f4453_freeseed": 94,
+    "f4489": 379,
+    "f4489_freeseed": 94,
+    "f4695": 379,
+    "f4695_freeseed": 93,
+    "f6009": 381,
+    "f6009_freeseed": 87,
+    "manifest": 378
+   },
+   "sensitivity": {
+    "min": 376.0,
+    "max": 381.0,
+    "median": 379.0,
+    "spread_over_median": 0.013192612137203167,
+    "loglog_slope": 0.01023038004743871,
+    "verdict": "invariant to <5%"
+   }
+  },
+  "A5 split median confidence": {
+   "by_tag": {
+    "f1502": 0.7233480303997866,
+    "f1502_freeseed": 0.7269948911364719,
+    "f2774": 0.7237859958695658,
+    "f2774_freeseed": 0.7299564642997077,
+    "f3005": 0.7231473169894178,
+    "f3005_freeseed": 0.7295310853717976,
+    "f3236": 0.7225048179450586,
+    "f3236_freeseed": 0.7281163745620023,
+    "f4159": 0.7214852344072131,
+    "f4159_freeseed": 0.7361275469888557,
+    "f4453": 0.7217254605873517,
+    "f4453_freeseed": 0.4165870784105395,
+    "f4489": 0.7271161011774228,
+    "f4489_freeseed": 0.4145974559015826,
+    "f4695": 0.7269897074200672,
+    "f4695_freeseed": 0.43387105077840427,
+    "f6009": 0.7245185259507425,
+    "f6009_freeseed": 0.4276285366951279,
+    "manifest": 0.7145622112252279
+   },
+   "sensitivity": {
+    "min": 0.7214852344072131,
+    "max": 0.7271161011774228,
+    "median": 0.7233480303997866,
+    "spread_over_median": 0.007784450269530024,
+    "loglog_slope": 0.0019052160217882775,
+    "verdict": "invariant to <1%"
+   }
+  },
+  "A5 split GT-consistency median (px)": {
+   "by_tag": {
+    "f1502": 54.426530856049666,
+    "f1502_freeseed": 76.40151016418909,
+    "f2774": 61.391369318149046,
+    "f2774_freeseed": 74.79199379521916,
+    "f3005": 61.391369318149046,
+    "f3005_freeseed": 74.79199379521916,
+    "f3236": 61.391369318149046,
+    "f3236_freeseed": 74.79199379521916,
+    "f4159": 61.391369318149046,
+    "f4159_freeseed": 100.64491588237591,
+    "f4453": 61.391369318149046,
+    "f4453_freeseed": 12.638798559394141,
+    "f4489": 61.391369318149046,
+    "f4489_freeseed": 12.638798559394141,
+    "f4695": 61.391369318149046,
+    "f4695_freeseed": 12.638798559394141,
+    "f6009": 61.391369318149046,
+    "f6009_freeseed": null,
+    "manifest": 61.391369318149046
+   },
+   "sensitivity": {
+    "min": 54.426530856049666,
+    "max": 61.391369318149046,
+    "median": 61.391369318149046,
+    "spread_over_median": 0.1134497982282401,
+    "loglog_slope": 0.07887155304298782,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 split GT-consistency n": {
+   "by_tag": {
+    "f1502": 10,
+    "f1502_freeseed": 10,
+    "f2774": 9,
+    "f2774_freeseed": 10,
+    "f3005": 9,
+    "f3005_freeseed": 10,
+    "f3236": 9,
+    "f3236_freeseed": 10,
+    "f4159": 9,
+    "f4159_freeseed": 9,
+    "f4453": 9,
+    "f4453_freeseed": 1,
+    "f4489": 9,
+    "f4489_freeseed": 1,
+    "f4695": 9,
+    "f4695_freeseed": 1,
+    "f6009": 9,
+    "f6009_freeseed": 0,
+    "manifest": 9
+   },
+   "sensitivity": {
+    "min": 9.0,
+    "max": 10.0,
+    "median": 9.0,
+    "spread_over_median": 0.1111111111111111,
+    "loglog_slope": -0.06900945222155473,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 merge observed": {
+   "by_tag": {
+    "f1502": 166,
+    "f1502_freeseed": 168,
+    "f2774": 166,
+    "f2774_freeseed": 168,
+    "f3005": 166,
+    "f3005_freeseed": 168,
+    "f3236": 166,
+    "f3236_freeseed": 169,
+    "f4159": 165,
+    "f4159_freeseed": 168,
+    "f4453": 165,
+    "f4453_freeseed": 119,
+    "f4489": 165,
+    "f4489_freeseed": 119,
+    "f4695": 164,
+    "f4695_freeseed": 119,
+    "f6009": 164,
+    "f6009_freeseed": 115,
+    "manifest": 164
+   },
+   "sensitivity": {
+    "min": 164.0,
+    "max": 166.0,
+    "median": 165.0,
+    "spread_over_median": 0.012121212121212121,
+    "loglog_slope": -0.009999482299286787,
+    "verdict": "invariant to <5%"
+   }
+  },
+  "A5 merge extrapolated": {
+   "by_tag": {
+    "f1502": 10,
+    "f1502_freeseed": 10,
+    "f2774": 12,
+    "f2774_freeseed": 13,
+    "f3005": 12,
+    "f3005_freeseed": 13,
+    "f3236": 13,
+    "f3236_freeseed": 13,
+    "f4159": 13,
+    "f4159_freeseed": 14,
+    "f4453": 12,
+    "f4453_freeseed": 3,
+    "f4489": 11,
+    "f4489_freeseed": 3,
+    "f4695": 11,
+    "f4695_freeseed": 3,
+    "f6009": 10,
+    "f6009_freeseed": 1,
+    "manifest": 11
+   },
+   "sensitivity": {
+    "min": 10.0,
+    "max": 13.0,
+    "median": 12.0,
+    "spread_over_median": 0.25,
+    "loglog_slope": 0.01804663288771826,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 merge occluded": {
+   "by_tag": {
+    "f1502": 31,
+    "f1502_freeseed": 29,
+    "f2774": 29,
+    "f2774_freeseed": 26,
+    "f3005": 29,
+    "f3005_freeseed": 26,
+    "f3236": 28,
+    "f3236_freeseed": 25,
+    "f4159": 29,
+    "f4159_freeseed": 25,
+    "f4453": 30,
+    "f4453_freeseed": 80,
+    "f4489": 31,
+    "f4489_freeseed": 80,
+    "f4695": 32,
+    "f4695_freeseed": 80,
+    "f6009": 33,
+    "f6009_freeseed": 86,
+    "manifest": 32
+   },
+   "sensitivity": {
+    "min": 28.0,
+    "max": 33.0,
+    "median": 30.0,
+    "spread_over_median": 0.16666666666666666,
+    "loglog_slope": 0.04713047570657454,
+    "verdict": "MOVES"
+   }
+  },
+  "A5 merge arm-admissible": {
+   "by_tag": {
+    "f1502": 137,
+    "f1502_freeseed": 136,
+    "f2774": 137,
+    "f2774_freeseed": 136,
+    "f3005": 137,
+    "f3005_freeseed": 136,
+    "f3236": 137,
+    "f3236_freeseed": 136,
+    "f4159": 137,
+    "f4159_freeseed": 136,
+    "f4453": 137,
+    "f4453_freeseed": 57,
+    "f4489": 137,
+    "f4489_freeseed": 57,
+    "f4695": 137,
+    "f4695_freeseed": 57,
+    "f6009": 137,
+    "f6009_freeseed": 56,
+    "manifest": 137
+   },
+   "sensitivity": {
+    "min": 137.0,
+    "max": 137.0,
+    "median": 137.0,
+    "spread_over_median": 0.0,
+    "loglog_slope": 1.337462584429455e-15,
+    "verdict": "EXACTLY invariant"
+   }
+  },
+  "A5 merge GT-consistency median (px)": {
+   "by_tag": {
+    "f1502": 95.3379562783224,
+    "f1502_freeseed": 95.3379562783224,
+    "f2774": 95.50198837530414,
+    "f2774_freeseed": 95.50198837530414,
+    "f3005": 95.50198837530414,
+    "f3005_freeseed": 95.50198837530414,
+    "f3236": 95.50198837530414,
+    "f3236_freeseed": 95.50198837530414,
+    "f4159": 95.50198837530414,
+    "f4159_freeseed": 95.50198837530414,
+    "f4453": 95.50198837530414,
+    "f4453_freeseed": 12.638798559394141,
+    "f4489": 95.50198837530414,
+    "f4489_freeseed": 12.638798559394141,
+    "f4695": 95.50198837530414,
+    "f4695_freeseed": 12.638798559394141,
+    "f6009": 95.50198837530414,
+    "f6009_freeseed": null,
+    "manifest": 96.46791524645019
+   },
+   "sensitivity": {
+    "min": 95.3379562783224,
+    "max": 95.50198837530414,
+    "median": 95.50198837530414,
+    "spread_over_median": 0.0017175778198159426,
+    "loglog_slope": 0.0011259532277349727,
+    "verdict": "invariant to <1%"
+   }
+  },
+  "A2 residual / datum sigma": {
+   "by_tag": {
+    "f1502": 1.252452462291283,
+    "f1502_freeseed": 1.1148590153466562,
+    "f2774": 1.2524524622912374,
+    "f2774_freeseed": 1.1148593636982154,
+    "f3005": 1.2524524622912765,
+    "f3005_freeseed": 1.1148584076033026,
+    "f3236": 1.2524524622912812,
+    "f3236_freeseed": 1.1148629799538978,
+    "f4159": 1.2524524622912692,
+    "f4159_freeseed": 1.1148609927973576,
+    "f4453": 1.2524524622912672,
+    "f4453_freeseed": 1.163366496828061,
+    "f4489": 1.2524524622912723,
+    "f4489_freeseed": 1.1633664437244051,
+    "f4695": 1.2524524622912818,
+    "f4695_freeseed": 1.163171202328861,
+    "f6009": 1.2524524622912665,
+    "f6009_freeseed": 1.1632578464956616,
+    "manifest": 1.252299186155642
+   },
+   "sensitivity": {
+    "min": 1.2524524622912374,
+    "max": 1.252452462291283,
+    "median": 1.2524524622912723,
+    "spread_over_median": 3.6344009357734345e-14,
+    "loglog_slope": -2.297634203318844e-15,
+    "verdict": "invariant to <1%"
+   },
+   "derived": true,
+   "note": "a ratio of two quantities that carry the same focal-length-dependent unit"
+  },
+  "A2 residual / RANSAC threshold": {
+   "by_tag": {
+    "f1502": 12.525087429784847,
+    "f1502_freeseed": 11.959954082195349,
+    "f2774": 12.473585521088989,
+    "f2774_freeseed": 12.010672057405232,
+    "f3005": 12.554667520756551,
+    "f3005_freeseed": 12.109043502704397,
+    "f3236": 12.663970693323039,
+    "f3236_freeseed": 12.234975125300016,
+    "f4159": 12.614694496504594,
+    "f4159_freeseed": 12.266972294496611,
+    "f4453": 12.571134333271424,
+    "f4453_freeseed": 2.8706862077362794,
+    "f4489": 12.581645519408701,
+    "f4489_freeseed": 2.869620855796747,
+    "f4695": 12.502974566368666,
+    "f4695_freeseed": 2.8325212080977438,
+    "f6009": 12.469816794153065,
+    "f6009_freeseed": 2.7261148929309202,
+    "manifest": 12.57714649125904
+   },
+   "sensitivity": {
+    "min": 12.469816794153065,
+    "max": 12.663970693323039,
+    "median": 12.554667520756551,
+    "spread_over_median": 0.015464678682169851,
+    "loglog_slope": -0.00024436101259731155,
+    "verdict": "invariant to <5%"
+   },
+   "derived": true,
+   "note": "a ratio of two quantities that carry the same focal-length-dependent unit"
+  },
+  "A4 continuity tol / A2 datum sigma": {
+   "by_tag": {
+    "f1502": 0.6082560184176613,
+    "f1502_freeseed": 0.5670652295589683,
+    "f2774": 0.6631723378947575,
+    "f2774_freeseed": 0.6131205723473337,
+    "f3005": 0.6759692937211549,
+    "f3005_freeseed": 0.6239035521138089,
+    "f3236": 0.6895226090139782,
+    "f3236_freeseed": 0.6353487964939974,
+    "f4159": 0.7503748830367627,
+    "f4159_freeseed": 0.686932021993257,
+    "f4453": 0.7717287065778451,
+    "f4453_freeseed": 3.156257640980544,
+    "f4489": 0.7744014644628415,
+    "f4489_freeseed": 3.1710136958219675,
+    "f4695": 0.7899267545616078,
+    "f4695_freeseed": 3.2559155866906013,
+    "f6009": 0.896961240200135,
+    "f6009_freeseed": 3.831761380806468,
+    "manifest": 0.7747402164889405
+   },
+   "sensitivity": {
+    "min": 0.6082560184176613,
+    "max": 0.896961240200135,
+    "median": 0.7503748830367627,
+    "spread_over_median": 0.38474798172093044,
+    "loglog_slope": 0.2719601870938694,
+    "verdict": "MOVES"
+   },
+   "derived": true,
+   "note": "a ratio of two quantities that carry the same focal-length-dependent unit"
+  }
+ },
+ "invariance_summary": {
+  "EXACTLY invariant": [
+   "A2 inlier fraction",
+   "A2 lam",
+   "A2 fit scale (px)",
+   "A2 observed fraction",
+   "A2 extrapolated fraction",
+   "A2 trust distance (px)",
+   "A4 split continuity tol (rdu)",
+   "A4 split fragments",
+   "A4 split components",
+   "A4 split instance F1",
+   "A4 split TP",
+   "A4 split squash best IoU",
+   "A4 split squash one component",
+   "A4 split clover separate",
+   "A4 split clover fraction in crop",
+   "A4 split grass absorbed",
+   "A4 split unresolved boundaries",
+   "A4 merge components",
+   "A4 merge instance F1",
+   "A4 merge squash best IoU",
+   "A4 merge squash one component",
+   "A4 merge clover separate",
+   "A4 merge grass absorbed",
+   "A5 merge arm-admissible"
+  ],
+  "MOVES": [
+   "A2 inlier residual RMS (rdu)",
+   "A2 datum sigma (rdu)",
+   "A2 RANSAC threshold (rdu)",
+   "A2 ground tilt from optical axis (deg)",
+   "A5 split extrapolated",
+   "A5 split occluded",
+   "A5 split GT-consistency median (px)",
+   "A5 split GT-consistency n",
+   "A5 merge extrapolated",
+   "A5 merge occluded",
+   "A4 continuity tol / A2 datum sigma"
+  ],
+  "invariant to <1%": [
+   "A5 split observed",
+   "A5 split median confidence",
+   "A5 merge GT-consistency median (px)",
+   "A2 residual / datum sigma"
+  ],
+  "invariant to <5%": [
+   "A5 split arm-admissible",
+   "A5 merge observed",
+   "A2 residual / RANSAC threshold"
+  ]
+ },
+ "reference_row_reproduces_shipped_phase_A": {
+  "A2 inlier fraction": {
+   "shipped_RESULTS_md": 0.291,
+   "A1b_manifest_row": 0.2910791052532124,
+   "relative_difference": 0.0002718393581182792
+  },
+  "A2 inlier residual RMS (rdu)": {
+   "shipped_RESULTS_md": 0.00685,
+   "A1b_manifest_row": 0.0068495974946936175,
+   "relative_difference": 5.8759898742002225e-05
+  },
+  "A2 datum sigma (rdu)": {
+   "shipped_RESULTS_md": 0.00547,
+   "A1b_manifest_row": 0.005469617460760942,
+   "relative_difference": 6.993404735979526e-05
+  },
+  "A4 split components": {
+   "shipped_RESULTS_md": 742,
+   "A1b_manifest_row": 742,
+   "relative_difference": 0.0
+  },
+  "A4 split instance F1": {
+   "shipped_RESULTS_md": 0.0088,
+   "A1b_manifest_row": 0.008771929824561405,
+   "relative_difference": 0.003189792663476792
+  },
+  "A4 split squash best IoU": {
+   "shipped_RESULTS_md": 0.462,
+   "A1b_manifest_row": 0.4618857539262848,
+   "relative_difference": 0.0002472858738425122
+  },
+  "A4 split grass absorbed": {
+   "shipped_RESULTS_md": 0.118,
+   "A1b_manifest_row": 0.11758829018181133,
+   "relative_difference": 0.003489066255836151
+  },
+  "A5 split observed": {
+   "shipped_RESULTS_md": 472,
+   "A1b_manifest_row": 472,
+   "relative_difference": 0.0
+  },
+  "A5 split extrapolated": {
+   "shipped_RESULTS_md": 59,
+   "A1b_manifest_row": 59,
+   "relative_difference": 0.0
+  },
+  "A5 split occluded": {
+   "shipped_RESULTS_md": 211,
+   "A1b_manifest_row": 211,
+   "relative_difference": 0.0
+  }
+ },
+ "free_seed_control": {
+  "what": "the same sweep with A2's RANSAC seed plane re-drawn at each f instead of transported from the reference row",
+  "why": "A2 seeds its outer loop with a RANSAC plane found at ~1.2 % inliers. Rescaling the cloud changes which plane wins that draw, and above f = 4159 px a different one does. The rows below are what the shipped A2 pipeline actually produces; the divergence is an A2 property, not a focal-length effect.",
+  "rows": {
+   "f1502_freeseed": {
+    "A2 inlier fraction": 0.2934190169123205,
+    "A2 inlier residual RMS (rdu)": 0.008331757790411398,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 484,
+    "A5 split arm-admissible": 379
+   },
+   "f2774_freeseed": {
+    "A2 inlier fraction": 0.2934190169123205,
+    "A2 inlier residual RMS (rdu)": 0.007705909462859309,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 483,
+    "A5 split arm-admissible": 381
+   },
+   "f3005_freeseed": {
+    "A2 inlier fraction": 0.2934190169123205,
+    "A2 inlier residual RMS (rdu)": 0.007572721059997892,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 484,
+    "A5 split arm-admissible": 381
+   },
+   "f3236_freeseed": {
+    "A2 inlier fraction": 0.2934190169123205,
+    "A2 inlier residual RMS (rdu)": 0.007436335713062687,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 484,
+    "A5 split arm-admissible": 381
+   },
+   "f4159_freeseed": {
+    "A2 inlier fraction": 0.2934190169123205,
+    "A2 inlier residual RMS (rdu)": 0.006877912767203585,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 483,
+    "A5 split arm-admissible": 380
+   },
+   "f4453_freeseed": {
+    "A2 inlier fraction": 0.45243778935185186,
+    "A2 inlier residual RMS (rdu)": 0.0015704383964328062,
+    "A4 split components": 749,
+    "A4 split instance F1": 0.008708272859216255,
+    "A4 split squash best IoU": 0.31387131742525076,
+    "A4 split grass absorbed": 0.0812637253885522,
+    "A5 split observed": 311,
+    "A5 split arm-admissible": 94
+   },
+   "f4489_freeseed": {
+    "A2 inlier fraction": 0.45243778935185186,
+    "A2 inlier residual RMS (rdu)": 0.0015631304174764384,
+    "A4 split components": 749,
+    "A4 split instance F1": 0.008708272859216255,
+    "A4 split squash best IoU": 0.31387131742525076,
+    "A4 split grass absorbed": 0.0812637253885522,
+    "A5 split observed": 311,
+    "A5 split arm-admissible": 94
+   },
+   "f4695_freeseed": {
+    "A2 inlier fraction": 0.45244590891912323,
+    "A2 inlier residual RMS (rdu)": 0.0015221144323828589,
+    "A4 split components": 749,
+    "A4 split instance F1": 0.008708272859216255,
+    "A4 split squash best IoU": 0.31387131742525076,
+    "A4 split grass absorbed": 0.0812637253885522,
+    "A5 split observed": 312,
+    "A5 split arm-admissible": 93
+   },
+   "f6009_freeseed": {
+    "A2 inlier fraction": 0.45245255220143615,
+    "A2 inlier residual RMS (rdu)": 0.0012935544392381818,
+    "A4 split components": 749,
+    "A4 split instance F1": 0.008708272859216255,
+    "A4 split squash best IoU": 0.31387131742525076,
+    "A4 split grass absorbed": 0.0812637253885522,
+    "A5 split observed": 313,
+    "A5 split arm-admissible": 87
+   }
+  },
+  "seeded_rows_for_comparison": {
+   "f1502": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.008725451122262032,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 475,
+    "A5 split arm-admissible": 376
+   },
+   "f2774": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.00800290943282238,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 474,
+    "A5 split arm-admissible": 376
+   },
+   "f3005": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.00785140420995856,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 475,
+    "A5 split arm-admissible": 376
+   },
+   "f3236": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.007697076338242911,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 475,
+    "A5 split arm-admissible": 377
+   },
+   "f4159": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.007072875543283532,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 476,
+    "A5 split arm-admissible": 379
+   },
+   "f4453": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.006877168250044354,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 476,
+    "A5 split arm-admissible": 379
+   },
+   "f4489": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.00685343249215877,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 476,
+    "A5 split arm-admissible": 379
+   },
+   "f4695": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.006718734525545289,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 475,
+    "A5 split arm-admissible": 379
+   },
+   "f6009": {
+    "A2 inlier fraction": 0.29111453609221466,
+    "A2 inlier residual RMS (rdu)": 0.005916987179223878,
+    "A4 split components": 742,
+    "A4 split instance F1": 0.008771929824561405,
+    "A4 split squash best IoU": 0.4618857539262848,
+    "A4 split grass absorbed": 0.11758829018181133,
+    "A5 split observed": 475,
+    "A5 split arm-admissible": 381
+   }
+  }
+ }
+}
