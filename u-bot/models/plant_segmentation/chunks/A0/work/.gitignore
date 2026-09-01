@@ -1,0 +1,17 @@
+# Regenerable working artifacts for chunk A0. Rebuild with, from ZeroPlantSeg/:
+#   .venv/bin/python ../chunks/A0/sam_propose.py        (~9 min, SAM ViT-H on MPS)
+#   .venv/bin/python ../chunks/A0/build_partition.py
+#   .venv/bin/python ../chunks/A0/propose_classes.py
+#   .venv/bin/python ../chunks/A0/apply_assign.py
+#   .venv/bin/python ../chunks/A0/render_review.py --tag review4
+# The labelling decisions themselves live in ../corrections.json and
+# ../instances.json, which ARE committed.
+sam_masks.npy
+sam_masks_shape.npy
+regions.npy
+proposal.npy
+assign.npy
+region_feats.npz
+inradius.npy
+review4/
+z_*.png

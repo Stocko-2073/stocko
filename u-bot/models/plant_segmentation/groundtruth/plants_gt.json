@@ -1,0 +1,116 @@
+{
+ "image": "plants.jpeg",
+ "gt_grid": {
+  "width": 768,
+  "height": 1024,
+  "derived_from_native": [
+   3000,
+   4000
+  ],
+  "resample": "PIL LANCZOS, uniform scale 3.90625 px native per GT px",
+  "why": "768x1024 is the resolution ZeroPlantSeg runs at, so the recorded baseline needs no resampling to be scored."
+ },
+ "classes": {
+  "unlabelled": 0,
+  "squash_leaf": 1,
+  "squash_petiole": 2,
+  "grass": 3,
+  "broadleaf_weed": 4,
+  "straw": 5,
+  "soil": 6,
+  "fruit": 7,
+  "other": 8
+ },
+ "palette": {
+  "unlabelled": [
+   0,
+   0,
+   0
+  ],
+  "squash_leaf": [
+   0,
+   190,
+   0
+  ],
+  "squash_petiole": [
+   0,
+   255,
+   255
+  ],
+  "grass": [
+   255,
+   240,
+   0
+  ],
+  "broadleaf_weed": [
+   255,
+   0,
+   0
+  ],
+  "straw": [
+   255,
+   150,
+   0
+  ],
+  "soil": [
+   110,
+   60,
+   20
+  ],
+  "fruit": [
+   60,
+   60,
+   255
+  ],
+  "other": [
+   255,
+   255,
+   255
+  ]
+ },
+ "class_pixel_counts": {
+  "unlabelled": 11904,
+  "squash_leaf": 360852,
+  "squash_petiole": 55560,
+  "grass": 106099,
+  "broadleaf_weed": 18655,
+  "straw": 216116,
+  "soil": 0,
+  "fruit": 16692,
+  "other": 554
+ },
+ "class_pixel_fraction": {
+  "unlabelled": 0.01513671875,
+  "squash_leaf": 0.4588470458984375,
+  "squash_petiole": 0.070648193359375,
+  "grass": 0.13491185506184897,
+  "broadleaf_weed": 0.023721059163411457,
+  "straw": 0.2748057047526042,
+  "soil": 0.0,
+  "fruit": 0.0212249755859375,
+  "other": 0.0007044474283854166
+ },
+ "unlabelled_fraction": 0.01513671875,
+ "scored_fraction": 0.98486328125,
+ "instance_pixel_counts": {
+  "0": 228574,
+  "1": 433104,
+  "2": 2621,
+  "3": 4150,
+  "4": 3685,
+  "5": 1231,
+  "6": 1681,
+  "7": 491,
+  "8": 244,
+  "9": 3635,
+  "10": 917,
+  "255": 106099
+ },
+ "grass_unresolved_instance_id": 255,
+ "n_instances": 10,
+ "provenance": {
+  "boundaries": "SAM ViT-H automatic mask generator (points_per_side=48, crop_n_layers=1, min_mask_region_area=60) on the 768x1024 image; overlapping proposals painted largest-first into a 688-region partition (chunks/A0/{sam_propose,build_partition}.py).",
+  "classes": "Assigned by visual inspection of every region at 4-10x zoom (chunks/A0/{render_review,zoom}.py); calls recorded in chunks/A0/corrections.json over the heuristic first guess in chunks/A0/propose_classes.py. No classifier was used.",
+  "instances": "chunks/A0/instances.json"
+ }
+}
