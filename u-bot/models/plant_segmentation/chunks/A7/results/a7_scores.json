@@ -1,0 +1,2238 @@
+{
+ "ground_truth": "groundtruth/ (A0)",
+ "components": "chunks/A4 merge, a4_api.load_a4(tag='merge')",
+ "n_components_total": 207,
+ "n_renderable": 129,
+ "n_core_asked": 73,
+ "n_triaged_unsure": 134,
+ "gt_pixel_totals": {
+  "crop": 421926,
+  "weed": 17530,
+  "grass": 101124
+ },
+ "tiers": {
+  "gt_pixel_totals": {
+   "crop": 421926,
+   "weed": 17530,
+   "grass": 101124
+  },
+  "below_min_reviewable": {
+   "n_components": 78,
+   "crop_px_fraction": 0.0004953475253954485,
+   "weed_px_fraction": 0.00045636052481460356,
+   "grass_px_fraction": 0.001176773070685495,
+   "truth_histogram": {
+    "crop": 13,
+    "weed": 1,
+    "grass": 11,
+    "nonplant": 53
+   }
+  },
+  "tier2_silenced": {
+   "n_components": 56,
+   "crop_px_fraction": 0.0009030019482089277,
+   "weed_px_fraction": 0.0,
+   "grass_px_fraction": 0.0025216565800403466,
+   "truth_histogram": {
+    "crop": 11,
+    "weed": 0,
+    "grass": 9,
+    "nonplant": 36
+   }
+  },
+  "core_asked": {
+   "n_components": 73,
+   "crop_px_fraction": 0.9986016505263956,
+   "weed_px_fraction": 0.9995436394751854,
+   "grass_px_fraction": 0.9963015703492741,
+   "truth_histogram": {
+    "crop": 24,
+    "weed": 4,
+    "grass": 32,
+    "nonplant": 13
+   }
+  }
+ },
+ "truth_histogram": {
+  "crop": 24,
+  "weed": 4,
+  "grass": 32,
+  "nonplant": 13
+ },
+ "conditions": {
+  "A/neutral": {
+   "framing": "A",
+   "variant": "neutral",
+   "model": "claude-opus-5",
+   "n_runs": 2,
+   "per_repeat": [
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 6,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.006896944013879211,
+     "crop_px_at_risk_n": 2910,
+     "weed_keeps": 7,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7389617798060468,
+     "grass_px_reached": 0.08481666073335707,
+     "unsure_rate": 0.3835616438356164,
+     "unsure_on_crop": 9,
+     "unsure_on_weed": 12,
+     "accuracy_keep_remove": 0.3835616438356164,
+     "label_counts": {
+      "keep": 18,
+      "remove": 27,
+      "unsure": 28
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 9,
+       "unsure": 9,
+       "remove": 6
+      },
+      "weed": {
+       "remove": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 12,
+       "remove": 14,
+       "keep": 6
+      },
+      "nonplant": {
+       "remove": 4,
+       "unsure": 7,
+       "keep": 2
+      }
+     },
+     "nonplant_removes": 4,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5402739726027401,
+     "mean_confidence_remove": 0.6077777777777778,
+     "mean_confidence_keep": 0.6299999999999999
+    },
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 6,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.005877807956845513,
+     "crop_px_at_risk_n": 2480,
+     "weed_keeps": 8,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7389617798060468,
+     "grass_px_reached": 0.08784264862940548,
+     "unsure_rate": 0.4383561643835616,
+     "unsure_on_crop": 9,
+     "unsure_on_weed": 12,
+     "accuracy_keep_remove": 0.3424657534246575,
+     "label_counts": {
+      "keep": 17,
+      "remove": 24,
+      "unsure": 32
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 9,
+       "remove": 6,
+       "unsure": 9
+      },
+      "weed": {
+       "remove": 3,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 7,
+       "remove": 13,
+       "unsure": 12
+      },
+      "nonplant": {
+       "unsure": 11,
+       "remove": 2
+      }
+     },
+     "nonplant_removes": 2,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5300000000000004,
+     "mean_confidence_remove": 0.5975,
+     "mean_confidence_keep": 0.631764705882353
+    }
+   ],
+   "across_repeats_minmax": {
+    "crop_mislabels": [
+     6,
+     6
+    ],
+    "crop_px_at_risk": [
+     0.005877807956845513,
+     0.006896944013879211
+    ],
+    "weed_keeps": [
+     7,
+     8
+    ],
+    "weed_px_reached": [
+     0.7389617798060468,
+     0.7389617798060468
+    ],
+    "grass_px_reached": [
+     0.08481666073335707,
+     0.08784264862940548
+    ],
+    "unsure_rate": [
+     0.3835616438356164,
+     0.4383561643835616
+    ],
+    "accuracy_keep_remove": [
+     0.3424657534246575,
+     0.3835616438356164
+    ],
+    "nonplant_removes": [
+     2,
+     4
+    ]
+   },
+   "majority_vote_score": {
+    "n_components": 73,
+    "confidence_floor": 0.0,
+    "crop_mislabels": 4,
+    "crop_components": 24,
+    "crop_px_at_risk": 0.005150192213800525,
+    "crop_px_at_risk_n": 2173,
+    "weed_keeps": 5,
+    "weed_components": 4,
+    "grass_components": 32,
+    "weed_px_reached": 0.7389617798060468,
+    "grass_px_reached": 0.08043590047862031,
+    "unsure_rate": 0.5753424657534246,
+    "unsure_on_crop": 14,
+    "unsure_on_weed": 17,
+    "accuracy_keep_remove": 0.273972602739726,
+    "label_counts": {
+     "keep": 11,
+     "remove": 20,
+     "unsure": 42
+    },
+    "by_truth": {
+     "crop": {
+      "keep": 6,
+      "unsure": 14,
+      "remove": 4
+     },
+     "weed": {
+      "remove": 3,
+      "keep": 1
+     },
+     "grass": {
+      "unsure": 17,
+      "remove": 11,
+      "keep": 4
+     },
+     "nonplant": {
+      "unsure": 11,
+      "remove": 2
+     }
+    },
+    "nonplant_removes": 2,
+    "nonplant_components": 13,
+    "mean_confidence": 0.53513698630137,
+    "mean_confidence_remove": 0.6247499999999999,
+    "mean_confidence_keep": 0.6695454545454546
+   },
+   "confidence_floor_sweep": {
+    "0.00": {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 4,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.005150192213800525,
+     "crop_px_at_risk_n": 2173,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7389617798060468,
+     "grass_px_reached": 0.08043590047862031,
+     "unsure_rate": 0.5753424657534246,
+     "unsure_on_crop": 14,
+     "unsure_on_weed": 17,
+     "accuracy_keep_remove": 0.273972602739726,
+     "label_counts": {
+      "keep": 11,
+      "remove": 20,
+      "unsure": 42
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 14,
+       "remove": 4
+      },
+      "weed": {
+       "remove": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 17,
+       "remove": 11,
+       "keep": 4
+      },
+      "nonplant": {
+       "unsure": 11,
+       "remove": 2
+      }
+     },
+     "nonplant_removes": 2,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    },
+    "0.50": {
+     "n_components": 73,
+     "confidence_floor": 0.5,
+     "crop_mislabels": 3,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.004943994918540218,
+     "crop_px_at_risk_n": 2086,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7389617798060468,
+     "grass_px_reached": 0.08043590047862031,
+     "unsure_rate": 0.589041095890411,
+     "unsure_on_crop": 15,
+     "unsure_on_weed": 17,
+     "accuracy_keep_remove": 0.273972602739726,
+     "label_counts": {
+      "keep": 11,
+      "remove": 19,
+      "unsure": 43
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 15,
+       "remove": 3
+      },
+      "weed": {
+       "remove": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 17,
+       "remove": 11,
+       "keep": 4
+      },
+      "nonplant": {
+       "unsure": 11,
+       "remove": 2
+      }
+     },
+     "nonplant_removes": 2,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    },
+    "0.70": {
+     "n_components": 73,
+     "confidence_floor": 0.7,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.0043609825560697755,
+     "unsure_rate": 0.8082191780821918,
+     "unsure_on_crop": 18,
+     "unsure_on_weed": 29,
+     "accuracy_keep_remove": 0.1095890410958904,
+     "label_counts": {
+      "keep": 11,
+      "remove": 3,
+      "unsure": 59
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 18
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 27,
+       "keep": 4,
+       "remove": 1
+      },
+      "nonplant": {
+       "unsure": 12,
+       "remove": 1
+      }
+     },
+     "nonplant_removes": 1,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    },
+    "0.80": {
+     "n_components": 73,
+     "confidence_floor": 0.8,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.8493150684931506,
+     "unsure_on_crop": 18,
+     "unsure_on_weed": 31,
+     "accuracy_keep_remove": 0.0821917808219178,
+     "label_counts": {
+      "keep": 11,
+      "unsure": 62
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 18
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 28,
+       "keep": 4
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    },
+    "0.90": {
+     "n_components": 73,
+     "confidence_floor": 0.9,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.8493150684931506,
+     "unsure_on_crop": 18,
+     "unsure_on_weed": 31,
+     "accuracy_keep_remove": 0.0821917808219178,
+     "label_counts": {
+      "keep": 11,
+      "unsure": 62
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 18
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 28,
+       "keep": 4
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    },
+    "0.95": {
+     "n_components": 73,
+     "confidence_floor": 0.95,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 5,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.8493150684931506,
+     "unsure_on_crop": 18,
+     "unsure_on_weed": 31,
+     "accuracy_keep_remove": 0.0821917808219178,
+     "label_counts": {
+      "keep": 11,
+      "unsure": 62
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "unsure": 18
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 28,
+       "keep": 4
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.53513698630137,
+     "mean_confidence_remove": 0.6247499999999999,
+     "mean_confidence_keep": 0.6695454545454546
+    }
+   },
+   "stability": {
+    "n_repeats": 2,
+    "n_components": 73,
+    "flip_rate": 0.2876712328767123,
+    "flipped_ids": [
+     6,
+     13,
+     14,
+     41,
+     71,
+     75,
+     81,
+     101,
+     119,
+     133,
+     142,
+     159,
+     171,
+     175,
+     183,
+     190,
+     193,
+     197,
+     202,
+     204,
+     207
+    ],
+    "mean_confidence_spread": 0.06616438356164385,
+    "unanimous_rate": 0.7123287671232876
+   },
+   "r3": {
+    "hard_violations": 0,
+    "soft_frame_relative": 0,
+    "examples": []
+   },
+   "mixed": {
+    "n_repeats": 2,
+    "flagged_any": 6,
+    "component_1_flagged_in": 1,
+    "flagged": {
+     "1": 1,
+     "41": 1,
+     "6": 1,
+     "12": 1,
+     "40": 1,
+     "26": 1
+    }
+   },
+   "framing_b_binding": null
+  },
+  "A/r2": {
+   "framing": "A",
+   "variant": "r2",
+   "model": "claude-opus-5",
+   "n_runs": 2,
+   "per_repeat": [
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 1,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0011305299981513345,
+     "crop_px_at_risk_n": 477,
+     "weed_keeps": 18,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.029092994739132155,
+     "unsure_rate": 0.3698630136986301,
+     "unsure_on_crop": 5,
+     "unsure_on_weed": 16,
+     "accuracy_keep_remove": 0.3561643835616438,
+     "label_counts": {
+      "keep": 42,
+      "remove": 4,
+      "unsure": 27
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 18,
+       "remove": 1,
+       "unsure": 5
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 17,
+       "remove": 1,
+       "unsure": 14
+      },
+      "nonplant": {
+       "unsure": 6,
+       "remove": 1,
+       "keep": 6
+      }
+     },
+     "nonplant_removes": 1,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5760273972602741,
+     "mean_confidence_remove": 0.6,
+     "mean_confidence_keep": 0.6519047619047621
+    },
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 1,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0011305299981513345,
+     "crop_px_at_risk_n": 477,
+     "weed_keeps": 18,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.04077172580198568,
+     "unsure_rate": 0.3835616438356164,
+     "unsure_on_crop": 7,
+     "unsure_on_weed": 14,
+     "accuracy_keep_remove": 0.3424657534246575,
+     "label_counts": {
+      "keep": 39,
+      "remove": 6,
+      "unsure": 28
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "remove": 1,
+       "unsure": 7
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 17,
+       "remove": 3,
+       "unsure": 12
+      },
+      "nonplant": {
+       "unsure": 7,
+       "keep": 5,
+       "remove": 1
+      }
+     },
+     "nonplant_removes": 1,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5801369863013699,
+     "mean_confidence_remove": 0.5866666666666668,
+     "mean_confidence_keep": 0.665128205128205
+    }
+   ],
+   "across_repeats_minmax": {
+    "crop_mislabels": [
+     1,
+     1
+    ],
+    "crop_px_at_risk": [
+     0.0011305299981513345,
+     0.0011305299981513345
+    ],
+    "weed_keeps": [
+     18,
+     18
+    ],
+    "weed_px_reached": [
+     0.713063320022818,
+     0.713063320022818
+    ],
+    "grass_px_reached": [
+     0.029092994739132155,
+     0.04077172580198568
+    ],
+    "unsure_rate": [
+     0.3698630136986301,
+     0.3835616438356164
+    ],
+    "accuracy_keep_remove": [
+     0.3424657534246575,
+     0.3561643835616438
+    ],
+    "nonplant_removes": [
+     1,
+     1
+    ]
+   },
+   "majority_vote_score": {
+    "n_components": 73,
+    "confidence_floor": 0.0,
+    "crop_mislabels": 1,
+    "crop_components": 24,
+    "crop_px_at_risk": 0.0011305299981513345,
+    "crop_px_at_risk_n": 477,
+    "weed_keeps": 14,
+    "weed_components": 4,
+    "grass_components": 32,
+    "weed_px_reached": 0.713063320022818,
+    "grass_px_reached": 0.029092994739132155,
+    "unsure_rate": 0.4794520547945205,
+    "unsure_on_crop": 7,
+    "unsure_on_weed": 20,
+    "accuracy_keep_remove": 0.3150684931506849,
+    "label_counts": {
+     "keep": 35,
+     "remove": 3,
+     "unsure": 35
+    },
+    "by_truth": {
+     "crop": {
+      "keep": 16,
+      "remove": 1,
+      "unsure": 7
+     },
+     "weed": {
+      "remove": 1,
+      "unsure": 2,
+      "keep": 1
+     },
+     "grass": {
+      "keep": 13,
+      "remove": 1,
+      "unsure": 18
+     },
+     "nonplant": {
+      "unsure": 8,
+      "keep": 5
+     }
+    },
+    "nonplant_removes": 0,
+    "nonplant_components": 13,
+    "mean_confidence": 0.5780821917808221,
+    "mean_confidence_remove": 0.5966666666666667,
+    "mean_confidence_keep": 0.6694285714285714
+   },
+   "confidence_floor_sweep": {
+    "0.00": {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 1,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0011305299981513345,
+     "crop_px_at_risk_n": 477,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.029092994739132155,
+     "unsure_rate": 0.4794520547945205,
+     "unsure_on_crop": 7,
+     "unsure_on_weed": 20,
+     "accuracy_keep_remove": 0.3150684931506849,
+     "label_counts": {
+      "keep": 35,
+      "remove": 3,
+      "unsure": 35
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "remove": 1,
+       "unsure": 7
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "remove": 1,
+       "unsure": 18
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    },
+    "0.50": {
+     "n_components": 73,
+     "confidence_floor": 0.5,
+     "crop_mislabels": 1,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0011305299981513345,
+     "crop_px_at_risk_n": 477,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.029092994739132155,
+     "unsure_rate": 0.4794520547945205,
+     "unsure_on_crop": 7,
+     "unsure_on_weed": 20,
+     "accuracy_keep_remove": 0.3150684931506849,
+     "label_counts": {
+      "keep": 35,
+      "remove": 3,
+      "unsure": 35
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "remove": 1,
+       "unsure": 7
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "remove": 1,
+       "unsure": 18
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    },
+    "0.70": {
+     "n_components": 73,
+     "confidence_floor": 0.7,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.5205479452054794,
+     "unsure_on_crop": 8,
+     "unsure_on_weed": 22,
+     "accuracy_keep_remove": 0.2876712328767123,
+     "label_counts": {
+      "keep": 35,
+      "unsure": 38
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "unsure": 8
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "unsure": 19
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    },
+    "0.80": {
+     "n_components": 73,
+     "confidence_floor": 0.8,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.5205479452054794,
+     "unsure_on_crop": 8,
+     "unsure_on_weed": 22,
+     "accuracy_keep_remove": 0.2876712328767123,
+     "label_counts": {
+      "keep": 35,
+      "unsure": 38
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "unsure": 8
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "unsure": 19
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    },
+    "0.90": {
+     "n_components": 73,
+     "confidence_floor": 0.9,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.5205479452054794,
+     "unsure_on_crop": 8,
+     "unsure_on_weed": 22,
+     "accuracy_keep_remove": 0.2876712328767123,
+     "label_counts": {
+      "keep": 35,
+      "unsure": 38
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "unsure": 8
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "unsure": 19
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    },
+    "0.95": {
+     "n_components": 73,
+     "confidence_floor": 0.95,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 14,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.5205479452054794,
+     "unsure_on_crop": 8,
+     "unsure_on_weed": 22,
+     "accuracy_keep_remove": 0.2876712328767123,
+     "label_counts": {
+      "keep": 35,
+      "unsure": 38
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 16,
+       "unsure": 8
+      },
+      "weed": {
+       "unsure": 3,
+       "keep": 1
+      },
+      "grass": {
+       "keep": 13,
+       "unsure": 19
+      },
+      "nonplant": {
+       "unsure": 8,
+       "keep": 5
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.5780821917808221,
+     "mean_confidence_remove": 0.5966666666666667,
+     "mean_confidence_keep": 0.6694285714285714
+    }
+   },
+   "stability": {
+    "n_repeats": 2,
+    "n_components": 73,
+    "flip_rate": 0.2054794520547945,
+    "flipped_ids": [
+     2,
+     11,
+     21,
+     40,
+     67,
+     71,
+     78,
+     83,
+     84,
+     91,
+     94,
+     133,
+     150,
+     171,
+     173
+    ],
+    "mean_confidence_spread": 0.054246575342465735,
+    "unanimous_rate": 0.7945205479452055
+   },
+   "r3": {
+    "hard_violations": 0,
+    "soft_frame_relative": 0,
+    "examples": []
+   },
+   "mixed": {
+    "n_repeats": 2,
+    "flagged_any": 4,
+    "component_1_flagged_in": 2,
+    "flagged": {
+     "1": 2,
+     "41": 2,
+     "6": 1,
+     "124": 1
+    }
+   },
+   "framing_b_binding": null
+  },
+  "B/neutral": {
+   "framing": "B",
+   "variant": "neutral",
+   "model": "claude-opus-5",
+   "n_runs": 2,
+   "per_repeat": [
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 17,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.016168712049032294,
+     "crop_px_at_risk_n": 6822,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7397033656588705,
+     "grass_px_reached": 0.1187354139472331,
+     "unsure_rate": 0.0821917808219178,
+     "unsure_on_crop": 2,
+     "unsure_on_weed": 4,
+     "accuracy_keep_remove": 0.5068493150684932,
+     "label_counts": {
+      "keep": 5,
+      "remove": 62,
+      "unsure": 6
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "remove": 17,
+       "unsure": 2
+      },
+      "weed": {
+       "remove": 3,
+       "unsure": 1
+      },
+      "grass": {
+       "remove": 29,
+       "unsure": 3
+      },
+      "nonplant": {
+       "remove": 13
+      }
+     },
+     "nonplant_removes": 13,
+     "nonplant_components": 13,
+     "mean_confidence": 0.45219178082191785,
+     "mean_confidence_remove": 0.4612903225806451,
+     "mean_confidence_keep": 0.612
+    },
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 12,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.01421813303754687,
+     "crop_px_at_risk_n": 5999,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7397033656588705,
+     "grass_px_reached": 0.10451524860567224,
+     "unsure_rate": 0.3698630136986301,
+     "unsure_on_crop": 9,
+     "unsure_on_weed": 10,
+     "accuracy_keep_remove": 0.3972602739726027,
+     "label_counts": {
+      "keep": 3,
+      "remove": 43,
+      "unsure": 27
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "remove": 12,
+       "unsure": 9
+      },
+      "weed": {
+       "remove": 3,
+       "unsure": 1
+      },
+      "grass": {
+       "remove": 23,
+       "unsure": 9
+      },
+      "nonplant": {
+       "remove": 5,
+       "unsure": 8
+      }
+     },
+     "nonplant_removes": 5,
+     "nonplant_components": 13,
+     "mean_confidence": 0.48109589041095885,
+     "mean_confidence_remove": 0.5406976744186045,
+     "mean_confidence_keep": 0.64
+    }
+   ],
+   "across_repeats_minmax": {
+    "crop_mislabels": [
+     12,
+     17
+    ],
+    "crop_px_at_risk": [
+     0.01421813303754687,
+     0.016168712049032294
+    ],
+    "weed_keeps": [
+     0,
+     0
+    ],
+    "weed_px_reached": [
+     0.7397033656588705,
+     0.7397033656588705
+    ],
+    "grass_px_reached": [
+     0.10451524860567224,
+     0.1187354139472331
+    ],
+    "unsure_rate": [
+     0.0821917808219178,
+     0.3698630136986301
+    ],
+    "accuracy_keep_remove": [
+     0.3972602739726027,
+     0.5068493150684932
+    ],
+    "nonplant_removes": [
+     5,
+     13
+    ]
+   },
+   "majority_vote_score": {
+    "n_components": 73,
+    "confidence_floor": 0.0,
+    "crop_mislabels": 12,
+    "crop_components": 24,
+    "crop_px_at_risk": 0.01421813303754687,
+    "crop_px_at_risk_n": 5999,
+    "weed_keeps": 0,
+    "weed_components": 4,
+    "grass_components": 32,
+    "weed_px_reached": 0.7397033656588705,
+    "grass_px_reached": 0.10451524860567224,
+    "unsure_rate": 0.3698630136986301,
+    "unsure_on_crop": 9,
+    "unsure_on_weed": 10,
+    "accuracy_keep_remove": 0.3972602739726027,
+    "label_counts": {
+     "keep": 3,
+     "remove": 43,
+     "unsure": 27
+    },
+    "by_truth": {
+     "crop": {
+      "keep": 3,
+      "remove": 12,
+      "unsure": 9
+     },
+     "weed": {
+      "remove": 3,
+      "unsure": 1
+     },
+     "grass": {
+      "remove": 23,
+      "unsure": 9
+     },
+     "nonplant": {
+      "remove": 5,
+      "unsure": 8
+     }
+    },
+    "nonplant_removes": 5,
+    "nonplant_components": 13,
+    "mean_confidence": 0.46664383561643824,
+    "mean_confidence_remove": 0.5180232558139536,
+    "mean_confidence_keep": 0.6466666666666666
+   },
+   "confidence_floor_sweep": {
+    "0.00": {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 12,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.01421813303754687,
+     "crop_px_at_risk_n": 5999,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7397033656588705,
+     "grass_px_reached": 0.10451524860567224,
+     "unsure_rate": 0.3698630136986301,
+     "unsure_on_crop": 9,
+     "unsure_on_weed": 10,
+     "accuracy_keep_remove": 0.3972602739726027,
+     "label_counts": {
+      "keep": 3,
+      "remove": 43,
+      "unsure": 27
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "remove": 12,
+       "unsure": 9
+      },
+      "weed": {
+       "remove": 3,
+       "unsure": 1
+      },
+      "grass": {
+       "remove": 23,
+       "unsure": 9
+      },
+      "nonplant": {
+       "remove": 5,
+       "unsure": 8
+      }
+     },
+     "nonplant_removes": 5,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    },
+    "0.50": {
+     "n_components": 73,
+     "confidence_floor": 0.5,
+     "crop_mislabels": 6,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.009169854429449713,
+     "crop_px_at_risk_n": 3869,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7347974900171135,
+     "grass_px_reached": 0.08402555278667774,
+     "unsure_rate": 0.6301369863013698,
+     "unsure_on_crop": 15,
+     "unsure_on_weed": 21,
+     "accuracy_keep_remove": 0.2465753424657534,
+     "label_counts": {
+      "keep": 3,
+      "remove": 24,
+      "unsure": 46
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "remove": 6,
+       "unsure": 15
+      },
+      "weed": {
+       "remove": 2,
+       "unsure": 2
+      },
+      "grass": {
+       "remove": 13,
+       "unsure": 19
+      },
+      "nonplant": {
+       "unsure": 10,
+       "remove": 3
+      }
+     },
+     "nonplant_removes": 3,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    },
+    "0.70": {
+     "n_components": 73,
+     "confidence_floor": 0.7,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.009799849689490131,
+     "unsure_rate": 0.9315068493150684,
+     "unsure_on_crop": 21,
+     "unsure_on_weed": 34,
+     "accuracy_keep_remove": 0.0684931506849315,
+     "label_counts": {
+      "keep": 3,
+      "remove": 2,
+      "unsure": 68
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "unsure": 21
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 3
+      },
+      "grass": {
+       "unsure": 31,
+       "remove": 1
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    },
+    "0.80": {
+     "n_components": 73,
+     "confidence_floor": 0.8,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.0041829832680669275,
+     "unsure_rate": 0.9452054794520548,
+     "unsure_on_crop": 21,
+     "unsure_on_weed": 35,
+     "accuracy_keep_remove": 0.0547945205479452,
+     "label_counts": {
+      "keep": 3,
+      "remove": 1,
+      "unsure": 69
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "unsure": 21
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 3
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    },
+    "0.90": {
+     "n_components": 73,
+     "confidence_floor": 0.9,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.958904109589041,
+     "unsure_on_crop": 21,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0410958904109589,
+     "label_counts": {
+      "keep": 3,
+      "unsure": 70
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "unsure": 21
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    },
+    "0.95": {
+     "n_components": 73,
+     "confidence_floor": 0.95,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.958904109589041,
+     "unsure_on_crop": 21,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0410958904109589,
+     "label_counts": {
+      "keep": 3,
+      "unsure": 70
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 3,
+       "unsure": 21
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.46664383561643824,
+     "mean_confidence_remove": 0.5180232558139536,
+     "mean_confidence_keep": 0.6466666666666666
+    }
+   },
+   "stability": {
+    "n_repeats": 2,
+    "n_components": 73,
+    "flip_rate": 0.2876712328767123,
+    "flipped_ids": [
+     7,
+     14,
+     21,
+     22,
+     69,
+     71,
+     81,
+     91,
+     94,
+     96,
+     101,
+     119,
+     132,
+     133,
+     134,
+     135,
+     156,
+     157,
+     169,
+     177,
+     202
+    ],
+    "mean_confidence_spread": 0.05904109589041094,
+    "unanimous_rate": 0.7123287671232876
+   },
+   "r3": {
+    "hard_violations": 0,
+    "soft_frame_relative": 0,
+    "examples": []
+   },
+   "mixed": {
+    "n_repeats": 2,
+    "flagged_any": 26,
+    "component_1_flagged_in": 0,
+    "flagged": {
+     "104": 2,
+     "41": 2,
+     "150": 2,
+     "84": 2,
+     "142": 2,
+     "78": 2,
+     "175": 2,
+     "75": 2,
+     "171": 2,
+     "190": 2,
+     "40": 2,
+     "203": 2,
+     "159": 2,
+     "185": 2,
+     "77": 2,
+     "204": 2,
+     "6": 1,
+     "156": 1,
+     "178": 1,
+     "183": 1,
+     "63": 1,
+     "194": 1,
+     "188": 1,
+     "26": 1,
+     "112": 1,
+     "2": 1
+    }
+   },
+   "framing_b_binding": {
+    "n_asked": 73,
+    "returned_per_rep": [
+     73,
+     73
+    ],
+    "omitted_per_rep": [
+     0,
+     0
+    ],
+    "hallucinated_ids_per_rep": [
+     [],
+     []
+    ],
+    "rejects_per_rep": [
+     0,
+     0
+    ]
+   }
+  },
+  "B/r2": {
+   "framing": "B",
+   "variant": "r2",
+   "model": "claude-opus-5",
+   "n_runs": 2,
+   "per_repeat": [
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 6,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.007323559107521224,
+     "crop_px_at_risk_n": 3090,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.7179691956645751,
+     "grass_px_reached": 0.07603536252521656,
+     "unsure_rate": 0.6575342465753424,
+     "unsure_on_crop": 12,
+     "unsure_on_weed": 23,
+     "accuracy_keep_remove": 0.2602739726027397,
+     "label_counts": {
+      "keep": 6,
+      "remove": 19,
+      "unsure": 48
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 6,
+       "remove": 6,
+       "unsure": 12
+      },
+      "weed": {
+       "remove": 2,
+       "unsure": 2
+      },
+      "grass": {
+       "unsure": 21,
+       "remove": 11
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.43561643835616437,
+     "mean_confidence_remove": 0.5731578947368421,
+     "mean_confidence_keep": 0.6083333333333334
+    },
+    {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 7,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.00883804268995037,
+     "crop_px_at_risk_n": 3729,
+     "weed_keeps": 1,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.07987223606661129,
+     "unsure_rate": 0.5753424657534246,
+     "unsure_on_crop": 10,
+     "unsure_on_weed": 20,
+     "accuracy_keep_remove": 0.3013698630136986,
+     "label_counts": {
+      "keep": 8,
+      "remove": 23,
+      "unsure": 42
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 7,
+       "remove": 7,
+       "unsure": 10
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 2,
+       "keep": 1
+      },
+      "grass": {
+       "unsure": 18,
+       "remove": 14
+      },
+      "nonplant": {
+       "unsure": 12,
+       "remove": 1
+      }
+     },
+     "nonplant_removes": 1,
+     "nonplant_components": 13,
+     "mean_confidence": 0.4105479452054797,
+     "mean_confidence_remove": 0.517391304347826,
+     "mean_confidence_keep": 0.59625
+    }
+   ],
+   "across_repeats_minmax": {
+    "crop_mislabels": [
+     6,
+     7
+    ],
+    "crop_px_at_risk": [
+     0.007323559107521224,
+     0.00883804268995037
+    ],
+    "weed_keeps": [
+     0,
+     1
+    ],
+    "weed_px_reached": [
+     0.713063320022818,
+     0.7179691956645751
+    ],
+    "grass_px_reached": [
+     0.07603536252521656,
+     0.07987223606661129
+    ],
+    "unsure_rate": [
+     0.5753424657534246,
+     0.6575342465753424
+    ],
+    "accuracy_keep_remove": [
+     0.2602739726027397,
+     0.3013698630136986
+    ],
+    "nonplant_removes": [
+     0,
+     1
+    ]
+   },
+   "majority_vote_score": {
+    "n_components": 73,
+    "confidence_floor": 0.0,
+    "crop_mislabels": 5,
+    "crop_components": 24,
+    "crop_px_at_risk": 0.006688376634765338,
+    "crop_px_at_risk_n": 2822,
+    "weed_keeps": 0,
+    "weed_components": 4,
+    "grass_components": 32,
+    "weed_px_reached": 0.713063320022818,
+    "grass_px_reached": 0.07601558482654958,
+    "unsure_rate": 0.6986301369863014,
+    "unsure_on_crop": 14,
+    "unsure_on_weed": 24,
+    "accuracy_keep_remove": 0.2328767123287671,
+    "label_counts": {
+     "keep": 5,
+     "remove": 17,
+     "unsure": 51
+    },
+    "by_truth": {
+     "crop": {
+      "keep": 5,
+      "remove": 5,
+      "unsure": 14
+     },
+     "weed": {
+      "remove": 1,
+      "unsure": 3
+     },
+     "grass": {
+      "unsure": 21,
+      "remove": 11
+     },
+     "nonplant": {
+      "unsure": 13
+     }
+    },
+    "nonplant_removes": 0,
+    "nonplant_components": 13,
+    "mean_confidence": 0.42308219178082185,
+    "mean_confidence_remove": 0.5576470588235294,
+    "mean_confidence_keep": 0.647
+   },
+   "confidence_floor_sweep": {
+    "0.00": {
+     "n_components": 73,
+     "confidence_floor": 0.0,
+     "crop_mislabels": 5,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.006688376634765338,
+     "crop_px_at_risk_n": 2822,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.07601558482654958,
+     "unsure_rate": 0.6986301369863014,
+     "unsure_on_crop": 14,
+     "unsure_on_weed": 24,
+     "accuracy_keep_remove": 0.2328767123287671,
+     "label_counts": {
+      "keep": 5,
+      "remove": 17,
+      "unsure": 51
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "remove": 5,
+       "unsure": 14
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 3
+      },
+      "grass": {
+       "unsure": 21,
+       "remove": 11
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    },
+    "0.50": {
+     "n_components": 73,
+     "confidence_floor": 0.5,
+     "crop_mislabels": 4,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.006427667410872997,
+     "crop_px_at_risk_n": 2712,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.713063320022818,
+     "grass_px_reached": 0.051590126972825445,
+     "unsure_rate": 0.7534246575342466,
+     "unsure_on_crop": 15,
+     "unsure_on_weed": 27,
+     "accuracy_keep_remove": 0.1917808219178082,
+     "label_counts": {
+      "keep": 5,
+      "remove": 13,
+      "unsure": 55
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "remove": 4,
+       "unsure": 15
+      },
+      "weed": {
+       "remove": 1,
+       "unsure": 3
+      },
+      "grass": {
+       "unsure": 24,
+       "remove": 8
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    },
+    "0.70": {
+     "n_components": 73,
+     "confidence_floor": 0.7,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.9315068493150684,
+     "unsure_on_crop": 19,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0684931506849315,
+     "label_counts": {
+      "keep": 5,
+      "unsure": 68
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "unsure": 19
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    },
+    "0.80": {
+     "n_components": 73,
+     "confidence_floor": 0.8,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.9315068493150684,
+     "unsure_on_crop": 19,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0684931506849315,
+     "label_counts": {
+      "keep": 5,
+      "unsure": 68
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "unsure": 19
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    },
+    "0.90": {
+     "n_components": 73,
+     "confidence_floor": 0.9,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.9315068493150684,
+     "unsure_on_crop": 19,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0684931506849315,
+     "label_counts": {
+      "keep": 5,
+      "unsure": 68
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "unsure": 19
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    },
+    "0.95": {
+     "n_components": 73,
+     "confidence_floor": 0.95,
+     "crop_mislabels": 0,
+     "crop_components": 24,
+     "crop_px_at_risk": 0.0,
+     "crop_px_at_risk_n": 0,
+     "weed_keeps": 0,
+     "weed_components": 4,
+     "grass_components": 32,
+     "weed_px_reached": 0.0,
+     "grass_px_reached": 0.0,
+     "unsure_rate": 0.9315068493150684,
+     "unsure_on_crop": 19,
+     "unsure_on_weed": 36,
+     "accuracy_keep_remove": 0.0684931506849315,
+     "label_counts": {
+      "keep": 5,
+      "unsure": 68
+     },
+     "by_truth": {
+      "crop": {
+       "keep": 5,
+       "unsure": 19
+      },
+      "weed": {
+       "unsure": 4
+      },
+      "grass": {
+       "unsure": 32
+      },
+      "nonplant": {
+       "unsure": 13
+      }
+     },
+     "nonplant_removes": 0,
+     "nonplant_components": 13,
+     "mean_confidence": 0.42308219178082185,
+     "mean_confidence_remove": 0.5576470588235294,
+     "mean_confidence_keep": 0.647
+    }
+   },
+   "stability": {
+    "n_repeats": 2,
+    "n_components": 73,
+    "flip_rate": 0.1232876712328767,
+    "flipped_ids": [
+     16,
+     22,
+     62,
+     63,
+     123,
+     124,
+     188,
+     189,
+     202
+    ],
+    "mean_confidence_spread": 0.05219178082191781,
+    "unanimous_rate": 0.8767123287671232
+   },
+   "r3": {
+    "hard_violations": 0,
+    "soft_frame_relative": 0,
+    "examples": []
+   },
+   "mixed": {
+    "n_repeats": 2,
+    "flagged_any": 27,
+    "component_1_flagged_in": 0,
+    "flagged": {
+     "104": 2,
+     "84": 2,
+     "40": 2,
+     "188": 2,
+     "2": 2,
+     "41": 1,
+     "16": 1,
+     "5": 1,
+     "10": 1,
+     "142": 1,
+     "156": 1,
+     "178": 1,
+     "171": 1,
+     "190": 1,
+     "22": 1,
+     "124": 1,
+     "63": 1,
+     "14": 1,
+     "71": 1,
+     "203": 1,
+     "159": 1,
+     "185": 1,
+     "34": 1,
+     "145": 1,
+     "123": 1,
+     "26": 1,
+     "204": 1
+    }
+   },
+   "framing_b_binding": {
+    "n_asked": 73,
+    "returned_per_rep": [
+     73,
+     73
+    ],
+    "omitted_per_rep": [
+     0,
+     0
+    ],
+    "hallucinated_ids_per_rep": [
+     [],
+     []
+    ],
+    "rejects_per_rep": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ "baselines": {
+  "labels_baseline_a3_majority_r0.json": {
+   "n_components": 73,
+   "confidence_floor": 0.0,
+   "crop_mislabels": 18,
+   "crop_components": 24,
+   "crop_px_at_risk": 0.01595303441835772,
+   "crop_px_at_risk_n": 6731,
+   "weed_keeps": 2,
+   "weed_components": 4,
+   "grass_components": 32,
+   "weed_px_reached": 0.7389617798060468,
+   "grass_px_reached": 0.12186029033661643,
+   "unsure_rate": 0.0,
+   "unsure_on_crop": 0,
+   "unsure_on_weed": 0,
+   "accuracy_keep_remove": 0.547945205479452,
+   "label_counts": {
+    "keep": 8,
+    "remove": 65
+   },
+   "by_truth": {
+    "crop": {
+     "keep": 6,
+     "remove": 18
+    },
+    "weed": {
+     "remove": 3,
+     "keep": 1
+    },
+    "grass": {
+     "remove": 31,
+     "keep": 1
+    },
+    "nonplant": {
+     "remove": 13
+    }
+   },
+   "nonplant_removes": 13,
+   "nonplant_components": 13,
+   "mean_confidence": 1.0,
+   "mean_confidence_remove": 1.0,
+   "mean_confidence_keep": 1.0,
+   "model": "none (A3 material classifier)"
+  },
+  "labels_baseline_all_keep_r0.json": {
+   "n_components": 73,
+   "confidence_floor": 0.0,
+   "crop_mislabels": 0,
+   "crop_components": 24,
+   "crop_px_at_risk": 0.0,
+   "crop_px_at_risk_n": 0,
+   "weed_keeps": 36,
+   "weed_components": 4,
+   "grass_components": 32,
+   "weed_px_reached": 0.0,
+   "grass_px_reached": 0.0,
+   "unsure_rate": 0.0,
+   "unsure_on_crop": 0,
+   "unsure_on_weed": 0,
+   "accuracy_keep_remove": 0.5068493150684932,
+   "label_counts": {
+    "keep": 73
+   },
+   "by_truth": {
+    "crop": {
+     "keep": 24
+    },
+    "weed": {
+     "keep": 4
+    },
+    "grass": {
+     "keep": 32
+    },
+    "nonplant": {
+     "keep": 13
+    }
+   },
+   "nonplant_removes": 0,
+   "nonplant_components": 13,
+   "mean_confidence": 1.0,
+   "mean_confidence_remove": null,
+   "mean_confidence_keep": 1.0,
+   "model": "none"
+  },
+  "labels_baseline_all_remove_r0.json": {
+   "n_components": 73,
+   "confidence_floor": 0.0,
+   "crop_mislabels": 24,
+   "crop_components": 24,
+   "crop_px_at_risk": 0.9986016505263956,
+   "crop_px_at_risk_n": 421336,
+   "weed_keeps": 0,
+   "weed_components": 4,
+   "grass_components": 32,
+   "weed_px_reached": 0.9995436394751854,
+   "grass_px_reached": 0.9963015703492741,
+   "unsure_rate": 0.0,
+   "unsure_on_crop": 0,
+   "unsure_on_weed": 0,
+   "accuracy_keep_remove": 0.4931506849315068,
+   "label_counts": {
+    "remove": 73
+   },
+   "by_truth": {
+    "crop": {
+     "remove": 24
+    },
+    "weed": {
+     "remove": 4
+    },
+    "grass": {
+     "remove": 32
+    },
+    "nonplant": {
+     "remove": 13
+    }
+   },
+   "nonplant_removes": 13,
+   "nonplant_components": 13,
+   "mean_confidence": 1.0,
+   "mean_confidence_remove": 1.0,
+   "mean_confidence_keep": null,
+   "model": "none"
+  }
+ }
+}

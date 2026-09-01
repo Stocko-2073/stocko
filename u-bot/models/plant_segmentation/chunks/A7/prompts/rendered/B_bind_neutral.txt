@@ -1,0 +1,108 @@
+First, read these image files:
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_00_overview.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_01.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_02.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_03.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_04.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_05.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_06.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_07.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_08.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_09.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_10.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_11.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/montage_12.png
+Do not use any tool other than reading those files.
+
+You are looking at a photograph of one bed in a home vegetable garden. A
+segmentation system has already divided the plant material in that photograph
+into numbered regions. Your job is the semantic half of weeding, and only that
+half: decide what each region *is*, so that a machine can later decide what to
+do about it.
+
+For each region you are shown, choose exactly one label:
+
+  keep    - the material in this region belongs to a plant the gardener is
+            growing on purpose, or is something a weeding tool must not cut.
+  remove  - the material in this region is a weed: a plant growing here that
+            the gardener did not plant and does not want.
+  unsure  - you cannot tell which of the two it is from what you were shown.
+
+A region may be a whole plant, a part of a plant, or a patch of material that
+belongs to more than one plant. Say so in the `mixed` field when it happens.
+
+Treat the two possible mistakes as equally costly. Calling a crop plant a weed
+and calling a weed a crop plant are both simply errors, and neither is worse
+than the other. Answer with whichever label the visual evidence best supports,
+and use `unsure` only when you genuinely cannot tell the two apart.
+
+Earlier, looking at this same photograph, you described the scene as follows.
+
+--- your scene description ---
+{
+ "crop": {
+  "name": "Winter squash / pumpkin (Cucurbita, most consistent with a kabocha-type Cucurbita maxima or C. pepo bush squash) \u2014 a single vining plant with two fruit set",
+  "distinguishing_features": "Very large palmate-lobed leaves with coarse, jagged-toothed margins, a dense pale reticulate vein network, and a bristly/hispid surface with fine white flecking; thick, hollow, deeply ribbed and prickly-hairy petioles and vine stems radiating from one crown; coiling branched tendrils at the nodes; two round fruit \u2014 one small pale-green immature fruit with darker mottled stripes still bearing a shriveled brown flower remnant at its tip, and one larger flattened-globe fruit with very dark green skin, pale green longitudinal stripes and white speckling, resting directly on the straw mulch"
+ },
+ "weeds": [
+  {
+   "name": "Grass seedlings / volunteer grass (crabgrass- or barnyardgrass-type annual grass, plus possible volunteer cereal from the straw)",
+   "distinguishing_features": "Narrow strap-shaped blades with parallel venation and no branching veins, a keeled midrib, smooth hairless glossy surfaces, and blades emerging in tufts from thin round jointed culms at ground level; totally unlike the broad, netted-veined, hairy squash foliage. They are the most abundant weed, threading up through the squash canopy and across the fruit."
+  },
+  {
+   "name": "Purslane (Portulaca oleracea)",
+   "distinguishing_features": "Low, prostrate, succulent rosettes with fleshy, smooth, spoon-shaped/obovate leaves clustered at the stem tips, thickened reddish-tinged stems, no hairs and no visible vein network \u2014 a fat, waxy look that contrasts sharply with the thin, hairy, sharply lobed squash leaves."
+  },
+  {
+   "name": "Broadleaf seedlings with scalloped/crenate round leaves (mallow- or ground-ivy/henbit-type, and a small clover-leaved seedling)",
+   "distinguishing_features": "Small rounded to kidney-shaped leaves with blunt scalloped margins on slender petioles, growing in tiny low clusters on the bare mulched soil away from the squash crown; leaf size a fraction of even the youngest squash leaf, margins rounded rather than jaggedly toothed, and no tendrils or hollow ribbed stems."
+  }
+ ],
+ "non_plant_material": [
+  "Dry straw/hay mulch covering most of the soil surface (bleached stems, chaff and broken stalks)",
+  "Bare dry soil and small clods visible between mulch straws",
+  "Dried, shriveled brown squash flower remnants attached to the young fruit and lying on the mulch",
+  "A small white/grey feather or downy fluff caught in the mulch",
+  "Dead, senesced brown leaf and stem debris",
+  "Deep cast shadows across leaves and mulch from strong direct sunlight"
+ ],
+ "hard_to_tell_apart": "The hardest calls are (1) grass blades that lie directly across squash leaves and the fruit \u2014 at a glance the thin green strap merges into the leaf beneath it, and only the parallel venation and hard-edged straight margin separate them; (2) young, still-folded squash leaves near the crown, which are pale, crumpled and small enough to be mistaken for a broadleaf weed seedling until you trace their petiole back to the main vine; (3) the pale green squash tendrils versus fine grass leaf tips of the same width and colour; and (4) distinguishing genuine annual weed grass from volunteer cereal grass sprouting out of the straw mulch itself \u2014 visually they are nearly the same, though both are unwanted here."
+}
+--- end of scene description ---
+
+Now you are shown the same bed again: an overview panel, then 12 tiles at
+full resolution. This time every region the segmentation system found is
+outlined in magenta and stamped with its region number in yellow. The magenta
+and the yellow are drawn by the segmentation system; there is nothing magenta or
+yellow in this garden.
+
+Using the description above as your account of what is in this bed, give a label
+to EVERY one of the 73 regions listed below. Not some of them: every one. A
+region you cannot find or cannot judge gets `unsure` - it does not get left out.
+
+Region numbers to label, all 73 of them:
+1, 104, 41, 120, 83, 6, 88, 20, 150, 84, 16, 5, 10, 142, 173, 156, 78, 11, 175, 179, 178, 177, 75, 67, 183, 91, 134, 157, 171, 190, 62, 12, 22, 124, 63, 81, 193, 194, 14, 21, 132, 197, 71, 40, 13, 201, 96, 202, 69, 135, 203, 159, 185, 101, 133, 34, 94, 205, 25, 145, 169, 189, 206, 77, 123, 188, 7, 26, 112, 119, 204, 2, 207
+
+Reply with exactly this JSON object:
+
+{"labels": [
+   {"id": 0, "label": "keep"|"remove"|"unsure", "confidence": 0.00,
+     "reason": "...", "mixed": false, "mixed_note": ""},
+   ... one entry for each of the 73 region numbers, in the order listed ...
+]}
+
+Output rules, which are strict:
+
+* Reply with JSON and nothing else. No prose before or after, no code fence.
+* You must not output coordinates, pixel positions, bounding boxes, directions,
+  distances, or measurements of any kind, anywhere in your reply, including
+  inside `reason`. The region number is the only handle you are given on the
+  image, and it is the only one you may use. A reply containing a coordinate is
+  rejected outright.
+* `confidence` is a number from 0.00 to 1.00: how sure you are of the label you
+  chose.
+* `reason` is one line, at most 140 characters, saying what you saw.
+* `mixed` is true when the outlined region clearly contains plant material of
+  more than one kind, that is, material from more than one plant or more than
+  one species, false otherwise. `mixed_note` is at most 100 characters, or ""
+  when mixed is false.

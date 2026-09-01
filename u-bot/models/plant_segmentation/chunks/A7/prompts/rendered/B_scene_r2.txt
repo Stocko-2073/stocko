@@ -1,0 +1,58 @@
+First, read these image files:
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_00_overview.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_01.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_02.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_03.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_04.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_05.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_06.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_07.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_08.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_09.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_10.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_11.png
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/plain_12.png
+Do not use any tool other than reading those files.
+
+You are looking at a photograph of one bed in a home vegetable garden. A
+segmentation system has already divided the plant material in that photograph
+into numbered regions. Your job is the semantic half of weeding, and only that
+half: decide what each region *is*, so that a machine can later decide what to
+do about it.
+
+For each region you are shown, choose exactly one label:
+
+  keep    - the material in this region belongs to a plant the gardener is
+            growing on purpose, or is something a weeding tool must not cut.
+  remove  - the material in this region is a weed: a plant growing here that
+            the gardener did not plant and does not want.
+  unsure  - you cannot tell which of the two it is from what you were shown.
+
+A region may be a whole plant, a part of a plant, or a patch of material that
+belongs to more than one plant. Say so in the `mixed` field when it happens.
+
+The two possible mistakes are not equally costly. Destroying a crop plant is
+catastrophic and cannot be undone; leaving a weed standing until the next pass
+costs the gardener almost nothing. So the answer defaults to `keep`: unless the
+visual evidence positively supports `remove`, answer `keep` or `unsure`.
+
+You are shown the whole garden bed: an overview panel, then 12 tiles that
+together cover the same photograph at full resolution.
+
+Describe this scene. What is being grown here on purpose, and what is growing
+here that was not planted? Name the crop as precisely as the photograph
+supports, and name each kind of unwanted plant you can see, with the visual
+features that tell it apart from the crop. Also note anything present that is
+not a living plant.
+
+There are no region numbers in these images and none are being asked for.
+
+Reply with exactly this JSON object:
+
+{"crop": {"name": "...", "distinguishing_features": "..."},
+  "weeds": [{"name": "...", "distinguishing_features": "..."}],
+  "non_plant_material": ["..."],
+  "hard_to_tell_apart": "...",
+  "scene_notes": "..."}
+
+Reply with JSON and nothing else. No prose before or after, no code fence. Output no coordinates, pixel positions, bounding boxes or measurements of any kind.
