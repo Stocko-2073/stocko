@@ -1,0 +1,143 @@
+{
+ "units": "datum sigma (A2 height_in_sigma)",
+ "sigma_datum_rdu": 0.005469617460760942,
+ "datum": "straw mulch surface, not bare soil (A2)",
+ "scale_confidence": "scale_free",
+ "valid_fraction": 0.9886296590169271,
+ "per_class": {
+  "squash_leaf": {
+   "px": 354845,
+   "median_sigma": 62.87670135498047,
+   "weighted_mean_sigma": 64.30854034423828,
+   "p5": 6.256497669219971,
+   "p25": 53.58353805541992,
+   "p50": 62.87670135498047,
+   "p75": 95.803955078125,
+   "p95": 116.14439849853515,
+   "mean_datum_reliability": 0.28448256850242615,
+   "observed_datum_fraction": 0.035209739463709505
+  },
+  "squash_petiole": {
+   "px": 55560,
+   "median_sigma": 43.16950225830078,
+   "weighted_mean_sigma": 40.60371398925781,
+   "p5": 0.8077983587980271,
+   "p25": 25.5434513092041,
+   "p50": 43.169504165649414,
+   "p75": 57.58698844909668,
+   "p95": 81.16999549865723,
+   "mean_datum_reliability": 0.32852867245674133,
+   "observed_datum_fraction": 0.09740820734341253
+  },
+  "grass": {
+   "px": 103164,
+   "median_sigma": 33.06584930419922,
+   "weighted_mean_sigma": 35.1552848815918,
+   "p5": 2.213706636428833,
+   "p25": 13.60984182357788,
+   "p50": 33.065847396850586,
+   "p75": 61.003726959228516,
+   "p95": 99.57661895751947,
+   "mean_datum_reliability": 0.3228071928024292,
+   "observed_datum_fraction": 0.07858361443914544
+  },
+  "broadleaf_weed": {
+   "px": 18655,
+   "median_sigma": 4.680098533630371,
+   "weighted_mean_sigma": 8.905829429626465,
+   "p5": 0.22317989319562914,
+   "p25": 2.5431556701660156,
+   "p50": 4.680098533630371,
+   "p75": 10.672453880310059,
+   "p95": 29.778942108154293,
+   "mean_datum_reliability": 0.3579377830028534,
+   "observed_datum_fraction": 0.3215759849906191
+  },
+  "straw": {
+   "px": 216116,
+   "median_sigma": -0.018755920231342316,
+   "weighted_mean_sigma": 1.2126500606536865,
+   "p5": -2.00829541683197,
+   "p25": -0.7323815822601318,
+   "p50": -0.018755920231342316,
+   "p75": 1.0017022490501404,
+   "p95": 8.141376972198486,
+   "mean_datum_reliability": 0.3756377398967743,
+   "observed_datum_fraction": 0.8801291898795092
+  },
+  "soil": {
+   "px": 0,
+   "note": "too few pixels"
+  },
+  "fruit": {
+   "px": 16692,
+   "median_sigma": 19.955596923828125,
+   "weighted_mean_sigma": 27.780427932739258,
+   "p5": 11.904239892959595,
+   "p25": 16.567725658416748,
+   "p50": 19.95559787750244,
+   "p75": 23.362287044525146,
+   "p95": 63.02544822692871,
+   "mean_datum_reliability": 0.30968543887138367,
+   "observed_datum_fraction": 0.00029954469206805657
+  },
+  "other": {
+   "px": 554,
+   "median_sigma": -0.2613357603549957,
+   "weighted_mean_sigma": -0.19259661436080933,
+   "p5": -0.7786164522171021,
+   "p25": -0.4220826178789139,
+   "p50": -0.2613357603549957,
+   "p75": 0.01597916381433606,
+   "p95": 0.5565612852573402,
+   "mean_datum_reliability": 0.3783905506134033,
+   "observed_datum_fraction": 1.0
+  }
+ },
+ "a2_hand_placed_boxes": {
+  "straw": 0,
+  "broadleaf_weed(clover)": 7,
+  "fruit": 22,
+  "grass": 52,
+  "squash_leaf": 93
+ },
+ "pairwise_auc_height_only": {
+  "grass_vs_squash_leaf": 0.2642682890625,
+  "grass_vs_squash_petiole": 0.45161549875,
+  "grass_vs_straw": 0.9592155865625,
+  "grass_vs_broadleaf_weed": 0.8325433784508175,
+  "squash_leaf_vs_straw": 0.97428850125,
+  "broadleaf_weed_vs_straw": 0.8847567166979362,
+  "note": "P(height of the FIRST class > height of the second). 0.5 is no information; separability is max(auc, 1-auc). Per-pixel over correlated pixels, so it describes this image and carries no confidence interval."
+ },
+ "pairwise_separability_height_only": {
+  "grass_vs_squash_leaf": 0.7357317109375,
+  "grass_vs_squash_petiole": 0.5483845012499999,
+  "grass_vs_straw": 0.9592155865625,
+  "grass_vs_broadleaf_weed": 0.8325433784508175,
+  "squash_leaf_vs_straw": 0.97428850125,
+  "broadleaf_weed_vs_straw": 0.8847567166979362
+ },
+ "region_level_auc": {
+  "a3": {
+   "n_regions": 369,
+   "grass_vs_squash_leaf": 0.20786499614535134,
+   "grass_vs_squash_petiole": 0.2619442744079715,
+   "grass_vs_straw": 0.964118865807334,
+   "region_counts": {
+    "squash_leaf": 99,
+    "squash_petiole": 31,
+    "grass": 120,
+    "broadleaf_weed": 30,
+    "straw": 84,
+    "fruit": 3,
+    "other": 1
+   },
+   "separability": {
+    "grass_vs_squash_leaf": 0.7921350038546486,
+    "grass_vs_squash_petiole": 0.7380557255920285,
+    "grass_vs_straw": 0.964118865807334
+   }
+  }
+ }
+}

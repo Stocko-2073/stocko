@@ -1,0 +1,12 @@
+pypi:alpha-clip                  {'status': 404, 'error': 'Not Found'}
+pypi:alpha_clip                  {'status': 404, 'error': 'Not Found'}
+github:SunzeY/AlphaCLIP          {'status': 206, 'bytes': 1024}
+hf:SunzeY/AlphaCLIP              {'status': 401, 'error': 'Unauthorized'}
+hf:search=alphaclip              {'status': 200, 'bytes': 431}
+openxlab:clip_l14_grit20m        {'status': None, 'error': 'URLError: <urlopen error [Errno 8] nodename nor servname provided, or not known>'}
+{
+ "returncode": 0,
+ "tail": "Using Python 3.11.11 environment at: chunks/A3/.venv\nResolved 18 packages in 1.53s\nWould download 1 package\nWould install 3 packages\n + alpha-clip @ git+https://github.com/SunzeY/AlphaCLIP@ef9262bc539728bf8ef2dfe9c402ae12bbfcd9ff\n + ftfy==6.3.1\n + wcwidth==0.8.3"
+}
+
+Verdict: code installable, weights not obtainable from any attributable source -> approach 4 ships SigLIP 2.

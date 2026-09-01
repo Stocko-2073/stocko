@@ -1,0 +1,287 @@
+{
+ "model": "facebook/dinov2-base",
+ "patch": 14,
+ "grid": [
+  292,
+  219
+ ],
+ "feature_dim": 1536,
+ "n_tiles": 70,
+ "device": "mps",
+ "seconds": {
+  "load_backbone": 2.0387918949127197,
+  "fine": 4.4638471603393555,
+  "coarse": 0.2729759216308594
+ },
+ "label_px_per_patch": 3.506849315068493,
+ "per_class": 6,
+ "n_draws": 5,
+ "draws": [
+  {
+   "draw": 0,
+   "n_patches": 42,
+   "train_pixels": 525,
+   "train_pixel_fraction": 0.000667572021484375
+  },
+  {
+   "draw": 1,
+   "n_patches": 42,
+   "train_pixels": 506,
+   "train_pixel_fraction": 0.0006434122721354166
+  },
+  {
+   "draw": 2,
+   "n_patches": 42,
+   "train_pixels": 501,
+   "train_pixel_fraction": 0.000637054443359375
+  },
+  {
+   "draw": 3,
+   "n_patches": 42,
+   "train_pixels": 506,
+   "train_pixel_fraction": 0.0006434122721354166
+  },
+  {
+   "draw": 4,
+   "n_patches": 42,
+   "train_pixels": 531,
+   "train_pixel_fraction": 0.000675201416015625
+  }
+ ],
+ "probes": {
+  "knn1": {
+   "mean_iou": 0.46461284642527845,
+   "mean_iou_sd": 0.031024421697895446,
+   "mean_iou_per_draw": [
+    0.442284126249611,
+    0.4613221204281777,
+    0.4219538333218967,
+    0.4900225947884994,
+    0.5074815573382073
+   ],
+   "mean_iou_heldout": 0.46068247518019884,
+   "mean_iou_heldout_sd": 0.029740898658819175,
+   "grass_as_squash": 0.29972007276223145,
+   "per_class_iou": {
+    "squash_leaf": 0.711059177398538,
+    "squash_leaf_sd": 0.042139833631621604,
+    "squash_petiole": 0.31394096561149787,
+    "squash_petiole_sd": 0.021696096919545545,
+    "grass": 0.34770569619310143,
+    "grass_sd": 0.03580502289062338,
+    "broadleaf_weed": 0.2334679114477473,
+    "broadleaf_weed_sd": 0.048675673438402886,
+    "straw": 0.6419312568099871,
+    "straw_sd": 0.053542780077177464,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.751705779585491,
+    "fruit_sd": 0.06400831879536499,
+    "other": 0.2524791379305862,
+    "other_sd": 0.10580841355124915
+   },
+   "fit_seconds": 0.0008348464965820312,
+   "predict_seconds": 0.15574288368225098
+  },
+  "knn3": {
+   "mean_iou": 0.4912700207199622,
+   "mean_iou_sd": 0.029607119451729856,
+   "mean_iou_per_draw": [
+    0.4596899578757117,
+    0.48122906326645326,
+    0.4641559361684272,
+    0.5353163002025821,
+    0.5159588460866369
+   ],
+   "mean_iou_heldout": 0.48775991734480206,
+   "mean_iou_heldout_sd": 0.027667549819597376,
+   "grass_as_squash": 0.33165628328259456,
+   "per_class_iou": {
+    "squash_leaf": 0.7482228175573417,
+    "squash_leaf_sd": 0.011652467992248516,
+    "squash_petiole": 0.29892486375116345,
+    "squash_petiole_sd": 0.02983415508499041,
+    "grass": 0.3866427638025812,
+    "grass_sd": 0.018240450535786438,
+    "broadleaf_weed": 0.3098074037172379,
+    "broadleaf_weed_sd": 0.04030330022269285,
+    "straw": 0.6551557918699925,
+    "straw_sd": 0.017134009451001304,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.7634964201293506,
+    "fruit_sd": 0.06814122696667133,
+    "other": 0.27664008421206815,
+    "other_sd": 0.21703389447901603
+   },
+   "fit_seconds": 0.0005040168762207031,
+   "predict_seconds": 0.16691017150878906
+  },
+  "logreg": {
+   "mean_iou": 0.5537197932374294,
+   "mean_iou_sd": 0.01965498016509638,
+   "mean_iou_per_draw": [
+    0.5424748324423956,
+    0.5285088212767151,
+    0.543887609682233,
+    0.5777533137853185,
+    0.5759743890004849
+   ],
+   "mean_iou_heldout": 0.5483820127063497,
+   "mean_iou_heldout_sd": 0.019195829407566162,
+   "grass_as_squash": 0.2526338608280945,
+   "per_class_iou": {
+    "squash_leaf": 0.7634157751591675,
+    "squash_leaf_sd": 0.013741690427247774,
+    "squash_petiole": 0.35979471252688344,
+    "squash_petiole_sd": 0.017021561925215492,
+    "grass": 0.4083503027153562,
+    "grass_sd": 0.011050006051185108,
+    "broadleaf_weed": 0.33274660371946985,
+    "broadleaf_weed_sd": 0.050452897176319594,
+    "straw": 0.729179496094102,
+    "straw_sd": 0.017324602490780334,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.8169578703178081,
+    "fruit_sd": 0.035646203073181164,
+    "other": 0.46559379212921864,
+    "other_sd": 0.08728041770050687
+   },
+   "fit_seconds": 0.0076983928680419925,
+   "predict_seconds": 0.030196189880371094
+  },
+  "logreg_scaled": {
+   "mean_iou": 0.5266694278158417,
+   "mean_iou_sd": 0.024482649902984207,
+   "mean_iou_per_draw": [
+    0.5123714570978134,
+    0.49963632721136836,
+    0.510172126807423,
+    0.5479168358890657,
+    0.5632503920735374
+   ],
+   "mean_iou_heldout": 0.5218207882257084,
+   "mean_iou_heldout_sd": 0.023679871176482303,
+   "grass_as_squash": 0.26709582559684825,
+   "per_class_iou": {
+    "squash_leaf": 0.7535772133256053,
+    "squash_leaf_sd": 0.02124591641686768,
+    "squash_petiole": 0.3388390098729957,
+    "squash_petiole_sd": 0.025945989653192506,
+    "grass": 0.39358967238172965,
+    "grass_sd": 0.020095837633618295,
+    "broadleaf_weed": 0.3196351115908729,
+    "broadleaf_weed_sd": 0.06918455700447904,
+    "straw": 0.7037635923795982,
+    "straw_sd": 0.02770983909716248,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.812360838764515,
+    "fruit_sd": 0.03549430097961322,
+    "other": 0.3649205563955741,
+    "other_sd": 0.1131903100076714
+   },
+   "fit_seconds": 0.019002151489257813,
+   "predict_seconds": 0.11889605522155762
+  },
+  "logreg_scaled_height": {
+   "mean_iou": 0.5262702712197453,
+   "mean_iou_sd": 0.023503468670807992,
+   "mean_iou_per_draw": [
+    0.512841240112279,
+    0.4997583900174581,
+    0.5104511579474338,
+    0.5480670321973867,
+    0.5602335358241693
+   ],
+   "mean_iou_heldout": 0.5214548894900417,
+   "mean_iou_heldout_sd": 0.022695715396435556,
+   "grass_as_squash": 0.26595349626292425,
+   "per_class_iou": {
+    "squash_leaf": 0.7543616999951098,
+    "squash_leaf_sd": 0.02068924096497366,
+    "squash_petiole": 0.3400890448986651,
+    "squash_petiole_sd": 0.024319717865179336,
+    "grass": 0.39423985336902845,
+    "grass_sd": 0.02016370568358106,
+    "broadleaf_weed": 0.32104169166048957,
+    "broadleaf_weed_sd": 0.07002215376257291,
+    "straw": 0.7046647281117134,
+    "straw_sd": 0.027575726354791462,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.8111837652746681,
+    "fruit_sd": 0.03575696386169084,
+    "other": 0.3583111152285435,
+    "other_sd": 0.11223881626850872
+   },
+   "fit_seconds": 0.01978788375854492,
+   "predict_seconds": 0.2538642883300781
+  },
+  "logreg_height_only": {
+   "mean_iou": 0.15359049970970193,
+   "mean_iou_sd": 0.0485378509595775,
+   "mean_iou_per_draw": [
+    0.24967127117606522,
+    0.14295377069111997,
+    0.1245760345567224,
+    0.1246784148067348,
+    0.1260730073178673
+   ],
+   "mean_iou_heldout": 0.15348205588739403,
+   "mean_iou_heldout_sd": 0.048599473876304984,
+   "grass_as_squash": 0.5295469325818339,
+   "per_class_iou": {
+    "squash_leaf": 0.5252498683334308,
+    "squash_leaf_sd": 0.075485278832128,
+    "squash_petiole": 0.1351457481313164,
+    "squash_petiole_sd": 0.055974065549268634,
+    "grass": 0.08565597464637369,
+    "grass_sd": 0.024681652248866207,
+    "broadleaf_weed": 0.08421245102186806,
+    "broadleaf_weed_sd": 0.01597864699627833,
+    "straw": 0.17416336588079248,
+    "straw_sd": 0.29707980268275125,
+    "soil": null,
+    "soil_sd": null,
+    "fruit": 0.0688343654633546,
+    "fruit_sd": 0.05710467149865919,
+    "other": 0.0018717244907776125,
+    "other_sd": 0.0009400044127870442
+   },
+   "fit_seconds": 0.001961421966552734,
+   "predict_seconds": 0.003068399429321289
+  }
+ },
+ "eligible_pure_patches": {
+  "squash_leaf": 27624,
+  "squash_petiole": 3811,
+  "grass": 6775,
+  "broadleaf_weed": 1199,
+  "straw": 16056,
+  "fruit": 1252,
+  "other": 32
+ },
+ "patch_grid_ceiling": {
+  "mean_iou": 0.9201277249692957,
+  "per_class_iou": {
+   "squash_leaf": 0.9682600985650409,
+   "squash_petiole": 0.9148797474868768,
+   "grass": 0.8808409135411289,
+   "broadleaf_weed": 0.8891913692276668,
+   "straw": 0.9541514639946269,
+   "soil": null,
+   "fruit": 0.9539094650205762,
+   "other": 0.8796610169491526
+  },
+  "gt_grass_px": 106099,
+  "grass_as_squash_px": 5043,
+  "grass_as_squash": 0.04753107946351992,
+  "grass_as_squash_leaf": 0.04035853306817218,
+  "grass_as_grass": 0.9327703371379561,
+  "grass_as_straw": 0.01875606744644153,
+  "gt_squash_px": 433104,
+  "squash_as_grass": 0.00817586538106321
+ }
+}
