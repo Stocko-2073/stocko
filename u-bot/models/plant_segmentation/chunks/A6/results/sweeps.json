@@ -1,0 +1,271 @@
+{
+ "note": "Every row rebuilds the volume from scratch. `clearance` is the one constant the roadmap asks for; the rest are here to show which conclusions depend on a choice A6 made rather than on the plant.",
+ "voxel_resolution": [
+  {
+   "cell_rdu": 0.007,
+   "grid": [
+    179,
+    216,
+    143
+   ],
+   "eps_rdu": 0.00606217782649107,
+   "material_volume_rdu3": 0.17917256700000003,
+   "volume_at_default_rdu3": 0.25338816300000006,
+   "gt_squash_covered": 0.9999976910857439,
+   "gt_weed_inside": 0.8801000368725652
+  },
+  {
+   "cell_rdu": 0.005,
+   "grid": [
+    247,
+    298,
+    196
+   ],
+   "eps_rdu": 0.004330127018922193,
+   "material_volume_rdu3": 0.15615112500000003,
+   "volume_at_default_rdu3": 0.24412925000000005,
+   "gt_squash_covered": 0.9999930732572315,
+   "gt_weed_inside": 0.8743928050403194
+  },
+  {
+   "cell_rdu": 0.0035,
+   "grid": [
+    351,
+    425,
+    279
+   ],
+   "eps_rdu": 0.003031088913245535,
+   "material_volume_rdu3": 0.132349765625,
+   "volume_at_default_rdu3": 0.23949541962500004,
+   "gt_squash_covered": 0.9999815286859507,
+   "gt_weed_inside": 0.8717395835003287
+  }
+ ],
+ "occupancy": [
+  {
+   "occupancy": "column",
+   "material_volume_rdu3": 0.132349765625,
+   "by_clearance": [
+    {
+     "clearance_rdu": 0.0,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9943985740145554,
+     "gt_weed_inside": 0.8510348365583468
+    },
+    {
+     "clearance_rdu": 0.001,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9968945103254645,
+     "gt_weed_inside": 0.85444955672764
+    },
+    {
+     "clearance_rdu": 0.002,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9980466585392885,
+     "gt_weed_inside": 0.8570306362922231
+    },
+    {
+     "clearance_rdu": 0.005,
+     "volume_rdu3": 0.20482064925000001,
+     "gt_squash_covered": 0.9996490450330636,
+     "gt_weed_inside": 0.8625775526235632
+    },
+    {
+     "clearance_rdu": 0.01,
+     "volume_rdu3": 0.23949541962500004,
+     "gt_squash_covered": 0.9999815286859507,
+     "gt_weed_inside": 0.8717395835003287
+    },
+    {
+     "clearance_rdu": 0.02,
+     "volume_rdu3": 0.295626940875,
+     "gt_squash_covered": 1.0,
+     "gt_weed_inside": 0.896396107539638
+    },
+    {
+     "clearance_rdu": 0.05,
+     "volume_rdu3": 0.44175801775000006,
+     "gt_squash_covered": 1.0,
+     "gt_weed_inside": 0.9894833031405806
+    }
+   ]
+  },
+  {
+   "occupancy": "shell",
+   "material_volume_rdu3": 0.05932116400000001,
+   "by_clearance": [
+    {
+     "clearance_rdu": 0.0,
+     "volume_rdu3": 0.05932116400000001,
+     "gt_squash_covered": 0.9879451586685877,
+     "gt_weed_inside": 0.84017346137198
+    },
+    {
+     "clearance_rdu": 0.001,
+     "volume_rdu3": 0.05932116400000001,
+     "gt_squash_covered": 0.9914962687945621,
+     "gt_weed_inside": 0.8455841095275503
+    },
+    {
+     "clearance_rdu": 0.002,
+     "volume_rdu3": 0.05932116400000001,
+     "gt_squash_covered": 0.993772858251136,
+     "gt_weed_inside": 0.8495599339500136
+    },
+    {
+     "clearance_rdu": 0.005,
+     "volume_rdu3": 0.12950385175,
+     "gt_squash_covered": 0.997852709741771,
+     "gt_weed_inside": 0.8576799140708915
+    },
+    {
+     "clearance_rdu": 0.01,
+     "volume_rdu3": 0.17172033462500003,
+     "gt_squash_covered": 0.9996628985186006,
+     "gt_weed_inside": 0.8697516712890969
+    },
+    {
+     "clearance_rdu": 0.02,
+     "volume_rdu3": 0.24082180062500003,
+     "gt_squash_covered": 0.9999769108574385,
+     "gt_weed_inside": 0.8960033345624189
+    },
+    {
+     "clearance_rdu": 0.05,
+     "volume_rdu3": 0.40467735962500007,
+     "gt_squash_covered": 0.9999815286859507,
+     "gt_weed_inside": 0.989186719463905
+    }
+   ]
+  }
+ ],
+ "unseen_halo": [
+  {
+   "include_unseen": false,
+   "material_volume_rdu3": 0.127198763125,
+   "volume_at_default_rdu3": 0.23373962237500004,
+   "gt_squash_covered": 0.9976079648306181,
+   "gt_weed_inside": 0.8562611218878753
+  },
+  {
+   "include_unseen": true,
+   "material_volume_rdu3": 0.132349765625,
+   "volume_at_default_rdu3": 0.23949541962500004,
+   "gt_squash_covered": 0.9999815286859507,
+   "gt_weed_inside": 0.8717395835003287
+  }
+ ],
+ "a4_policy": [
+  {
+   "a4_policy": "merge",
+   "component_id": 1,
+   "component_px": 938112,
+   "unseen_px": 36058,
+   "unresolved_edges": {
+    "occluded_by": 1204,
+    "leaves_frame": 83
+   },
+   "material_volume_rdu3": 0.132349765625,
+   "by_clearance": [
+    {
+     "clearance_rdu": 0.0,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9943985740145554,
+     "gt_weed_inside": 0.8510348365583468
+    },
+    {
+     "clearance_rdu": 0.001,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9968945103254645,
+     "gt_weed_inside": 0.85444955672764
+    },
+    {
+     "clearance_rdu": 0.002,
+     "volume_rdu3": 0.132349765625,
+     "gt_squash_covered": 0.9980466585392885,
+     "gt_weed_inside": 0.8570306362922231
+    },
+    {
+     "clearance_rdu": 0.005,
+     "volume_rdu3": 0.20482064925000001,
+     "gt_squash_covered": 0.9996490450330636,
+     "gt_weed_inside": 0.8625775526235632
+    },
+    {
+     "clearance_rdu": 0.01,
+     "volume_rdu3": 0.23949541962500004,
+     "gt_squash_covered": 0.9999815286859507,
+     "gt_weed_inside": 0.8717395835003287
+    },
+    {
+     "clearance_rdu": 0.02,
+     "volume_rdu3": 0.295626940875,
+     "gt_squash_covered": 1.0,
+     "gt_weed_inside": 0.896396107539638
+    },
+    {
+     "clearance_rdu": 0.05,
+     "volume_rdu3": 0.44175801775000006,
+     "gt_squash_covered": 1.0,
+     "gt_weed_inside": 0.9894833031405806
+    }
+   ]
+  },
+  {
+   "a4_policy": "default",
+   "component_id": 37,
+   "component_px": 383426,
+   "unseen_px": 138105,
+   "unresolved_edges": {
+    "ambiguous_boundary": 203,
+    "occluded_by": 1539,
+    "leaves_frame": 14
+   },
+   "material_volume_rdu3": 0.06355039687500001,
+   "by_clearance": [
+    {
+     "clearance_rdu": 0.0,
+     "volume_rdu3": 0.06355039687500001,
+     "gt_squash_covered": 0.5994888063836862,
+     "gt_weed_inside": 0.35764785097071033
+    },
+    {
+     "clearance_rdu": 0.001,
+     "volume_rdu3": 0.06355039687500001,
+     "gt_squash_covered": 0.6023911116036795,
+     "gt_weed_inside": 0.3713147474229283
+    },
+    {
+     "clearance_rdu": 0.002,
+     "volume_rdu3": 0.06355039687500001,
+     "gt_squash_covered": 0.6046815545457904,
+     "gt_weed_inside": 0.3830498420892316
+    },
+    {
+     "clearance_rdu": 0.005,
+     "volume_rdu3": 0.09908931287500002,
+     "gt_squash_covered": 0.6106616424692453,
+     "gt_weed_inside": 0.4129406672331148
+    },
+    {
+     "clearance_rdu": 0.01,
+     "volume_rdu3": 0.11846589737500002,
+     "gt_squash_covered": 0.6219961025527356,
+     "gt_weed_inside": 0.4511117879987816
+    },
+    {
+     "clearance_rdu": 0.02,
+     "volume_rdu3": 0.151259355625,
+     "gt_squash_covered": 0.6458264065905649,
+     "gt_weed_inside": 0.49158343620244643
+    },
+    {
+     "clearance_rdu": 0.05,
+     "volume_rdu3": 0.23971776937500003,
+     "gt_squash_covered": 0.7083471868188703,
+     "gt_weed_inside": 0.6531493980152941
+    }
+   ]
+  }
+ ]
+}

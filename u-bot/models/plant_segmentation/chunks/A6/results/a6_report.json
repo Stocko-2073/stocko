@@ -1,0 +1,789 @@
+{
+ "chunk": "A6",
+ "scale_confidence": "scale_free",
+ "units": "rdu (1 rdu = median scene depth of the A1 primary raster)",
+ "absolute_scale": "UNRESOLVED. Every clearance below is in rdu or in A2 datum-sigma. The tool number that eventually replaces the placeholder will arrive in millimetres and cannot be compared to these until C0 supplies a scale.",
+ "datum": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+ "datum_roughness_sigma_rdu": 0.005469617460760942,
+ "crop_identity": "A0 ground truth instance 1 (crop=true), matched to the A4 'merge' component with the largest overlap. STAND-IN for A7's VLM labels (R3: the label is an ID, never a coordinate); A8 wires the real path.",
+ "clearance_placeholder_rdu": 0.01,
+ "clearance_placeholder_datum_sigma": 1.828281424019146,
+ "camera": {
+  "fx": 1496.2801106770833,
+  "fy": 1509.4514973958333,
+  "cx": 504.8333333333333,
+  "cy": 672.8333333333333,
+  "width": 1008,
+  "height": 1344,
+  "provenance": "model_estimated",
+  "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured [rescaled from 378x504]",
+  "fov_horizontal_deg": 37.23068640598429,
+  "fov_vertical_deg": 47.996762060074126
+ },
+ "shipped": {
+  "policy": "merge",
+  "component_id": 1,
+  "cell_rdu": 0.0035,
+  "voxel_bracket_rdu": 0.003031088913245535,
+  "grid_shape": [
+   351,
+   425,
+   279
+  ],
+  "n_voxels_M": 41.619825,
+  "occupancy": "column",
+  "include_unseen": true,
+  "material_volume_rdu3": 0.132349765625,
+  "material_volume_observed_rdu3": 0.127198763125,
+  "material_volume_unseen_rdu3": 0.005151002500000001,
+  "observed_px": 938112,
+  "unseen_px": 36058,
+  "frame_open": true,
+  "unresolved_edges": {
+   "occluded_by": 1204,
+   "leaves_frame": 83
+  },
+  "frame_fragment_px": 363380,
+  "columns_without_an_observed_datum_px": 15386,
+  "build_seconds": 3.97939395904541,
+  "clearances": [
+   {
+    "clearance_rdu": 0.0,
+    "clearance_datum_sigma": 0.0,
+    "volume_rdu3": 0.132349765625,
+    "footprint_area_rdu2": 0.58433725,
+    "gt_squash_covered": 0.9943985740145554,
+    "gt_squash_uncovered_px": 2426,
+    "gt_grass_inside": 0.9508572182584191,
+    "gt_broadleaf_inside": 0.28330206378986866,
+    "gt_weed_inside": 0.8510348365583468,
+    "gt_weed_inside_already_in_crop_component": 0.7462846882665085,
+    "gt_weed_inside_added_by_a6": 0.10475014829183833,
+    "gt_ground_inside": 0.3735355087082863,
+    "frame_labelled_inside": 0.7973565836225417,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.01030141167493323
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.0016867469879518072
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.0013568521031207597
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.00487408610885459
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.0
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 0.9103869653767821
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 0.9877049180327869
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.001,
+    "clearance_datum_sigma": 0.18282814240191458,
+    "volume_rdu3": 0.132349765625,
+    "footprint_area_rdu2": 0.58433725,
+    "gt_squash_covered": 0.9968945103254645,
+    "gt_squash_uncovered_px": 1345,
+    "gt_grass_inside": 0.954570731109624,
+    "gt_broadleaf_inside": 0.2850174216027875,
+    "gt_weed_inside": 0.85444955672764,
+    "gt_weed_inside_already_in_crop_component": 0.7463247671417349,
+    "gt_weed_inside_added_by_a6": 0.10812478958590506,
+    "gt_ground_inside": 0.4080262451646338,
+    "frame_labelled_inside": 0.8089262105437118,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.011064479206409768
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.0036144578313253013
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.0024423337856173677
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.006498781478472786
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.0
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 0.9389002036659878
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 0.9959016393442623
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.002,
+    "clearance_datum_sigma": 0.36565628480382917,
+    "volume_rdu3": 0.132349765625,
+    "footprint_area_rdu2": 0.58433725,
+    "gt_squash_covered": 0.9980466585392885,
+    "gt_squash_uncovered_px": 846,
+    "gt_grass_inside": 0.9572946022111424,
+    "gt_broadleaf_inside": 0.28678638434736,
+    "gt_weed_inside": 0.8570306362922231,
+    "gt_weed_inside_already_in_crop_component": 0.7463407986918255,
+    "gt_weed_inside_added_by_a6": 0.11068983760039758,
+    "gt_ground_inside": 0.4356410446241833,
+    "frame_labelled_inside": 0.8176915489175343,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.012972148035101107
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.006506024096385542
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.0032564450474898234
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.00974817221770918
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.0
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 0.955193482688391
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 1.0
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.005,
+    "clearance_datum_sigma": 0.914140712009573,
+    "volume_rdu3": 0.20482064925000001,
+    "footprint_area_rdu2": 0.7717622500000001,
+    "gt_squash_covered": 0.9996490450330636,
+    "gt_squash_uncovered_px": 152,
+    "gt_grass_inside": 0.9628460211689083,
+    "gt_broadleaf_inside": 0.2923076923076923,
+    "gt_weed_inside": 0.8625775526235632,
+    "gt_weed_inside_already_in_crop_component": 0.7463648460169614,
+    "gt_weed_inside_added_by_a6": 0.1162127066066018,
+    "gt_ground_inside": 0.5030261526217402,
+    "frame_labelled_inside": 0.8382886093207734,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.018695154521175122
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.01759036144578313
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.007327001356852103
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.021933387489845652
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.0
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 0.9796334012219959
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 1.0
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.01,
+    "clearance_datum_sigma": 1.828281424019146,
+    "volume_rdu3": 0.23949541962500004,
+    "footprint_area_rdu2": 0.84058275,
+    "gt_squash_covered": 0.9999815286859507,
+    "gt_squash_uncovered_px": 8,
+    "gt_grass_inside": 0.9708479816020886,
+    "gt_broadleaf_inside": 0.30806754221388366,
+    "gt_weed_inside": 0.8717395835003287,
+    "gt_weed_inside_already_in_crop_component": 0.7463728617920067,
+    "gt_weed_inside_added_by_a6": 0.12536672170832197,
+    "gt_ground_inside": 0.5890540265413019,
+    "frame_labelled_inside": 0.8640397764832259,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.022128958412819536
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.05710843373493976
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.024151967435549523
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.04061738424045491
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.015466983938132063
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 1.0
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 1.0
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.02,
+    "clearance_datum_sigma": 3.656562848038292,
+    "volume_rdu3": 0.295626940875,
+    "footprint_area_rdu2": 0.9416207500000001,
+    "gt_squash_covered": 1.0,
+    "gt_squash_uncovered_px": 0,
+    "gt_grass_inside": 0.9844107861525556,
+    "gt_broadleaf_inside": 0.39581881533101043,
+    "gt_weed_inside": 0.896396107539638,
+    "gt_weed_inside_already_in_crop_component": 0.7463728617920067,
+    "gt_weed_inside_added_by_a6": 0.15002324574763135,
+    "gt_ground_inside": 0.711728886338818,
+    "frame_labelled_inside": 0.9024954552966452,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.04959938954597482
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 0.26313253012048193
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.10312075983717775
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 0.0950446791226645
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 0.2248661511005354
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 1.0
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 1.0
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   },
+   {
+    "clearance_rdu": 0.05,
+    "clearance_datum_sigma": 9.14140712009573,
+    "volume_rdu3": 0.44175801775000006,
+    "footprint_area_rdu2": 1.1717860000000002,
+    "gt_squash_covered": 1.0,
+    "gt_squash_uncovered_px": 0,
+    "gt_grass_inside": 1.0,
+    "gt_broadleaf_inside": 0.9296703296703297,
+    "gt_weed_inside": 0.9894833031405806,
+    "gt_weed_inside_already_in_crop_component": 0.7463728617920067,
+    "gt_weed_inside_added_by_a6": 0.24311044134857399,
+    "gt_ground_inside": 0.9252299690906736,
+    "frame_labelled_inside": 0.9774430362749958,
+    "per_weed_instance": {
+     "2": {
+      "px": 2621,
+      "fraction_inside": 0.7260587561999237
+     },
+     "3": {
+      "px": 4150,
+      "fraction_inside": 1.0
+     },
+     "4": {
+      "px": 3685,
+      "fraction_inside": 0.8388059701492537
+     },
+     "5": {
+      "px": 1231,
+      "fraction_inside": 1.0
+     },
+     "6": {
+      "px": 1681,
+      "fraction_inside": 1.0
+     },
+     "7": {
+      "px": 491,
+      "fraction_inside": 1.0
+     },
+     "8": {
+      "px": 244,
+      "fraction_inside": 1.0
+     },
+     "9": {
+      "px": 3635,
+      "fraction_inside": 1.0
+     },
+     "10": {
+      "px": 917,
+      "fraction_inside": 1.0
+     }
+    }
+   }
+  ],
+  "gt_pixel_counts": {
+   "squash": 433104,
+   "grass": 106099,
+   "broadleaf_weed": 18655,
+   "ground": 216116,
+   "labelled": 774528
+  },
+  "a4_inheritance": {
+   "note": "what A4's component already contained, before A6 added any occupancy or clearance",
+   "gt_squash_in_component": 0.9559897853633308,
+   "gt_grass_in_component": 0.8354084392878349,
+   "gt_broadleaf_in_component": 0.23998927901366926,
+   "gt_weed_in_unseen_halo": 0.06838257691136156,
+   "gt_squash_in_unseen_halo": 0.016942812811703425
+  },
+  "contact_points": {
+   "note": "A0 contact points are all `under_straw` / `estimated`; these are gate rehearsals, not accuracy scores",
+   "points": [
+    {
+     "id": 1,
+     "name": "squash",
+     "crop": true,
+     "gt_point_xy": [
+      330,
+      552
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.003817619971554728,
+     "inside_at": {
+      "0": false,
+      "0.001": true,
+      "0.002": true,
+      "0.005": true,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 2,
+     "name": "weed_purslane",
+     "crop": false,
+     "gt_point_xy": [
+      125,
+      833
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.021431794822196697,
+     "inside_at": {
+      "0": false,
+      "0.001": false,
+      "0.002": false,
+      "0.005": false,
+      "0.01": false,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 3,
+     "name": "weed_clover_patch_lower_left",
+     "crop": false,
+     "gt_point_xy": [
+      183,
+      847
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.019545638794657195,
+     "inside_at": {
+      "0": false,
+      "0.001": false,
+      "0.002": false,
+      "0.005": false,
+      "0.01": false,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 4,
+     "name": "weed_mallow",
+     "crop": false,
+     "gt_point_xy": [
+      59,
+      913
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.009170502252035051,
+     "inside_at": {
+      "0": false,
+      "0.001": false,
+      "0.002": false,
+      "0.005": false,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 5,
+     "name": "weed_small_right_of_mallow",
+     "crop": false,
+     "gt_point_xy": [
+      140,
+      905
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.010103657346934202,
+     "inside_at": {
+      "0": false,
+      "0.001": false,
+      "0.002": false,
+      "0.005": false,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 6,
+     "name": "weed_clover_by_fruit",
+     "crop": false,
+     "gt_point_xy": [
+      258,
+      780
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.0258299975986846,
+     "inside_at": {
+      "0": false,
+      "0.001": false,
+      "0.002": false,
+      "0.005": false,
+      "0.01": false,
+      "0.02": false,
+      "0.05": true
+     }
+    },
+    {
+     "id": 7,
+     "name": "weed_seedling_left",
+     "crop": false,
+     "gt_point_xy": [
+      26,
+      455
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.002072236653452588,
+     "inside_at": {
+      "0": true,
+      "0.001": true,
+      "0.002": true,
+      "0.005": true,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 8,
+     "name": "weed_seedling_mid",
+     "crop": false,
+     "gt_point_xy": [
+      177,
+      458
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.002046453371877136,
+     "inside_at": {
+      "0": true,
+      "0.001": true,
+      "0.002": true,
+      "0.005": true,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 9,
+     "name": "weed_ovate_upper",
+     "crop": false,
+     "gt_point_xy": [
+      515,
+      490
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.002216182377896186,
+     "inside_at": {
+      "0": true,
+      "0.001": true,
+      "0.002": true,
+      "0.005": true,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    },
+    {
+     "id": 10,
+     "name": "weed_ovate_lower",
+     "crop": false,
+     "gt_point_xy": [
+      425,
+      498
+     ],
+     "status": "under_straw",
+     "localisation": "estimated",
+     "distance_to_crop_material_rdu": 0.0,
+     "inside_at": {
+      "0": true,
+      "0.001": true,
+      "0.002": true,
+      "0.005": true,
+      "0.01": true,
+      "0.02": true,
+      "0.05": true
+     }
+    }
+   ]
+  },
+  "circle_comparison": {
+   "0": {
+    "clearance_rdu": 0.0,
+    "crown_uv": [
+     -0.4016002914567543,
+     0.6992910808806883
+    ],
+    "crown_provenance": "A0 instance 1 contact point (under_straw, estimated)",
+    "keepout_footprint_area_rdu2": 0.58433725,
+    "max_radius_from_crown_rdu": 0.893414846268034,
+    "radius_percentiles_rdu": {
+     "50": 0.37561697631594015,
+     "90": 0.570583411783116,
+     "99": 0.719273980676959,
+     "100": 0.893414846268034
+    },
+    "equal_area_disk": {
+     "radius_rdu": 0.43127754815252006,
+     "iou_with_footprint": 0.44087888855330715,
+     "fraction_of_sprawl_it_covers": 0.6120416762751305,
+     "fraction_of_the_disk_that_is_not_plant": 0.38812507859328504
+    },
+    "covering_disk": {
+     "radius_rdu": 0.893414846268034,
+     "area_rdu2": 1.7591490000000003,
+     "area_inflation_over_footprint": 3.0105029244669925,
+     "fraction_of_the_disk_that_is_not_plant": 0.6678295869195845
+    }
+   },
+   "0.01": {
+    "clearance_rdu": 0.01,
+    "crown_uv": [
+     -0.4016002914567543,
+     0.6992910808806883
+    ],
+    "crown_provenance": "A0 instance 1 contact point (under_straw, estimated)",
+    "keepout_footprint_area_rdu2": 0.84058275,
+    "max_radius_from_crown_rdu": 0.9027688366667698,
+    "radius_percentiles_rdu": {
+     "50": 0.394474746489144,
+     "90": 0.5984438726182095,
+     "99": 0.7471714138157535,
+     "100": 0.9027688366667698
+    },
+    "equal_area_disk": {
+     "radius_rdu": 0.517267628486993,
+     "iou_with_footprint": 0.6212547258979206,
+     "fraction_of_sprawl_it_covers": 0.7663037934099884,
+     "fraction_of_the_disk_that_is_not_plant": 0.23352865722115324
+    },
+    "covering_disk": {
+     "radius_rdu": 0.9027688366667698,
+     "area_rdu2": 1.7672707500000002,
+     "area_inflation_over_footprint": 2.102435185589997,
+     "fraction_of_the_disk_that_is_not_plant": 0.5243610804965793
+    }
+   },
+   "0.05": {
+    "clearance_rdu": 0.05,
+    "crown_uv": [
+     -0.4016002914567543,
+     0.6992910808806883
+    ],
+    "crown_provenance": "A0 instance 1 contact point (under_straw, estimated)",
+    "keepout_footprint_area_rdu2": 1.1717860000000002,
+    "max_radius_from_crown_rdu": 0.9420054568873123,
+    "radius_percentiles_rdu": {
+     "50": 0.43757363148299194,
+     "90": 0.6753056760400344,
+     "99": 0.8592147584953588,
+     "100": 0.9420054568873123
+    },
+    "equal_area_disk": {
+     "radius_rdu": 0.6107299471057231,
+     "iou_with_footprint": 0.6939864080594714,
+     "fraction_of_sprawl_it_covers": 0.8188090658191854,
+     "fraction_of_the_disk_that_is_not_plant": 0.18010237728857204
+    },
+    "covering_disk": {
+     "radius_rdu": 0.9420054568873123,
+     "area_rdu2": 1.7946250000000001,
+     "area_inflation_over_footprint": 1.531529647904993,
+     "fraction_of_the_disk_that_is_not_plant": 0.34705802047781575
+    }
+   }
+  },
+  "resolution_bracket": [
+   {
+    "clearance_rdu": 0.0,
+    "gt_squash_covered_conservative": 0.9943985740145554,
+    "gt_squash_covered_exact": 0.9909675274299014,
+    "volume_ratio_conservative_over_exact": 1.0
+   },
+   {
+    "clearance_rdu": 0.001,
+    "gt_squash_covered_conservative": 0.9968945103254645,
+    "gt_squash_covered_exact": 0.9909675274299014,
+    "volume_ratio_conservative_over_exact": 1.4107348046163193
+   },
+   {
+    "clearance_rdu": 0.002,
+    "gt_squash_covered_conservative": 0.9980466585392885,
+    "gt_squash_covered_exact": 0.9910898998854778,
+    "volume_ratio_conservative_over_exact": 1.54757092528852
+   },
+   {
+    "clearance_rdu": 0.005,
+    "gt_squash_covered_conservative": 0.9996490450330636,
+    "gt_squash_covered_exact": 0.9980304961394953,
+    "volume_ratio_conservative_over_exact": 1.1314800557151345
+   },
+   {
+    "clearance_rdu": 0.01,
+    "gt_squash_covered_conservative": 0.9999815286859507,
+    "gt_squash_covered_exact": 0.999942277143596,
+    "volume_ratio_conservative_over_exact": 1.0827548081338385
+   },
+   {
+    "clearance_rdu": 0.02,
+    "gt_squash_covered_conservative": 1.0,
+    "gt_squash_covered_exact": 1.0,
+    "volume_ratio_conservative_over_exact": 1.056550684117348
+   },
+   {
+    "clearance_rdu": 0.05,
+    "gt_squash_covered_conservative": 1.0,
+    "gt_squash_covered_exact": 1.0,
+    "volume_ratio_conservative_over_exact": 1.0
+   }
+  ],
+  "silhouette_fraction_of_frame": {
+   "0": 0.8344863118858654,
+   "0.005": 0.8543357012944066,
+   "0.01": 0.8730453987150416,
+   "0.05": 0.9845573211923658
+  }
+ }
+}
