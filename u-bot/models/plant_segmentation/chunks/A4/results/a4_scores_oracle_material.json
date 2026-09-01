@@ -1,0 +1,367 @@
+{
+ "name": "oracle_material",
+ "material_source": "gt",
+ "statistic": "secdiff",
+ "continuity_tolerance_rdu": 0.003676682710647583,
+ "tolerance_provenance": {
+  "quantile": 90.0,
+  "n_within_fragment_pairs": 3673356,
+  "percentiles_rdu": {
+   "10": 2.3603439331054688e-05,
+   "25": 6.771087646484375e-05,
+   "50": 0.00020051002502441406,
+   "75": 0.000759124755859375,
+   "90": 0.003676682710647583,
+   "95": 0.010783106088638306,
+   "99": 0.08928190916776657
+  }
+ },
+ "scale_confidence": "scale_free",
+ "n_fragments": 614,
+ "fragments": {
+  "n_fragments": 614,
+  "n_fragments_before_min_merge": 2471,
+  "n_merged_below_min": 1865,
+  "px_merged_below_min": 6393,
+  "min_fragment_px": 25,
+  "plant_px": 961012,
+  "fragment_px_p50": 368.5,
+  "fragment_px_p95": 5340.500000000002,
+  "n_still_below_min": 0,
+  "note": "fragments still below the minimum have no plant neighbour to merge into; they are kept, and their edges are decided by the other side's surface fit alone."
+ },
+ "edges": {
+  "adjacent_pairs": 1359,
+  "connected": 297,
+  "separated": 645,
+  "unresolved_boundary": 417
+ },
+ "n_components": 376,
+ "headline_eval_py": {
+  "instances": {
+   "iou_threshold": 0.5,
+   "n_gt": 10,
+   "n_pred": 338,
+   "tp": 7,
+   "fp": 331,
+   "fn": 3,
+   "precision": 0.020710059171597635,
+   "recall": 0.7,
+   "f1": 0.04022988505747127,
+   "best_iou_per_gt": {
+    "7": {
+     "iou": 0.8612167300380228,
+     "pred": 269
+    },
+    "6": {
+     "iou": 0.8345526167698368,
+     "pred": 238
+    },
+    "3": {
+     "iou": 0.8221970554926388,
+     "pred": 119
+    },
+    "8": {
+     "iou": 0.8068181818181818,
+     "pred": 322
+    },
+    "4": {
+     "iou": 0.7240394600207685,
+     "pred": 121
+    },
+    "2": {
+     "iou": 0.6591075347476225,
+     "pred": 186
+    },
+    "10": {
+     "iou": 0.5737538148524923,
+     "pred": 99
+    },
+    "5": {
+     "iou": 0.387373343725643,
+     "pred": 215
+    },
+    "9": {
+     "iou": 0.38294360385144427,
+     "pred": 198
+    },
+    "1": {
+     "iou": 0.3019787366527525,
+     "pred": 67
+    }
+   },
+   "unmatched_gt": [
+    1,
+    5,
+    9
+   ]
+  },
+  "matches": [
+   {
+    "gt": 7,
+    "pred": 269,
+    "iou": 0.8612167300380228
+   },
+   {
+    "gt": 6,
+    "pred": 238,
+    "iou": 0.8345526167698368
+   },
+   {
+    "gt": 3,
+    "pred": 119,
+    "iou": 0.8221970554926388
+   },
+   {
+    "gt": 8,
+    "pred": 322,
+    "iou": 0.8068181818181818
+   },
+   {
+    "gt": 4,
+    "pred": 121,
+    "iou": 0.7240394600207685
+   },
+   {
+    "gt": 2,
+    "pred": 186,
+    "iou": 0.6591075347476225
+   },
+   {
+    "gt": 10,
+    "pred": 99,
+    "iou": 0.5737538148524923
+   }
+  ],
+  "squash_fragmentation": {
+   "gt_instance": 1,
+   "n_pred_parts": 95,
+   "parts": {
+    "1": 73107,
+    "2": 1283,
+    "3": 310,
+    "17": 6561,
+    "19": 451,
+    "20": 2250,
+    "24": 1849,
+    "31": 229,
+    "33": 206,
+    "39": 919,
+    "48": 2707,
+    "51": 3345,
+    "52": 31829,
+    "58": 11142,
+    "60": 2461,
+    "62": 26382,
+    "65": 664,
+    "67": 130941,
+    "68": 410,
+    "71": 263,
+    "73": 2975,
+    "76": 1493,
+    "77": 360,
+    "79": 2025,
+    "90": 942,
+    "91": 9227,
+    "92": 301,
+    "100": 262,
+    "102": 228,
+    "104": 659,
+    "106": 253,
+    "107": 1524,
+    "109": 314,
+    "112": 1003,
+    "116": 2567,
+    "117": 4770,
+    "123": 18240,
+    "126": 483,
+    "128": 9633,
+    "132": 553,
+    "140": 12770,
+    "145": 913,
+    "146": 219,
+    "147": 416,
+    "148": 445,
+    "153": 578,
+    "156": 2552,
+    "157": 3155,
+    "158": 222,
+    "159": 5411,
+    "160": 1733,
+    "164": 265,
+    "166": 3855,
+    "167": 3176,
+    "168": 2214,
+    "172": 4267,
+    "175": 838,
+    "176": 427,
+    "182": 204,
+    "183": 2064,
+    "189": 636,
+    "201": 908,
+    "202": 1368,
+    "203": 708,
+    "205": 1292,
+    "206": 791,
+    "209": 1116,
+    "210": 1023,
+    "214": 976,
+    "218": 1007,
+    "219": 277,
+    "221": 285,
+    "222": 898,
+    "226": 236,
+    "227": 577,
+    "231": 777,
+    "234": 786,
+    "241": 644,
+    "247": 444,
+    "253": 577,
+    "254": 315,
+    "255": 980,
+    "261": 207,
+    "262": 516,
+    "264": 525,
+    "274": 441,
+    "299": 349,
+    "301": 258,
+    "309": 281,
+    "310": 232,
+    "314": 265,
+    "318": 243,
+    "324": 204,
+    "327": 242,
+    "333": 207
+   },
+   "min_px": 200
+  },
+  "grass_absorbed_into_crop": {
+   "crop_pred_id": 67,
+   "gt_grass_px": 106099,
+   "absorbed_px": 2583,
+   "absorbed_fraction": 0.02434518704229069
+  }
+ },
+ "symmetric_grass_diagnostic": {
+  "f1": 0.0673076923076923,
+  "precision": 0.03535353535353535,
+  "recall": 0.7,
+  "tp": 7,
+  "fp": 191,
+  "fn": 3,
+  "n_pred": 198,
+  "squash_best_iou": 0.3019787366527525,
+  "squash_parts": 89,
+  "grass_absorbed": 0.02434518704229069,
+  "matched_gt": [
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   10
+  ]
+ },
+ "unresolved_policy": "split",
+ "both_policies": {
+  "split": {
+   "f1": 0.04022988505747127,
+   "precision": 0.020710059171597635,
+   "recall": 0.7,
+   "tp": 7,
+   "fp": 331,
+   "fn": 3,
+   "n_pred": 338,
+   "squash_best_iou": 0.3019787366527525,
+   "squash_parts": 95,
+   "grass_absorbed": 0.02434518704229069,
+   "matched_gt": [
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    10
+   ]
+  },
+  "merge": {
+   "f1": 0.10852713178294573,
+   "precision": 0.058823529411764705,
+   "recall": 0.7,
+   "tp": 7,
+   "fp": 112,
+   "fn": 3,
+   "n_pred": 119,
+   "squash_best_iou": 0.6249740798045789,
+   "squash_parts": 28,
+   "grass_absorbed": 0.4508148050405753,
+   "matched_gt": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ]
+  }
+ },
+ "unresolved": {
+  "n_unresolved_edges": 3467,
+  "by_kind": {
+   "ambiguous_boundary": 417,
+   "occluded_by": 2984,
+   "leaves_frame": 66
+  },
+  "n_between_distinct_components": 2973,
+  "occluders_capped_at_max_pairs": 2,
+  "max_pairs_per_occluder": 200,
+  "note": "R4: none of these is resolved by extrapolation. `already_connected` means the two fragments reached the same component by another path, so the unresolved link changes nothing; the rest are the links a second viewpoint (C1) would have to settle."
+ },
+ "provenance": {
+  "chunk": "A4",
+  "scale_confidence": "scale_free",
+  "units": "rdu (relative depth units; 1 rdu = median scene depth)",
+  "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+  "grid": {
+   "graph_built_on": [
+    1344,
+    1008
+   ],
+   "scored_on": [
+    1024,
+    768
+   ],
+   "depth_resampled": false,
+   "material_and_regions_lifted": "nearest, GT -> depth grid"
+  },
+  "a1": {
+   "product": "primary_raster",
+   "model": {
+    "hf_repo": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "hf_revision": "b2359bdf726fb44ef62acca04d629dcf158053e7",
+    "code_commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4"
+   },
+   "rdu_normaliser_depth_units": 1.3996973633766174
+  },
+  "a2": {
+   "datum": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+   "sigma_datum_rdu": 0.005469617460760942,
+   "soil_surface_depth_subtracted": true
+  },
+  "a3": {
+   "material_source": "gt",
+   "provenance": {
+    "oracle_material": true,
+    "note": "A0 ground-truth material \u2014 diagnostic only"
+   }
+  },
+  "partition": {
+   "source": "chunks/A3/work/regions_a3f.npy",
+   "n_regions": 728,
+   "why": "A3's independent SAM partition (pps 64, oracle ceiling 0.9246). A0's own partition has a ceiling of exactly 1.0 and is not used."
+  }
+ }
+}

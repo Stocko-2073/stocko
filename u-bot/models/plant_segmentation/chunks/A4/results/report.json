@@ -1,0 +1,154 @@
+{
+ "scale_confidence": "scale_free",
+ "datum": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+ "continuity_tolerance_rdu": 0.004237532615661621,
+ "verdicts": {
+  "split": {
+   "squash_one_component": false,
+   "squash_best_iou": 0.4618857539262848,
+   "squash_largest_component_covers": 0.4688827625697292,
+   "squash_parts_ge_200px": 69,
+   "clover_separate_from_crop": true,
+   "clover_fraction_inside_crop_component": 0.0,
+   "clover_best_iou": 0.26309646412633025,
+   "grass_absorbed_fraction": 0.11758829018181133,
+   "crop_pred_component_id": 37,
+   "instance_f1": 0.008771929824561405,
+   "tp": 3,
+   "n_pred": 674
+  },
+  "merge": {
+   "squash_one_component": true,
+   "squash_best_iou": 0.8849564899545341,
+   "squash_largest_component_covers": 0.9558974287930844,
+   "squash_parts_ge_200px": 12,
+   "clover_separate_from_crop": true,
+   "clover_fraction_inside_crop_component": 0.0,
+   "clover_best_iou": 0.2045659198050744,
+   "grass_absorbed_fraction": 0.8333443293527742,
+   "crop_pred_component_id": 1,
+   "instance_f1": 0.019801980198019802,
+   "tp": 2,
+   "n_pred": 192
+  },
+  "zeroplantseg_baseline": {
+   "squash_one_component": false,
+   "squash_best_iou": 0.4247904427240616,
+   "squash_largest_component_covers": 0.428721507998079,
+   "squash_parts_ge_200px": 3,
+   "clover_separate_from_crop": true,
+   "clover_fraction_inside_crop_component": 0.0,
+   "clover_best_iou": 0.24641647120145949,
+   "grass_absorbed_fraction": 0.529627988953713,
+   "crop_pred_component_id": 2,
+   "instance_f1": 0.0,
+   "tp": 0,
+   "n_pred": 5
+  }
+ },
+ "open_question_2": {
+  "S0_semantic_only": {
+   "n_targets": "per pixel; no instances exist",
+   "targeting": {
+    "target_px": 205470,
+    "crop_px_targeted": 72375,
+    "crop_px_targeted_fraction_of_crop": 0.16710766928959325,
+    "fraction_of_targets_that_are_crop": 0.3522412030953424,
+    "weed_px_targeted_fraction_of_weed": 0.7950526636420475
+   },
+   "per_class_note": "A3's own uncalibrated class per pixel; R2 forbids gating on this confidence, and this row is what that prohibition costs if it is ignored."
+  },
+  "S1_semantic_plus_soil_surface": {
+   "targeting": {
+    "target_px": 148644,
+    "crop_px_targeted": 60469,
+    "crop_px_targeted_fraction_of_crop": 0.13961773615575013,
+    "fraction_of_targets_that_are_crop": 0.40680417642151717,
+    "weed_px_targeted_fraction_of_weed": 0.6550491367010276
+   },
+   "note": "same, restricted to material A2 places confidently above the straw datum (a2.confident_above(3))."
+  },
+  "S2_2d_connected_components": {
+   "targeting": {
+    "target_px": 5221,
+    "crop_px_targeted": 39,
+    "crop_px_targeted_fraction_of_crop": 9.004765599024715e-05,
+    "fraction_of_targets_that_are_crop": 0.0074698333652556985,
+    "weed_px_targeted_fraction_of_weed": 0.03842762556711608
+   },
+   "n_weed_components": 62,
+   "instances": {
+    "f1": 0.05970149253731343,
+    "precision": 0.03508771929824561,
+    "recall": 0.2,
+    "tp": 2,
+    "fp": 55,
+    "fn": 8,
+    "n_pred": 57,
+    "squash_best_iou": 0.8919041077285145,
+    "squash_parts": 1,
+    "grass_absorbed": 0.8445602691825559,
+    "matched_gt": [
+     1,
+     2
+    ]
+   },
+   "n_components": 70
+  },
+  "A4_3d_connectivity_split": {
+   "targeting": {
+    "target_px": 157486,
+    "crop_px_targeted": 41067,
+    "crop_px_targeted_fraction_of_crop": 0.09482018175773024,
+    "fraction_of_targets_that_are_crop": 0.2607660363460879,
+    "weed_px_targeted_fraction_of_weed": 0.6787277361848117
+   },
+   "n_weed_components": 499,
+   "instances": {
+    "f1": 0.008771929824561405,
+    "precision": 0.004451038575667656,
+    "recall": 0.3,
+    "tp": 3,
+    "fp": 671,
+    "fn": 7,
+    "n_pred": 674,
+    "squash_best_iou": 0.4618857539262848,
+    "squash_parts": 69,
+    "grass_absorbed": 0.11758829018181133,
+    "matched_gt": [
+     2,
+     7,
+     8
+    ]
+   },
+   "n_components": 742
+  },
+  "A4_3d_connectivity_merge": {
+   "targeting": {
+    "target_px": 48534,
+    "crop_px_targeted": 7138,
+    "crop_px_targeted_fraction_of_crop": 0.016481029960471388,
+    "fraction_of_targets_that_are_crop": 0.1470721556022582,
+    "weed_px_targeted_fraction_of_weed": 0.20426599547910287
+   },
+   "n_weed_components": 178,
+   "instances": {
+    "f1": 0.019801980198019802,
+    "precision": 0.010416666666666666,
+    "recall": 0.2,
+    "tp": 2,
+    "fp": 190,
+    "fn": 8,
+    "n_pred": 192,
+    "squash_best_iou": 0.8849564899545341,
+    "squash_parts": 12,
+    "grass_absorbed": 0.8333443293527742,
+    "matched_gt": [
+     1,
+     7
+    ]
+   },
+   "n_components": 207
+  }
+ }
+}
