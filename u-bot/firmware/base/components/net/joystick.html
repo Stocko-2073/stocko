@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>U-BOT</title>
+<style>
+body{font:15px system-ui,sans-serif;margin:0;background:#111;color:#ddd;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px;touch-action:none}
+#pad{width:260px;height:260px;border-radius:50%;background:#222;border:2px solid #444;position:relative;touch-action:none}
+#knob{width:60px;height:60px;border-radius:50%;background:#4a8;position:absolute;left:100px;top:100px;pointer-events:none}
+#knob.off{background:#666}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+button{font:inherit;padding:8px 14px;border:0;border-radius:6px;background:#333;color:#eee}
+button.red{background:#a33}button.green{background:#3a6}
+#st{font-family:ui-monospace,monospace;font-size:13px;white-space:pre;text-align:left}
+#log{font-family:ui-monospace,monospace;font-size:11px;width:100%;max-width:640px;height:150px;overflow:auto;background:#000;padding:6px;box-sizing:border-box;white-space:pre-wrap}
+</style>
+<h3 style="margin:4px">U-BOT <span id="conn">connecting…</span></h3>
+<div class="row"><span id="ota">firmware …</span><button id="upd" hidden>update</button></div>
+<div id="st">—</div>
+<div id="pad"><div id="knob" class="off"></div></div>
+<div class="row">
+<button class="green" onclick="send({t:'enable'})">enable</button>
+<button onclick="send({t:'disable'})">disable</button>
+<button onclick="send({t:'stop'})">stop</button>
+<button class="red" onclick="send({t:'estop'})">E-STOP</button>
+<button onclick="send({t:'clear'})">clear fault</button>
+<button onclick="logs=!logs;send({t:'log',on:logs})">logs</button>
+</div>
+<div id="log"></div>
+<script>
+let ws,logs=false,timer=null,v=0,w=0,lastMsg=0,connecting=false;
+const st=document.getElementById('st'),conn=document.getElementById('conn'),lg=document.getElementById('log');
+const pad=document.getElementById('pad'),knob=document.getElementById('knob');
+const otaTxt=document.getElementById('ota'),upd=document.getElementById('upd');
+let armed=false,armTimer=null;
+function connect(){
+  if(connecting)return;connecting=true;
+  const sock=new WebSocket('ws://'+location.host+'/ws');ws=sock;
+  sock.onopen=()=>{connecting=false;lastMsg=Date.now();conn.textContent='connected';send({t:'ota_check'});};
+  sock.onerror=()=>{};
+  sock.onclose=()=>{if(ws!==sock)return;connecting=false;conn.textContent='disconnected, retrying…';setTimeout(connect,1500);};
+  sock.onmessage=e=>{lastMsg=Date.now();const m=JSON.parse(e.data);
+    if(m.t==='status'){show(m);}
+    else if(m.t==='log'){lg.textContent+=m.m+'\n';lg.scrollTop=lg.scrollHeight;}
+    else if(m.t==='ack'&&!m.ok){lg.textContent+='refused '+m.cmd+': '+m.err+'\n';lg.scrollTop=lg.scrollHeight;}};
+}
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
+// The robot sends status at 5 Hz. When it reboots (an update, a reset) the TCP
+// connection just dies and the browser can sit on a dead socket for minutes,
+// so treat 3 s of silence as gone and open a fresh one.
+setInterval(()=>{
+  if(ws&&ws.readyState===1&&Date.now()-lastMsg>3000){
+    conn.textContent='no data, reconnecting…';
+    const dead=ws;ws=null;dead.onclose=null;try{dead.close();}catch(e){}
+    connecting=false;connect();
+  }
+},1000);
+function showOta(m){
+  const o=m.ota||{};let t='firmware '+m.fw;
+  if(o.busy)t+=' — '+o.state;
+  else if(o.available)t+=' — '+o.available+' available';
+  else if(!o.configured)t+=' — no update bucket set';
+  else if(o.state&&o.state.startsWith('up to date'))t+=' — up to date';
+  else if(o.state&&o.state.startsWith('failed')||o.state&&o.state.startsWith('check failed'))t+=' — '+o.state;
+  otaTxt.textContent=t;
+  upd.hidden=!(o.available&&!o.busy);
+  if(o.busy){upd.disabled=false;armed=false;}
+  if(!armed&&!o.busy)upd.textContent='update to '+o.available;
+}
+upd.onclick=()=>{
+  if(!armed){armed=true;upd.textContent='tap again to install';
+    clearTimeout(armTimer);armTimer=setTimeout(()=>{armed=false;showOtaLast();},4000);return;}
+  armed=false;upd.textContent='installing…';upd.disabled=true;send({t:'ota_update'});
+};
+let lastStatus=null;function showOtaLast(){if(lastStatus)showOta(lastStatus);}
+function show(m){
+  lastStatus=m;showOta(m);
+  const wh=m.wheels.map(x=>`  ${x.name}: pos ${x.pos.toFixed(3)} vel ${x.vel.toFixed(2)} slip ${x.slip} enc ${x.enc?'ok':'DOWN'} agc ${x.agc} magnet ${x.magnet}${x.fault?' FAULT '+x.fault:''}`).join('\n');
+  st.textContent=`fw ${m.fw}  hw ${m.hw}  up ${m.up}s  rssi ${m.wifi.rssi}
+drivers ${m.enabled?'ENABLED':'disabled'}${m.faulted?'  FAULT: '+m.fault:''}${m.cal?'  calibrating':''}${m.demo?'  demo: '+m.demo:''}
+cmd v ${m.cmd.v.toFixed(2)} m/s  w ${m.cmd.w.toFixed(2)} rad/s  (limits ${m.limits.v.toFixed(2)}, ${m.limits.w.toFixed(2)})
+battery ${m.batt.present?m.batt.v.toFixed(2)+' V  '+m.batt.pct+'%':'no sense'}
+${wh}`;
+}
+function stick(e){
+  const r=pad.getBoundingClientRect();
+  let x=(e.clientX-r.left)/r.width*2-1,y=(e.clientY-r.top)/r.height*2-1;
+  const d=Math.hypot(x,y);if(d>1){x/=d;y/=d;}
+  knob.style.left=(100+x*100)+'px';knob.style.top=(100+y*100)+'px';
+  v=-y;w=-x;   // up = forward, left = turn left (anticlockwise)
+}
+function release(){
+  knob.style.left='100px';knob.style.top='100px';knob.className='off';
+  v=0;w=0;send({t:'drive',v:0,w:0});
+  if(timer){clearInterval(timer);timer=null;}
+}
+pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);knob.className='';stick(e);
+  send({t:'drive',v:v,w:w});
+  timer=setInterval(()=>send({t:'drive',v:v,w:w}),100);};
+pad.onpointermove=e=>{if(timer)stick(e);};
+pad.onpointerup=pad.onpointercancel=release;
+connect();
+</script>

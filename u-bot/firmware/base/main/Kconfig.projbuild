@@ -1,0 +1,80 @@
+menu "U-BOT base"
+
+    comment "Pins are GPIO numbers on the XIAO ESP32-C6. Dn labels in DRIVE_MECHANISM.md."
+
+    config UBOT_PIN_EN
+        int "TMC2209 EN (both drivers, active low) -- D0"
+        default 0
+        help
+            One pin for both drivers, on purpose: it is the hardware killswitch
+            and it floats high (4.7k pull-up) so an MCU reset disables both.
+
+    config UBOT_PIN_TMC_TX
+        int "TMC2209 UART TX, through 1k to the shared node -- D6"
+        default 16
+
+    config UBOT_PIN_TMC_RX
+        int "TMC2209 UART RX, on the node -- D7"
+        default 17
+
+    config UBOT_TMC_BAUD
+        int "TMC2209 UART baud"
+        default 250000
+        help
+            250000 or 500000. Writes fail below ~115200 (datagram longer than
+            the driver's receive window) and address 1 does not answer at
+            115200 with two drivers on the bus.
+
+    config UBOT_TMC_ADDR_A
+        int "Wheel A driver address (MS1/MS2)"
+        default 0
+
+    config UBOT_TMC_ADDR_B
+        int "Wheel B driver address (MS1/MS2)"
+        default 1
+
+    config UBOT_PIN_ENC_A_SDA
+        int "Wheel A AS5600 SDA (hardware I2C) -- D4"
+        default 22
+
+    config UBOT_PIN_ENC_A_SCL
+        int "Wheel A AS5600 SCL (hardware I2C) -- D5"
+        default 23
+
+    config UBOT_PIN_ENC_B_SDA
+        int "Wheel B AS5600 SDA (bit-banged) -- D9"
+        default 20
+
+    config UBOT_PIN_ENC_B_SCL
+        int "Wheel B AS5600 SCL (bit-banged) -- D8"
+        default 19
+
+    config UBOT_PIN_BATT_ADC
+        int "Battery sense ADC GPIO (ADC1) -- D1"
+        default 1
+        help
+            Battery voltage through a divider. GPIO1 is ADC1 channel 1 on the
+            C6 and is free now that STEP/DIR are gone. The divider ratio and the
+            0..100% voltage window are runtime settings (batt_div, batt_vmin,
+            batt_vmax) because the pack is not decided yet.
+
+    config UBOT_CONTROL_HZ
+        int "Servo control rate, Hz"
+        default 200
+
+    config UBOT_HW_REV_DEFAULT
+        string "Hardware revision reported until 'hw set' stores one"
+        default "A"
+
+    config UBOT_NAME_DEFAULT
+        string "Device name (mDNS host, BLE name) until 'set name' stores one"
+        default "ubot"
+
+    config UBOT_WEB_JOYSTICK
+        bool "Serve a minimal joystick test page at http://ubot.local/"
+        default y
+        help
+            A single HTML page that speaks the same WebSocket protocol the phone
+            app will. Handy for driving from a laptop; costs ~5 KB of flash.
+
+endmenu
