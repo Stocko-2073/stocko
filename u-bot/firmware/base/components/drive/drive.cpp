@@ -336,6 +336,7 @@ void updateSnapshot() {
         d.kp = w.servo.kp;
         d.vmax_tps = w.servo.vmaxTps;
         d.accel_tps2 = w.servo.accelTps2;
+        d.decel_tps2 = w.servo.decelTps2;
         d.worst_read_us = w.servo.worstReadUs();
     }
     portENTER_CRITICAL(&snapMux);
@@ -481,6 +482,7 @@ void loadSettings() {
     S.trackM = settings_get_f32("track_m", 0.263f);
     float vmax = constrain(settings_get_f32("vmax_tps", 1.0f), 0.05f, VMAX_LIMIT);
     float accel = constrain(settings_get_f32("accel_tps2", 8.0f), 0.5f, ACCEL_LIMIT);
+    float decel = constrain(settings_get_f32("decel_tps2", 2.0f), 0.2f, ACCEL_LIMIT);
     // Measured 2026-08-30/31 on the two drivers this robot was built with.
     // Calibration overwrites these per chip; they are only the starting point.
     float gainA = settings_get_f32(wheelA.gainKey, 1.0158f);
@@ -490,6 +492,7 @@ void loadSettings() {
     for (Wheel *w : wheels) {
         w->servo.vmaxTps = vmax;
         w->servo.accelTps2 = accel;
+        w->servo.decelTps2 = decel;
     }
     wheelA.gen.setInvert(invA);
     wheelB.gen.setInvert(invB);
@@ -501,8 +504,8 @@ Wheel *wheelArg(drive_wheel_t w) {
     return (w == DRIVE_WHEEL_A || w == DRIVE_WHEEL_B) ? wheels[w] : nullptr;
 }
 
-const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "vmin", "tol", "maxslip", "ratio", "gain", "micro"};
-const char *const SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2"};
+const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "decel", "vmin", "tol", "maxslip", "ratio", "gain", "micro"};
+const char *const SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2", "decel_tps2"};
 
 }  // namespace
 
@@ -856,6 +859,10 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
         if (v > ACCEL_LIMIT) ESP_LOGW(TAG, "accel clamped to the measured limit %.1f turns/s^2", ACCEL_LIMIT);
         w.servo.accelTps2 = constrain(v, 0.1f, ACCEL_LIMIT);
     }
+    else if (!strcmp(name, "decel")) {
+        if (v > ACCEL_LIMIT) ESP_LOGW(TAG, "decel clamped to the measured limit %.1f turns/s^2", ACCEL_LIMIT);
+        w.servo.decelTps2 = constrain(v, 0.1f, ACCEL_LIMIT);
+    }
     else if (!strcmp(name, "vmin")) { w.servo.vminSps = fabsf(v); }
     else if (!strcmp(name, "tol")) { w.servo.tolCounts = (int32_t)fabsf(v); }
     else if (!strcmp(name, "maxslip")) { w.servo.slipLimit = (int32_t)fabsf(v); }
@@ -889,6 +896,7 @@ esp_err_t drive_param_get(drive_wheel_t wi, const char *name, float *value) {
     if (!strcmp(name, "kp")) *value = w->servo.kp;
     else if (!strcmp(name, "vmax")) *value = w->servo.vmaxTps;
     else if (!strcmp(name, "accel")) *value = w->servo.accelTps2;
+    else if (!strcmp(name, "decel")) *value = w->servo.decelTps2;
     else if (!strcmp(name, "vmin")) *value = w->servo.vminSps;
     else if (!strcmp(name, "tol")) *value = (float)w->servo.tolCounts;
     else if (!strcmp(name, "maxslip")) *value = (float)w->servo.slipLimit;
@@ -929,6 +937,10 @@ esp_err_t drive_setting_set(const char *name, float value) {
         float v = constrain(value, 0.5f, ACCEL_LIMIT);
         for (Wheel *w : wheels) w->servo.accelTps2 = v;
         err = settings_set_f32(name, v);
+    } else if (!strcmp(name, "decel_tps2")) {
+        float v = constrain(value, 0.2f, ACCEL_LIMIT);
+        for (Wheel *w : wheels) w->servo.decelTps2 = v;
+        err = settings_set_f32(name, v);
     } else {
         err = ESP_ERR_NOT_FOUND;
     }
@@ -945,6 +957,7 @@ esp_err_t drive_setting_get(const char *name, float *value) {
     else if (!strcmp(name, "track_m")) *value = S.trackM;
     else if (!strcmp(name, "vmax_tps")) *value = wheelA.servo.vmaxTps;
     else if (!strcmp(name, "accel_tps2")) *value = wheelA.servo.accelTps2;
+    else if (!strcmp(name, "decel_tps2")) *value = wheelA.servo.decelTps2;
     else return ESP_ERR_NOT_FOUND;
     return ESP_OK;
 }

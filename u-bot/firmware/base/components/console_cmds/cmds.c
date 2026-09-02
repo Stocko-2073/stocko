@@ -74,9 +74,9 @@ static void print_wheel(const drive_status_t *s, int i) {
     printf("    encoder %s, raw %u, magnet %s, agc %u (aim ~64), worst read %lu us\n",
            w->encoder_ok ? "ok" : "NOT RESPONDING", w->raw_angle, magnet_text(w->magnet_status),
            w->agc, (unsigned long)w->worst_read_us);
-    printf("    shaft %s, clock gain %.4f (%s), kp %.1f vmax %.2f turns/s accel %.1f turns/s^2\n",
+    printf("    shaft %s, clock gain %.4f (%s), kp %.1f vmax %.2f turns/s accel %.1f decel %.1f turns/s^2\n",
            w->inverted ? "INVERTED" : "normal", w->clock_gain,
-           w->calibrated ? "measured this boot" : "stored", w->kp, w->vmax_tps, w->accel_tps2);
+           w->calibrated ? "measured this boot" : "stored", w->kp, w->vmax_tps, w->accel_tps2, w->decel_tps2);
 }
 
 static void print_drive(void) {
@@ -181,7 +181,7 @@ static int cmd_wheel(int argc, char **argv) {
     int w = argc >= 2 ? wheel_arg(argv[1]) : -1;
     if (w < 0) {
         printf("usage: wheel <A|B> [goto T | move T | vel TPS [secs] | spin SPS | zero | loop on|off |\n"
-               "       invert on|off | reg HEX | kp|vmax|accel|vmin|tol|maxslip|ratio|gain|micro [value]]\n");
+               "       invert on|off | reg HEX | kp|vmax|accel|decel|vmin|tol|maxslip|ratio|gain|micro [value]]\n");
         return 1;
     }
     if (argc == 2) { print_params(w); return 0; }

@@ -134,7 +134,8 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `sign_a`, `sign_b` | +1, -1 | robot-forward to wheel-encoder-positive. A is +1 by fiat; B is the mirror. See below. |
 | `a_left` | 1 | wheel A is the left wheel (decides the sign of a turn) |
 | `track_m` | 0.263 | wheel centre to wheel centre, m. From the CAD; **measure it** |
-| `vmax_tps`, `accel_tps2` | 1.0, 8.0 | output turns/s and turns/s^2, both wheels; clamped to the measured envelope (2.0, 20) |
+| `vmax_tps`, `accel_tps2` | 1.0, 8.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
+| `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
 | `gain_a`, `gain_b`, `inv_a`, `inv_b` | measured | written by `cal`, not by hand |
 | `name` | `ubot` | mDNS host and BLE name (reboot to apply) |
 | `hw_rev` | `A` | hardware revision string |

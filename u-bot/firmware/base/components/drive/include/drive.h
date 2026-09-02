@@ -47,7 +47,7 @@ typedef struct {
     int32_t pos_counts, target_counts, err_counts, slip_steps;
     long cmd_steps;        // integral of commanded rate, steps
     float pos_turns, target_turns, vel_tps, cmd_tps, rate_sps, clock_gain;
-    float kp, vmax_tps, accel_tps2;
+    float kp, vmax_tps, accel_tps2, decel_tps2;
     uint32_t worst_read_us;
 } drive_wheel_status_t;
 

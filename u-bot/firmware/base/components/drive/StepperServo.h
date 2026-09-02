@@ -55,7 +55,9 @@ class StepperServo {
     //   3.0    30    30 | 14721 sps       144   SKIPPED, faulted
     float kp = 16.0f;          // (counts/s) per count of error, i.e. 1/s
     float vmaxTps = 1.0f;      // turns/s ceiling
-    float accelTps2 = 8.0f;    // turns/s^2, also the brake authority
+    float accelTps2 = 8.0f;    // turns/s^2 speeding up; also the position-mode brake authority
+    float decelTps2 = 2.0f;    // turns/s^2 slowing in velocity mode. Gentler than accel so a
+                               // released stick brakes the robot instead of throwing it.
     float vminSps = 12.0f;     // steps/s floor while outside tolerance
     int32_t tolCounts = 3;     // ~0.26 deg at the output shaft
     float stepsPerCount = 1.302083f;  // 200 * 8 * 40/12 / 4096, exact by gearing
@@ -214,7 +216,12 @@ class StepperServo {
             // setpoint left over from before the drive.
             _target = _encPos;
             float vdes = constrain(_vgoal, -vmax, vmax);
-            _vcmd += constrain(vdes - _vcmd, -slew, slew);
+            // Slowing -- toward zero, or through it on a reversal -- uses the
+            // gentler decel; speeding up keeps accel. Once a reversal crosses
+            // zero the sign matches again and accel takes over.
+            bool slowing = vdes * _vcmd < 0 || fabsf(vdes) < fabsf(_vcmd);
+            float vslew = slowing ? decelTps2 * COUNTS_PER_REV * dt : slew;
+            _vcmd += constrain(vdes - _vcmd, -vslew, vslew);
             // Snap the tail of a deceleration to a true standstill. VACTUAL of
             // zero is a real stop, not an absence of pulses, so the chopper
             // holds position properly.
