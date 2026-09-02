@@ -19,7 +19,17 @@ static adc_channel_t s_chan;
 static adc_unit_t s_unit;
 static esp_timer_handle_t s_timer;
 
-static float s_div = 11.0f, s_vmin = 10.0f, s_vmax = 12.6f;
+static float s_div = 11.0f;
+
+// 12 V 8 Ah LiFePO4, four cells in series. Resting pack voltage against state
+// of charge; the curve is flat from ~13.3 V down to ~12.9 V, so a linear
+// window would call a nearly empty pack half full. Points above 13.6 V are
+// the charger holding the pack, still 100%. Under motor load the pack sags
+// and this reads low, which is the safe direction.
+static const struct { float v; uint8_t pct; } LIFEPO4_4S[] = {
+    {10.0f, 0}, {12.0f, 9}, {12.5f, 14}, {12.8f, 17}, {12.9f, 20}, {13.0f, 30},
+    {13.1f, 40}, {13.2f, 70}, {13.3f, 90}, {13.4f, 99}, {13.6f, 100},
+};
 static volatile float s_volts = 0;
 static volatile int s_pin_mv = 0;
 static volatile bool s_present = false;
@@ -31,10 +41,7 @@ static const int PRESENT_MV = 150;
 
 void battery_reload_settings(void) {
     s_div = settings_get_f32("batt_div", 11.0f);
-    s_vmin = settings_get_f32("batt_vmin", 10.0f);
-    s_vmax = settings_get_f32("batt_vmax", 12.6f);
     if (s_div < 1.0f) s_div = 1.0f;
-    if (s_vmax <= s_vmin) s_vmax = s_vmin + 0.1f;
 }
 
 static void sample(void *arg) {
@@ -90,8 +97,9 @@ esp_err_t battery_init(void) {
     const esp_timer_create_args_t targs = { .callback = sample, .name = "batt" };
     err = esp_timer_create(&targs, &s_timer);
     if (err == ESP_OK) err = esp_timer_start_periodic(s_timer, 1000000);
-    ESP_LOGI(TAG, "sense on GPIO%d (ADC%d ch%d), divider %.2f, %.1f..%.1f V -> 0..100%%: %s",
-             CONFIG_UBOT_PIN_BATT_ADC, (int)s_unit + 1, (int)s_chan, s_div, s_vmin, s_vmax,
+    ESP_LOGI(TAG, "sense on GPIO%d (ADC%d ch%d), divider %.2f, 4S LiFePO4 curve %.1f..%.1f V: %s",
+             CONFIG_UBOT_PIN_BATT_ADC, (int)s_unit + 1, (int)s_chan, s_div,
+             LIFEPO4_4S[0].v, LIFEPO4_4S[sizeof LIFEPO4_4S / sizeof LIFEPO4_4S[0] - 1].v,
              s_present ? "reading" : "nothing connected");
     return err;
 }
@@ -102,8 +110,15 @@ bool battery_present(void) { return s_present; }
 
 int battery_percent(void) {
     if (!s_present) return -1;
-    float f = (s_volts - s_vmin) / (s_vmax - s_vmin);
-    if (f < 0) f = 0;
-    if (f > 1) f = 1;
-    return (int)lroundf(f * 100.0f);
+    const size_t n = sizeof LIFEPO4_4S / sizeof LIFEPO4_4S[0];
+    float v = s_volts;
+    if (v <= LIFEPO4_4S[0].v) return LIFEPO4_4S[0].pct;
+    if (v >= LIFEPO4_4S[n - 1].v) return LIFEPO4_4S[n - 1].pct;
+    for (size_t i = 1; i < n; i++) {
+        if (v <= LIFEPO4_4S[i].v) {
+            float t = (v - LIFEPO4_4S[i - 1].v) / (LIFEPO4_4S[i].v - LIFEPO4_4S[i - 1].v);
+            return (int)lroundf(LIFEPO4_4S[i - 1].pct + t * (LIFEPO4_4S[i].pct - LIFEPO4_4S[i - 1].pct));
+        }
+    }
+    return LIFEPO4_4S[n - 1].pct;
 }

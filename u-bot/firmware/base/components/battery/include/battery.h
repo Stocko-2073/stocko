@@ -1,11 +1,14 @@
 #pragma once
 // Pack voltage through a divider into ADC1, sampled once a second and lightly
-// filtered. The divider ratio and the voltage window that maps to 0..100% are
-// runtime settings because the pack has not been chosen:
+// filtered. The pack is a 12 V 8 Ah LiFePO4 (four cells in series); the
+// percentage comes from a resting-voltage table for that chemistry in
+// battery.c, 10.0 V empty to 13.6 V full, because its discharge curve is too
+// flat for a linear window. The reading sags under motor load, so the
+// percentage is pessimistic while driving.
 //
-//   batt_div    Vpack / Vpin.  Default 11.0 (100k over 10k).
-//   batt_vmin   0%   Default 10.0 V (3S Li-ion cut-off)
-//   batt_vmax   100% Default 12.6 V (3S Li-ion full)
+//   batt_div    Vpack / Vpin, runtime setting. Default 11.0 (100k over 10k).
+//               Calibrate against a meter: the internal pull-down on the pin
+//               loads the divider's lower leg.
 //
 // If nothing is wired to the sense pin the reading floats near zero and
 // battery_present() says so; the status reports then say "no sense".

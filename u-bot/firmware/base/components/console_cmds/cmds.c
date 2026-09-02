@@ -331,7 +331,7 @@ static int cmd_set(int argc, char **argv) {
             float v;
             if (drive_setting_get(names[i], &v) == ESP_OK) printf(" %s=%g", names[i], v);
         }
-        printf("\nothers: name hw_rev ota_url ota_auto batt_div batt_vmin batt_vmax\n");
+        printf("\nothers: name hw_rev ota_url ota_auto batt_div\n");
         return 0;
     }
     if (argc < 3) { printf("usage: set <key> <value>   (set alone lists)\n"); return 1; }
@@ -342,7 +342,7 @@ static int cmd_set(int argc, char **argv) {
     else if (!strcmp(key, "hw_rev")) err = sysinfo_set_hw_rev(val);
     else if (!strcmp(key, "ota_url")) err = net_ota_set_url(val);
     else if (!strcmp(key, "ota_auto")) err = settings_set_i32(key, atoi(val) != 0);
-    else if (!strcmp(key, "batt_div") || !strcmp(key, "batt_vmin") || !strcmp(key, "batt_vmax")) {
+    else if (!strcmp(key, "batt_div")) {
         if (!parse_f(val, &f)) { printf("needs a number\n"); return 1; }
         err = settings_set_f32(key, f);
         battery_reload_settings();

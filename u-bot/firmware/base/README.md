@@ -32,8 +32,8 @@ firmware.
 - **BLE** peripheral (NimBLE): Device Information (firmware and hardware
   revision, serial), Battery Service, and a custom drive service for the phone
   app.
-- **Battery** voltage through a divider into ADC1, percentage from a
-  configurable window.
+- **Battery** voltage through a divider into ADC1, percentage from a 4S
+  LiFePO4 resting-voltage table (the pack is 12 V 8 Ah LiFePO4).
 - **Firmware and hardware revision** from `version.txt` and NVS, reported the
   same way on console, WebSocket and BLE.
 
@@ -139,7 +139,7 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `name` | `ubot` | mDNS host and BLE name (reboot to apply) |
 | `hw_rev` | `A` | hardware revision string |
 | `ota_url` | -- | default image URL for `ota start` |
-| `batt_div`, `batt_vmin`, `batt_vmax` | 11.0, 10.0, 12.6 | divider ratio, and the 0%..100% voltage window |
+| `batt_div` | 11.0 | battery divider ratio, Vpack / Vpin; calibrate against a meter |
 | `wifi_ssid`, `wifi_pass` | -- | via `wifi set` |
 
 ### Which way is forward
@@ -182,11 +182,24 @@ everything but `drive` (a `drive` is only acknowledged when refused), and
 ```
 
 The joystick page at `http://ubot.local/` speaks exactly this protocol and is
-the quickest way to check it from a laptop or a phone browser. On connect it
-sends `ota_check`; if the bucket holds a newer version the page shows an
-"update to x.y.z" button (two taps to install, so a stray touch cannot start
-it), then follows the download in the status line and reconnects to the new
-image after the reboot.
+the quickest way to check it from a laptop or a phone browser. Everything on it
+is driven by the status frame. A state card says what the robot is doing
+(motors off or on, a fault with the wheel and the reason, calibrating, a demo,
+installing an update, not connected); one power button toggles the drivers and
+its label says what pressing it will do; the actions that only make sense in
+one state (clear fault, stop demo, abort calibration, stop a command from
+another controller) appear inside the card only in that state. The stick is
+locked, with the reason under it, whenever a drive would be refused, so it
+never sends `drive` frames the robot will bounce. E-STOP is always in the same
+place, follows the page as it scrolls, and is only greyed out when there is no
+connection to carry it. A refused command shows as a toast and lands in the log
+pane under Details, which also holds the per-wheel numbers and the switch for
+the log mirror.
+
+On connect the page sends `ota_check`; if the bucket holds a newer version an
+"Update to x.y.z" chip appears (two taps within 4 s to install, so a stray touch
+cannot start it), then the state card follows the download and the page
+reconnects to the new image after the reboot.
 
 ## BLE
 
@@ -223,7 +236,7 @@ On the robot, once: `set ota_url https://ubot-ota-<account>.s3.us-east-1.amazona
 | `ota https://.../x.bin` | installs a specific image |
 | `set ota_auto 1` | run `ota check` every time WiFi connects |
 | `ota` | state, stored URL, a newer version seen in the bucket, which slot is running and whether it is verified |
-| page at `ubot.local` | checks on load; offers an update button when the bucket is newer |
+| page at `ubot.local` | checks on load; offers an update chip when the bucket is newer |
 
 An update disables the drivers, downloads with the IDF certificate bundle
 (Amazon's roots are in it), refuses an image whose project name is not
@@ -270,8 +283,12 @@ now treats 3 s without a status frame as a dead connection.)
 - **`track_m` 0.263** is read off `u-bot.scad` (body 250 wide, wheel plane
   3.35 mm outboard of the leg), not measured. It only scales the turn rate.
 - **Battery sense** is on GPIO1 (D1) with a weak internal pull-down so an unwired
-  pin reads "no sense". The divider and the voltage window are settings because
-  the pack is not chosen; calibrate `batt_div` against a meter once it is.
+  pin reads "no sense", which is what the robot reports today: nothing is wired
+  yet. The pack is a 12 V 8 Ah LiFePO4, so the percentage uses a 4S
+  resting-voltage table (10.0 V empty, 12.9 V is 20%, 13.2 V is 70%, 13.6 V
+  full) rather than a linear window. `batt_div` is still the nominal 11.0 for a
+  100k over 10k divider; calibrate it against a meter once the divider is
+  wired, because the pin's pull-down loads the lower leg.
 - **Wheel B's magnet** still reads weak at AGC 128, as before. The firmware
   warns before `cal` and `demo short`; the fix is mechanical.
 - **Flash is tight**: 1.76 MB image in a 1.92 MB slot (10% free). mbedTLS,

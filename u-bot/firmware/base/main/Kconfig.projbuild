@@ -54,9 +54,9 @@ menu "U-BOT base"
         default 1
         help
             Battery voltage through a divider. GPIO1 is ADC1 channel 1 on the
-            C6 and is free now that STEP/DIR are gone. The divider ratio and the
-            0..100% voltage window are runtime settings (batt_div, batt_vmin,
-            batt_vmax) because the pack is not decided yet.
+            C6 and is free now that STEP/DIR are gone. The divider ratio is a
+            runtime setting (batt_div); the percentage curve is the 4S LiFePO4
+            table in components/battery/battery.c.
 
     config UBOT_CONTROL_HZ
         int "Servo control rate, Hz"
@@ -75,6 +75,7 @@ menu "U-BOT base"
         default y
         help
             A single HTML page that speaks the same WebSocket protocol the phone
-            app will. Handy for driving from a laptop; costs ~5 KB of flash.
+            app will. Handy for driving from a laptop or a phone browser; costs
+            ~14 KB of flash.
 
 endmenu
