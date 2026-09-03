@@ -6,3 +6,5 @@ pet/stl
 u-bot/devlog
 u-bot/stls
 WireHandler/stls
+u-bot/firmware/base/build
+u-bot/firmware/test_servo/__pycache__

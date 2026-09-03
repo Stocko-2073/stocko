@@ -194,6 +194,77 @@ never in the shaft bit. Flipping the shaft bit to fix a robot convention would
 break the loop it was measured for.
 
 
+## The robot frame, and the two-wheel short (2026-08-31)
+
+That layer above the servo now exists, and it is one constant. `DRIVE_SIGN_B` in
+`test_servo.ino` maps robot-frame turns onto wheel B; wheel A defines forward by
+fiat and needs no sign of its own. `-1` is in there as the mirror's prediction,
+**not** as a measurement -- it is the one number here that has not been
+confirmed against the machine.
+
+Confirming it takes one take. `S` runs the short:
+
+    demo short: 10 beats, ~9.8 s planned -- roll camera
+    demo short 1/10: two wheels, one bus, one script
+    demo short 2/10: in phase -- the robot drives
+
+If beat 2 counter-rotates the wheels instead of rolling them the same way, the
+sign is wrong; flip `DRIVE_SIGN_B` and nothing else. Flipping `SHAFT_INVERT_B`
+would get the same picture and invalidate both it and `CLOCK_GAIN_B`, which were
+measured together against a closed loop.
+
+The script itself is three phases, chosen so a ten-second clip reads without
+captions: in phase (the robot driving), anti phase (turning on the spot), then a
+canon, the same half-turn on one wheel and then the other. The canon is the only
+one of the three that says anything new -- it needs two independent drivers, and
+until today there was only one.
+
+Both wheels finish where they started, so the closing report is a round-trip
+check as well as an outro. Expect wheel A to land within a couple of counts and
+wheel B to be the worse of the two while its magnet still reads `MAGNET_LOW`.
+
+`S` refuses to start rather than fault in shot: both drivers have to be
+answering, both magnets detected, and the drivers already energised. A weak
+magnet or an unmeasured clock gain only gets a warning -- both are filmable,
+they just cost residual.
+
+The runner prints `~N s planned` before it moves, walked through the table on
+the ideal trapezoid plus a settle allowance. That is what makes a table tunable
+to a fixed cut length without filming it first; the closing line prints the
+actual against it.
+
+**First take, 2026-08-31.** Ran clean, no faults, nothing abandoned, no beat
+timed out:
+
+    done in 9.1 s (planned 9.8)
+    wheel A back at -3 counts       -0.50 mm at the rim
+    wheel B back at +2 counts       +0.33 mm at the rim
+
+| | peak vel | peak \|slip\| | travel |
+|---|---|---|---|
+| wheel A | 1.040 turns/s | 35 steps | -0.504 .. +1.005 turns |
+| wheel B | 1.048 turns/s | 28 steps | -1.003 .. +0.505 turns |
+
+Peak velocity lands on the commanded 1.0 and slip sits where wheel A's own step
+response put it (26-37), a long way under the 200 limit. The canon separates
+cleanly: on each of its four legs the moving wheel swept ~0.5 turns while the
+other stayed inside 0.035.
+
+Two things worth writing down. **Wheel B's residual beat wheel A's**, +2 against
+-3, which is the opposite of what the weak magnet predicted -- one take is not a
+trend, but the warning `S` prints about B's residual is not yet earned.
+
+And **the settle allowance was wrong**: 9.8 s planned against 9.1 s actual, an
+0.08 s overestimate on each of nine moves. It had been inferred from the 740 ms
+half-turn step response against 625 ms of ideal profile, but that figure counts
+settling to a standstill and a beat does not wait for that -- only for the
+tolerance band. Measured directly it is **0.04 s**, now baked into `Demo.h` as
+`SETTLE_S`, and the plan then reads 9.1 s against the 9.1 s it ran.
+
+Running the bit-banged bus while both wheels moved cost 390 us mean, 399 us
+worst, of the 5000 us control tick.
+
+
 ## EN is the killswitch, and it is fail-safe
 
 `ENN` is active low and gates the power stage in hardware. It does not go

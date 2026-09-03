@@ -103,6 +103,26 @@ static float microsteps = 8.0f;  // TMC2209 with MS1/MS2 low
 static const bool SHAFT_INVERT_A = false;
 static const bool SHAFT_INVERT_B = true;    // measured 2026-08-31: mirrored, as expected
 
+// Which way is forward, which is a question about the robot and not about a
+// wheel. Calibration makes each wheel self-consistent -- +VACTUAL counts its
+// own encoder up, on both of them -- and stops there. The wheels are mirrored,
+// so turning both encoders the same way rolls the two sides of the robot
+// OPPOSITE ways, and something above the servo has to know that. This is that
+// something, and it is one bit:
+//
+//   -1  the wheels are mirrored, so wheel B's target is negated (predicted)
+//   +1  they are not, and both wheels take the same number
+//
+// Wheel A defines forward by fiat; only B needs the bit. -1 is what the
+// mechanism predicts and it has not been confirmed on the machine yet: press
+// 'S' and watch the first move. If "in phase" counter-rotates the wheels
+// instead of rolling them the same way, flip this.
+//
+// It must never be fixed by flipping SHAFT_INVERT_B instead. That bit was
+// measured together with CLOCK_GAIN_B against a closed loop, and moving it
+// would invalidate both. See DRIVE_MECHANISM.md.
+static const int8_t DRIVE_SIGN_B = -1;
+
 // The TMC2209's internal oscillator, as a multiplier on commanded velocity.
 // Measured on wheel A's driver 2026-08-30: 1.0158, i.e. it runs 1.6% fast --
 // well inside the +/-10% the part allows. This is a property of the individual
@@ -307,7 +327,8 @@ static void printHelp() {
   Serial.println(F("# keys:  e driver on/off   l loop on/off   c calibrate   d flip DIR"));
   Serial.println(F("#        z zero here      f clear fault   x stop+disable"));
   Serial.println(F("#        , . nudge -/+0.05 turn   < > nudge -/+0.25 turn"));
-  Serial.println(F("#        w wiggle demo    M scripted demo   p pause stream"));
+  Serial.println(F("#        w wiggle demo    M bench demo   S 10 s two-wheel short"));
+  Serial.println(F("#        p pause stream"));
   Serial.println(F("#        A / B select wheel    i info    h help"));
   Serial.println(F("# words: <turns>|goto T   move T    spin SPS   jog STEPS"));
   Serial.println(F("#        kp K  vmax T/s  vmin SPS  accel T/s2  tol N  maxslip N"));
@@ -356,9 +377,49 @@ static bool abortRequested() {
   return true;
 }
 
+// The short commits both wheels to a fixed choreography, so everything it needs
+// has to be there before the camera rolls. A take that faults on beat 7 is a
+// wasted take, and the things that would cause that are all knowable up front.
+// Hard stops return false; the merely worrying only get said out loud.
+static bool shortTakeReady() {
+  pollHealth();  // cached up to 500 ms, and this is worth a fresh read
+  bool ok = true;
+  for (uint8_t i = 0; i < NWHEELS; i++) {
+    Wheel *w = wheels[i];
+    if (!w->gen.ok()) {
+      Serial.printf("# wheel %s's driver (address %u) is not answering -- the"
+                    " short needs both\n", w->name, w->gen.address());
+      ok = false;
+      continue;
+    }
+    if (!(w->status & MAGNET_DETECT)) {
+      Serial.printf("# wheel %s has no magnet detected -- nothing to close the"
+                    " loop on\n", w->name);
+      ok = false;
+      continue;
+    }
+    if (w->status & (MAGNET_LOW | MAGNET_HIGH)) {
+      Serial.printf("# wheel %s magnet %s (agc %u) -- it will hold, but expect"
+                    " the closing residual to be the worse of the two\n",
+                    w->name, magnetText(w->status), w->agc);
+    }
+    if (!w->gen.calibrated()) {
+      Serial.printf("# wheel %s is on its preset clock gain %.4f, not measured"
+                    " this session -- 'c' before filming if slip reads high\n",
+                    w->name, w->gen.clockGain());
+    }
+  }
+  if (!driversEnabled()) {
+    Serial.println(F("# drivers are disabled -- 'e' first. The short will not"
+                     " energise them for you."));
+    ok = false;
+  }
+  return ok;
+}
+
 static void panicStop() {
   wiggle = false;
-  demo.stop(sel->servo);
+  demo.stop();
   enableDrivers(false);          // one pin, so this stops both wheels
   Serial.println(F("# stopped, both drivers disabled"));
 }
@@ -425,7 +486,7 @@ static void doImmediate(char c) {
     case 'w':
       wiggle = !wiggle;
       if (wiggle) {
-        demo.stop(sel->servo);
+        demo.stop();
         wiggleBase = sel->servo.targetTurns();
         wiggleT0 = millis();
         wiggleHigh = false;
@@ -433,12 +494,19 @@ static void doImmediate(char c) {
       Serial.printf("# wiggle %s (%.3f turns every %.1f s from %.3f)\n",
                     wiggle ? "on" : "off", wiggleAmp, wiggleSecs, wiggleBase);
       break;
+    // Both scripted runs drop the wiggle first: it drives the same target the
+    // demo does and would fight it beat for beat.
     case 'M':
-      if (demo.running()) {
-        demo.stop(sel->servo);
-      } else if (!demo.start(sel->servo)) {
-        Serial.println(F("# enable the driver first (e) -- the demo will not do it for you"));
-      }
+      if (demo.running()) { demo.stop(); break; }
+      wiggle = false;
+      demo.start(Demo::BENCH, {&sel->servo, sel->name, +1});
+      break;
+    case 'S':
+      if (demo.running()) { demo.stop(); break; }
+      if (!shortTakeReady()) break;
+      wiggle = false;
+      demo.start(Demo::SHORT, {&wheelA.servo, wheelA.name, +1},
+                              {&wheelB.servo, wheelB.name, DRIVE_SIGN_B});
       break;
     case 'A':
     case 'B':
@@ -557,8 +625,9 @@ static void doWord(char *buf) {
 // can never be typed: the first character fires the key and the remainder
 // arrives as a truncated command. That is why the scripted demo moved to 'M'
 // -- move, micro and maxslip all start with m -- and why wheel select is
-// 'A'/'B', since amp and accel have the lowercase.
-static const char *IMMEDIATE = "elcdzfxwMABpih?,.<>";
+// 'A'/'B', since amp and accel have the lowercase. The two-wheel short is 'S'
+// for the same reason: spin and secs have the lowercase one.
+static const char *IMMEDIATE = "elcdzfxwMSABpih?,.<>";
 
 static void handleSerial() {
   while (Serial.available()) {
@@ -674,7 +743,7 @@ void loop() {
     lastControl = now;
     if (dt > 0.05f) dt = 0.05f;  // resync after a USB stall
     for (uint8_t i = 0; i < NWHEELS; i++) wheels[i]->servo.update(dt);
-    demo.update(sel->servo);
+    demo.update();
     runWiggle();
   }
 
