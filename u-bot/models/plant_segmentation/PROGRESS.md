@@ -1137,3 +1137,76 @@ A4's `merge` policy that A6 predicted.
 - A2 should fix its seed — cheapest robustness win in the stack.
 - Ask whoever took `plants.jpeg` for the unstripped original. It is the only
   thing that would close the 3005-vs-4453 question, and C0 will not.
+
+### 012 — 2026-09-01 → 2026-09-02 · Probe: `plants2.jpeg` through Phase A
+
+**Chunk:** none (pre-B1 probe, n = 1, unscored). B1 stays `blocked`.
+
+A second photo from the same source turned up before the B1 image set did — a
+pumpkin vine through a lawn against a lattice fence, no soil or mulch anywhere,
+oblique. Ran the Phase A stack on it from a **shadow root**
+(`probes/plants2/`), the way A1b's `run_stage.py` re-ran A2/A4/A5: every stage
+is the shipped code imported from `chunks/<id>/` with only its input/output
+directories substituted, every image-measured constant re-measured. Nothing
+written into any Phase A product. Full account in `probes/plants2/FINDINGS.md`.
+
+**Done**
+- A1 (5 DA3 runs, manifest with re-measured instrument constants), A2, A3,
+  A3's SAM partition, A4 both policies, A5 both policies. A6–A8 not run: they
+  need a crop identity, which on `plants.jpeg` came from ground truth (A6) and
+  ~$40 of VLM calls (A7).
+- A by-eye spot check of the A3 map (15 author-placed boxes; **not** ground
+  truth) and one figure per stage.
+
+**Measured** (descriptive; no ground truth, so none of this enters `RESULTS.md`)
+- **DA3's camera head gives f = 3112–3672 px here vs 4159–4695 px on
+  `plants.jpeg` for the same runs** (nested-giant @504: 3120 vs 4453). JPEG
+  fingerprints of the two files are identical, so very likely one phone; if
+  so, DA3's `f` is a scene reading and A1b's adopted 4453 px is a per-image
+  guess. The nested estimate here sits within 4 % of the roadmap's 26 mm prior.
+- Instrument floor 1.35e-4 rdu (3.3× `plants.jpeg`); local planarity p10 at
+  win33 3.46e-3 rdu (6.1×). Grass is not straw.
+- **A2: 67 % of the frame became the datum** (29 % at home), `lam` fell to 0.01
+  (316 at home; grid floor 1e-3), e.d.f. 845 of ≈945, fit scale 40 px. The datum
+  is a 40-px low-pass of the depth map following the grass tops and the fence.
+  **84 % of A3-plant pixels lie inside the datum's ±3σ band** (12 % at home).
+  Wall time 33 min (6 at home; machine was 24 GB into swap).
+- A3 probe, unchanged: median confidence 0.246 (0.358 at home; 0.293 on the
+  pixels it gets *wrong* at home). Spot boxes 5/15: grass 2/2, pumpkin leaf
+  3/4, **orange fruit 0/3**, fence 0/3 (called petiole/leaf), straw 0/1,
+  petiole 0/1, ground ivy 0/1.
+- A4 `split`: 667 components, **largest = 73 % of plant px** (fence + lawn +
+  vine; 83 % of A3-grass inside it); `merge`: 321, largest 92 %. The three big
+  leaves standing proud of the lawn do separate correctly.
+- A5 `split`: **608 of 667 components "observed" at the datum, 493
+  arm-admissible, median confidence 0.86, 0 fabricated** — almost all grass
+  meeting grass. Occluded 8 % (28 % at home) — the lattice holes.
+
+**Decided**
+- Nothing changes in Phase A. No constant, product or score is touched.
+- The failure is **structural, not a constant**: "a surface smoother than the
+  plants exists" is in A2's method, every R1 constant was honestly re-measured
+  and none is at fault, and a constant sweep would never have found it. B1's
+  failure taxonomy needs a column for method assumptions.
+- For B1: (i) the capture protocol must include no-soil scenes deliberately;
+  (ii) A2 should emit a datum-validity verdict (signals already computed: `lam`
+  at grid floor, e.d.f. saturation, ground fraction vs A3 plant fraction) that
+  A4/A5 consume, so the R4-honest output on a lawn is "no datum" and A5 emits
+  no `observed` points; (iii) the per-image scorecard gets a "datum valid?" row
+  above the IoUs; (iv) fruit scored separately from foliage in A3.
+- Ask the photo's owner for **one unstripped original** — the A1b question
+  (3005 vs 4453 px) is now two data points wide and EXIF would close it.
+
+**Surprised us**
+- Every A2 headline metric *improved* on the failure case (more observed, less
+  interpolated), and A5's confidence rose as its meaning left. The stack's
+  self-reported numbers are worst exactly where they look best.
+- A4 `split` produced fewer components here than at home while merging far
+  more; component count is not fragmentation.
+- SAM 85 min vs 13, A2 33 vs 6: swap pressure from unrelated apps. The shipped
+  timings assume memory headroom.
+
+**Next**
+- B1 when the image set exists; fold the probe's five points into its brief.
+- Delete or keep `probes/plants2/` as the first row of B1's scorecard; its
+  bulk arrays are gitignored and rebuild in ~40 min with headroom.

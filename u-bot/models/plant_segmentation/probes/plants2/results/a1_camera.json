@@ -1,0 +1,212 @@
+{
+ "image": "plants2.jpeg",
+ "pixel_aspect_tolerance": 0.05,
+ "runs": [
+  {
+   "run": "da3-large_res504",
+   "process_res": 504,
+   "fx_px": 283.1886291503906,
+   "fy_px": 305.24627685546875,
+   "pixel_aspect_fx_over_fy": 0.9277381924775376,
+   "physically_consistent": false,
+   "f_at_3000x4000_px": {
+    "fx": 2247.528802780878,
+    "fy": 2422.5894988529267
+   },
+   "f_at_3000x4000_px_mean": 2335.0591508169023,
+   "fov_h_deg": 67.43826711378368,
+   "fov_v_deg": 79.08363231039931,
+   "equiv_mm": 20.206021056124374,
+   "plants_jpeg_same_run": {
+    "model": "depth-anything/DA3-LARGE",
+    "process_res": 504,
+    "input_hw": [
+     504,
+     378
+    ],
+    "predicts_camera": true,
+    "is_metric": 0,
+    "metric_scale_factor": null,
+    "fx": 524.0433959960938,
+    "fy": 531.375244140625,
+    "fov_h_deg": 39.66440335948348,
+    "fov_v_deg": 50.74446438237407,
+    "pixel_aspect_fx_over_fy": 0.9862021269801743,
+    "physically_consistent": true,
+    "f_at_3000x4000_from_fx": 4159.074571397569,
+    "f_at_3000x4000_from_fy": 4217.2638423859125,
+    "implied_35mm_equiv_mm": 36.24158092588805,
+    "principal_point_at_centre": true
+   }
+  },
+  {
+   "run": "da3-large_res700",
+   "process_res": 700,
+   "fx_px": 653.6453247070312,
+   "fy_px": 640.22802734375,
+   "pixel_aspect_fx_over_fy": 1.0209570602820193,
+   "physically_consistent": true,
+   "f_at_3000x4000_px": {
+    "fx": 3685.9698761674695,
+    "fy": 3658.445870535714
+   },
+   "f_at_3000x4000_px_mean": 3672.207873351592,
+   "fov_h_deg": 44.287585743342255,
+   "fov_v_deg": 57.32911012715724,
+   "equiv_mm": 31.83597852742899,
+   "plants_jpeg_same_run": {
+    "model": "depth-anything/DA3-LARGE",
+    "process_res": 700,
+    "input_hw": [
+     700,
+     532
+    ],
+    "predicts_camera": true,
+    "is_metric": 0,
+    "metric_scale_factor": null,
+    "fx": 832.6116943359375,
+    "fy": 800.8248291015625,
+    "fov_h_deg": 35.43493478503083,
+    "fov_v_deg": 47.215407457243856,
+    "pixel_aspect_fx_over_fy": 1.0396926569697351,
+    "physically_consistent": true,
+    "f_at_3000x4000_from_fx": 4695.178727458294,
+    "f_at_3000x4000_from_fy": 4576.141880580357,
+    "implied_35mm_equiv_mm": 40.190989329559635,
+    "principal_point_at_centre": true
+   }
+  },
+  {
+   "run": "da3nested-giant-large_res1344",
+   "process_res": 1344,
+   "fx_px": 1060.705810546875,
+   "fy_px": 1901.1151123046875,
+   "pixel_aspect_fx_over_fy": 0.5579387611416126,
+   "physically_consistent": false,
+   "f_at_3000x4000_px": {
+    "fx": 3156.862531389509,
+    "fy": 5658.080691382998
+   },
+   "f_at_3000x4000_px_mean": 4407.471611386254,
+   "fov_h_deg": 50.82995643006794,
+   "fov_v_deg": 38.93463500181963,
+   "equiv_mm": 38.13927546665573,
+   "plants_jpeg_same_run": {
+    "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "process_res": 1344,
+    "input_hw": [
+     1344,
+     1008
+    ],
+    "predicts_camera": true,
+    "is_metric": 1,
+    "metric_scale_factor": 1.4112238883972168,
+    "fx": 987.555419921875,
+    "fy": 1820.3546142578125,
+    "fov_h_deg": 54.07508761240902,
+    "fov_v_deg": 40.52414130412153,
+    "pixel_aspect_fx_over_fy": 0.5425071643661677,
+    "physically_consistent": false,
+    "f_at_3000x4000_from_fx": 2939.153035481771,
+    "f_at_3000x4000_from_fy": 5417.722066243489,
+    "implied_35mm_equiv_mm": 36.15736976294327,
+    "principal_point_at_centre": true
+   }
+  },
+  {
+   "run": "da3nested-giant-large_res504",
+   "process_res": 504,
+   "fx_px": 395.5687561035156,
+   "fy_px": 390.7543029785156,
+   "pixel_aspect_fx_over_fy": 1.0123209215824418,
+   "physically_consistent": true,
+   "f_at_3000x4000_px": {
+    "fx": 3139.434572250124,
+    "fy": 3101.224626813616
+   },
+   "f_at_3000x4000_px_mean": 3120.32959953187,
+   "fov_h_deg": 51.076293013291085,
+   "fov_v_deg": 65.63646745331253,
+   "equiv_mm": 27.001219891209917,
+   "plants_jpeg_same_run": {
+    "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "process_res": 504,
+    "input_hw": [
+     504,
+     378
+    ],
+    "predicts_camera": true,
+    "is_metric": 1,
+    "metric_scale_factor": 1.4654675722122192,
+    "fx": 561.1050415039062,
+    "fy": 566.0443115234375,
+    "fov_h_deg": 37.23068640598429,
+    "fov_v_deg": 47.99676206007412,
+    "pixel_aspect_fx_over_fy": 0.9912740576683161,
+    "physically_consistent": true,
+    "f_at_3000x4000_from_fx": 4453.214615110367,
+    "f_at_3000x4000_from_fy": 4492.415170820933,
+    "implied_35mm_equiv_mm": 38.7047119880422,
+    "principal_point_at_centre": true
+   }
+  },
+  {
+   "run": "da3nested-giant-large_res700",
+   "process_res": 700,
+   "fx_px": 541.3701171875,
+   "fy_px": 554.9107055664062,
+   "pixel_aspect_fx_over_fy": 0.9755986175017382,
+   "physically_consistent": true,
+   "f_at_3000x4000_px": {
+    "fx": 3052.8390066964284,
+    "fy": 3170.9183175223216
+   },
+   "f_at_3000x4000_px_mean": 3111.878662109375,
+   "fov_h_deg": 52.33401202094284,
+   "fov_v_deg": 64.48189259376662,
+   "equiv_mm": 26.97418002921801,
+   "plants_jpeg_same_run": {
+    "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "process_res": 700,
+    "input_hw": [
+     700,
+     532
+    ],
+    "predicts_camera": true,
+    "is_metric": 1,
+    "metric_scale_factor": 1.613224983215332,
+    "fx": 824.1446533203125,
+    "fy": 838.4088745117188,
+    "fov_h_deg": 35.775890777374165,
+    "fov_v_deg": 45.31691682615422,
+    "pixel_aspect_fx_over_fy": 0.9829865574840038,
+    "physically_consistent": true,
+    "f_at_3000x4000_from_fx": 4647.432255565672,
+    "f_at_3000x4000_from_fy": 4790.907854352678,
+    "implied_35mm_equiv_mm": 40.907418279284975,
+    "principal_point_at_centre": true
+   }
+  }
+ ],
+ "consistent_runs": [
+  "da3-large_res700",
+  "da3nested-giant-large_res504",
+  "da3nested-giant-large_res700"
+ ],
+ "f_at_3000x4000_consistent_px": {
+  "min": 3111.878662109375,
+  "max": 3672.207873351592,
+  "mean": 3301.472044997612
+ },
+ "plants_jpeg_reference": {
+  "A1b_adopted_f_px": 4453.214615110367,
+  "A1_consistent_band_px": {
+   "min": 4159.074571397569,
+   "max": 4695.178727458294,
+   "mean": 4488.7250423829755,
+   "spread_over_mean": 0.119433503054604
+  },
+  "roadmap_prior_26mm_px": 3005.0
+ },
+ "same_camera_evidence": "plants.jpeg and plants2.jpeg have identical JPEG quantisation tables, identical 4:2:0 subsampling, identical JFIF/ICC structure, no EXIF, and identical 3000x4000 dimensions. That is consistent with the same phone, but a messaging app's re-encode would produce the same fingerprint, so it is evidence of the same DELIVERY PATH, not proof of the same lens."
+}

@@ -1,0 +1,10 @@
+# bulk probe data — rebuild with run_da3.sh + probe_a1..a45.py
+chunks/A1/depth/
+chunks/**/*.npy
+chunks/**/*.npz
+chunks/A2/products/
+chunks/A3/work/
+chunks/A4/work/
+__pycache__/
+chunks/A4/products/unresolved_edges_*.json
+figs/grid_reference.png
