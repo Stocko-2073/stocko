@@ -1,0 +1,81 @@
+{
+ "client": "official mcp python SDK",
+ "mcp_version": "2.1.1",
+ "server_command": [
+  "/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/chunks/A3/.venv/bin/python",
+  "server.py"
+ ],
+ "initialize": {
+  "protocolVersion": "2025-06-18",
+  "serverInfo": {
+   "name": "weeding-perception",
+   "version": "0.1.0"
+  },
+  "capabilities_tools": true,
+  "instructions_chars": 666
+ },
+ "tools": [
+  {
+   "name": "plan_removals",
+   "description_chars": 611,
+   "schema_properties": [
+    "confidence_floor",
+    "include_rejections",
+    "keep_plant_policy",
+    "labels",
+    "min_label_repeats",
+    "tool_profile"
+   ],
+   "required": [
+    "labels",
+    "tool_profile"
+   ]
+  },
+  {
+   "name": "segment_garden",
+   "description_chars": 561,
+   "schema_properties": [
+    "depth",
+    "image",
+    "include_contact_candidates",
+    "intrinsics"
+   ],
+   "required": [
+    "image"
+   ]
+  }
+ ],
+ "segment_garden": {
+  "isError": false,
+  "n_instances": 207,
+  "scale_confidence": "scale_free",
+  "crop_fields_all_null": true
+ },
+ "plan_removals": {
+  "isError": false,
+  "n_targets": 0,
+  "n_rejections": 207,
+  "rejections_by_reason": {
+   "component_unlabelled": 134,
+   "label_discarded_r3": 134,
+   "insufficient_repeats": 134,
+   "not_unanimous": 15,
+   "label_not_remove": 204,
+   "confidence_below_floor": 59,
+   "mixed_component": 4,
+   "no_contact_point": 29,
+   "contact_not_observed": 11,
+   "contact_not_arm_admissible": 23,
+   "inside_keepout": 134
+  }
+ },
+ "refusal_is_an_error": {
+  "isError": true,
+  "text_starts": "REFUSED: A8 has products for exactly one image (/Users/samw3"
+ },
+ "metric_tool_profile": {
+  "n_targets": 0,
+  "refusal": "metric_tool_profile_refused"
+ },
+ "verdict": "PASS"
+}

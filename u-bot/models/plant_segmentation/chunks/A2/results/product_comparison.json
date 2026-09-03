@@ -1,0 +1,63 @@
+{
+  "units": "each product's height divided by its OWN measured datum roughness, so the two are on a common, scale-free axis",
+  "per_product": {
+    "primary_raster": {
+      "grid": [
+        1344,
+        1008
+      ],
+      "camera_usable_per_A1": false,
+      "sigma_datum_rdu": 0.005469617460760942,
+      "rdu_normaliser": 1.3996973633766174,
+      "inlier_fraction": 0.2910791052532124,
+      "inlier_rms_rdu": 0.0068495974946936175,
+      "inlier_rms_in_sigma": 1.252299186155642,
+      "plane_normal": [
+        -0.341950894990294,
+        -0.5600207586382533,
+        -0.7546166810438077
+      ],
+      "fit_scale_px": 146.7076256826222,
+      "observed_fraction": 0.2910791052532124
+    },
+    "primary_geometry": {
+      "grid": [
+        504,
+        378
+      ],
+      "camera_usable_per_A1": true,
+      "sigma_datum_rdu": 0.006007673366949726,
+      "rdu_normaliser": 1.3999748229980469,
+      "inlier_fraction": 0.2946900982615268,
+      "inlier_rms_rdu": 0.006928907818013907,
+      "inlier_rms_in_sigma": 1.153342965703197,
+      "plane_normal": [
+        -0.23226674890051782,
+        -0.6338242196803437,
+        -0.7377797882171804
+      ],
+      "fit_scale_px": 82.10739943568862,
+      "observed_fraction": 0.2946900982615268
+    }
+  },
+  "plane_normal_angle_between_products_deg": 7.641503132620527,
+  "height_agreement_in_sigma": {
+    "pearson_r": 0.974908950150268,
+    "best_fit_gain_raster_over_geometry": 1.1507980456957276,
+    "median_abs_diff": 4.785318374633789,
+    "p90_abs_diff": 20.243667602539062,
+    "rms_diff": 11.33036994934082
+  },
+  "height_agreement_in_raw_rdu": {
+    "note": "each raster has its own rdu, so this is only meaningful alongside the sigma-normalised comparison above",
+    "best_fit_gain_raster_over_geometry": 1.0477309308074454,
+    "sigma_ratio_geometry_over_raster": 1.0983717618368742,
+    "gain_attributable_to_the_sigma_normalisation": 1.098371740165056
+  },
+  "ground_mask_agreement": {
+    "iou": 0.801664433797316,
+    "raster_only_fraction": 0.030481593679138323,
+    "geometry_only_fraction": 0.033991461167800455
+  },
+  "which_to_use": "primary_raster. It is the finer grid, its ground mask resolves the gaps between straw stalks that the res-504 raster averages over, and A2 never uses the camera for anything the A1 manifest flags as unusable: the rescaled res-504 camera is what back-projects it. primary_geometry is kept here as the independent check."
+}

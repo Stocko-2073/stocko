@@ -1,0 +1,56 @@
+{
+  "_readme": "Ground-truth class calls for plants.jpeg, made by eye at 4-10x zoom on the 768x1024 GT grid (see chunks/A0/FINDINGS.md). Region ids index the SAM partition in work/regions.npy; every id listed here was looked at in a zoom render before being written down. Passes apply in name order; later passes win.",
+
+  "pass01_petiole": {
+    "_note": "Squash stem material: petioles, vines, peduncles, tendrils. Identified by the thick, pale, longitudinally-ribbed, hairy, round-sectioned look, verified against native-resolution crops (work/n_a.png, n_b.png, n_c.png).",
+    "squash_petiole": {
+      "ids": [200, 205, 67, 306, 563,
+              229, 195, 184, 239, 88, 510, 364, 363, 85, 642, 452, 615, 349, 110,
+              415, 107, 166, 518, 221, 310, 174,
+              222, 199, 71, 179, 180,
+              213, 403, 402, 286, 94, 369,
+              311, 386,
+              208, 313, 111, 346, 104, 202, 270,
+              72, 78, 220, 65, 633, 678, 648, 607,
+              568, 620, 408,
+              82, 237, 89, 294, 592]
+    }
+  },
+
+  "pass02_fruit": {
+    "_note": "Two kabocha fruit: the big dark one (171+172, split by a vine crossing it) and the small striped one (211).",
+    "fruit": { "ids": [171, 172, 211] }
+  },
+
+  "pass03_weeds": {
+    "_note": "Broadleaf weeds. Bottom-left patch (purslane-like, mallow-like and clover-like plants), a clover clump beside the fruit, two seedlings in the straw, and a dark ovate pinnate-veined weed growing up through the vines mid-frame (confirmed at native resolution, work/n_c.png).",
+    "broadleaf_weed": {
+      "ids": [400, 234, 485, 261, 396, 382, 588, 214, 373, 512, 254, 209, 215, 216,
+              210, 217, 218, 328, 661, 509, 471, 374, 303, 264, 226, 333, 489, 368,
+              414, 677, 436, 549, 330, 495, 585, 659, 655, 443, 376, 500, 664, 447, 562,
+              391, 392, 496, 287, 251, 608, 80, 90, 145, 83, 533, 534, 440, 658, 87]
+    }
+  },
+
+  "pass04_grassoverleaf": {
+    "_note": "Foreground grass blades lying over squash leaves (their parallel venation and keel are visible at native resolution), and leaf pixels the elongation heuristic mistook for blades: leaf-edge shadow (42), a young folded leaf (228, 227), sunlit specular streaks on a leaf (381, 610) and the shadow cast by a serrated leaf margin (295, 321, 312).",
+    "grass": { "ids": [262, 326, 22, 455] },
+    "squash_leaf": { "ids": [42, 228, 227, 295, 321, 312, 381, 610] }
+  },
+
+  "pass05_dryresidue": {
+    "_note": "Dry dead plant material. `straw` in this schema means dry plant residue wherever it lies, including dried leaves and spent flower sheaths still attached to the squash.",
+    "straw": { "ids": [334, 367, 375, 336, 327, 307, 498, 516, 278, 207, 404, 675,
+                       546, 557, 77, 45, 52, 64, 75, 117] }
+  },
+
+  "pass06_other": {
+    "_note": "A feather lying on the straw.",
+    "other": { "ids": [435] }
+  },
+
+  "pass07_unlabelled": {
+    "_note": "Regions I could not resolve. 43/56 are a deep-shadow tangle behind the crown where grass, straw and squash stem are interleaved below the resolution of this grid; 244 is a dark band under a leaf edge that is either the leaf's own shaded underside or shadowed material behind it. Marked unlabelled rather than guessed (roadmap A0 Notes).",
+    "unlabelled": { "ids": [43, 56, 244] }
+  }
+}

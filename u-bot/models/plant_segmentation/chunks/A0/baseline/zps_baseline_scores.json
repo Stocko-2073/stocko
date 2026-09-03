@@ -1,0 +1,270 @@
+{
+ "instances": {
+  "name": "ZeroPlantSeg instances (squash.yaml, eps=100, min_samples=2)",
+  "iou_threshold": 0.5,
+  "gt_grid": [
+   1024,
+   768
+  ],
+  "resampled_from": null,
+  "unlabelled_fraction": 0.01513671875,
+  "instances": {
+   "iou_threshold": 0.5,
+   "n_gt": 10,
+   "n_pred": 5,
+   "tp": 0,
+   "fp": 5,
+   "fn": 10,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "matches": [],
+   "best_iou_per_gt": {
+    "1": {
+     "iou": 0.4247904427240616,
+     "pred": 2
+    },
+    "3": {
+     "iou": 0.24641647120145949,
+     "pred": 3
+    },
+    "4": {
+     "iou": 0.22417524758968976,
+     "pred": 3
+    },
+    "2": {
+     "iou": 0.17300899700099967,
+     "pred": 3
+    },
+    "6": {
+     "iou": 0.10381608586193189,
+     "pred": 3
+    },
+    "5": {
+     "iou": 0.0765705937043432,
+     "pred": 3
+    },
+    "9": {
+     "iou": 0.013026755677590417,
+     "pred": 2
+    },
+    "10": {
+     "iou": 0.0026934043157595716,
+     "pred": 2
+    },
+    "8": {
+     "iou": 0.001186033272186729,
+     "pred": 2
+    },
+    "7": {
+     "iou": 2.6291573550677007e-05,
+     "pred": 2
+    }
+   },
+   "unmatched_gt": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ]
+  },
+  "squash_fragmentation": {
+   "gt_instance": 1,
+   "n_pred_parts": 3,
+   "parts": {
+    "2": 185681,
+    "4": 98841,
+    "5": 59916
+   },
+   "min_px": 200
+  },
+  "grass_absorbed_into_crop": {
+   "crop_pred_id": 2,
+   "gt_grass_px": 106099,
+   "absorbed_px": 56193,
+   "absorbed_fraction": 0.529627988953713
+  },
+  "contacts": {
+   "scoreable": {
+    "n": 0,
+    "note": "prediction supplied no contact points"
+   },
+   "per_status": {},
+   "points": []
+  }
+ },
+ "material_charitable": {
+  "name": "ZeroPlantSeg material (charitable mapping: squash instances -> squash_leaf, clover instance -> broadleaf_weed, background -> straw)",
+  "iou_threshold": 0.5,
+  "gt_grid": [
+   1024,
+   768
+  ],
+  "resampled_from": null,
+  "unlabelled_fraction": 0.01513671875,
+  "per_class_iou": {
+   "squash_leaf": {
+    "iou": 0.6759511106461624,
+    "gt_px": 360852,
+    "pred_px": 408128,
+    "intersection": 310148
+   },
+   "squash_petiole": {
+    "iou": 0.0,
+    "gt_px": 55560,
+    "pred_px": 0,
+    "intersection": 0
+   },
+   "grass": {
+    "iou": 0.0,
+    "gt_px": 106099,
+    "pred_px": 0,
+    "intersection": 0
+   },
+   "broadleaf_weed": {
+    "iou": 0.4903235916320614,
+    "gt_px": 18655,
+    "pred_px": 19387,
+    "intersection": 12516
+   },
+   "straw": {
+    "iou": 0.6075666787515808,
+    "gt_px": 216116,
+    "pred_px": 347013,
+    "intersection": 212830
+   },
+   "soil": {
+    "iou": null,
+    "gt_px": 0,
+    "pred_px": 0,
+    "intersection": 0
+   },
+   "fruit": {
+    "iou": 0.0,
+    "gt_px": 16692,
+    "pred_px": 0,
+    "intersection": 0
+   },
+   "other": {
+    "iou": 0.0,
+    "gt_px": 554,
+    "pred_px": 0,
+    "intersection": 0
+   }
+  },
+  "mean_iou": 0.25340591157568637,
+  "confusion": [
+   [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    310148,
+    0,
+    0,
+    0,
+    50704,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    30556,
+    0,
+    0,
+    0,
+    25004,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    59640,
+    0,
+    0,
+    4407,
+    42052,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    3228,
+    0,
+    0,
+    12516,
+    2911,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    822,
+    0,
+    0,
+    2464,
+    212830,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    3734,
+    0,
+    0,
+    0,
+    12958,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0,
+    0,
+    0,
+    554,
+    0,
+    0,
+    0
+   ]
+  ]
+ },
+ "plant_vs_background": {
+  "plant_vs_background_iou": 0.7574200699638419,
+  "gt_plant_px": 557858,
+  "pred_plant_px": 428313,
+  "note": "config-free: any ZeroPlantSeg instance pixel vs any GT plant material (squash leaf/petiole/fruit, grass, broadleaf weed)"
+ }
+}

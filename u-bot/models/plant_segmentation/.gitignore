@@ -1,0 +1,70 @@
+# Upstream clone + ~6.7 GB of weights + venv. Rebuild with port/README.md.
+ZeroPlantSeg/
+
+# Chunk working artifacts: commit FINDINGS.md and small figures, not bulk data.
+chunks/**/*.npy
+chunks/**/*.pth
+chunks/**/*.ckpt
+chunks/**/cache/
+chunks/**/__pycache__/
+chunks/**/.venv/
+
+# A1: upstream Depth Anything 3 clone (48 MB) and the DA3 rasters it produced.
+# Rebuild both with chunks/A1/README.md.
+chunks/A1/da3-src/
+chunks/A1/depth/*/rgb.png
+
+*.pyc
+__pycache__/
+.DS_Store
+
+# A2: float32 raster products (40 MB) and figures (14 MB).
+# Rebuild in ~10 minutes with chunks/A2/README.md.
+chunks/A2/products*/
+chunks/A2/results/*.png
+
+# A3: SAM masks, region maps and cached DINOv2 features (~100 MB).
+# Rebuild in ~15 minutes with chunks/A3/README.md.
+chunks/A3/work/
+chunks/A3/preds/*.png
+chunks/A3/figs/*.png
+
+# A4: fragment maps, cached graph, cached A3 material, and the unresolved-edge
+# lists (3.3 MB each). Rebuild in ~3.5 min with chunks/A4/README.md.
+chunks/A4/work/
+chunks/A4/figs/*.png
+chunks/A4/products/*.png
+chunks/A4/products/unresolved_edges_*.json
+
+# A5: figures (13 MB). Rebuild in ~30 s with chunks/A5/figures.py.
+chunks/A5/figs/*.png
+
+# A6: the voxel keep-out product (7.9 MB) and figures (9.3 MB).
+# Rebuild in ~5 min with chunks/A6/README.md.
+chunks/A6/products/*.npz
+chunks/A6/figs/*.png
+
+# A7: the stimulus PNGs (418 MB) and the figures (2.7 MB).
+# Rebuild the renders in ~4 min with `run_a7.py render`; the replies cost $41
+# and cannot be regenerated identically, so they are kept OUT of the ignore
+# list deliberately — see the note below.
+chunks/A7/renders/
+chunks/A7/work/
+chunks/A7/figs/*.png
+
+# A8: the keep-out distance table (350 KB) and the figures (3.3 MB), plus the
+# client-only venv holding `mcp` for the conformance check. Rebuild the
+# products in ~40 s with `chunks/A8/build_products.py` and the figures in ~10 s
+# with `chunks/A8/figures.py`; recreate the venv with the two commands at the
+# top of `chunks/A8/requirements-client.lock.txt`. The JSON products and
+# everything in chunks/A8/results/ are kept: they are the chunk's evidence.
+chunks/A8/products/*.npz
+chunks/A8/figs/*.png
+chunks/A8/.venv-client/
+
+# A1b: one complete set of A2 + A4 products per assumed focal length, twice
+# over (seeded and free-seed sweeps) — ~900 MB. Rebuild in ~90 min with
+# chunks/A1b/sweep_all.sh; every number derived from it is in
+# chunks/A1b/results/*.json, which ARE committed.
+chunks/A1b/work/
+chunks/A1b/figs/*.png

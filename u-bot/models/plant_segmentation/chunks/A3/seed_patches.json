@@ -1,0 +1,445 @@
+{
+ "provenance": "sampled from A0 ground truth, draw 0 of dino_probe.py (rng seed 1000); patches with a 100 % pure label-grid footprint. NOT an independent human pass.",
+ "patch_grid": [
+  292,
+  219
+ ],
+ "fine_image": [
+  4088,
+  3066
+ ],
+ "patch_px": 14,
+ "per_class": 6,
+ "n_patches": 42,
+ "classes": [
+  "squash_leaf",
+  "squash_petiole",
+  "grass",
+  "broadleaf_weed",
+  "straw",
+  "fruit",
+  "other"
+ ],
+ "patches": [
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 144,
+   "patch_col": 57,
+   "label_grid_xy": [
+    201.6,
+    506.7
+   ]
+  },
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 37,
+   "patch_col": 96,
+   "label_grid_xy": [
+    338.4,
+    131.5
+   ]
+  },
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 232,
+   "patch_col": 132,
+   "label_grid_xy": [
+    464.7,
+    815.3
+   ]
+  },
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 242,
+   "patch_col": 180,
+   "label_grid_xy": [
+    633.0,
+    850.4
+   ]
+  },
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 96,
+   "patch_col": 151,
+   "label_grid_xy": [
+    531.3,
+    338.4
+   ]
+  },
+  {
+   "class": "squash_leaf",
+   "class_id": 1,
+   "patch_row": 107,
+   "patch_col": 123,
+   "label_grid_xy": [
+    433.1,
+    377.0
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 145,
+   "patch_col": 161,
+   "label_grid_xy": [
+    566.4,
+    510.2
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 129,
+   "patch_col": 111,
+   "label_grid_xy": [
+    391.0,
+    454.1
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 114,
+   "patch_col": 23,
+   "label_grid_xy": [
+    82.4,
+    401.5
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 100,
+   "patch_col": 102,
+   "label_grid_xy": [
+    359.5,
+    352.4
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 101,
+   "patch_col": 101,
+   "label_grid_xy": [
+    355.9,
+    355.9
+   ]
+  },
+  {
+   "class": "squash_petiole",
+   "class_id": 2,
+   "patch_row": 111,
+   "patch_col": 151,
+   "label_grid_xy": [
+    531.3,
+    391.0
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 31,
+   "patch_col": 199,
+   "label_grid_xy": [
+    699.6,
+    110.5
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 142,
+   "patch_col": 150,
+   "label_grid_xy": [
+    527.8,
+    499.7
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 85,
+   "patch_col": 145,
+   "label_grid_xy": [
+    510.2,
+    299.8
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 269,
+   "patch_col": 217,
+   "label_grid_xy": [
+    762.7,
+    945.1
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 24,
+   "patch_col": 163,
+   "label_grid_xy": [
+    573.4,
+    85.9
+   ]
+  },
+  {
+   "class": "grass",
+   "class_id": 3,
+   "patch_row": 106,
+   "patch_col": 86,
+   "label_grid_xy": [
+    303.3,
+    373.5
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 252,
+   "patch_col": 11,
+   "label_grid_xy": [
+    40.3,
+    885.5
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 134,
+   "patch_col": 159,
+   "label_grid_xy": [
+    559.3,
+    471.7
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 236,
+   "patch_col": 57,
+   "label_grid_xy": [
+    201.6,
+    829.4
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 249,
+   "patch_col": 26,
+   "label_grid_xy": [
+    92.9,
+    875.0
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 235,
+   "patch_col": 37,
+   "label_grid_xy": [
+    131.5,
+    825.9
+   ]
+  },
+  {
+   "class": "broadleaf_weed",
+   "class_id": 4,
+   "patch_row": 219,
+   "patch_col": 65,
+   "label_grid_xy": [
+    229.7,
+    769.8
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 249,
+   "patch_col": 6,
+   "label_grid_xy": [
+    22.8,
+    875.0
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 265,
+   "patch_col": 110,
+   "label_grid_xy": [
+    387.5,
+    931.1
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 193,
+   "patch_col": 131,
+   "label_grid_xy": [
+    461.2,
+    678.6
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 206,
+   "patch_col": 123,
+   "label_grid_xy": [
+    433.1,
+    724.2
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 249,
+   "patch_col": 9,
+   "label_grid_xy": [
+    33.3,
+    875.0
+   ]
+  },
+  {
+   "class": "straw",
+   "class_id": 5,
+   "patch_row": 82,
+   "patch_col": 132,
+   "label_grid_xy": [
+    464.7,
+    289.3
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 135,
+   "patch_col": 91,
+   "label_grid_xy": [
+    320.9,
+    475.2
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 127,
+   "patch_col": 87,
+   "label_grid_xy": [
+    306.8,
+    447.1
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 202,
+   "patch_col": 85,
+   "label_grid_xy": [
+    299.8,
+    710.1
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 193,
+   "patch_col": 72,
+   "label_grid_xy": [
+    254.2,
+    678.6
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 136,
+   "patch_col": 88,
+   "label_grid_xy": [
+    310.4,
+    478.7
+   ]
+  },
+  {
+   "class": "fruit",
+   "class_id": 7,
+   "patch_row": 180,
+   "patch_col": 76,
+   "label_grid_xy": [
+    268.3,
+    633.0
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 245,
+   "patch_col": 87,
+   "label_grid_xy": [
+    306.8,
+    860.9
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 240,
+   "patch_col": 92,
+   "label_grid_xy": [
+    324.4,
+    843.4
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 239,
+   "patch_col": 92,
+   "label_grid_xy": [
+    324.4,
+    839.9
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 241,
+   "patch_col": 89,
+   "label_grid_xy": [
+    313.9,
+    846.9
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 242,
+   "patch_col": 89,
+   "label_grid_xy": [
+    313.9,
+    850.4
+   ]
+  },
+  {
+   "class": "other",
+   "class_id": 8,
+   "patch_row": 245,
+   "patch_col": 91,
+   "label_grid_xy": [
+    320.9,
+    860.9
+   ]
+  }
+ ]
+}

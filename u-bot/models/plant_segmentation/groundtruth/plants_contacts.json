@@ -1,0 +1,159 @@
+{
+ "grid": {
+  "width": 768,
+  "height": 1024,
+  "native": {
+   "width": 3000,
+   "height": 4000
+  },
+  "scale_native_per_gt_px": 3.90625
+ },
+ "status_values": [
+  "visible",
+  "under_straw",
+  "out_of_frame"
+ ],
+ "instances": [
+  {
+   "id": 1,
+   "name": "squash",
+   "crop": true,
+   "material": "squash",
+   "point": [
+    330,
+    552
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated",
+   "note": "Petioles converge on a crown node near (352, 516); the stem bundle then descends left and passes behind straw and the leaf at (110,540) without the soil intersection ever being visible. The point recorded is where squash stem material was last seen heading toward the datum."
+  },
+  {
+   "id": 2,
+   "name": "weed_purslane",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    125,
+    833
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated",
+   "note": "Crown with a reddish node visible at (142,775); the stem descends and enters straw around here."
+  },
+  {
+   "id": 3,
+   "name": "weed_clover_patch_lower_left",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    183,
+    847
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated",
+   "note": "May be more than one clover plant; I could not separate them and have recorded it as one instance."
+  },
+  {
+   "id": 4,
+   "name": "weed_mallow",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    59,
+    913
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated"
+  },
+  {
+   "id": 5,
+   "name": "weed_small_right_of_mallow",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    140,
+    905
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated"
+  },
+  {
+   "id": 6,
+   "name": "weed_clover_by_fruit",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    258,
+    780
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated"
+  },
+  {
+   "id": 7,
+   "name": "weed_seedling_left",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    26,
+    455
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated"
+  },
+  {
+   "id": 8,
+   "name": "weed_seedling_mid",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    177,
+    458
+   ],
+   "status": "under_straw",
+   "occluded_by": "straw",
+   "localisation": "estimated"
+  },
+  {
+   "id": 9,
+   "name": "weed_ovate_upper",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    515,
+    490
+   ],
+   "status": "under_straw",
+   "occluded_by": "foliage",
+   "localisation": "estimated",
+   "note": "Base hidden under squash vines and grass; the point is a guess and must not be scored."
+  },
+  {
+   "id": 10,
+   "name": "weed_ovate_lower",
+   "crop": false,
+   "material": "broadleaf_weed",
+   "point": [
+    425,
+    498
+   ],
+   "status": "under_straw",
+   "occluded_by": "foliage",
+   "localisation": "estimated",
+   "note": "Base hidden; the point is a guess and must not be scored."
+  }
+ ],
+ "unresolved": {
+  "grass": {
+   "instance_id": 255,
+   "note": "Grass is clonal and the blades interleave; at 768x1024 I cannot say which blade belongs to which tussock. All grass pixels get instance id 255 and are EXCLUDED from instance matching, exactly like unlabelled. The material layer still scores grass, and eval.py reports grass-absorption separately."
+  }
+ }
+}

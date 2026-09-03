@@ -1,0 +1,587 @@
+{
+ "variant": "r2",
+ "model": "claude-opus-5",
+ "cli_version": "2.1.257 (Claude Code)",
+ "hard_set_rule": "crop-majority components other than the crop itself; weed-majority components; grass-majority components holding >= 10 % crop. Stated before scoring.",
+ "hard_set_sizes": {
+  "small_crop_fragments": 23,
+  "weeds": 4,
+  "grass_with_crop_in_it": 9
+ },
+ "n_hard": 36,
+ "pads": {
+  "p000": 0.0,
+  "shipped(0.75)": 0.75,
+  "p300": 3.0
+ },
+ "context_ablation": {
+  "per_condition": {
+   "p000": {
+    "label_counts": {
+     "unsure": 10,
+     "keep": 23,
+     "remove": 3
+    },
+    "crop_called_remove": 1,
+    "crop_components": 23,
+    "weed_called_remove": 1,
+    "weed_components": 4,
+    "by_truth": {
+     "crop": {
+      "unsure": 7,
+      "keep": 15,
+      "remove": 1
+     },
+     "grass": {
+      "keep": 7,
+      "remove": 1,
+      "unsure": 1
+     },
+     "weed": {
+      "remove": 1,
+      "unsure": 2,
+      "keep": 1
+     }
+    }
+   },
+   "shipped(0.75)": {
+    "label_counts": {
+     "remove": 2,
+     "keep": 22,
+     "unsure": 12
+    },
+    "crop_called_remove": 1,
+    "crop_components": 23,
+    "weed_called_remove": 1,
+    "weed_components": 4,
+    "by_truth": {
+     "crop": {
+      "remove": 1,
+      "keep": 15,
+      "unsure": 7
+     },
+     "grass": {
+      "keep": 6,
+      "unsure": 3
+     },
+     "weed": {
+      "remove": 1,
+      "unsure": 2,
+      "keep": 1
+     }
+    }
+   },
+   "p300": {
+    "label_counts": {
+     "unsure": 13,
+     "keep": 22,
+     "remove": 1
+    },
+    "crop_called_remove": 1,
+    "crop_components": 23,
+    "weed_called_remove": 0,
+    "weed_components": 4,
+    "by_truth": {
+     "crop": {
+      "unsure": 7,
+      "keep": 15,
+      "remove": 1
+     },
+     "grass": {
+      "keep": 5,
+      "unsure": 4
+     },
+     "weed": {
+      "keep": 2,
+      "unsure": 2
+     }
+    }
+   }
+  },
+  "n_flipped": 15,
+  "flipped_ids": [
+   5,
+   6,
+   14,
+   20,
+   21,
+   26,
+   63,
+   104,
+   171,
+   183,
+   190,
+   193,
+   194,
+   203,
+   206
+  ],
+  "flip_rate": 0.4166666666666667,
+  "flips_toward_remove_on_crop": [
+   20
+  ],
+  "flips_away_from_remove": [
+   5
+  ],
+  "reading": "a label that survives losing its surround was read off the material; one that flips was read off the context, and would have been wrong about a real seedling.",
+  "rows": [
+   {
+    "id": 5,
+    "truth": "crop",
+    "px": 730,
+    "crop_fraction": 0.621,
+    "p000": "unsure",
+    "shipped(0.75)": "remove",
+    "p300": "unsure"
+   },
+   {
+    "id": 6,
+    "truth": "crop",
+    "px": 1715,
+    "crop_fraction": 0.717,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "unsure"
+   },
+   {
+    "id": 7,
+    "truth": "crop",
+    "px": 83,
+    "crop_fraction": 0.699,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 10,
+    "truth": "crop",
+    "px": 659,
+    "crop_fraction": 0.686,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 12,
+    "truth": "crop",
+    "px": 246,
+    "crop_fraction": 0.821,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 14,
+    "truth": "crop",
+    "px": 218,
+    "crop_fraction": 0.789,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "unsure"
+   },
+   {
+    "id": 16,
+    "truth": "crop",
+    "px": 753,
+    "crop_fraction": 0.973,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 20,
+    "truth": "crop",
+    "px": 1089,
+    "crop_fraction": 0.949,
+    "p000": "remove",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 21,
+    "truth": "crop",
+    "px": 209,
+    "crop_fraction": 0.849,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "keep"
+   },
+   {
+    "id": 22,
+    "truth": "crop",
+    "px": 240,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 25,
+    "truth": "crop",
+    "px": 94,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 26,
+    "truth": "crop",
+    "px": 78,
+    "crop_fraction": 0.795,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "remove"
+   },
+   {
+    "id": 41,
+    "truth": "grass",
+    "px": 2425,
+    "crop_fraction": 0.365,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 62,
+    "truth": "crop",
+    "px": 267,
+    "crop_fraction": 0.933,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 63,
+    "truth": "grass",
+    "px": 234,
+    "crop_fraction": 0.175,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "unsure"
+   },
+   {
+    "id": 69,
+    "truth": "crop",
+    "px": 114,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 104,
+    "truth": "weed",
+    "px": 19014,
+    "crop_fraction": 0.0,
+    "p000": "remove",
+    "shipped(0.75)": "remove",
+    "p300": "keep"
+   },
+   {
+    "id": 142,
+    "truth": "crop",
+    "px": 638,
+    "crop_fraction": 0.799,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 157,
+    "truth": "crop",
+    "px": 303,
+    "crop_fraction": 0.931,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 159,
+    "truth": "crop",
+    "px": 105,
+    "crop_fraction": 0.667,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 171,
+    "truth": "crop",
+    "px": 289,
+    "crop_fraction": 0.903,
+    "p000": "keep",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 178,
+    "truth": "weed",
+    "px": 433,
+    "crop_fraction": 0.0,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 183,
+    "truth": "grass",
+    "px": 328,
+    "crop_fraction": 0.129,
+    "p000": "keep",
+    "shipped(0.75)": "unsure",
+    "p300": "keep"
+   },
+   {
+    "id": 188,
+    "truth": "grass",
+    "px": 85,
+    "crop_fraction": 0.192,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 189,
+    "truth": "weed",
+    "px": 89,
+    "crop_fraction": 0.213,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 190,
+    "truth": "grass",
+    "px": 275,
+    "crop_fraction": 0.171,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "unsure"
+   },
+   {
+    "id": 193,
+    "truth": "grass",
+    "px": 231,
+    "crop_fraction": 0.264,
+    "p000": "keep",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 194,
+    "truth": "grass",
+    "px": 223,
+    "crop_fraction": 0.126,
+    "p000": "remove",
+    "shipped(0.75)": "unsure",
+    "p300": "keep"
+   },
+   {
+    "id": 197,
+    "truth": "crop",
+    "px": 169,
+    "crop_fraction": 0.982,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 201,
+    "truth": "crop",
+    "px": 139,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 202,
+    "truth": "crop",
+    "px": 119,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 203,
+    "truth": "grass",
+    "px": 107,
+    "crop_fraction": 0.178,
+    "p000": "unsure",
+    "shipped(0.75)": "keep",
+    "p300": "unsure"
+   },
+   {
+    "id": 204,
+    "truth": "grass",
+    "px": 77,
+    "crop_fraction": 0.162,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   },
+   {
+    "id": 205,
+    "truth": "weed",
+    "px": 96,
+    "crop_fraction": 0.0,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "unsure"
+   },
+   {
+    "id": 206,
+    "truth": "crop",
+    "px": 87,
+    "crop_fraction": 1.0,
+    "p000": "unsure",
+    "shipped(0.75)": "unsure",
+    "p300": "keep"
+   },
+   {
+    "id": 207,
+    "truth": "crop",
+    "px": 75,
+    "crop_fraction": 1.0,
+    "p000": "keep",
+    "shipped(0.75)": "keep",
+    "p300": "keep"
+   }
+  ]
+ },
+ "null_regions": {
+  "n_regions": 6,
+  "n_judgements": 18,
+  "label_counts": {
+   "keep": 18
+  },
+  "confabulation_rate": 0.0,
+  "confabulation_definition": "`remove` at confidence >= 0.70 over a region that is pure straw in A0 and holds no A4 plant material at all",
+  "confident_removes": [],
+  "mean_confidence": 0.7000000000000002,
+  "per_region": {
+   "901": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers only dry brown straw/mulch debris, no living green foliage; nothing weedy to cut here."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers only dry dead straw/mulch debris, no living green foliage; not a weed to cut, so default keep."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers only dry tan straw/stalk mulch debris, no living green foliage; nothing to weed, so no cut warranted."
+    }
+   ],
+   "902": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Small patch of dry tan straw mulch/dead stem litter, no green living foliage; nothing a weeder needs to cut."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.66,
+     "reason": "Tiny patch of dry tan straw mulch/dead stems, no green living foliage visible; not identifiable as a weed."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers dry tan straw mulch litter, no green living foliage; nothing to cut, so leave undisturbed."
+    }
+   ],
+   "903": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Tiny patch of dry straw mulch and shadow, no living green plant tissue visible; nothing to weed here."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Small patch of dry brown straw mulch and dead stem debris; no living green weed foliage visible in the outlined area."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Tiny patch of dry straw mulch and shadow, no living green foliage visible; no evidence of a weed here."
+    }
+   ],
+   "904": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.62,
+     "reason": "Tiny patch of dry straw/stem litter in mulch; no green living foliage visible, so nothing weed-like to cut here."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.62,
+     "reason": "Small patch of dry straw/stem litter over bare soil, no living green foliage; no evidence of a growing weed here."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.62,
+     "reason": "Tiny patch of dry straw/stem litter and shadow in mulch; no live green weed foliage visible, nothing to remove."
+    }
+   ],
+   "905": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Small patch of dry straw/mulch debris, no green living foliage; not a weed to cut, just dead stem litter on soil."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers dry tan straw mulch litter, not living green foliage; no weed rosette or stem visible, nothing to cut."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Small patch of dry tan straw/stem litter in the mulch layer, no green living foliage; not a weed to cut."
+    }
+   ],
+   "906": [
+    {
+     "rep": 1,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Tiny region on dry tan straw/stalk mulch debris, no green living foliage visible; not a weed to cut."
+    },
+    {
+     "rep": 2,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers dry straw/mulch debris, not living green foliage; no weed leaf or stem visible, so nothing to cut here."
+    },
+    {
+     "rep": 3,
+     "label": "keep",
+     "confidence": 0.72,
+     "reason": "Region covers dry straw/stalk mulch debris, not living green plant tissue; no weed foliage visible, so nothing to cut."
+    }
+   ]
+  }
+ }
+}

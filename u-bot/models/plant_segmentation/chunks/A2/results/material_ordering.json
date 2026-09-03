@@ -1,0 +1,92 @@
+{
+  "sigma_datum_rdu": 0.005469617460760942,
+  "scale_confidence": "scale_free",
+  "datum": "straw mulch surface, not bare soil",
+  "caveat": "hand-placed boxes, used once to check an ordering. Not ground truth, not a threshold, not read by anything downstream.",
+  "materials": {
+    "straw (datum)": {
+      "n_boxes": 4,
+      "n_px": 15700,
+      "p10_rdu": -0.0059766508638858795,
+      "median_rdu": 9.715455234982073e-05,
+      "p90_rdu": 0.017877109348773956,
+      "median_in_sigma": 0.01776258647441864,
+      "ground_inlier_fraction": 0.8528035714285713,
+      "per_box_median_rdu": [
+        -0.002599818632006645,
+        0.0027850614860653877,
+        0.001982072601094842,
+        -0.0016094367019832134
+      ]
+    },
+    "low broadleaf weed": {
+      "n_boxes": 3,
+      "n_px": 12175,
+      "p10_rdu": -0.0011474958155304193,
+      "median_rdu": 0.04027502238750458,
+      "p90_rdu": 0.10686377435922623,
+      "median_in_sigma": 7.363407611846924,
+      "ground_inlier_fraction": 0.54006512006512,
+      "per_box_median_rdu": [
+        0.002643831307068467,
+        0.0011771589051932096,
+        0.09069552272558212
+      ]
+    },
+    "grass blade": {
+      "n_boxes": 3,
+      "n_px": 20225,
+      "p10_rdu": -0.0018772933399304748,
+      "median_rdu": 0.28640416264533997,
+      "p90_rdu": 0.5796153545379639,
+      "median_in_sigma": 52.36273956298828,
+      "ground_inlier_fraction": 0.28448198424669013,
+      "per_box_median_rdu": [
+        0.385470986366272,
+        0.221085324883461,
+        -0.0004692657385021448
+      ]
+    },
+    "squash fruit": {
+      "n_boxes": 2,
+      "n_px": 10020,
+      "p10_rdu": 0.08715042471885681,
+      "median_rdu": 0.11846531927585602,
+      "p90_rdu": 0.3317466378211975,
+      "median_in_sigma": 21.658794403076172,
+      "ground_inlier_fraction": 0.0030913978494623655,
+      "per_box_median_rdu": [
+        0.10634790360927582,
+        0.30407142639160156
+      ]
+    },
+    "squash leaf": {
+      "n_boxes": 3,
+      "n_px": 40750,
+      "p10_rdu": 0.33181193470954895,
+      "median_rdu": 0.5104893445968628,
+      "p90_rdu": 0.6325048804283142,
+      "median_in_sigma": 93.33181762695312,
+      "ground_inlier_fraction": 0.0,
+      "per_box_median_rdu": [
+        0.6232348680496216,
+        0.33308732509613037,
+        0.5152590870857239
+      ]
+    }
+  },
+  "ordering_low_to_high": [
+    "straw (datum)",
+    "low broadleaf weed",
+    "squash fruit",
+    "grass blade",
+    "squash leaf"
+  ],
+  "expected_ordering": [
+    "straw (datum)",
+    "low broadleaf weed",
+    "grass blade",
+    "squash leaf"
+  ],
+  "ordering_matches_expectation": true
+}

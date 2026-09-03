@@ -1,0 +1,359 @@
+{
+ "purpose": "what TIER1_PX silences, measured",
+ "tier1_px": 75,
+ "seed": 20260901,
+ "fraction": 0.5,
+ "variant": "r2",
+ "model": "claude-opus-5",
+ "cli_version": "2.1.257 (Claude Code)",
+ "n_silenced_total": 56,
+ "n_sampled": 28,
+ "sampled_ids": [
+  4,
+  8,
+  15,
+  19,
+  24,
+  30,
+  35,
+  37,
+  45,
+  47,
+  56,
+  72,
+  82,
+  86,
+  92,
+  93,
+  95,
+  100,
+  113,
+  125,
+  129,
+  147,
+  152,
+  158,
+  162,
+  164,
+  165,
+  187
+ ],
+ "label_counts": {
+  "keep": 16,
+  "remove": 3,
+  "unsure": 9
+ },
+ "truth_histogram": {
+  "crop": 3,
+  "weed": 0,
+  "grass": 7,
+  "nonplant": 18
+ },
+ "by_truth": {
+  "crop": {
+   "keep": 3,
+   "remove": 0,
+   "unsure": 0
+  },
+  "weed": {
+   "keep": 0,
+   "remove": 0,
+   "unsure": 0
+  },
+  "grass": {
+   "keep": 3,
+   "remove": 1,
+   "unsure": 3
+  },
+  "nonplant": {
+   "keep": 10,
+   "remove": 2,
+   "unsure": 6
+  }
+ },
+ "crop_components_the_floor_saved_from_remove": [],
+ "crop_px_in_those": 0,
+ "cost_usd": 2.422816,
+ "labels": [
+  {
+   "id": 4,
+   "label": "unsure",
+   "confidence": 0.55,
+   "reason": "Tiny sliver of shaded gap between a squash leaf and grass-like blades; no distinguishing plant structure visible.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08544449999999999
+  },
+  {
+   "id": 8,
+   "label": "keep",
+   "confidence": 0.62,
+   "reason": "Tiny sliver on a squash stem/leaf junction, mostly shaded gap and stem edge of the crop plant; no distinct weed foliage.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0855995
+  },
+  {
+   "id": 15,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Tiny speck of dry tan debris or dead leaf fragment lodged among squash petioles and leaves; no separate weed plant visible.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0855045
+  },
+  {
+   "id": 19,
+   "label": "keep",
+   "confidence": 0.88,
+   "reason": "Tiny sliver on a large squash/pumpkin leaf beside its thick stem; part of the crop plant, likely a bit of dry debris on the leaf.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0853695
+  },
+  {
+   "id": 24,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Tiny patch on a thick ribbed squash petiole amid the crop's stems; part of the cultivated plant, not a separate weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08516950000000001
+  },
+  {
+   "id": 30,
+   "label": "remove",
+   "confidence": 0.58,
+   "reason": "Tiny sliver of a pale grass leaf sheath/stem; grass blades volunteering through straw mulch amid the squash vine",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.10403950000000001
+  },
+  {
+   "id": 35,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Tiny sliver of a narrow strap-like blade amid dry straw and squash foliage; too small to tell grass weed from crop leaf.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0852495
+  },
+  {
+   "id": 37,
+   "label": "keep",
+   "confidence": 0.55,
+   "reason": "Tiny sliver on dry straw mulch beside a broad grass-like blade; no distinct weed rosette or foliage visible, mostly litter/shadow.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08537449999999999
+  },
+  {
+   "id": 45,
+   "label": "keep",
+   "confidence": 0.62,
+   "reason": "Tiny sliver of pale stem/dry straw amid squash vine tendrils and mulch debris; no weed foliage visible, sits within crop canopy.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0856645
+  },
+  {
+   "id": 47,
+   "label": "keep",
+   "confidence": 0.55,
+   "reason": "Tiny sliver of dark shadowed material amid dry straw mulch near the squash plant base; no weed foliage identifiable.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08512449999999999
+  },
+  {
+   "id": 56,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Small patch of narrow strap-like grass blades emerging from straw mulch beside the squash stem, distinct from the squash foliage.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08548449999999999
+  },
+  {
+   "id": 72,
+   "label": "unsure",
+   "confidence": 0.55,
+   "reason": "Tiny sliver on dry straw mulch; no clear green leaf or stem visible, likely a mulch fragment rather than a plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08550949999999999
+  },
+  {
+   "id": 82,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Tiny sliver in shaded litter of dry straw and grassy blades; too small and dark to identify as crop or weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08506949999999999
+  },
+  {
+   "id": 86,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Thin sliver of a narrow linear grass-type blade rising through straw mulch, unlike the broadleaf squash foliage nearby",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.1001695
+  },
+  {
+   "id": 92,
+   "label": "keep",
+   "confidence": 0.62,
+   "reason": "Tiny speck on dry straw mulch/debris; no green leaf or seedling visible, nothing that positively reads as a weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08511450000000001
+  },
+  {
+   "id": 93,
+   "label": "unsure",
+   "confidence": 0.55,
+   "reason": "Tiny speck on dry straw mulch; a slim green blade crosses nearby but the tinted material itself is not identifiable",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0850945
+  },
+  {
+   "id": 95,
+   "label": "keep",
+   "confidence": 0.62,
+   "reason": "Tiny sliver of pale dry straw/mulch litter, not living green foliage; no weed evidence, so default to keep.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08538950000000001
+  },
+  {
+   "id": 100,
+   "label": "unsure",
+   "confidence": 0.62,
+   "reason": "Tiny speck on dry straw mulch; no leaf shape or green tissue visible, likely mulch debris rather than a plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0851395
+  },
+  {
+   "id": 113,
+   "label": "keep",
+   "confidence": 0.55,
+   "reason": "Tiny region on dry straw mulch and a dead stem tip; no living weed foliage visible, so nothing worth cutting.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0850945
+  },
+  {
+   "id": 125,
+   "label": "unsure",
+   "confidence": 0.45,
+   "reason": "Tiny sliver in shaded litter of dry straw and a narrow green blade; too small and dim to identify as crop or weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08511450000000001
+  },
+  {
+   "id": 129,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Tiny sliver on the dark shaded edge of a large squash leaf; no distinct weed foliage visible, appears part of the crop plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08522450000000001
+  },
+  {
+   "id": 147,
+   "label": "unsure",
+   "confidence": 0.42,
+   "reason": "Tiny sliver of a narrow grass-like blade among dense strap leaves; too small and ambiguous to call weed vs crop foliage.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0855795
+  },
+  {
+   "id": 152,
+   "label": "keep",
+   "confidence": 0.55,
+   "reason": "Tiny fragment on dry straw mulch/dead stem litter; no live green foliage or weed rosette visible, nothing to cut.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08517949999999999
+  },
+  {
+   "id": 158,
+   "label": "unsure",
+   "confidence": 0.55,
+   "reason": "Tiny speck on dry mulch/stem litter beside a squash leaf; no identifiable leaf or growth habit to judge crop vs weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08564449999999998
+  },
+  {
+   "id": 162,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Small sliver on a large squash/pumpkin leaf blade and its shaded lobe edge; crop foliage, no weed traits visible.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.08554949999999999
+  },
+  {
+   "id": 164,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Small patch on a dried, shriveled brown squash/pumpkin flower or leaf remnant attached to the crop plant, not a separate weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0855795
+  },
+  {
+   "id": 165,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Tiny sliver on the edge of a large squash leaf, straddling leaf margin and dry straw shadow; crop tissue, not a weed.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0852395
+  },
+  {
+   "id": 187,
+   "label": "keep",
+   "confidence": 0.72,
+   "reason": "Small sliver of shaded background between squash stems/leaves; no distinct weed foliage visible, adjacent to crop vine.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": [],
+   "_cost_usd": 0.0850995
+  }
+ ]
+}

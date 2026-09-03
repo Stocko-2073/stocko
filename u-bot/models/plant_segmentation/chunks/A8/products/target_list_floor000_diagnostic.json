@@ -1,0 +1,282 @@
+{
+ "chunk": "A8",
+ "tool": "plan_removals",
+ "scale_confidence": "scale_free",
+ "units": "rdu (relative depth units; 1 rdu = median scene depth of the A1 primary raster). Image distances are px on the named grid. No absolute scale exists for this image; A1b bounds the focal length, not the scale.",
+ "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL (A2). Every height and every contact point is measured against the top of the mulch; the offset to the soil is the straw depth, which is unmeasured and unobservable from one overhead photograph.",
+ "product_target": "lowest visible stem / datum contact \u2014 NOT the stem-soil intersection, which is unobservable in this image. See chunks/A5/FINDINGS.md.",
+ "ends_at": "a target list. No motion is planned, ordered or commanded here, and nothing in this module can move anything.",
+ "summary": {
+  "n_instances": 207,
+  "n_targets_admitted": 1,
+  "n_rejected": 206,
+  "rejections_by_reason": {
+   "component_unlabelled": 134,
+   "label_discarded_r3": 134,
+   "insufficient_repeats": 134,
+   "not_unanimous": 15,
+   "label_not_remove": 204,
+   "mixed_component": 4,
+   "no_contact_point": 29,
+   "contact_not_observed": 11,
+   "contact_not_arm_admissible": 23,
+   "inside_keepout": 134
+  },
+  "rejections_by_reason_note": "Reasons are not exclusive. Every condition is evaluated for every instance and every failure is reported, so these counts sum to more than the number of rejections. That is the point: it shows how many independent conditions had to fail together.",
+  "n_keep_plants": 204,
+  "keep_plant_policy": "r2_default_keep",
+  "keep_plant_policy_note": "SHIPPED. Every instance that is not unanimously `remove` is a keep-plant. This is R2 read literally: an instance the labeller was unsure about is kept, and an instance that is kept is protected. It is deliberately NOT a function of the confidence floor, so raising the floor cannot enlarge or shrink the protected region.",
+  "confidence_floor": 0.0,
+  "min_label_repeats": 2,
+  "clearance_rdu": 0.01,
+  "unlabelled_ids_supplied_by_caller": 0,
+  "refusal": null
+ },
+ "targets": [
+  {
+   "instance_id": 104,
+   "label": "remove",
+   "label_confidence_min_across_repeats": 0.6,
+   "n_label_repeats": 2,
+   "material_class": "broadleaf_weed",
+   "n_px_gt_grid": 19014,
+   "target": {
+    "contact_id": "104.567",
+    "split_component": 567,
+    "point_xyz_rdu": [
+     -0.25568736784503215,
+     0.23665395319024177,
+     1.1705658023189092
+    ],
+    "point_gt_grid_xy": [
+     135.61904761904762,
+     745.1428571428571
+    ],
+    "status": "observed",
+    "extrapolation_distance_rdu": 0.0,
+    "geometry_confidence": 0.5751475551792952,
+    "material_at_point": "broadleaf_weed",
+    "distance_to_nearest_keep_plant_rdu": 0.030871,
+    "nearest_keep_plant_instance": 108,
+    "inside_keepout": false,
+    "point_projects_off_frame": false
+   },
+   "alternate_points": [],
+   "rejected_points_inside_keepout": [
+    {
+     "contact_id": "104.366",
+     "split_component": 366,
+     "point_xyz_rdu": [
+      -0.24015356598870488,
+      0.3759248394579448,
+      1.076396418263831
+     ],
+     "point_gt_grid_xy": [
+      130.28571428571428,
+      914.2857142857143
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.9818184997494724,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 111,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.358",
+     "split_component": 358,
+     "point_xyz_rdu": [
+      -0.22211244814417078,
+      0.29335900720150393,
+      1.1234110596909896
+     ],
+     "point_gt_grid_xy": [
+      159.23809523809524,
+      812.952380952381
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.9293413649616963,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 108,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.354",
+     "split_component": 354,
+     "point_xyz_rdu": [
+      -0.24021990686897252,
+      0.28707211767803964,
+      1.1308954446882375
+     ],
+     "point_gt_grid_xy": [
+      142.47619047619048,
+      804.5714285714286
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.8944902103502701,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 108,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.362",
+     "split_component": 362,
+     "point_xyz_rdu": [
+      -0.22138819903494428,
+      0.36274077099509605,
+      1.0796048635131121
+     ],
+     "point_gt_grid_xy": [
+      150.85714285714286,
+      899.047619047619
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.8737971912362869,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 111,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.351",
+     "split_component": 351,
+     "point_xyz_rdu": [
+      -0.1991678735694754,
+      0.26328181875802337,
+      1.1381703166436181
+     ],
+     "point_gt_grid_xy": [
+      185.14285714285714,
+      778.6666666666666
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.8340858175019936,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 1,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.350",
+     "split_component": 350,
+     "point_xyz_rdu": [
+      -0.34481044374460385,
+      0.3753388067850773,
+      1.1418657519633864
+     ],
+     "point_gt_grid_xy": [
+      40.38095238095238,
+      890.6666666666666
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.7701511919252197,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.006405,
+     "nearest_keep_plant_instance": 1,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.348",
+     "split_component": 348,
+     "point_xyz_rdu": [
+      -0.2972108548715968,
+      0.28865506919229006,
+      1.173895356326538
+     ],
+     "point_gt_grid_xy": [
+      96.0,
+      795.4285714285714
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.7196368029397444,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.003201,
+     "nearest_keep_plant_instance": 69,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.363",
+     "split_component": 363,
+     "point_xyz_rdu": [
+      -0.2544579912414059,
+      0.36480243569034987,
+      1.10093618688393
+     ],
+     "point_gt_grid_xy": [
+      121.14285714285714,
+      893.7142857142857
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.7106660337774655,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 1,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    },
+    {
+     "contact_id": "104.353",
+     "split_component": 353,
+     "point_xyz_rdu": [
+      -0.28227833054280316,
+      0.2948075933093003,
+      1.1705333533477906
+     ],
+     "point_gt_grid_xy": [
+      109.71428571428571,
+      802.2857142857143
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.4834211712254569,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "nearest_keep_plant_instance": 1,
+     "inside_keepout": true,
+     "point_projects_off_frame": false
+    }
+   ],
+   "keep_out_clearance_rdu": 0.01,
+   "scale_confidence": "scale_free",
+   "datum": "straw mulch surface, not soil",
+   "product_target": "lowest visible stem / datum contact \u2014 NOT the stem-soil intersection, which is unobservable in this image. See chunks/A5/FINDINGS.md.",
+   "order": 1
+  }
+ ],
+ "rejection_reason_vocabulary": {
+  "metric_tool_profile_refused": "The tool profile carries a length in metric units. Every length in this stack is in rdu and no absolute scale exists for this image (roadmap, Known gaps #2). A8 refuses rather than converting: a fabricated scale factor would silently resize the keep-out volume.",
+  "component_unlabelled": "No label was supplied for this instance id. R2 defaults to keep.",
+  "label_discarded_r3": "The label failed A7's R3 validator (a geometric key, a coordinate or a measurement in a free-text field) and was discarded to `unsure` rather than patched.",
+  "insufficient_repeats": "Fewer independent looks than R4 requires. A single look is not evidence: A7 measured a 20.5 % flip rate between two repeats of the shipped condition.",
+  "not_unanimous": "The repeats disagreed about this instance. Unanimity-else-`unsure` is R4 applied to the semantic layer; A7 measured that it removes a third of the catastrophic errors for the price of one extra call.",
+  "label_not_remove": "The unanimous label is not `remove`. Note a `keep` may mean 'this is crop' OR 'there is nothing here to cut' \u2014 A7's label vocabulary does not distinguish them and A8 must not read one as the other.",
+  "confidence_below_floor": "The lowest confidence across the repeats is below the registered removal floor (a8_constants.REMOVAL_CONFIDENCE_FLOOR).",
+  "mixed_component": "The instance was flagged `mixed` \u2014 it is not one plant. A `remove` inside a mixed component is a claim about a component that contains material the labeller itself said was of more than one kind, so under R2 it is refused outright.",
+  "no_contact_point": "A5 emitted no defensible contact point for any part of this instance (status `occluded`). R4: no point is reported rather than one invented.",
+  "contact_not_observed": "No contact candidate has status `observed`. An `extrapolated` point is a guess with a distance attached and R2 does not admit one.",
+  "contact_not_arm_admissible": "A contact is `observed` but fails A5's `admissible()`: either the datum beneath it was interpolated rather than observed, or the component carries a `leaves_frame` unresolved edge and may continue outside the photograph.",
+  "inside_keepout": "The point lies inside the keep-out volume of at least one keep-plant. A6's `is_inside` is conservative by default and resolves UNKNOWN (a point the camera never saw) to inside; A8 does not flip either."
+ },
+ "floor_override": {
+  "registered_floor": 0.7,
+  "floor_used": 0.0,
+  "warning": "This run did not use the registered removal floor. It is a diagnostic, not a shippable target list."
+ }
+}

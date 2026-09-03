@@ -1,0 +1,416 @@
+{
+ "model": "google/siglip2-base-patch16-384",
+ "partition": "a3f",
+ "n_regions": 728,
+ "device": "mps",
+ "headline_config": [
+  "crop_fill",
+  "descriptive",
+  "ensemble"
+ ],
+ "seconds": {
+  "load": 6.285083770751953,
+  "image_encode": {
+   "crop_fill": 17.81538987159729,
+   "crop_context": 18.249083757400513,
+   "blend": 18.071382999420166
+  }
+ },
+ "grid": {
+  "crop_fill|plain|single": {
+   "mean_iou": 0.19117167881955668,
+   "per_class_iou": {
+    "squash_leaf": 0.7389761621332747,
+    "squash_petiole": 0.08592506053382828,
+    "grass": 0.1583952824383401,
+    "broadleaf_weed": 0.13841567291311754,
+    "straw": 0.020471740097908322,
+    "soil": null,
+    "fruit": 0.1960178336204276,
+    "other": 0.0
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 48099,
+   "grass_as_squash": 0.4533407477921564,
+   "grass_as_squash_leaf": 0.327250963722561,
+   "grass_as_grass": 0.5118992638950415,
+   "grass_as_straw": 0.016333801449589534,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.15085522184048172,
+   "seconds_text": 0.2714850902557373,
+   "seconds_image": 17.81538987159729
+  },
+  "crop_context|plain|single": {
+   "mean_iou": 0.1829209601243417,
+   "per_class_iou": {
+    "squash_leaf": 0.7132015560238415,
+    "squash_petiole": 0.027660477954186226,
+    "grass": 0.290368101441909,
+    "broadleaf_weed": 0.0,
+    "straw": 0.13776800138735498,
+    "soil": null,
+    "fruit": 0.11144858406310001,
+    "other": 0.0
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 60749,
+   "grass_as_squash": 0.5725690157305913,
+   "grass_as_squash_leaf": 0.43902393048002336,
+   "grass_as_grass": 0.40921215091565427,
+   "grass_as_straw": 0.017794701175317392,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.043155916361889986,
+   "seconds_text": 0.2714850902557373,
+   "seconds_image": 18.249083757400513
+  },
+  "blend|plain|single": {
+   "mean_iou": 0.1591267514832307,
+   "per_class_iou": {
+    "squash_leaf": 0.7047640358014646,
+    "squash_petiole": 0.03746691315490946,
+    "grass": 0.2131625949807768,
+    "broadleaf_weed": 0.0,
+    "straw": 0.046126511292180844,
+    "soil": null,
+    "fruit": 0.11236720515328319,
+    "other": 0.0
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 70123,
+   "grass_as_squash": 0.6609204610788038,
+   "grass_as_squash_leaf": 0.5486950866643417,
+   "grass_as_grass": 0.3318315912496819,
+   "grass_as_straw": 3.770063808329956e-05,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.038863644759688204,
+   "seconds_text": 0.2714850902557373,
+   "seconds_image": 18.071382999420166
+  },
+  "crop_fill|plain|ensemble": {
+   "mean_iou": 0.18751965768955023,
+   "per_class_iou": {
+    "squash_leaf": 0.7259753063236468,
+    "squash_petiole": 0.0857820842396678,
+    "grass": 0.14294272066641367,
+    "broadleaf_weed": 0.12976739122545997,
+    "straw": 0.06889300285781046,
+    "soil": null,
+    "fruit": 0.15927709851385285,
+    "other": 0.0
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 55135,
+   "grass_as_squash": 0.5196561701806803,
+   "grass_as_squash_leaf": 0.4023694851035354,
+   "grass_as_grass": 0.4295610703211152,
+   "grass_as_straw": 0.028972940367015712,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.1178562192914404,
+   "seconds_text": 0.28882622718811035,
+   "seconds_image": 17.81538987159729
+  },
+  "crop_context|plain|ensemble": {
+   "mean_iou": 0.210755821324454,
+   "per_class_iou": {
+    "squash_leaf": 0.7290451446377476,
+    "squash_petiole": 0.026059309079792113,
+    "grass": 0.29965423984115575,
+    "broadleaf_weed": 0.0,
+    "straw": 0.15204485940306284,
+    "soil": null,
+    "fruit": 0.0983808798616399,
+    "other": 0.17010631644777988
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 60889,
+   "grass_as_squash": 0.5738885380635067,
+   "grass_as_squash_leaf": 0.42478251444405696,
+   "grass_as_grass": 0.4125015315884221,
+   "grass_as_straw": 0.01156467073205214,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.04148426244043001,
+   "seconds_text": 0.28882622718811035,
+   "seconds_image": 18.249083757400513
+  },
+  "blend|plain|ensemble": {
+   "mean_iou": 0.18677248434575391,
+   "per_class_iou": {
+    "squash_leaf": 0.7155166911342312,
+    "squash_petiole": 0.032728692627169785,
+    "grass": 0.22125526210036037,
+    "broadleaf_weed": 0.017338788233002143,
+    "straw": 0.1035051641673791,
+    "soil": null,
+    "fruit": 0.10322488743551154,
+    "other": 0.11383790472262321
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 71645,
+   "grass_as_squash": 0.6752655538694993,
+   "grass_as_squash_leaf": 0.5766689601221501,
+   "grass_as_grass": 0.3165439825069039,
+   "grass_as_straw": 0.0008482643568742401,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.03414653293435295,
+   "seconds_text": 0.28882622718811035,
+   "seconds_image": 18.071382999420166
+  },
+  "crop_fill|descriptive|single": {
+   "mean_iou": 0.2558288161178056,
+   "per_class_iou": {
+    "squash_leaf": 0.6414688103756885,
+    "squash_petiole": 0.12554154231250603,
+    "grass": 0.02807000214023477,
+    "broadleaf_weed": 0.14842114842114842,
+    "straw": 0.6153557315786651,
+    "soil": null,
+    "fruit": 0.20213155007575362,
+    "other": 0.02981292792064262
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 100924,
+   "grass_as_squash": 0.9512247994797312,
+   "grass_as_squash_leaf": 0.7514679685953685,
+   "grass_as_grass": 0.032139793966012874,
+   "grass_as_straw": 0.006512785228889999,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.03148666371125642,
+   "seconds_text": 0.0719459056854248,
+   "seconds_image": 17.81538987159729
+  },
+  "crop_context|descriptive|single": {
+   "mean_iou": 0.24499240125312113,
+   "per_class_iou": {
+    "squash_leaf": 0.7006632156219569,
+    "squash_petiole": 0.05466327338052567,
+    "grass": 0.20786351743665102,
+    "broadleaf_weed": 0.39708176100628934,
+    "straw": 0.13618177804756912,
+    "soil": null,
+    "fruit": 0.10726877348293788,
+    "other": 0.11122448979591837
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 75327,
+   "grass_as_squash": 0.7099689912251765,
+   "grass_as_squash_leaf": 0.5498826567639657,
+   "grass_as_grass": 0.27331077578488017,
+   "grass_as_straw": 0.00992469297542861,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.03184454542096125,
+   "seconds_text": 0.0719459056854248,
+   "seconds_image": 18.249083757400513
+  },
+  "blend|descriptive|single": {
+   "mean_iou": 0.18733513326842385,
+   "per_class_iou": {
+    "squash_leaf": 0.6921172485814462,
+    "squash_petiole": 0.06602321374397466,
+    "grass": 0.053366097529975,
+    "broadleaf_weed": 0.20061755624172917,
+    "straw": 0.16934679861162397,
+    "soil": null,
+    "fruit": 0.10752278899934843,
+    "other": 0.022352229170869476
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 97946,
+   "grass_as_squash": 0.9231566744267147,
+   "grass_as_squash_leaf": 0.8184337269908293,
+   "grass_as_grass": 0.059359654662155155,
+   "grass_as_straw": 0.0031857039180388127,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.014183660275592005,
+   "seconds_text": 0.0719459056854248,
+   "seconds_image": 18.071382999420166
+  },
+  "crop_fill|descriptive|ensemble": {
+   "mean_iou": 0.2443208553171022,
+   "per_class_iou": {
+    "squash_leaf": 0.6376348239488931,
+    "squash_petiole": 0.06942740366205329,
+    "grass": 0.04258776503302051,
+    "broadleaf_weed": 0.0755047478565502,
+    "straw": 0.633491034900537,
+    "soil": null,
+    "fruit": 0.20912383114426247,
+    "other": 0.042476380674398954
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 98721,
+   "grass_as_squash": 0.9304611730553539,
+   "grass_as_squash_leaf": 0.734436705341238,
+   "grass_as_grass": 0.04619270681156278,
+   "grass_as_straw": 0.017361143837359448,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.017591617717684437,
+   "seconds_text": 0.1877272129058838,
+   "seconds_image": 17.81538987159729
+  },
+  "crop_context|descriptive|ensemble": {
+   "mean_iou": 0.24929294591345955,
+   "per_class_iou": {
+    "squash_leaf": 0.700511503188445,
+    "squash_petiole": 0.055556165647203525,
+    "grass": 0.20455045871559632,
+    "broadleaf_weed": 0.39652771330424286,
+    "straw": 0.14668203886839773,
+    "soil": null,
+    "fruit": 0.10571801765242975,
+    "other": 0.13550472401790153
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 75580,
+   "grass_as_squash": 0.7123535565839452,
+   "grass_as_squash_leaf": 0.5478939481050716,
+   "grass_as_grass": 0.2626791958453897,
+   "grass_as_straw": 0.009990669092074383,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.028265728323912963,
+   "seconds_text": 0.1877272129058838,
+   "seconds_image": 18.249083757400513
+  },
+  "blend|descriptive|ensemble": {
+   "mean_iou": 0.18450396659117518,
+   "per_class_iou": {
+    "squash_leaf": 0.6940689180234665,
+    "squash_petiole": 0.06651832897591367,
+    "grass": 0.03997049272068986,
+    "broadleaf_weed": 0.18726506063478573,
+    "straw": 0.17121612140905398,
+    "soil": null,
+    "fruit": 0.10784910055649023,
+    "other": 0.02463974381782601
+   },
+   "gt_grass_px": 106099,
+   "grass_as_squash_px": 96962,
+   "grass_as_squash": 0.913882317458223,
+   "grass_as_squash_leaf": 0.7882166655670647,
+   "grass_as_grass": 0.04443020198116853,
+   "grass_as_straw": 0.0031857039180388127,
+   "gt_squash_px": 433104,
+   "squash_as_grass": 0.014072832391296317,
+   "seconds_text": 0.1877272129058838,
+   "seconds_image": 18.071382999420166
+  }
+ },
+ "prompt_templates": {
+  "single": [
+   "a photo of {}"
+  ],
+  "ensemble": [
+   "a photo of {}",
+   "a close-up photo of {}",
+   "a cropped photo of {}",
+   "a macro photo of {}",
+   "a bright photo of {}",
+   "a dark photo of {}",
+   "a blurry photo of {}",
+   "a photo of the {}",
+   "an image of {}",
+   "a photo of one {}",
+   "a close-up of {} outdoors",
+   "a photograph of {} in a garden bed"
+  ]
+ },
+ "vocab": {
+  "plain": {
+   "squash_leaf": "a squash leaf",
+   "squash_petiole": "a plant stem",
+   "grass": "a grass blade",
+   "broadleaf_weed": "a weed leaf",
+   "straw": "straw",
+   "fruit": "a squash",
+   "other": "an animal"
+  },
+  "descriptive": {
+   "squash_leaf": "a large lobed green squash leaf blade",
+   "squash_petiole": "a thick green plant stem or vine",
+   "grass": "long narrow blades of green grass",
+   "broadleaf_weed": "a small low-growing broadleaf weed",
+   "straw": "dry brown straw mulch",
+   "fruit": "a round green squash fruit",
+   "other": "a bird feather on the ground"
+  }
+ },
+ "headline": {
+  "mean_iou": 0.2443208553171022,
+  "per_class_iou": {
+   "squash_leaf": 0.6376348239488931,
+   "squash_petiole": 0.06942740366205329,
+   "grass": 0.04258776503302051,
+   "broadleaf_weed": 0.0755047478565502,
+   "straw": 0.633491034900537,
+   "soil": null,
+   "fruit": 0.20912383114426247,
+   "other": 0.042476380674398954
+  },
+  "gt_grass_px": 106099,
+  "grass_as_squash_px": 98721,
+  "grass_as_squash": 0.9304611730553539,
+  "grass_as_squash_leaf": 0.734436705341238,
+  "grass_as_grass": 0.04619270681156278,
+  "grass_as_straw": 0.017361143837359448,
+  "gt_squash_px": 433104,
+  "squash_as_grass": 0.017591617717684437,
+  "seconds_text": 0.1877272129058838,
+  "seconds_image": 17.81538987159729
+ },
+ "best_config_selected_on_gt": {
+  "config": "crop_fill|descriptive|single",
+  "mean_iou": 0.2558288161178056,
+  "per_class_iou": {
+   "squash_leaf": 0.6414688103756885,
+   "squash_petiole": 0.12554154231250603,
+   "grass": 0.02807000214023477,
+   "broadleaf_weed": 0.14842114842114842,
+   "straw": 0.6153557315786651,
+   "soil": null,
+   "fruit": 0.20213155007575362,
+   "other": 0.02981292792064262
+  },
+  "gt_grass_px": 106099,
+  "grass_as_squash_px": 100924,
+  "grass_as_squash": 0.9512247994797312,
+  "grass_as_squash_leaf": 0.7514679685953685,
+  "grass_as_grass": 0.032139793966012874,
+  "grass_as_straw": 0.006512785228889999,
+  "gt_squash_px": 433104,
+  "squash_as_grass": 0.03148666371125642,
+  "seconds_text": 0.0719459056854248,
+  "seconds_image": 17.81538987159729
+ },
+ "prompt_ensembling_effect": {
+  "crop_fill|plain": {
+   "single": 0.19117167881955668,
+   "ensemble": 0.18751965768955023,
+   "delta": -0.0036520211300064553
+  },
+  "crop_fill|descriptive": {
+   "single": 0.2558288161178056,
+   "ensemble": 0.2443208553171022,
+   "delta": -0.011507960800703404
+  },
+  "crop_context|plain": {
+   "single": 0.1829209601243417,
+   "ensemble": 0.210755821324454,
+   "delta": 0.027834861200112304
+  },
+  "crop_context|descriptive": {
+   "single": 0.24499240125312113,
+   "ensemble": 0.24929294591345955,
+   "delta": 0.004300544660338412
+  },
+  "blend|plain": {
+   "single": 0.1591267514832307,
+   "ensemble": 0.18677248434575391,
+   "delta": 0.027645732862523226
+  },
+  "blend|descriptive": {
+   "single": 0.18733513326842385,
+   "ensemble": 0.18450396659117518,
+   "delta": -0.00283116667724867
+  }
+ },
+ "prompt_ensembling_mean_delta": 0.006964998352502569
+}

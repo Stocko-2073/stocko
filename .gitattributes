@@ -1,0 +1,39 @@
+# Git LFS. Applies to newly added files; the 15 binaries already committed
+# before LFS was set up (13 STL + 2 PNG, 7.3 MB total) remain plain blobs
+# because migrating them would rewrite history already pushed to origin.
+
+# Photos and figures
+*.jpg   filter=lfs diff=lfs merge=lfs -text
+*.jpeg  filter=lfs diff=lfs merge=lfs -text
+*.png   filter=lfs diff=lfs merge=lfs -text
+*.webp  filter=lfs diff=lfs merge=lfs -text
+*.tif   filter=lfs diff=lfs merge=lfs -text
+*.tiff  filter=lfs diff=lfs merge=lfs -text
+
+# Video
+*.mp4   filter=lfs diff=lfs merge=lfs -text
+*.mov   filter=lfs diff=lfs merge=lfs -text
+
+# 3D and CAD
+*.stl   filter=lfs diff=lfs merge=lfs -text
+*.step  filter=lfs diff=lfs merge=lfs -text
+*.stp   filter=lfs diff=lfs merge=lfs -text
+*.3mf   filter=lfs diff=lfs merge=lfs -text
+*.f3d   filter=lfs diff=lfs merge=lfs -text
+*.dxf   filter=lfs diff=lfs merge=lfs -text
+
+# Depth maps, point clouds, model weights
+*.npy          filter=lfs diff=lfs merge=lfs -text
+*.npz          filter=lfs diff=lfs merge=lfs -text
+*.ply          filter=lfs diff=lfs merge=lfs -text
+*.pcd          filter=lfs diff=lfs merge=lfs -text
+*.pth          filter=lfs diff=lfs merge=lfs -text
+*.pt           filter=lfs diff=lfs merge=lfs -text
+*.ckpt         filter=lfs diff=lfs merge=lfs -text
+*.safetensors  filter=lfs diff=lfs merge=lfs -text
+*.onnx         filter=lfs diff=lfs merge=lfs -text
+
+# Text formats that would otherwise be guessed wrong
+*.scad  text eol=lf
+*.ino   text eol=lf
+*.patch -text

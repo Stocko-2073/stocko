@@ -1,0 +1,86 @@
+{
+  "_readme": "Plant instances for plants.jpeg. Each entry lists the SAM-partition region ids belonging to one plant, plus the stem-soil contact point. Coordinates are (x, y) on the 768x1024 GT grid. See groundtruth/SCHEMA.md.",
+
+  "instances": [
+    {
+      "id": 1,
+      "name": "squash",
+      "crop": true,
+      "material": "squash",
+      "regions": "ALL_SQUASH",
+      "_regions_note": "literal 'ALL_SQUASH' means every region whose material class is squash_leaf, squash_petiole or fruit. The whole squash is ONE instance by construction (roadmap A0), so ZeroPlantSeg's 3-way fragmentation is measurable.",
+      "contact": {
+        "point": [330, 552],
+        "status": "under_straw",
+        "occluded_by": "straw",
+        "localisation": "estimated",
+        "note": "Petioles converge on a crown node near (352, 516); the stem bundle then descends left and passes behind straw and the leaf at (110,540) without the soil intersection ever being visible. The point recorded is where squash stem material was last seen heading toward the datum."
+      }
+    },
+    {
+      "id": 2, "name": "weed_purslane", "crop": false, "material": "broadleaf_weed",
+      "regions": [400, 234, 261, 396, 382],
+      "contact": {"point": [125, 833], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated",
+                  "note": "Crown with a reddish node visible at (142,775); the stem descends and enters straw around here."}
+    },
+    {
+      "id": 3, "name": "weed_clover_patch_lower_left", "crop": false, "material": "broadleaf_weed",
+      "regions": [485, 588, 214, 373, 512, 254, 209, 215, 216, 210, 217, 218, 328, 661, 509, 585, 659, 655],
+      "contact": {"point": [183, 847], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated",
+                  "note": "May be more than one clover plant; I could not separate them and have recorded it as one instance."}
+    },
+    {
+      "id": 4, "name": "weed_mallow", "crop": false, "material": "broadleaf_weed",
+      "regions": [471, 374, 303, 264, 226, 333, 489, 368, 414, 677, 436],
+      "contact": {"point": [59, 913], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated"}
+    },
+    {
+      "id": 5, "name": "weed_small_right_of_mallow", "crop": false, "material": "broadleaf_weed",
+      "regions": [549, 330, 495],
+      "contact": {"point": [140, 905], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated"}
+    },
+    {
+      "id": 6, "name": "weed_clover_by_fruit", "crop": false, "material": "broadleaf_weed",
+      "regions": [376, 443, 500, 664],
+      "contact": {"point": [258, 780], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated"}
+    },
+    {
+      "id": 7, "name": "weed_seedling_left", "crop": false, "material": "broadleaf_weed",
+      "regions": [447],
+      "contact": {"point": [26, 455], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated"}
+    },
+    {
+      "id": 8, "name": "weed_seedling_mid", "crop": false, "material": "broadleaf_weed",
+      "regions": [562],
+      "contact": {"point": [177, 458], "status": "under_straw", "occluded_by": "straw",
+                  "localisation": "estimated"}
+    },
+    {
+      "id": 9, "name": "weed_ovate_upper", "crop": false, "material": "broadleaf_weed",
+      "regions": [391, 392, 496, 287, 251, 608, 80, 90, 145, 83, 87],
+      "contact": {"point": [515, 490], "status": "under_straw", "occluded_by": "foliage",
+                  "localisation": "estimated",
+                  "note": "Base hidden under squash vines and grass; the point is a guess and must not be scored."}
+    },
+    {
+      "id": 10, "name": "weed_ovate_lower", "crop": false, "material": "broadleaf_weed",
+      "regions": [533, 534, 440, 658],
+      "contact": {"point": [425, 498], "status": "under_straw", "occluded_by": "foliage",
+                  "localisation": "estimated",
+                  "note": "Base hidden; the point is a guess and must not be scored."}
+    }
+  ],
+
+  "unresolved": {
+    "grass": {
+      "instance_id": 255,
+      "note": "Grass is clonal and the blades interleave; at 768x1024 I cannot say which blade belongs to which tussock. All grass pixels get instance id 255 and are EXCLUDED from instance matching, exactly like unlabelled. The material layer still scores grass, and eval.py reports grass-absorption separately."
+    }
+  }
+}

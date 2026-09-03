@@ -1,0 +1,2043 @@
+{
+ "framing": "B",
+ "variant": "neutral",
+ "rep": 2,
+ "model": "claude-opus-5",
+ "cli_version": "2.1.257 (Claude Code)",
+ "prompt_file": "prompts/rendered/B_bind_neutral.txt",
+ "scene": {
+  "crop": {
+   "name": "Winter squash / pumpkin (Cucurbita, most consistent with a kabocha-type Cucurbita maxima or C. pepo bush squash) \u2014 a single vining plant with two fruit set",
+   "distinguishing_features": "Very large palmate-lobed leaves with coarse, jagged-toothed margins, a dense pale reticulate vein network, and a bristly/hispid surface with fine white flecking; thick, hollow, deeply ribbed and prickly-hairy petioles and vine stems radiating from one crown; coiling branched tendrils at the nodes; two round fruit \u2014 one small pale-green immature fruit with darker mottled stripes still bearing a shriveled brown flower remnant at its tip, and one larger flattened-globe fruit with very dark green skin, pale green longitudinal stripes and white speckling, resting directly on the straw mulch"
+  },
+  "weeds": [
+   {
+    "name": "Grass seedlings / volunteer grass (crabgrass- or barnyardgrass-type annual grass, plus possible volunteer cereal from the straw)",
+    "distinguishing_features": "Narrow strap-shaped blades with parallel venation and no branching veins, a keeled midrib, smooth hairless glossy surfaces, and blades emerging in tufts from thin round jointed culms at ground level; totally unlike the broad, netted-veined, hairy squash foliage. They are the most abundant weed, threading up through the squash canopy and across the fruit."
+   },
+   {
+    "name": "Purslane (Portulaca oleracea)",
+    "distinguishing_features": "Low, prostrate, succulent rosettes with fleshy, smooth, spoon-shaped/obovate leaves clustered at the stem tips, thickened reddish-tinged stems, no hairs and no visible vein network \u2014 a fat, waxy look that contrasts sharply with the thin, hairy, sharply lobed squash leaves."
+   },
+   {
+    "name": "Broadleaf seedlings with scalloped/crenate round leaves (mallow- or ground-ivy/henbit-type, and a small clover-leaved seedling)",
+    "distinguishing_features": "Small rounded to kidney-shaped leaves with blunt scalloped margins on slender petioles, growing in tiny low clusters on the bare mulched soil away from the squash crown; leaf size a fraction of even the youngest squash leaf, margins rounded rather than jaggedly toothed, and no tendrils or hollow ribbed stems."
+   }
+  ],
+  "non_plant_material": [
+   "Dry straw/hay mulch covering most of the soil surface (bleached stems, chaff and broken stalks)",
+   "Bare dry soil and small clods visible between mulch straws",
+   "Dried, shriveled brown squash flower remnants attached to the young fruit and lying on the mulch",
+   "A small white/grey feather or downy fluff caught in the mulch",
+   "Dead, senesced brown leaf and stem debris",
+   "Deep cast shadows across leaves and mulch from strong direct sunlight"
+  ],
+  "hard_to_tell_apart": "The hardest calls are (1) grass blades that lie directly across squash leaves and the fruit \u2014 at a glance the thin green strap merges into the leaf beneath it, and only the parallel venation and hard-edged straight margin separate them; (2) young, still-folded squash leaves near the crown, which are pale, crumpled and small enough to be mistaken for a broadleaf weed seedling until you trace their petiole back to the main vine; (3) the pale green squash tendrils versus fine grass leaf tips of the same width and colour; and (4) distinguishing genuine annual weed grass from volunteer cereal grass sprouting out of the straw mulch itself \u2014 visually they are nearly the same, though both are unwanted here."
+ },
+ "scene_raw": "{\"crop\": {\"name\": \"Winter squash / pumpkin (Cucurbita, most consistent with a kabocha-type Cucurbita maxima or C. pepo bush squash) \u2014 a single vining plant with two fruit set\", \"distinguishing_features\": \"Very large palmate-lobed leaves with coarse, jagged-toothed margins, a dense pale reticulate vein network, and a bristly/hispid surface with fine white flecking; thick, hollow, deeply ribbed and prickly-hairy petioles and vine stems radiating from one crown; coiling branched tendrils at the nodes; two round fruit \u2014 one small pale-green immature fruit with darker mottled stripes still bearing a shriveled brown flower remnant at its tip, and one larger flattened-globe fruit with very dark green skin, pale green longitudinal stripes and white speckling, resting directly on the straw mulch\"}, \"weeds\": [{\"name\": \"Grass seedlings / volunteer grass (crabgrass- or barnyardgrass-type annual grass, plus possible volunteer cereal from the straw)\", \"distinguishing_features\": \"Narrow strap-shaped blades with parallel venation and no branching veins, a keeled midrib, smooth hairless glossy surfaces, and blades emerging in tufts from thin round jointed culms at ground level; totally unlike the broad, netted-veined, hairy squash foliage. They are the most abundant weed, threading up through the squash canopy and across the fruit.\"}, {\"name\": \"Purslane (Portulaca oleracea)\", \"distinguishing_features\": \"Low, prostrate, succulent rosettes with fleshy, smooth, spoon-shaped/obovate leaves clustered at the stem tips, thickened reddish-tinged stems, no hairs and no visible vein network \u2014 a fat, waxy look that contrasts sharply with the thin, hairy, sharply lobed squash leaves.\"}, {\"name\": \"Broadleaf seedlings with scalloped/crenate round leaves (mallow- or ground-ivy/henbit-type, and a small clover-leaved seedling)\", \"distinguishing_features\": \"Small rounded to kidney-shaped leaves with blunt scalloped margins on slender petioles, growing in tiny low clusters on the bare mulched soil away from the squash crown; leaf size a fraction of even the youngest squash leaf, margins rounded rather than jaggedly toothed, and no tendrils or hollow ribbed stems.\"}], \"non_plant_material\": [\"Dry straw/hay mulch covering most of the soil surface (bleached stems, chaff and broken stalks)\", \"Bare dry soil and small clods visible between mulch straws\", \"Dried, shriveled brown squash flower remnants attached to the young fruit and lying on the mulch\", \"A small white/grey feather or downy fluff caught in the mulch\", \"Dead, senesced brown leaf and stem debris\", \"Deep cast shadows across leaves and mulch from strong direct sunlight\"], \"hard_to_tell_apart\": \"The hardest calls are (1) grass blades that lie directly across squash leaves and the fruit \u2014 at a glance the thin green strap merges into the leaf beneath it, and only the parallel venation and hard-edged straight margin separate them; (2) young, still-folded squash leaves near the crown, which are pale, crumpled and small enough to be mistaken for a broadleaf weed seedling until you trace their petiole back to the main vine; (3) the pale green squash tendrils versus fine grass leaf tips of the same width and colour; and (4) distinguishing genuine annual weed grass from volunteer cereal grass sprouting out of the straw mulch itself \u2014 visually they are nearly the same, though both are unwanted here.\"}\n\"scene_notes\": \"A close, sunlit overhead view of one squash hill in a mulched home vegetable bed, shot mid-season. A single squash plant occupies most of the frame: its crown sits centre-right, with thick prickly petioles fanning outward and huge lobed leaves overhanging the edges of the photograph, so several tiles show nothing but squash leaf blade at full resolution. Two fruit are present \u2014 a small young one at the crown and a larger dark green striped one lying on the mulch below it. The gardener has mulched heavily with straw, which suppresses most weeds: the open ground is mostly bare straw with only scattered seedlings. Weed pressure is concentrated in two forms \u2014 grass, which is widespread and grows up through and over the crop, including blades draped across the fruit, and a patch of small broadleaf/succulent seedlings (purslane plus scalloped-leaved seedlings) on the open mulch away from the plant. Strong low sunlight creates high-contrast shadows and blown-out highlights on the upper leaf surfaces, which flattens texture in places and makes some leaf edges hard to trace. Any region containing thick ribbed hairy stems, tendrils, large netted lobed leaves, or fruit belongs to the crop; narrow parallel-veined blades and small low rosettes on the mulch do not.\"",
+ "n_returned": 73,
+ "n_asked": 73,
+ "omitted": [],
+ "hallucinated_ids": [],
+ "rejects": [],
+ "cost_usd": 1.0299165,
+ "labels": [
+  {
+   "id": 1,
+   "label": "keep",
+   "confidence": 0.97,
+   "reason": "The squash plant itself: big palmate hispid netted-vein leaves, thick ribbed hollow petioles, tendrils and two fruit.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 104,
+   "label": "remove",
+   "confidence": 0.85,
+   "reason": "Cluster of small round scalloped broadleaf seedlings plus fleshy purslane rosettes on bare mulched soil.",
+   "mixed": true,
+   "mixed_note": "Several weed seedlings of at least two species plus straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 41,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Dry straw litter threaded with narrow parallel-veined green grass blades; no squash tissue in it.",
+   "mixed": true,
+   "mixed_note": "Grass blades mixed with dead straw mulch.",
+   "r3_soft": []
+  },
+  {
+   "id": 120,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Part of a long strap-shaped grass blade lying across squash foliage; hard straight margin, parallel veins.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 83,
+   "label": "remove",
+   "confidence": 0.7,
+   "reason": "Long narrow keeled grass blade with parallel venation resting over straw.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 6,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Slender strap blade of volunteer grass threading up through the squash canopy.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 88,
+   "label": "remove",
+   "confidence": 0.7,
+   "reason": "Single grey-green grass blade lying on the straw, parallel-veined, no netted veins.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 20,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Grass blade tuft beside the squash stem; smooth hairless strap leaves, unlike hispid squash.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 150,
+   "label": "remove",
+   "confidence": 0.7,
+   "reason": "Several narrow grass blades emerging together beside the crop petiole.",
+   "mixed": true,
+   "mixed_note": "Two or more grass blades in one outline.",
+   "r3_soft": []
+  },
+  {
+   "id": 84,
+   "label": "remove",
+   "confidence": 0.65,
+   "reason": "Green grass blades rising out of the straw mulch, parallel-veined and hairless.",
+   "mixed": true,
+   "mixed_note": "Grass blades with dead straw included.",
+   "r3_soft": []
+  },
+  {
+   "id": 16,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Sunlit wedge of linear striated foliage reading as a grass blade rather than netted squash leaf.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 5,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Strip of strap-shaped grass foliage crossing the squash leaf margin.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 10,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Narrow parallel-veined blade material separated from the crop leaf beneath it.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 142,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Mulch and grass blade material bordering the crop leaf; no crop tissue apparent.",
+   "mixed": true,
+   "mixed_note": "Grass blade plus straw litter.",
+   "r3_soft": []
+  },
+  {
+   "id": 173,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Bundle of grass blades growing up through the squash canopy.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 156,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dark shaded soil and dry brown debris; cannot resolve any living plant tissue in it.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 78,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Straw mulch patch with thin green grass shoots coming through it.",
+   "mixed": true,
+   "mixed_note": "Grass shoots amid dead straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 11,
+   "label": "remove",
+   "confidence": 0.8,
+   "reason": "Clean outline of a single grass blade: straight margins, keeled midrib, parallel veins.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 175,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Mulch patch carrying thin grass culms and blades, no crop material.",
+   "mixed": true,
+   "mixed_note": "Grass with straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 179,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Narrow sunlit blade in a grass tuft, straight-edged and parallel-veined.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 178,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Grass blade rising from the straw, smooth and strap-shaped.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 177,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Mostly bleached dry straw and stalk debris; no green tissue I can confirm.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 75,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Straw mulch area with grass blades and shoots woven through it.",
+   "mixed": true,
+   "mixed_note": "Grass plus dead straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 67,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Segment of a grass blade laid over the squash leaf, parallel-veined and hard-edged.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 183,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Mulch patch with grass shoots sprouting out of the straw.",
+   "mixed": true,
+   "mixed_note": "Grass shoots with straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 91,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Tiny sliver of bare soil and straw; too little material to identify.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 134,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dry straw litter and shadow; no identifiable living plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 157,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dark soil with brown dried debris; cannot tell crop from weed here.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 171,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Straw and thin grass blades below the crop leaf, no netted-vein tissue.",
+   "mixed": true,
+   "mixed_note": "Grass blade with straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 190,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Grass foliage and straw at the base of the crop, strap-shaped blades.",
+   "mixed": true,
+   "mixed_note": "Grass with straw litter.",
+   "r3_soft": []
+  },
+  {
+   "id": 62,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Small patch on a grass blade crossing the squash vine, parallel venation.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 12,
+   "label": "remove",
+   "confidence": 0.7,
+   "reason": "Slim grass blade outlined beside the crop petiole.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 22,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Only a partial fragment visible; could be grass blade or shaded crop tissue.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 124,
+   "label": "remove",
+   "confidence": 0.6,
+   "reason": "Part of a grass blade overlying the squash leaf surface.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 63,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Grass blade crossing the hairy squash stem; straight parallel-veined strap.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 81,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Small outline in straw and soil; material too small and dry to call.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 193,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Could not locate distinct material for this region in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 194,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Grass blade material in the tuft growing beside the crop stem.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 14,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Only a clipped fragment of bright foliage visible; grass or crop cannot be resolved.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 21,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Shadowed straw and soil cluster; no clear living tissue to judge.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 132,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dry straw litter in shadow; nothing identifiable as a plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 197,
+   "label": "remove",
+   "confidence": 0.65,
+   "reason": "Narrow grass blade outlined against the crop petiole.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 71,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Clipped patch of straw mulch; too little shown to identify.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 40,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Straw litter with green grass blades arching over the fruit.",
+   "mixed": true,
+   "mixed_note": "Grass blades plus dead straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 13,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Region not clearly identifiable in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 201,
+   "label": "keep",
+   "confidence": 0.5,
+   "reason": "Small patch on the squash fruit and its thick hairy vine stem.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 96,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Tiny fleck in the straw; not enough material to identify.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 202,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Pale blade-like tissue abutting the crop petiole; grass versus crop stem unclear.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 69,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Straw and soil bordering a pale crop leaf; content ambiguous between mulch and leaf.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 135,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dry straw and shadow, no resolvable green plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 203,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Straw litter with grass blades and shoots growing through it.",
+   "mixed": true,
+   "mixed_note": "Grass with straw mulch.",
+   "r3_soft": []
+  },
+  {
+   "id": 159,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Grass blades and straw beneath the crop canopy, all strap-shaped foliage.",
+   "mixed": true,
+   "mixed_note": "Grass plus straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 185,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Straw bed with several green grass blades arching across it.",
+   "mixed": true,
+   "mixed_note": "Grass blades and dead straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 101,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Dry straw mulch with scattered debris; no living plant clearly visible.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 133,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Region not clearly identifiable among the straw in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 34,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Grass blade with parallel veins rising through the mulch.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 94,
+   "label": "unsure",
+   "confidence": 0.35,
+   "reason": "Scattered tiny flecks in straw; too small to identify.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 205,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Region not locatable in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 25,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Small patch where a grass tip meets the toothed crop leaf; cannot separate the two.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 145,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Region not locatable in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 169,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Bleached dry straw stalk on the mulch; dead material, not a growing plant.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 189,
+   "label": "remove",
+   "confidence": 0.5,
+   "reason": "Grass blade crossing the squash vine, straight-edged and parallel-veined.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 206,
+   "label": "unsure",
+   "confidence": 0.3,
+   "reason": "Region label clipped; material not identifiable in the tiles shown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 77,
+   "label": "remove",
+   "confidence": 0.4,
+   "reason": "Straw with thin grass shoots poking through the mulch.",
+   "mixed": true,
+   "mixed_note": "Grass shoots with straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 123,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Part of the grass blade lying over the squash leaf.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 188,
+   "label": "remove",
+   "confidence": 0.55,
+   "reason": "Grass blade segment where it meets the crop leaf margin.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 7,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Thin sliver where a pale grass blade overlaps a dark squash leaf; cannot tell which it belongs to.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 26,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Grass blade material among the mulch below the crop leaves.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 112,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Broad mulch area with grass blades and weed seedling foliage in it.",
+   "mixed": true,
+   "mixed_note": "Grass and broadleaf seedlings with straw.",
+   "r3_soft": []
+  },
+  {
+   "id": 119,
+   "label": "unsure",
+   "confidence": 0.4,
+   "reason": "Bare soil and dry straw; no clear living plant material.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 204,
+   "label": "remove",
+   "confidence": 0.45,
+   "reason": "Straw and grass fragments beneath the crop leaf, no netted-vein tissue.",
+   "mixed": true,
+   "mixed_note": "Grass with straw litter.",
+   "r3_soft": []
+  },
+  {
+   "id": 2,
+   "label": "remove",
+   "confidence": 0.4,
+   "reason": "Small fragments of strap-shaped blade material over the crop leaf, reading as grass.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 207,
+   "label": "keep",
+   "confidence": 0.45,
+   "reason": "Small patch on the thick bristly squash vine stem near the crown.",
+   "mixed": false,
+   "mixed_note": "",
+   "r3_soft": []
+  },
+  {
+   "id": 15,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 35,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 192,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 37,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 18,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 8,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 158,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 27,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 52,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 182,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 199,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 72,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 93,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 65,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 55,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 86,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 82,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 113,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 129,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 90,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 196,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 73,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 87,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 95,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 147,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 160,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 165,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 100,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 122,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 187,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 54,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 24,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 162,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 45,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 31,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 89,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 121,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 152,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 108,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 128,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 4,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 125,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 70,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 30,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 47,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 56,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 85,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 92,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 103,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 155,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 164,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 28,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 19,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 36,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 59,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 80,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 2): region is above A0's 25 px minimum but below A7's 75 px call budget floor, so it was not shown to the model",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 44,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 46,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 51,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 117,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 17,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 39,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 143,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 48,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 50,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 66,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 114,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 116,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 149,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 167,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 170,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 33,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 68,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 107,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 126,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 163,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 23,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 60,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 61,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 32,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 64,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 43,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 58,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 97,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 106,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 111,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 118,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 127,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 130,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 138,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 146,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 148,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 151,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 153,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 166,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 176,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 195,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 42,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 57,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 3,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 9,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 139,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 140,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 29,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 38,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 49,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 74,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 76,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 79,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 98,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 99,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 102,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 109,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 110,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 115,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 141,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 154,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 161,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 168,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 174,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 180,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 181,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 184,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 186,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 200,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 105,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 131,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 144,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 172,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 191,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 198,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 53,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 137,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  },
+  {
+   "id": 136,
+   "label": "unsure",
+   "confidence": 0.0,
+   "reason": "[code fallback] triaged (tier 1): region is below A0's 25 px minimum reviewable region, so no render can carry evidence about it",
+   "mixed": false,
+   "mixed_note": "",
+   "fallback": true,
+   "triaged": true
+  }
+ ]
+}

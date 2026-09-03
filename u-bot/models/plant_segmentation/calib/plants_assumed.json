@@ -1,0 +1,1956 @@
+{
+ "image": "plants.jpeg",
+ "image_size_wh": [
+  3000,
+  4000
+ ],
+ "chunk": "A1b",
+ "date": "2026-09-01",
+ "model": {
+  "type": "pinhole",
+  "distortion": {
+   "model": "none",
+   "coefficients": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "category": "(d) assumed",
+   "why": "no calibration target and no camera; phone ISPs pre-correct most lens distortion. The residual is NOT bounded by this chunk \u2014 see `unbounded_assumptions` below."
+  },
+  "skew": 0.0,
+  "pixel_aspect": {
+   "fx_over_fy": 1.0,
+   "category": "(d) assumed",
+   "why": "square pixels. DA3's own head reports fx/fy = 0.991 at res 504, inside A1's registered 5 % tolerance; the cost of forcing it to 1 is the `manifest` row of the A1b sensitivity table."
+  }
+ },
+ "intrinsics": {
+  "fx": 4453.214615110367,
+  "fy": 4453.214615110367,
+  "cx": 1499.5,
+  "cy": 1999.5,
+  "principal_point": {
+   "value": "image centre",
+   "category": "(d) assumed",
+   "why": "no calibration available. DA3 makes the same assumption internally."
+  },
+  "f_px_at_3000x4000": 4453.214615110367,
+  "f_equivalent_mm": 38.53510472502255,
+  "fov_horizontal_deg": 37.23068640598429,
+  "fov_vertical_deg": 48.37100975126761
+ },
+ "provenance": "assumed+refined",
+ "provenance_detail": {
+  "category": "(d) assumed, with the sensitivity sweep this chunk ran",
+  "starting_point_px": 3005.0,
+  "starting_point_why": "26 mm-equivalent phone main camera at 3000x4000, f_px = f_eq * diag_px / 43.27 mm",
+  "chosen_px": 4453.214615110367,
+  "chosen_why": "A1b assumed pinhole camera. Zero distortion, principal point at the image centre, square pixels. f adopted from Depth Anything 3's own camera head at process_res=504 (the band A1 found physically consistent), because the planarity refinement the roadmap specified is degenerate in f (changing f is a linear map of the cloud, so planes stay planes) and the scene cannot adjudicate between this and the 26 mm-equivalent prior of 3005 px. This remains a category (d) ASSUMPTION, bounded by the A1b sweep, not a measurement. Absolute scale is UNRESOLVED and is not implied by this file.",
+  "refinement_attempted": "planarity of the straw datum over A2's `ground_inliers`, both A1 depth products, 72 focal lengths from 400 to 60 000 px",
+  "refinement_outcome": "DEGENERATE \u2014 no interior optimum exists",
+  "refinement_outcome_detail": "Changing f while holding the depth raster fixed maps the point cloud by the linear map diag(f0/f1, f0/f1, 1). Linear maps take planes to planes, so planarity is preserved exactly at every f: an exactly planar depth map has residual 1e-16 rdu at f = 500 and at f = 20 000 alike. On the real datum the raw residual is monotone decreasing in f (its minimum is wherever the grid ends), and the two scale-invariant normalisations put their extrema at the grid edges or at an interior *maximum*. The control that settles it: the same estimator on a synthetic locally-planar surface rendered through a KNOWN camera recovers nothing \u2014 for f_true = 1502, 3005 and 6009 px it returns the grid edge every time. The degeneracy is therefore a property of the parametrisation, not of Depth Anything 3 having assumed an FOV.",
+  "comparison_to_da3_camera_head": {
+   "da3_f_px_at_3000x4000_mean": 4488.7250423829755,
+   "da3_f_px_range": [
+    4159.074571397569,
+    4695.178727458294
+   ],
+   "da3_f_px_res504_nested_giant": 4453.214615110367,
+   "ratio_da3_mean_over_initial_3005": 1.49375209397104,
+   "reading": "A1 read DA3's own camera head at the processing resolutions where it stays physically consistent and got 4159-4695 px, 1.49x A1b's 3005 px prior. Nothing in this image can adjudicate between them; A1b adopts DA3's res-504 value because the depth field being back-projected is conditioned on it, and bounds the cost of being wrong with the sweep."
+  }
+ },
+ "planarity_refinement_curve": {
+  "units": "rdu (1 rdu = median scene depth of the raster)",
+  "soil_band": "A2 ground_inliers for the same depth product",
+  "columns": {
+   "planarity_rms_rdu": "RMS point-to-plane distance over local windows of the soil band \u2014 the literal reading of the roadmap's instruction",
+   "surface_variation_median": "lambda3/(lambda1+lambda2+lambda3), scale-invariant",
+   "roughness_slope_median": "sqrt(lambda3/(lambda1+lambda2)) \u2014 the residual as a fraction of the patch's own in-plane extent",
+   "patch_tilt_median_deg": "median tilt of the fitted soil patches away from the optical axis; this is what f actually changes"
+  },
+  "primary_raster_res1344": [
+   {
+    "f_native_px": 400.0,
+    "f_equiv_mm": 3.46132922444543,
+    "planarity_rms_rdu": 0.005616597994110548,
+    "planarity_rms_rdu_boot_p05": 0.005443584847522556,
+    "planarity_rms_rdu_boot_p95": 0.005812846860275541,
+    "planarity_median_rdu": 0.004897870568367237,
+    "surface_variation_median": 0.0018846452209704291,
+    "roughness_slope_median": 0.04345346009171544,
+    "patch_tilt_median_deg": 4.570014470372717
+   },
+   {
+    "f_native_px": 434.839,
+    "f_equiv_mm": 3.7628023465715663,
+    "planarity_rms_rdu": 0.005611675232842391,
+    "planarity_rms_rdu_boot_p05": 0.005438839422350414,
+    "planarity_rms_rdu_boot_p95": 0.005807837688198458,
+    "planarity_median_rdu": 0.004893909249389428,
+    "surface_variation_median": 0.0022186294513103022,
+    "roughness_slope_median": 0.04715466385237524,
+    "patch_tilt_median_deg": 4.978462693814606
+   },
+   {
+    "f_native_px": 472.712,
+    "f_equiv_mm": 4.09052965086512,
+    "planarity_rms_rdu": 0.005605862486479926,
+    "planarity_rms_rdu_boot_p05": 0.0054332315217499655,
+    "planarity_rms_rdu_boot_p95": 0.0058019176415397625,
+    "planarity_median_rdu": 0.0048882949368385265,
+    "surface_variation_median": 0.0026129912843616205,
+    "roughness_slope_median": 0.05118433935194157,
+    "patch_tilt_median_deg": 5.453448814202487
+   },
+   {
+    "f_native_px": 513.883,
+    "f_equiv_mm": 4.446795614614228,
+    "planarity_rms_rdu": 0.005598999260148046,
+    "planarity_rms_rdu_boot_p05": 0.005426603451031506,
+    "planarity_rms_rdu_boot_p95": 0.005794918265313964,
+    "planarity_median_rdu": 0.004881556249875809,
+    "surface_variation_median": 0.0030785460693554547,
+    "roughness_slope_median": 0.05557024887524163,
+    "patch_tilt_median_deg": 5.9308425805898
+   },
+   {
+    "f_native_px": 558.641,
+    "f_equiv_mm": 4.834101048183548,
+    "planarity_rms_rdu": 0.005590894279435071,
+    "planarity_rms_rdu_boot_p05": 0.005418766141207047,
+    "planarity_rms_rdu_boot_p95": 0.005786633598358265,
+    "planarity_median_rdu": 0.004873612276324191,
+    "surface_variation_median": 0.0036255369600441865,
+    "roughness_slope_median": 0.060321840241785815,
+    "patch_tilt_median_deg": 6.450496434138348
+   },
+   {
+    "f_native_px": 607.297,
+    "f_equiv_mm": 5.255137135045091,
+    "planarity_rms_rdu": 0.005581315444769847,
+    "planarity_rms_rdu_boot_p05": 0.005409488119664209,
+    "planarity_rms_rdu_boot_p95": 0.005776797751028142,
+    "planarity_median_rdu": 0.004861040724126733,
+    "surface_variation_median": 0.00426867464597327,
+    "roughness_slope_median": 0.06547492084876086,
+    "patch_tilt_median_deg": 7.016252862762277
+   },
+   {
+    "f_native_px": 660.19,
+    "f_equiv_mm": 5.712837351716572,
+    "planarity_rms_rdu": 0.005569954220233589,
+    "planarity_rms_rdu_boot_p05": 0.005398456855559659,
+    "planarity_rms_rdu_boot_p95": 0.005764994081137897,
+    "planarity_median_rdu": 0.00484783518205523,
+    "surface_variation_median": 0.0050174641261164585,
+    "roughness_slope_median": 0.07101237510439162,
+    "patch_tilt_median_deg": 7.6362321192682305
+   },
+   {
+    "f_native_px": 717.691,
+    "f_equiv_mm": 6.210412081053663,
+    "planarity_rms_rdu": 0.005556268068161709,
+    "planarity_rms_rdu_boot_p05": 0.005385107870927741,
+    "planarity_rms_rdu_boot_p95": 0.005750154720122264,
+    "planarity_median_rdu": 0.004834484353971046,
+    "surface_variation_median": 0.005884134718083839,
+    "roughness_slope_median": 0.07693478624979472,
+    "patch_tilt_median_deg": 8.339199778545304
+   },
+   {
+    "f_native_px": 780.199,
+    "f_equiv_mm": 6.75131399895775,
+    "planarity_rms_rdu": 0.005539576190447024,
+    "planarity_rms_rdu_boot_p05": 0.005368809381108445,
+    "planarity_rms_rdu_boot_p95": 0.005730943242964025,
+    "planarity_median_rdu": 0.00481674389587684,
+    "surface_variation_median": 0.006880604506324276,
+    "roughness_slope_median": 0.08323619727637512,
+    "patch_tilt_median_deg": 9.072941721936104
+   },
+   {
+    "f_native_px": 848.152,
+    "f_equiv_mm": 7.3393332609296005,
+    "planarity_rms_rdu": 0.005519976427452508,
+    "planarity_rms_rdu_boot_p05": 0.005349649178346807,
+    "planarity_rms_rdu_boot_p95": 0.005708388214070205,
+    "planarity_median_rdu": 0.004798652494202287,
+    "surface_variation_median": 0.008047798993558898,
+    "roughness_slope_median": 0.09007248259345908,
+    "patch_tilt_median_deg": 9.89925344852082
+   },
+   {
+    "f_native_px": 922.023,
+    "f_equiv_mm": 7.978562888777122,
+    "planarity_rms_rdu": 0.005497328147241136,
+    "planarity_rms_rdu_boot_p05": 0.005327478095161954,
+    "planarity_rms_rdu_boot_p95": 0.005682870379471531,
+    "planarity_median_rdu": 0.004783581898107033,
+    "surface_variation_median": 0.009448529564504933,
+    "roughness_slope_median": 0.09766604179698349,
+    "patch_tilt_median_deg": 10.774772685119572
+   },
+   {
+    "f_native_px": 1002.328,
+    "f_equiv_mm": 8.673467997199847,
+    "planarity_rms_rdu": 0.005471161559315604,
+    "planarity_rms_rdu_boot_p05": 0.0053018189693389926,
+    "planarity_rms_rdu_boot_p95": 0.005653431392235796,
+    "planarity_median_rdu": 0.004765857393797913,
+    "surface_variation_median": 0.011053347737307068,
+    "roughness_slope_median": 0.10572080788186172,
+    "patch_tilt_median_deg": 11.753577657738468
+   },
+   {
+    "f_native_px": 1089.628,
+    "f_equiv_mm": 9.428903100435061,
+    "planarity_rms_rdu": 0.005440891507774129,
+    "planarity_rms_rdu_boot_p05": 0.005272078256040159,
+    "planarity_rms_rdu_boot_p95": 0.005618068393019435,
+    "planarity_median_rdu": 0.004745436898031623,
+    "surface_variation_median": 0.0127385489272334,
+    "roughness_slope_median": 0.11359022098385052,
+    "patch_tilt_median_deg": 12.814248592236314
+   },
+   {
+    "f_native_px": 1184.531,
+    "f_equiv_mm": 10.250129418903924,
+    "planarity_rms_rdu": 0.005405850506008853,
+    "planarity_rms_rdu_boot_p05": 0.005238996575221803,
+    "planarity_rms_rdu_boot_p95": 0.0055809785040125785,
+    "planarity_median_rdu": 0.004710959474479792,
+    "surface_variation_median": 0.014757808321049493,
+    "roughness_slope_median": 0.12238816693365756,
+    "patch_tilt_median_deg": 13.948794804612938
+   },
+   {
+    "f_native_px": 1287.7,
+    "f_equiv_mm": 11.14288410579595,
+    "planarity_rms_rdu": 0.005365280774743279,
+    "planarity_rms_rdu_boot_p05": 0.005201986607695465,
+    "planarity_rms_rdu_boot_p95": 0.0055399815951814,
+    "planarity_median_rdu": 0.004686639565397759,
+    "surface_variation_median": 0.017112885302081132,
+    "roughness_slope_median": 0.1319500732668215,
+    "patch_tilt_median_deg": 15.268610592105297
+   },
+   {
+    "f_native_px": 1399.854,
+    "f_equiv_mm": 12.113388900392083,
+    "planarity_rms_rdu": 0.005318317338379945,
+    "planarity_rms_rdu_boot_p05": 0.005159220505285359,
+    "planarity_rms_rdu_boot_p95": 0.005489899680533404,
+    "planarity_median_rdu": 0.004654920322493532,
+    "surface_variation_median": 0.019854371666584603,
+    "roughness_slope_median": 0.1423253916243483,
+    "patch_tilt_median_deg": 16.722712602430736
+   },
+   {
+    "f_native_px": 1502.0,
+    "f_equiv_mm": 12.99729123779259,
+    "planarity_rms_rdu": 0.005272997746082184,
+    "planarity_rms_rdu_boot_p05": 0.005117949154395754,
+    "planarity_rms_rdu_boot_p95": 0.005441478982333815,
+    "planarity_median_rdu": 0.004615922947003538,
+    "surface_variation_median": 0.02252029853130668,
+    "roughness_slope_median": 0.1517863604780605,
+    "patch_tilt_median_deg": 17.965599140037828
+   },
+   {
+    "f_native_px": 1521.777,
+    "f_equiv_mm": 13.168428007972231,
+    "planarity_rms_rdu": 0.0052639422867417985,
+    "planarity_rms_rdu_boot_p05": 0.0051087935786676576,
+    "planarity_rms_rdu_boot_p95": 0.005431789120875602,
+    "planarity_median_rdu": 0.004612246963331385,
+    "surface_variation_median": 0.02304727059964156,
+    "roughness_slope_median": 0.15359350595502858,
+    "patch_tilt_median_deg": 18.198750377758852
+   },
+   {
+    "f_native_px": 1654.319,
+    "f_equiv_mm": 14.315356753138348,
+    "planarity_rms_rdu": 0.005201009800256569,
+    "planarity_rms_rdu_boot_p05": 0.005042506526900361,
+    "planarity_rms_rdu_boot_p95": 0.005364297216844444,
+    "planarity_median_rdu": 0.004540505735720041,
+    "surface_variation_median": 0.026353513528696373,
+    "roughness_slope_median": 0.16451975364664945,
+    "patch_tilt_median_deg": 19.781010699891464
+   },
+   {
+    "f_native_px": 1798.404,
+    "f_equiv_mm": 15.562170806398898,
+    "planarity_rms_rdu": 0.005128885183149131,
+    "planarity_rms_rdu_boot_p05": 0.004971234859392903,
+    "planarity_rms_rdu_boot_p95": 0.005286609372021551,
+    "planarity_median_rdu": 0.004514304594998124,
+    "surface_variation_median": 0.02983427736064358,
+    "roughness_slope_median": 0.17536172068731837,
+    "patch_tilt_median_deg": 21.85747551387794
+   },
+   {
+    "f_native_px": 1955.04,
+    "f_equiv_mm": 16.917592717399483,
+    "planarity_rms_rdu": 0.005046641018383187,
+    "planarity_rms_rdu_boot_p05": 0.004894415346757962,
+    "planarity_rms_rdu_boot_p95": 0.005201575692975404,
+    "planarity_median_rdu": 0.004461530898468163,
+    "surface_variation_median": 0.03328586015165613,
+    "roughness_slope_median": 0.1855572607032308,
+    "patch_tilt_median_deg": 23.990837259723104
+   },
+   {
+    "f_native_px": 2125.317,
+    "f_equiv_mm": 18.39105460827672,
+    "planarity_rms_rdu": 0.004953087031692743,
+    "planarity_rms_rdu_boot_p05": 0.00480437438652751,
+    "planarity_rms_rdu_boot_p95": 0.00510717281886421,
+    "planarity_median_rdu": 0.004347088211440304,
+    "surface_variation_median": 0.03766209610600499,
+    "roughness_slope_median": 0.19782830444282712,
+    "patch_tilt_median_deg": 26.316353075563306
+   },
+   {
+    "f_native_px": 2310.425,
+    "f_equiv_mm": 19.992853933473334,
+    "planarity_rms_rdu": 0.004848399891404134,
+    "planarity_rms_rdu_boot_p05": 0.004695059358127978,
+    "planarity_rms_rdu_boot_p95": 0.005000464363366739,
+    "planarity_median_rdu": 0.0042666348209174036,
+    "surface_variation_median": 0.042069950845411604,
+    "roughness_slope_median": 0.2095640061503787,
+    "patch_tilt_median_deg": 28.999255552122456
+   },
+   {
+    "f_native_px": 2511.656,
+    "f_equiv_mm": 21.73417078638428,
+    "planarity_rms_rdu": 0.0047323136000711336,
+    "planarity_rms_rdu_boot_p05": 0.004586482748362733,
+    "planarity_rms_rdu_boot_p95": 0.004884812475713646,
+    "planarity_median_rdu": 0.004188748467413957,
+    "surface_variation_median": 0.04661070965925135,
+    "roughness_slope_median": 0.2211091633802978,
+    "patch_tilt_median_deg": 32.00183621823502
+   },
+   {
+    "f_native_px": 2730.413,
+    "f_equiv_mm": 23.6271457792643,
+    "planarity_rms_rdu": 0.004604117035192079,
+    "planarity_rms_rdu_boot_p05": 0.004459346237461435,
+    "planarity_rms_rdu_boot_p95": 0.004757150998922307,
+    "planarity_median_rdu": 0.004085264569774945,
+    "surface_variation_median": 0.049168617723002364,
+    "roughness_slope_median": 0.22740059128649817,
+    "patch_tilt_median_deg": 35.08765121267323
+   },
+   {
+    "f_native_px": 2774.0,
+    "f_equiv_mm": 24.004318171529057,
+    "planarity_rms_rdu": 0.004578239945061319,
+    "planarity_rms_rdu_boot_p05": 0.00443349081240976,
+    "planarity_rms_rdu_boot_p95": 0.004730708805225404,
+    "planarity_median_rdu": 0.004071922899669934,
+    "surface_variation_median": 0.0500063562444426,
+    "roughness_slope_median": 0.22943076237706433,
+    "patch_tilt_median_deg": 35.82523623754113
+   },
+   {
+    "f_native_px": 2939.153,
+    "f_equiv_mm": 25.433440435041145,
+    "planarity_rms_rdu": 0.0044792804852782295,
+    "planarity_rms_rdu_boot_p05": 0.004338842419840598,
+    "planarity_rms_rdu_boot_p95": 0.004627577211837715,
+    "planarity_median_rdu": 0.00399430316023984,
+    "surface_variation_median": 0.05195112992510619,
+    "roughness_slope_median": 0.23408854557333525,
+    "patch_tilt_median_deg": 38.085450232871864
+   },
+   {
+    "f_native_px": 2968.223,
+    "f_equiv_mm": 25.684992536427718,
+    "planarity_rms_rdu": 0.004461776869791216,
+    "planarity_rms_rdu_boot_p05": 0.004322575963011593,
+    "planarity_rms_rdu_boot_p95": 0.004608666427621955,
+    "planarity_median_rdu": 0.003981926941464712,
+    "surface_variation_median": 0.05252923838155886,
+    "roughness_slope_median": 0.2354599171594411,
+    "patch_tilt_median_deg": 38.57432134641883
+   },
+   {
+    "f_native_px": 3005.0,
+    "f_equiv_mm": 26.00323579864629,
+    "planarity_rms_rdu": 0.004439612691946588,
+    "planarity_rms_rdu_boot_p05": 0.004302053887203732,
+    "planarity_rms_rdu_boot_p95": 0.004584633708646821,
+    "planarity_median_rdu": 0.003969428251177053,
+    "surface_variation_median": 0.05326378186080883,
+    "roughness_slope_median": 0.2371927938151651,
+    "patch_tilt_median_deg": 39.251338630519996
+   },
+   {
+    "f_native_px": 3226.745,
+    "f_equiv_mm": 27.922066920832922,
+    "planarity_rms_rdu": 0.004305768826147092,
+    "planarity_rms_rdu_boot_p05": 0.0041713113633855695,
+    "planarity_rms_rdu_boot_p95": 0.0044399650708084335,
+    "planarity_median_rdu": 0.0038326453259764724,
+    "surface_variation_median": 0.05556641336581418,
+    "roughness_slope_median": 0.24256021491069557,
+    "patch_tilt_median_deg": 42.19155279424376
+   },
+   {
+    "f_native_px": 3236.0,
+    "f_equiv_mm": 28.00215342576353,
+    "planarity_rms_rdu": 0.004300183546618577,
+    "planarity_rms_rdu_boot_p05": 0.004165865420172445,
+    "planarity_rms_rdu_boot_p95": 0.004434299801935683,
+    "planarity_median_rdu": 0.0038275514701506816,
+    "surface_variation_median": 0.05563820734980199,
+    "roughness_slope_median": 0.2427262027558562,
+    "patch_tilt_median_deg": 42.3160889789664
+   },
+   {
+    "f_native_px": 3507.784,
+    "f_equiv_mm": 30.353988180605224,
+    "planarity_rms_rdu": 0.004137145207687411,
+    "planarity_rms_rdu_boot_p05": 0.0040058546796439805,
+    "planarity_rms_rdu_boot_p95": 0.004266759528934128,
+    "planarity_median_rdu": 0.0036985252435271796,
+    "surface_variation_median": 0.056757976335324395,
+    "roughness_slope_median": 0.24530236369336003,
+    "patch_tilt_median_deg": 45.553287036828436
+   },
+   {
+    "f_native_px": 3813.301,
+    "f_equiv_mm": 32.997725482267455,
+    "planarity_rms_rdu": 0.003958346313060282,
+    "planarity_rms_rdu_boot_p05": 0.0038350659310447685,
+    "planarity_rms_rdu_boot_p95": 0.00408036402903304,
+    "planarity_median_rdu": 0.0035537348635430984,
+    "surface_variation_median": 0.05910241600376265,
+    "roughness_slope_median": 0.2506290571145041,
+    "patch_tilt_median_deg": 48.548621651229254
+   },
+   {
+    "f_native_px": 4145.427,
+    "f_equiv_mm": 35.871719057262865,
+    "planarity_rms_rdu": 0.003771718862837554,
+    "planarity_rms_rdu_boot_p05": 0.0036570869831390805,
+    "planarity_rms_rdu_boot_p95": 0.003891327508926327,
+    "planarity_median_rdu": 0.003388365603788694,
+    "surface_variation_median": 0.05925867718611186,
+    "roughness_slope_median": 0.25097980392777003,
+    "patch_tilt_median_deg": 51.78145850628941
+   },
+   {
+    "f_native_px": 4159.0,
+    "f_equiv_mm": 35.98917061117136,
+    "planarity_rms_rdu": 0.0037642868919725587,
+    "planarity_rms_rdu_boot_p05": 0.0036498849143568016,
+    "planarity_rms_rdu_boot_p95": 0.00388375597819903,
+    "planarity_median_rdu": 0.00337949022097465,
+    "surface_variation_median": 0.0592556673206427,
+    "roughness_slope_median": 0.25097189468058373,
+    "patch_tilt_median_deg": 51.879349485217475
+   },
+   {
+    "f_native_px": 4453.0,
+    "f_equiv_mm": 38.533247591138746,
+    "planarity_rms_rdu": 0.0036074802881889702,
+    "planarity_rms_rdu_boot_p05": 0.0034974838475494603,
+    "planarity_rms_rdu_boot_p95": 0.0037219729705185904,
+    "planarity_median_rdu": 0.003242616536928541,
+    "surface_variation_median": 0.06048761842462086,
+    "roughness_slope_median": 0.2537357981573987,
+    "patch_tilt_median_deg": 54.39274462821142
+   },
+   {
+    "f_native_px": 4453.215,
+    "f_equiv_mm": 38.53510805559689,
+    "planarity_rms_rdu": 0.0036073685921052287,
+    "planarity_rms_rdu_boot_p05": 0.0034973751151401453,
+    "planarity_rms_rdu_boot_p95": 0.0037218539062716218,
+    "planarity_median_rdu": 0.003242514067254013,
+    "surface_variation_median": 0.06048596813758877,
+    "roughness_slope_median": 0.25373211183537964,
+    "patch_tilt_median_deg": 54.394213737886176
+   },
+   {
+    "f_native_px": 4489.0,
+    "f_equiv_mm": 38.844767221338834,
+    "planarity_rms_rdu": 0.003588838043668328,
+    "planarity_rms_rdu_boot_p05": 0.003479334837284053,
+    "planarity_rms_rdu_boot_p95": 0.003702108342542224,
+    "planarity_median_rdu": 0.003228011518864686,
+    "surface_variation_median": 0.06049140217165787,
+    "roughness_slope_median": 0.2537443836570836,
+    "patch_tilt_median_deg": 54.85217227869492
+   },
+   {
+    "f_native_px": 4506.48,
+    "f_equiv_mm": 38.9960273084471,
+    "planarity_rms_rdu": 0.003579829873960864,
+    "planarity_rms_rdu_boot_p05": 0.0034705641533563174,
+    "planarity_rms_rdu_boot_p95": 0.0036925149199725643,
+    "planarity_median_rdu": 0.003220662969533057,
+    "surface_variation_median": 0.06051288018031592,
+    "roughness_slope_median": 0.2537923118049088,
+    "patch_tilt_median_deg": 54.977835347218694
+   },
+   {
+    "f_native_px": 4695.0,
+    "f_equiv_mm": 40.62735177192824,
+    "planarity_rms_rdu": 0.0034844899089116056,
+    "planarity_rms_rdu_boot_p05": 0.003377730922629542,
+    "planarity_rms_rdu_boot_p95": 0.0035921761251954056,
+    "planarity_median_rdu": 0.0031423533686524676,
+    "surface_variation_median": 0.06018453692683541,
+    "roughness_slope_median": 0.25305850406312935,
+    "patch_tilt_median_deg": 56.487816447563446
+   },
+   {
+    "f_native_px": 4898.979,
+    "f_equiv_mm": 42.39244795661112,
+    "planarity_rms_rdu": 0.003385086612566422,
+    "planarity_rms_rdu_boot_p05": 0.003280994415065381,
+    "planarity_rms_rdu_boot_p95": 0.003490025749729814,
+    "planarity_median_rdu": 0.0030587800343206675,
+    "surface_variation_median": 0.06035473909678046,
+    "roughness_slope_median": 0.2534391609568293,
+    "patch_tilt_median_deg": 57.850859511730036
+   },
+   {
+    "f_native_px": 5325.665,
+    "f_equiv_mm": 46.08469976026543,
+    "planarity_rms_rdu": 0.003189854039030984,
+    "planarity_rms_rdu_boot_p05": 0.0030914162092705987,
+    "planarity_rms_rdu_boot_p95": 0.003283883761094695,
+    "planarity_median_rdu": 0.002849670218780796,
+    "surface_variation_median": 0.05744150173797674,
+    "roughness_slope_median": 0.24686436899270398,
+    "patch_tilt_median_deg": 60.38774933963183
+   },
+   {
+    "f_native_px": 5789.513,
+    "f_equiv_mm": 50.09852635551683,
+    "planarity_rms_rdu": 0.0029963842318863846,
+    "planarity_rms_rdu_boot_p05": 0.0029039467064538465,
+    "planarity_rms_rdu_boot_p95": 0.00308629969501663,
+    "planarity_median_rdu": 0.00268284925656467,
+    "surface_variation_median": 0.0543247645801616,
+    "roughness_slope_median": 0.23967785825609464,
+    "patch_tilt_median_deg": 62.891206727979835
+   },
+   {
+    "f_native_px": 6009.0,
+    "f_equiv_mm": 51.99781827423147,
+    "planarity_rms_rdu": 0.0029111936339069567,
+    "planarity_rms_rdu_boot_p05": 0.0028215593670427403,
+    "planarity_rms_rdu_boot_p95": 0.0029970065910452687,
+    "planarity_median_rdu": 0.0026194875612073447,
+    "surface_variation_median": 0.0528259845295001,
+    "roughness_slope_median": 0.2361613474756049,
+    "patch_tilt_median_deg": 64.07800271192548
+   },
+   {
+    "f_native_px": 6293.76,
+    "f_equiv_mm": 54.46193854911417,
+    "planarity_rms_rdu": 0.0028060589232275107,
+    "planarity_rms_rdu_boot_p05": 0.0027200591392201995,
+    "planarity_rms_rdu_boot_p95": 0.002888754956583953,
+    "planarity_median_rdu": 0.002524573659422359,
+    "surface_variation_median": 0.0519039477546968,
+    "roughness_slope_median": 0.23397678421910567,
+    "patch_tilt_median_deg": 65.38941087975866
+   },
+   {
+    "f_native_px": 6841.926,
+    "f_equiv_mm": 59.20539603823256,
+    "planarity_rms_rdu": 0.002619733261788256,
+    "planarity_rms_rdu_boot_p05": 0.002541398923072622,
+    "planarity_rms_rdu_boot_p95": 0.0026960152398989314,
+    "planarity_median_rdu": 0.0023585989557823508,
+    "surface_variation_median": 0.04976845971937857,
+    "roughness_slope_median": 0.22885468946988252,
+    "patch_tilt_median_deg": 67.65081057166877
+   },
+   {
+    "f_native_px": 7437.835,
+    "f_equiv_mm": 64.36198913025768,
+    "planarity_rms_rdu": 0.0024399382359018124,
+    "planarity_rms_rdu_boot_p05": 0.0023683619309371917,
+    "planarity_rms_rdu_boot_p95": 0.0025092321120673213,
+    "planarity_median_rdu": 0.0022072640602855288,
+    "surface_variation_median": 0.045647726746043366,
+    "roughness_slope_median": 0.21870267797074683,
+    "patch_tilt_median_deg": 69.59149476189425
+   },
+   {
+    "f_native_px": 8085.646,
+    "f_equiv_mm": 69.96770699580073,
+    "planarity_rms_rdu": 0.0022681041908929837,
+    "planarity_rms_rdu_boot_p05": 0.0022028910759421855,
+    "planarity_rms_rdu_boot_p95": 0.002330730865298497,
+    "planarity_median_rdu": 0.002060773943425259,
+    "surface_variation_median": 0.042535645585060886,
+    "roughness_slope_median": 0.21077311160867956,
+    "patch_tilt_median_deg": 71.47911732501751
+   },
+   {
+    "f_native_px": 8789.88,
+    "f_equiv_mm": 76.06167130842098,
+    "planarity_rms_rdu": 0.0021049791564948027,
+    "planarity_rms_rdu_boot_p05": 0.0020442681721253003,
+    "planarity_rms_rdu_boot_p95": 0.00216243449141994,
+    "planarity_median_rdu": 0.0019185786531048079,
+    "surface_variation_median": 0.03819269851595953,
+    "roughness_slope_median": 0.19927188025178605,
+    "patch_tilt_median_deg": 73.1825488246177
+   },
+   {
+    "f_native_px": 9555.45,
+    "f_equiv_mm": 82.68639584431772,
+    "planarity_rms_rdu": 0.001950917468547565,
+    "planarity_rms_rdu_boot_p05": 0.001893700035295534,
+    "planarity_rms_rdu_boot_p95": 0.002003892347182411,
+    "planarity_median_rdu": 0.001777043018624966,
+    "surface_variation_median": 0.03433045245998596,
+    "roughness_slope_median": 0.18854672799713534,
+    "patch_tilt_median_deg": 74.64515886761527
+   },
+   {
+    "f_native_px": 10387.698,
+    "f_equiv_mm": 89.88810665528337,
+    "planarity_rms_rdu": 0.0018060195639915152,
+    "planarity_rms_rdu_boot_p05": 0.0017536589553287377,
+    "planarity_rms_rdu_boot_p95": 0.0018545271475745911,
+    "planarity_median_rdu": 0.0016464478650169583,
+    "surface_variation_median": 0.030712551483453067,
+    "roughness_slope_median": 0.1780044211509042,
+    "patch_tilt_median_deg": 75.90566923102844
+   },
+   {
+    "f_native_px": 11292.432,
+    "f_equiv_mm": 97.71706224165689,
+    "planarity_rms_rdu": 0.0016702153829283423,
+    "planarity_rms_rdu_boot_p05": 0.0016225072394564412,
+    "planarity_rms_rdu_boot_p95": 0.0017145915701418553,
+    "planarity_median_rdu": 0.00152778564608293,
+    "surface_variation_median": 0.027198633887615953,
+    "roughness_slope_median": 0.1672096948696391,
+    "patch_tilt_median_deg": 77.10936715842612
+   },
+   {
+    "f_native_px": 12275.966,
+    "f_equiv_mm": 106.22789968524617,
+    "planarity_rms_rdu": 0.0015433134657055422,
+    "planarity_rms_rdu_boot_p05": 0.0014991980287954914,
+    "planarity_rms_rdu_boot_p95": 0.001583933891853565,
+    "planarity_median_rdu": 0.0014139935494512832,
+    "surface_variation_median": 0.023885839379894094,
+    "roughness_slope_median": 0.15642878057551296,
+    "patch_tilt_median_deg": 78.22003150676885
+   },
+   {
+    "f_native_px": 13345.163,
+    "f_equiv_mm": 115.48000674221963,
+    "planarity_rms_rdu": 0.0014250324266228767,
+    "planarity_rms_rdu_boot_p05": 0.001384297433089975,
+    "planarity_rms_rdu_boot_p95": 0.00146223811825226,
+    "planarity_median_rdu": 0.0013044680599654458,
+    "surface_variation_median": 0.020784484184597378,
+    "roughness_slope_median": 0.1456902462954313,
+    "patch_tilt_median_deg": 79.1524684968615
+   },
+   {
+    "f_native_px": 14507.483,
+    "f_equiv_mm": 125.53793720261315,
+    "planarity_rms_rdu": 0.0013150245497417059,
+    "planarity_rms_rdu_boot_p05": 0.0012774500653001156,
+    "planarity_rms_rdu_boot_p95": 0.001349233018561808,
+    "planarity_median_rdu": 0.001203732112477181,
+    "surface_variation_median": 0.018106038824146728,
+    "roughness_slope_median": 0.13579361183336927,
+    "patch_tilt_median_deg": 80.12645690901743
+   },
+   {
+    "f_native_px": 15771.037,
+    "f_equiv_mm": 136.47187816977547,
+    "planarity_rms_rdu": 0.0012128961974528984,
+    "planarity_rms_rdu_boot_p05": 0.0011782630950431612,
+    "planarity_rms_rdu_boot_p95": 0.0012444331994273768,
+    "planarity_median_rdu": 0.0011095134617388428,
+    "surface_variation_median": 0.015805288854668895,
+    "roughness_slope_median": 0.12672434885711964,
+    "patch_tilt_median_deg": 80.98397581463765
+   },
+   {
+    "f_native_px": 17144.643,
+    "f_equiv_mm": 148.35813464645943,
+    "planarity_rms_rdu": 0.0011182258671414637,
+    "planarity_rms_rdu_boot_p05": 0.0010863212518822634,
+    "planarity_rms_rdu_boot_p95": 0.0011472834692950998,
+    "planarity_median_rdu": 0.0010220654144191552,
+    "surface_variation_median": 0.013703739789300166,
+    "roughness_slope_median": 0.11787301530651961,
+    "patch_tilt_median_deg": 81.728523716515
+   },
+   {
+    "f_native_px": 18637.885,
+    "f_equiv_mm": 161.27964008088279,
+    "planarity_rms_rdu": 0.0010305790304411936,
+    "planarity_rms_rdu_boot_p05": 0.0010012006420486467,
+    "planarity_rms_rdu_boot_p95": 0.0010573410635935053,
+    "planarity_median_rdu": 0.0009421968202743558,
+    "surface_variation_median": 0.011773314994104462,
+    "roughness_slope_median": 0.10914931602046449,
+    "patch_tilt_median_deg": 82.40655050226601
+   },
+   {
+    "f_native_px": 20261.184,
+    "f_equiv_mm": 175.3265707526654,
+    "planarity_rms_rdu": 0.0009495191716936164,
+    "planarity_rms_rdu_boot_p05": 0.0009224756825515229,
+    "planarity_rms_rdu_boot_p95": 0.0009741595467304312,
+    "planarity_median_rdu": 0.0008684735005162754,
+    "surface_variation_median": 0.01009239165209842,
+    "roughness_slope_median": 0.10097164524291272,
+    "patch_tilt_median_deg": 83.01769806711886
+   },
+   {
+    "f_native_px": 22025.866,
+    "f_equiv_mm": 190.5969341987974,
+    "planarity_rms_rdu": 0.0008746163959894165,
+    "planarity_rms_rdu_boot_p05": 0.0008497271800715013,
+    "planarity_rms_rdu_boot_p95": 0.0008972983064673132,
+    "planarity_median_rdu": 0.0007997290043288205,
+    "surface_variation_median": 0.008659552737790434,
+    "roughness_slope_median": 0.09346219957320324,
+    "patch_tilt_median_deg": 83.58368435894039
+   },
+   {
+    "f_native_px": 23944.247,
+    "f_equiv_mm": 207.19730474609955,
+    "planarity_rms_rdu": 0.0008054530437825025,
+    "planarity_rms_rdu_boot_p05": 0.0007825497403858576,
+    "planarity_rms_rdu_boot_p95": 0.0008263287553654158,
+    "planarity_median_rdu": 0.0007372460572714099,
+    "surface_variation_median": 0.007434772576171362,
+    "roughness_slope_median": 0.0865474577030113,
+    "patch_tilt_median_deg": 84.11017489805916
+   },
+   {
+    "f_native_px": 26029.713,
+    "f_equiv_mm": 225.24351577706778,
+    "planarity_rms_rdu": 0.0007416279563155218,
+    "planarity_rms_rdu_boot_p05": 0.0007205542421743958,
+    "planarity_rms_rdu_boot_p95": 0.0007608389791000817,
+    "planarity_median_rdu": 0.0006788255038546228,
+    "surface_variation_median": 0.006362291252534222,
+    "roughness_slope_median": 0.08001891638239028,
+    "patch_tilt_median_deg": 84.59192343746653
+   },
+   {
+    "f_native_px": 28296.815,
+    "f_equiv_mm": 244.86148179556452,
+    "planarity_rms_rdu": 0.0006827589208568412,
+    "planarity_rms_rdu_boot_p05": 0.0006633700433154215,
+    "planarity_rms_rdu_boot_p95": 0.0007004364036328054,
+    "planarity_median_rdu": 0.0006249418008804154,
+    "surface_variation_median": 0.0054144410626814615,
+    "roughness_slope_median": 0.0737828748022884,
+    "patch_tilt_median_deg": 85.03242739889873
+   },
+   {
+    "f_native_px": 30761.375,
+    "f_equiv_mm": 266.1881156790626,
+    "planarity_rms_rdu": 0.0006284840395635654,
+    "planarity_rms_rdu_boot_p05": 0.0006106462190106086,
+    "planarity_rms_rdu_boot_p95": 0.0006447492865733176,
+    "planarity_median_rdu": 0.0005752634225424306,
+    "surface_variation_median": 0.004615478946704322,
+    "roughness_slope_median": 0.0680946362072215,
+    "patch_tilt_median_deg": 85.44875121533019
+   },
+   {
+    "f_native_px": 33440.59,
+    "f_equiv_mm": 289.372228624244,
+    "planarity_rms_rdu": 0.0005784625762463794,
+    "planarity_rms_rdu_boot_p05": 0.0005620523393657637,
+    "planarity_rms_rdu_boot_p95": 0.0005934276298247177,
+    "planarity_median_rdu": 0.000529478329705804,
+    "surface_variation_median": 0.003921193643933656,
+    "roughness_slope_median": 0.06274255406885063,
+    "patch_tilt_median_deg": 85.81802002152409
+   },
+   {
+    "f_native_px": 36353.156,
+    "f_equiv_mm": 314.57560315905937,
+    "planarity_rms_rdu": 0.0005323749451547801,
+    "planarity_rms_rdu_boot_p05": 0.0005172784407487341,
+    "planarity_rms_rdu_boot_p95": 0.0005461431869521028,
+    "planarity_median_rdu": 0.00048729391569811296,
+    "surface_variation_median": 0.003328337744886416,
+    "roughness_slope_median": 0.05778798078011968,
+    "patch_tilt_median_deg": 86.15465774472145
+   },
+   {
+    "f_native_px": 39519.397,
+    "f_equiv_mm": 341.9741094214026,
+    "planarity_rms_rdu": 0.0004899224277395888,
+    "planarity_rms_rdu_boot_p05": 0.00047603474809603094,
+    "planarity_rms_rdu_boot_p95": 0.0005025891775885482,
+    "planarity_median_rdu": 0.0004484367183343156,
+    "surface_variation_median": 0.0028237888188125224,
+    "roughness_slope_median": 0.053214503611077185,
+    "patch_tilt_median_deg": 86.4633807765772
+   },
+   {
+    "f_native_px": 42961.407,
+    "f_equiv_mm": 371.75893393098613,
+    "planarity_rms_rdu": 0.0004508265618392612,
+    "planarity_rms_rdu_boot_p05": 0.00043805108691209965,
+    "planarity_rms_rdu_boot_p95": 0.0004624796585019603,
+    "planarity_median_rdu": 0.0004126445227155734,
+    "surface_variation_median": 0.0023947679454763768,
+    "roughness_slope_median": 0.048995050195120585,
+    "patch_tilt_median_deg": 86.7472294347179
+   },
+   {
+    "f_native_px": 46703.205,
+    "f_equiv_mm": 404.1379208544148,
+    "planarity_rms_rdu": 0.00041482833582516255,
+    "planarity_rms_rdu_boot_p05": 0.00040307610938373085,
+    "planarity_rms_rdu_boot_p95": 0.00042554855831487023,
+    "planarity_median_rdu": 0.0003796858206250114,
+    "surface_variation_median": 0.0020302392019530997,
+    "roughness_slope_median": 0.045103967765264444,
+    "patch_tilt_median_deg": 87.00822703459124
+   },
+   {
+    "f_native_px": 50770.902,
+    "f_equiv_mm": 439.33701711013737,
+    "planarity_rms_rdu": 0.00038168727832951077,
+    "planarity_rms_rdu_boot_p05": 0.00037087642017422817,
+    "planarity_rms_rdu_boot_p95": 0.00039154904986333133,
+    "planarity_median_rdu": 0.0003493451486308784,
+    "surface_variation_median": 0.0017207026007010388,
+    "roughness_slope_median": 0.04151707016787272,
+    "patch_tilt_median_deg": 87.24822825151577
+   },
+   {
+    "f_native_px": 55192.881,
+    "f_equiv_mm": 477.6018299665973,
+    "planarity_rms_rdu": 0.00035118048150820216,
+    "planarity_rms_rdu_boot_p05": 0.0003412356374235394,
+    "planarity_rms_rdu_boot_p95": 0.00036025246708034384,
+    "planarity_median_rdu": 0.000321417769885603,
+    "surface_variation_median": 0.0014580024463882175,
+    "roughness_slope_median": 0.038211648248203,
+    "patch_tilt_median_deg": 87.4689339076416
+   },
+   {
+    "f_native_px": 60000.0,
+    "f_equiv_mm": 519.1993836668145,
+    "planarity_rms_rdu": 0.0003231015412926817,
+    "planarity_rms_rdu_boot_p05": 0.0003139533722074093,
+    "planarity_rms_rdu_boot_p95": 0.00033144693486819994,
+    "planarity_median_rdu": 0.00029571422147815573,
+    "surface_variation_median": 0.0012355347785705899,
+    "roughness_slope_median": 0.03517189830191514,
+    "patch_tilt_median_deg": 87.67190465584517
+   }
+  ],
+  "primary_geometry_res504": [
+   {
+    "f_native_px": 400.0,
+    "f_equiv_mm": 3.46132922444543,
+    "planarity_rms_rdu": 0.005579375672543847,
+    "planarity_rms_rdu_boot_p05": 0.005307237769369177,
+    "planarity_rms_rdu_boot_p95": 0.005860709659014325,
+    "planarity_median_rdu": 0.0050176629321139745,
+    "surface_variation_median": 0.001027421992164541,
+    "roughness_slope_median": 0.032069902927393576,
+    "patch_tilt_median_deg": 4.511869291540313
+   },
+   {
+    "f_native_px": 434.839,
+    "f_equiv_mm": 3.7628023465715663,
+    "planarity_rms_rdu": 0.005575175997590155,
+    "planarity_rms_rdu_boot_p05": 0.005303548277120548,
+    "planarity_rms_rdu_boot_p95": 0.0058561564647643905,
+    "planarity_median_rdu": 0.005016274357530798,
+    "surface_variation_median": 0.0012104266739924128,
+    "roughness_slope_median": 0.03481226195337617,
+    "patch_tilt_median_deg": 4.904345371149301
+   },
+   {
+    "f_native_px": 472.712,
+    "f_equiv_mm": 4.09052965086512,
+    "planarity_rms_rdu": 0.005570222552536822,
+    "planarity_rms_rdu_boot_p05": 0.005299195167911087,
+    "planarity_rms_rdu_boot_p95": 0.0058507638029895205,
+    "planarity_median_rdu": 0.005014628665304753,
+    "surface_variation_median": 0.0014252287197478424,
+    "roughness_slope_median": 0.03777913307392842,
+    "patch_tilt_median_deg": 5.330855447038369
+   },
+   {
+    "f_native_px": 513.883,
+    "f_equiv_mm": 4.446795614614228,
+    "planarity_rms_rdu": 0.005564382170783826,
+    "planarity_rms_rdu_boot_p05": 0.00529406743854476,
+    "planarity_rms_rdu_boot_p95": 0.005844368436227738,
+    "planarity_median_rdu": 0.005012677245080616,
+    "surface_variation_median": 0.0016770402031790518,
+    "roughness_slope_median": 0.04098606338208521,
+    "patch_tilt_median_deg": 5.794317559661161
+   },
+   {
+    "f_native_px": 558.641,
+    "f_equiv_mm": 4.834101048183548,
+    "planarity_rms_rdu": 0.005557498676411206,
+    "planarity_rms_rdu_boot_p05": 0.005288040810165367,
+    "planarity_rms_rdu_boot_p95": 0.005836830573898701,
+    "planarity_median_rdu": 0.005010361787399245,
+    "surface_variation_median": 0.0019718194549187044,
+    "roughness_slope_median": 0.044449018083692345,
+    "patch_tilt_median_deg": 6.297913108104715
+   },
+   {
+    "f_native_px": 607.297,
+    "f_equiv_mm": 5.255137135045091,
+    "planarity_rms_rdu": 0.005549390089090244,
+    "planarity_rms_rdu_boot_p05": 0.005280937331558431,
+    "planarity_rms_rdu_boot_p95": 0.00582795081086192,
+    "planarity_median_rdu": 0.005006022842554026,
+    "surface_variation_median": 0.0023162938216288935,
+    "roughness_slope_median": 0.04818372645373686,
+    "patch_tilt_median_deg": 6.845047202692314
+   },
+   {
+    "f_native_px": 660.19,
+    "f_equiv_mm": 5.712837351716572,
+    "planarity_rms_rdu": 0.005539844163024846,
+    "planarity_rms_rdu_boot_p05": 0.005271722673189991,
+    "planarity_rms_rdu_boot_p95": 0.00581749655832647,
+    "planarity_median_rdu": 0.004989083442915527,
+    "surface_variation_median": 0.0027276883574648006,
+    "roughness_slope_median": 0.052298651909250156,
+    "patch_tilt_median_deg": 7.439408344627784
+   },
+   {
+    "f_native_px": 717.691,
+    "f_equiv_mm": 6.210412081053663,
+    "planarity_rms_rdu": 0.005528613665461177,
+    "planarity_rms_rdu_boot_p05": 0.0052607658846356015,
+    "planarity_rms_rdu_boot_p95": 0.005805196871508575,
+    "planarity_median_rdu": 0.004973345800976806,
+    "surface_variation_median": 0.003199695356622318,
+    "roughness_slope_median": 0.05665656423393402,
+    "patch_tilt_median_deg": 8.085002800666402
+   },
+   {
+    "f_native_px": 780.199,
+    "f_equiv_mm": 6.75131399895775,
+    "planarity_rms_rdu": 0.00551541293006592,
+    "planarity_rms_rdu_boot_p05": 0.005247903381208314,
+    "planarity_rms_rdu_boot_p95": 0.005790738686078062,
+    "planarity_median_rdu": 0.004971361361623777,
+    "surface_variation_median": 0.0037484157844315897,
+    "roughness_slope_median": 0.06133937781765027,
+    "patch_tilt_median_deg": 8.78248561287437
+   },
+   {
+    "f_native_px": 848.152,
+    "f_equiv_mm": 7.3393332609296005,
+    "planarity_rms_rdu": 0.005499911301167587,
+    "planarity_rms_rdu_boot_p05": 0.005234704605843628,
+    "planarity_rms_rdu_boot_p95": 0.005773759678035514,
+    "planarity_median_rdu": 0.004963743259106432,
+    "surface_variation_median": 0.004395287899120758,
+    "roughness_slope_median": 0.0664431466767286,
+    "patch_tilt_median_deg": 9.535724310826494
+   },
+   {
+    "f_native_px": 922.023,
+    "f_equiv_mm": 7.978562888777122,
+    "planarity_rms_rdu": 0.005481729524567404,
+    "planarity_rms_rdu_boot_p05": 0.00521948440608575,
+    "planarity_rms_rdu_boot_p95": 0.005753844410136379,
+    "planarity_median_rdu": 0.004946101792912886,
+    "surface_variation_median": 0.005164599047058176,
+    "roughness_slope_median": 0.07205144413058319,
+    "patch_tilt_median_deg": 10.35128925663119
+   },
+   {
+    "f_native_px": 1002.328,
+    "f_equiv_mm": 8.673467997199847,
+    "planarity_rms_rdu": 0.0054604338253445815,
+    "planarity_rms_rdu_boot_p05": 0.005201611518139104,
+    "planarity_rms_rdu_boot_p95": 0.005731049081823844,
+    "planarity_median_rdu": 0.004925400766146594,
+    "surface_variation_median": 0.00606226674218894,
+    "roughness_slope_median": 0.07809764384384617,
+    "patch_tilt_median_deg": 11.270156924920677
+   },
+   {
+    "f_native_px": 1089.628,
+    "f_equiv_mm": 9.428903100435061,
+    "planarity_rms_rdu": 0.00543553183296686,
+    "planarity_rms_rdu_boot_p05": 0.005180202071462336,
+    "planarity_rms_rdu_boot_p95": 0.005704805271472357,
+    "planarity_median_rdu": 0.0049107635646493605,
+    "surface_variation_median": 0.007086434108764684,
+    "roughness_slope_median": 0.08448082658384992,
+    "patch_tilt_median_deg": 12.24263423543177
+   },
+   {
+    "f_native_px": 1184.531,
+    "f_equiv_mm": 10.250129418903924,
+    "planarity_rms_rdu": 0.005406469842142429,
+    "planarity_rms_rdu_boot_p05": 0.00515203877421314,
+    "planarity_rms_rdu_boot_p95": 0.005671575768478885,
+    "planarity_median_rdu": 0.004881106834315524,
+    "surface_variation_median": 0.008290039010194343,
+    "roughness_slope_median": 0.09142941676719524,
+    "patch_tilt_median_deg": 13.371419834704353
+   },
+   {
+    "f_native_px": 1287.7,
+    "f_equiv_mm": 11.14288410579595,
+    "planarity_rms_rdu": 0.005372630215520805,
+    "planarity_rms_rdu_boot_p05": 0.005119229874805541,
+    "planarity_rms_rdu_boot_p95": 0.005634708537347725,
+    "planarity_median_rdu": 0.004846432927781494,
+    "surface_variation_median": 0.00961549679854273,
+    "roughness_slope_median": 0.09853350818953331,
+    "patch_tilt_median_deg": 14.544562181805375
+   },
+   {
+    "f_native_px": 1399.854,
+    "f_equiv_mm": 12.113388900392083,
+    "planarity_rms_rdu": 0.005333333816085927,
+    "planarity_rms_rdu_boot_p05": 0.005083308641508302,
+    "planarity_rms_rdu_boot_p95": 0.005593084428266256,
+    "planarity_median_rdu": 0.004805984574441046,
+    "surface_variation_median": 0.010848355068459513,
+    "roughness_slope_median": 0.10472503323710086,
+    "patch_tilt_median_deg": 15.760173517956058
+   },
+   {
+    "f_native_px": 1502.0,
+    "f_equiv_mm": 12.99729123779259,
+    "planarity_rms_rdu": 0.005295410135448547,
+    "planarity_rms_rdu_boot_p05": 0.005047172401675129,
+    "planarity_rms_rdu_boot_p95": 0.005554956101684387,
+    "planarity_median_rdu": 0.004772892697753195,
+    "surface_variation_median": 0.012258229987775546,
+    "roughness_slope_median": 0.11140179093223426,
+    "patch_tilt_median_deg": 16.930179033299588
+   },
+   {
+    "f_native_px": 1521.777,
+    "f_equiv_mm": 13.168428007972231,
+    "planarity_rms_rdu": 0.005287844322154444,
+    "planarity_rms_rdu_boot_p05": 0.005039992246562032,
+    "planarity_rms_rdu_boot_p95": 0.005547346342840423,
+    "planarity_median_rdu": 0.004771244578194903,
+    "surface_variation_median": 0.012560661920800645,
+    "roughness_slope_median": 0.11278492388283945,
+    "patch_tilt_median_deg": 17.145824541848764
+   },
+   {
+    "f_native_px": 1654.319,
+    "f_equiv_mm": 14.315356753138348,
+    "planarity_rms_rdu": 0.0052353817240970955,
+    "planarity_rms_rdu_boot_p05": 0.004990265017423174,
+    "planarity_rms_rdu_boot_p95": 0.005494502434389284,
+    "planarity_median_rdu": 0.0047595909784139126,
+    "surface_variation_median": 0.014437452392907307,
+    "roughness_slope_median": 0.12103282964237791,
+    "patch_tilt_median_deg": 18.613836682464434
+   },
+   {
+    "f_native_px": 1798.404,
+    "f_equiv_mm": 15.562170806398898,
+    "planarity_rms_rdu": 0.005175142246269477,
+    "planarity_rms_rdu_boot_p05": 0.00493316242400656,
+    "planarity_rms_rdu_boot_p95": 0.005431230140677172,
+    "planarity_median_rdu": 0.004738771165962895,
+    "surface_variation_median": 0.016416067739797084,
+    "roughness_slope_median": 0.12918998713817254,
+    "patch_tilt_median_deg": 20.178254459574354
+   },
+   {
+    "f_native_px": 1955.04,
+    "f_equiv_mm": 16.917592717399483,
+    "planarity_rms_rdu": 0.005106327765325713,
+    "planarity_rms_rdu_boot_p05": 0.004867758133521363,
+    "planarity_rms_rdu_boot_p95": 0.0053591381901476505,
+    "planarity_median_rdu": 0.004648700690537363,
+    "surface_variation_median": 0.01818729556668342,
+    "roughness_slope_median": 0.13610363947955062,
+    "patch_tilt_median_deg": 21.82767103413916
+   },
+   {
+    "f_native_px": 2125.317,
+    "f_equiv_mm": 18.39105460827672,
+    "planarity_rms_rdu": 0.0050281905682483,
+    "planarity_rms_rdu_boot_p05": 0.004793744084419245,
+    "planarity_rms_rdu_boot_p95": 0.005282148259759881,
+    "planarity_median_rdu": 0.004568113907010641,
+    "surface_variation_median": 0.020907857181403245,
+    "roughness_slope_median": 0.14613120978470048,
+    "patch_tilt_median_deg": 23.594054284137258
+   },
+   {
+    "f_native_px": 2310.425,
+    "f_equiv_mm": 19.992853933473334,
+    "planarity_rms_rdu": 0.004940075652114653,
+    "planarity_rms_rdu_boot_p05": 0.004710398603772942,
+    "planarity_rms_rdu_boot_p95": 0.005196158363330673,
+    "planarity_median_rdu": 0.004498869426853292,
+    "surface_variation_median": 0.02331803053166504,
+    "roughness_slope_median": 0.15451453817153932,
+    "patch_tilt_median_deg": 25.76968337323384
+   },
+   {
+    "f_native_px": 2511.656,
+    "f_equiv_mm": 21.73417078638428,
+    "planarity_rms_rdu": 0.004841469967974861,
+    "planarity_rms_rdu_boot_p05": 0.004616844126092216,
+    "planarity_rms_rdu_boot_p95": 0.005095790468579037,
+    "planarity_median_rdu": 0.004432499420940048,
+    "surface_variation_median": 0.026589306724845566,
+    "roughness_slope_median": 0.1652743472339845,
+    "patch_tilt_median_deg": 28.2071683922613
+   },
+   {
+    "f_native_px": 2730.413,
+    "f_equiv_mm": 23.6271457792643,
+    "planarity_rms_rdu": 0.004732033076371618,
+    "planarity_rms_rdu_boot_p05": 0.004510466467992066,
+    "planarity_rms_rdu_boot_p95": 0.004983461703943793,
+    "planarity_median_rdu": 0.004350681400496522,
+    "surface_variation_median": 0.028861096804681585,
+    "roughness_slope_median": 0.17239145681710813,
+    "patch_tilt_median_deg": 30.57769936684753
+   },
+   {
+    "f_native_px": 2774.0,
+    "f_equiv_mm": 24.004318171529057,
+    "planarity_rms_rdu": 0.004710039924863057,
+    "planarity_rms_rdu_boot_p05": 0.004489135454579216,
+    "planarity_rms_rdu_boot_p95": 0.004960783607434571,
+    "planarity_median_rdu": 0.004320468669497611,
+    "surface_variation_median": 0.0293096281869809,
+    "roughness_slope_median": 0.1737659958416737,
+    "patch_tilt_median_deg": 31.118940873610025
+   },
+   {
+    "f_native_px": 2939.153,
+    "f_equiv_mm": 25.433440435041145,
+    "planarity_rms_rdu": 0.004626356034983056,
+    "planarity_rms_rdu_boot_p05": 0.004408045954452882,
+    "planarity_rms_rdu_boot_p95": 0.0048741716168818425,
+    "planarity_median_rdu": 0.004231515120150856,
+    "surface_variation_median": 0.03179993686237942,
+    "roughness_slope_median": 0.18123020242806198,
+    "patch_tilt_median_deg": 32.79265233739194
+   },
+   {
+    "f_native_px": 2968.223,
+    "f_equiv_mm": 25.684992536427718,
+    "planarity_rms_rdu": 0.004611585895728178,
+    "planarity_rms_rdu_boot_p05": 0.004393740582008955,
+    "planarity_rms_rdu_boot_p95": 0.004858832282432163,
+    "planarity_median_rdu": 0.004227792116056766,
+    "surface_variation_median": 0.03211931265867681,
+    "roughness_slope_median": 0.18216804994962107,
+    "patch_tilt_median_deg": 33.07106866450676
+   },
+   {
+    "f_native_px": 3005.0,
+    "f_equiv_mm": 26.00323579864629,
+    "planarity_rms_rdu": 0.00459288930156394,
+    "planarity_rms_rdu_boot_p05": 0.0043760579555939426,
+    "planarity_rms_rdu_boot_p95": 0.004840577439042154,
+    "planarity_median_rdu": 0.00422300838608162,
+    "surface_variation_median": 0.032516434245569596,
+    "roughness_slope_median": 0.18332836241004263,
+    "patch_tilt_median_deg": 33.421361403797675
+   },
+   {
+    "f_native_px": 3226.745,
+    "f_equiv_mm": 27.922066920832922,
+    "planarity_rms_rdu": 0.004480080222208056,
+    "planarity_rms_rdu_boot_p05": 0.004267148337091009,
+    "planarity_rms_rdu_boot_p95": 0.004724112930150565,
+    "planarity_median_rdu": 0.004105271986573886,
+    "surface_variation_median": 0.03561468268662837,
+    "roughness_slope_median": 0.1921716171574799,
+    "patch_tilt_median_deg": 35.62415741111477
+   },
+   {
+    "f_native_px": 3236.0,
+    "f_equiv_mm": 28.00215342576353,
+    "planarity_rms_rdu": 0.004475374487971994,
+    "planarity_rms_rdu_boot_p05": 0.004262744583745489,
+    "planarity_rms_rdu_boot_p95": 0.004719182993686976,
+    "planarity_median_rdu": 0.004098456198679521,
+    "surface_variation_median": 0.03567584140520205,
+    "roughness_slope_median": 0.19234264715333307,
+    "patch_tilt_median_deg": 35.706819125793324
+   },
+   {
+    "f_native_px": 3507.784,
+    "f_equiv_mm": 30.353988180605224,
+    "planarity_rms_rdu": 0.004337605854402636,
+    "planarity_rms_rdu_boot_p05": 0.0041337891053793915,
+    "planarity_rms_rdu_boot_p95": 0.004574187326257906,
+    "planarity_median_rdu": 0.0038972702163177406,
+    "surface_variation_median": 0.03766620422368941,
+    "roughness_slope_median": 0.19783952446457997,
+    "patch_tilt_median_deg": 38.48092278565936
+   },
+   {
+    "f_native_px": 3813.301,
+    "f_equiv_mm": 32.997725482267455,
+    "planarity_rms_rdu": 0.00418447399481861,
+    "planarity_rms_rdu_boot_p05": 0.0039895697213754786,
+    "planarity_rms_rdu_boot_p95": 0.004411633076996156,
+    "planarity_median_rdu": 0.0037682989743034914,
+    "surface_variation_median": 0.03980351971759015,
+    "roughness_slope_median": 0.20360136429007802,
+    "patch_tilt_median_deg": 41.37976729152052
+   },
+   {
+    "f_native_px": 4145.427,
+    "f_equiv_mm": 35.871719057262865,
+    "planarity_rms_rdu": 0.00402136052257191,
+    "planarity_rms_rdu_boot_p05": 0.0038355067061540096,
+    "planarity_rms_rdu_boot_p95": 0.004236556147125616,
+    "planarity_median_rdu": 0.0036043632297172367,
+    "surface_variation_median": 0.04052250730309157,
+    "roughness_slope_median": 0.2055089587490291,
+    "patch_tilt_median_deg": 44.327028443817134
+   },
+   {
+    "f_native_px": 4159.0,
+    "f_equiv_mm": 35.98917061117136,
+    "planarity_rms_rdu": 0.00401478719321629,
+    "planarity_rms_rdu_boot_p05": 0.0038293084493844567,
+    "planarity_rms_rdu_boot_p95": 0.004229411254314871,
+    "planarity_median_rdu": 0.0035947871705835884,
+    "surface_variation_median": 0.04045389801124458,
+    "roughness_slope_median": 0.20532756878701666,
+    "patch_tilt_median_deg": 44.4368804225245
+   },
+   {
+    "f_native_px": 4453.0,
+    "f_equiv_mm": 38.533247591138746,
+    "planarity_rms_rdu": 0.003874496981691853,
+    "planarity_rms_rdu_boot_p05": 0.003695824982726656,
+    "planarity_rms_rdu_boot_p95": 0.004078930360783742,
+    "planarity_median_rdu": 0.0034298510011784022,
+    "surface_variation_median": 0.040157941002943696,
+    "roughness_slope_median": 0.2045435694977576,
+    "patch_tilt_median_deg": 47.01088590266043
+   },
+   {
+    "f_native_px": 4453.215,
+    "f_equiv_mm": 38.53510805559689,
+    "planarity_rms_rdu": 0.0038743959443439968,
+    "planarity_rms_rdu_boot_p05": 0.003695732161141378,
+    "planarity_rms_rdu_boot_p95": 0.004078822403393347,
+    "planarity_median_rdu": 0.003429725312453909,
+    "surface_variation_median": 0.040159789550402135,
+    "roughness_slope_median": 0.204548474179769,
+    "patch_tilt_median_deg": 47.0127124365707
+   },
+   {
+    "f_native_px": 4489.0,
+    "f_equiv_mm": 38.844767221338834,
+    "planarity_rms_rdu": 0.003857612644846216,
+    "planarity_rms_rdu_boot_p05": 0.003680310666923279,
+    "planarity_rms_rdu_boot_p95": 0.00406088774105578,
+    "planarity_median_rdu": 0.0034089065518555215,
+    "surface_variation_median": 0.04003746916284277,
+    "roughness_slope_median": 0.20422371286724364,
+    "patch_tilt_median_deg": 47.315341059003416
+   },
+   {
+    "f_native_px": 4506.48,
+    "f_equiv_mm": 38.9960273084471,
+    "planarity_rms_rdu": 0.0038494389015988517,
+    "planarity_rms_rdu_boot_p05": 0.003672798022660371,
+    "planarity_rms_rdu_boot_p95": 0.004052151972490122,
+    "planarity_median_rdu": 0.0033988099431352765,
+    "surface_variation_median": 0.039953374059735196,
+    "roughness_slope_median": 0.20400018808974946,
+    "patch_tilt_median_deg": 47.46216714183786
+   },
+   {
+    "f_native_px": 4695.0,
+    "f_equiv_mm": 40.62735177192824,
+    "planarity_rms_rdu": 0.0037623401947431963,
+    "planarity_rms_rdu_boot_p05": 0.0035903589260181117,
+    "planarity_rms_rdu_boot_p95": 0.003961037201861875,
+    "planarity_median_rdu": 0.003292900068962937,
+    "surface_variation_median": 0.040778843701316736,
+    "roughness_slope_median": 0.20618548045655885,
+    "patch_tilt_median_deg": 49.00445930697579
+   },
+   {
+    "f_native_px": 4898.979,
+    "f_equiv_mm": 42.39244795661112,
+    "planarity_rms_rdu": 0.003670376969487869,
+    "planarity_rms_rdu_boot_p05": 0.003500682732206266,
+    "planarity_rms_rdu_boot_p95": 0.003865295138652255,
+    "planarity_median_rdu": 0.003204608489622253,
+    "surface_variation_median": 0.04119816264266571,
+    "roughness_slope_median": 0.2072881593126694,
+    "patch_tilt_median_deg": 50.58706826661693
+   },
+   {
+    "f_native_px": 5325.665,
+    "f_equiv_mm": 46.08469976026543,
+    "planarity_rms_rdu": 0.003486154358262758,
+    "planarity_rms_rdu_boot_p05": 0.0033289396172642032,
+    "planarity_rms_rdu_boot_p95": 0.003671181628802326,
+    "planarity_median_rdu": 0.0030419530460948432,
+    "surface_variation_median": 0.041301275934639774,
+    "roughness_slope_median": 0.2075585650985681,
+    "patch_tilt_median_deg": 53.2794264068794
+   },
+   {
+    "f_native_px": 5789.513,
+    "f_equiv_mm": 50.09852635551683,
+    "planarity_rms_rdu": 0.0032988438069679643,
+    "planarity_rms_rdu_boot_p05": 0.0031473732104666413,
+    "planarity_rms_rdu_boot_p95": 0.00347687368851344,
+    "planarity_median_rdu": 0.002850814466569953,
+    "surface_variation_median": 0.04099068691565105,
+    "roughness_slope_median": 0.20674317700888056,
+    "patch_tilt_median_deg": 55.852406906745
+   },
+   {
+    "f_native_px": 6009.0,
+    "f_equiv_mm": 51.99781827423147,
+    "planarity_rms_rdu": 0.003214924650775259,
+    "planarity_rms_rdu_boot_p05": 0.003066199627976609,
+    "planarity_rms_rdu_boot_p95": 0.003388887362039087,
+    "planarity_median_rdu": 0.002763433546410539,
+    "surface_variation_median": 0.04017448417656111,
+    "roughness_slope_median": 0.2045874593725997,
+    "patch_tilt_median_deg": 57.00911482258443
+   },
+   {
+    "f_native_px": 6293.76,
+    "f_equiv_mm": 54.46193854911417,
+    "planarity_rms_rdu": 0.003110479769491611,
+    "planarity_rms_rdu_boot_p05": 0.0029653408928504944,
+    "planarity_rms_rdu_boot_p95": 0.00327921359845086,
+    "planarity_median_rdu": 0.0026676054051900724,
+    "surface_variation_median": 0.03962544254843763,
+    "roughness_slope_median": 0.20312657219017577,
+    "patch_tilt_median_deg": 58.39645724201683
+   },
+   {
+    "f_native_px": 6841.926,
+    "f_equiv_mm": 59.20539603823256,
+    "planarity_rms_rdu": 0.002923056771879069,
+    "planarity_rms_rdu_boot_p05": 0.0027848471771076914,
+    "planarity_rms_rdu_boot_p95": 0.003082015457928999,
+    "planarity_median_rdu": 0.0025046721003845903,
+    "surface_variation_median": 0.03859425534783156,
+    "roughness_slope_median": 0.20035859452503563,
+    "patch_tilt_median_deg": 60.832841261881676
+   },
+   {
+    "f_native_px": 7437.835,
+    "f_equiv_mm": 64.36198913025768,
+    "planarity_rms_rdu": 0.0027385457066470458,
+    "planarity_rms_rdu_boot_p05": 0.0026077524807620106,
+    "planarity_rms_rdu_boot_p95": 0.0028875215709242594,
+    "planarity_median_rdu": 0.002358959149607813,
+    "surface_variation_median": 0.036470546806845014,
+    "roughness_slope_median": 0.19455331718327626,
+    "patch_tilt_median_deg": 63.418030768823584
+   },
+   {
+    "f_native_px": 8085.646,
+    "f_equiv_mm": 69.96770699580073,
+    "planarity_rms_rdu": 0.0025587527396805317,
+    "planarity_rms_rdu_boot_p05": 0.0024357584568148434,
+    "planarity_rms_rdu_boot_p95": 0.0026989393020561935,
+    "planarity_median_rdu": 0.0022299343677889085,
+    "surface_variation_median": 0.0337448965011584,
+    "roughness_slope_median": 0.1868779880740771,
+    "patch_tilt_median_deg": 66.00450087997565
+   },
+   {
+    "f_native_px": 8789.88,
+    "f_equiv_mm": 76.06167130842098,
+    "planarity_rms_rdu": 0.0023851449538834493,
+    "planarity_rms_rdu_boot_p05": 0.0022701135140174695,
+    "planarity_rms_rdu_boot_p95": 0.0025194172635661927,
+    "planarity_median_rdu": 0.002077534798127976,
+    "surface_variation_median": 0.030847342225335805,
+    "roughness_slope_median": 0.1784073655510979,
+    "patch_tilt_median_deg": 68.03866346349506
+   },
+   {
+    "f_native_px": 9555.45,
+    "f_equiv_mm": 82.68639584431772,
+    "planarity_rms_rdu": 0.0022188081172420434,
+    "planarity_rms_rdu_boot_p05": 0.002111582872241681,
+    "planarity_rms_rdu_boot_p95": 0.0023432443864365854,
+    "planarity_median_rdu": 0.0019317309545119686,
+    "surface_variation_median": 0.02772896453914953,
+    "roughness_slope_median": 0.16887802921062317,
+    "patch_tilt_median_deg": 69.81689256116269
+   },
+   {
+    "f_native_px": 10387.698,
+    "f_equiv_mm": 89.88810665528337,
+    "planarity_rms_rdu": 0.0020604865966996175,
+    "planarity_rms_rdu_boot_p05": 0.001960791868237508,
+    "planarity_rms_rdu_boot_p95": 0.0021776984116703597,
+    "planarity_median_rdu": 0.0018007942642948513,
+    "surface_variation_median": 0.025089445550486356,
+    "roughness_slope_median": 0.16042171169303743,
+    "patch_tilt_median_deg": 71.57638899331272
+   },
+   {
+    "f_native_px": 11292.432,
+    "f_equiv_mm": 97.71706224165689,
+    "planarity_rms_rdu": 0.001910635198765176,
+    "planarity_rms_rdu_boot_p05": 0.0018181203976147529,
+    "planarity_rms_rdu_boot_p95": 0.002020564684928433,
+    "planarity_median_rdu": 0.0016686205716682743,
+    "surface_variation_median": 0.022310255999453805,
+    "roughness_slope_median": 0.1510607884363888,
+    "patch_tilt_median_deg": 73.12128244702353
+   },
+   {
+    "f_native_px": 12275.966,
+    "f_equiv_mm": 106.22789968524617,
+    "planarity_rms_rdu": 0.0017694662066321462,
+    "planarity_rms_rdu_boot_p05": 0.0016838755046822416,
+    "planarity_rms_rdu_boot_p95": 0.001872142640675564,
+    "planarity_median_rdu": 0.0015447150834821191,
+    "surface_variation_median": 0.01979692314297845,
+    "roughness_slope_median": 0.14211529398620068,
+    "patch_tilt_median_deg": 74.6161978558191
+   },
+   {
+    "f_native_px": 13345.163,
+    "f_equiv_mm": 115.48000674221963,
+    "planarity_rms_rdu": 0.0016369971299584913,
+    "planarity_rms_rdu_boot_p05": 0.0015577834185656848,
+    "planarity_rms_rdu_boot_p95": 0.0017318377243262042,
+    "planarity_median_rdu": 0.0014391800299566712,
+    "surface_variation_median": 0.017329941940840032,
+    "roughness_slope_median": 0.13279896559439267,
+    "patch_tilt_median_deg": 75.89998849815014
+   },
+   {
+    "f_native_px": 14507.483,
+    "f_equiv_mm": 125.53793720261315,
+    "planarity_rms_rdu": 0.0015130965566030662,
+    "planarity_rms_rdu_boot_p05": 0.0014396950174064842,
+    "planarity_rms_rdu_boot_p95": 0.0016005679272116113,
+    "planarity_median_rdu": 0.0013278553740914093,
+    "surface_variation_median": 0.015024260871975057,
+    "roughness_slope_median": 0.1235047870320978,
+    "patch_tilt_median_deg": 77.09008067945847
+   },
+   {
+    "f_native_px": 15771.037,
+    "f_equiv_mm": 136.47187816977547,
+    "planarity_rms_rdu": 0.0013975238774833632,
+    "planarity_rms_rdu_boot_p05": 0.0013296893809306798,
+    "planarity_rms_rdu_boot_p95": 0.0014781064060540444,
+    "planarity_median_rdu": 0.001223597587079572,
+    "surface_variation_median": 0.013223896832311703,
+    "roughness_slope_median": 0.11576317096362086,
+    "patch_tilt_median_deg": 78.16087866421282
+   },
+   {
+    "f_native_px": 17144.643,
+    "f_equiv_mm": 148.35813464645943,
+    "planarity_rms_rdu": 0.0012899621176966926,
+    "planarity_rms_rdu_boot_p05": 0.001227317662163414,
+    "planarity_rms_rdu_boot_p95": 0.00136414028366143,
+    "planarity_median_rdu": 0.0011272253034506463,
+    "surface_variation_median": 0.011709050113048878,
+    "roughness_slope_median": 0.10884749110431757,
+    "patch_tilt_median_deg": 79.18635398474868
+   },
+   {
+    "f_native_px": 18637.885,
+    "f_equiv_mm": 161.27964008088279,
+    "planarity_rms_rdu": 0.001190044021104571,
+    "planarity_rms_rdu_boot_p05": 0.0011322277153198318,
+    "planarity_rms_rdu_boot_p95": 0.0012583011208199201,
+    "planarity_median_rdu": 0.001038208979177485,
+    "surface_variation_median": 0.010305241583609988,
+    "roughness_slope_median": 0.1020418805160087,
+    "patch_tilt_median_deg": 80.08458609517031
+   },
+   {
+    "f_native_px": 20261.184,
+    "f_equiv_mm": 175.3265707526654,
+    "planarity_rms_rdu": 0.001097371789401329,
+    "planarity_rms_rdu_boot_p05": 0.0010440389593706068,
+    "planarity_rms_rdu_boot_p95": 0.0011601655413504136,
+    "planarity_median_rdu": 0.0009569063835002241,
+    "surface_variation_median": 0.009021390923602698,
+    "roughness_slope_median": 0.0954123540850687,
+    "patch_tilt_median_deg": 80.90057101973954
+   },
+   {
+    "f_native_px": 22025.866,
+    "f_equiv_mm": 190.5969341987974,
+    "planarity_rms_rdu": 0.0010115326350551548,
+    "planarity_rms_rdu_boot_p05": 0.0009623569853178994,
+    "planarity_rms_rdu_boot_p95": 0.0010692920310288504,
+    "planarity_median_rdu": 0.0008841596290868454,
+    "surface_variation_median": 0.007860465768187391,
+    "roughness_slope_median": 0.08900978717049074,
+    "patch_tilt_median_deg": 81.62791949487067
+   },
+   {
+    "f_native_px": 23944.247,
+    "f_equiv_mm": 207.19730474609955,
+    "planarity_rms_rdu": 0.0009321098304857291,
+    "planarity_rms_rdu_boot_p05": 0.000886783973934932,
+    "planarity_rms_rdu_boot_p95": 0.0009852341490719642,
+    "planarity_median_rdu": 0.0008163939797660778,
+    "surface_variation_median": 0.006784258319120533,
+    "roughness_slope_median": 0.08264743714298604,
+    "patch_tilt_median_deg": 82.29741969655959
+   },
+   {
+    "f_native_px": 26029.713,
+    "f_equiv_mm": 225.24351577706778,
+    "planarity_rms_rdu": 0.0008586913357546896,
+    "planarity_rms_rdu_boot_p05": 0.0008169268431928546,
+    "planarity_rms_rdu_boot_p95": 0.0009075505113451306,
+    "planarity_median_rdu": 0.0007520077104617058,
+    "surface_variation_median": 0.0058690665411759374,
+    "roughness_slope_median": 0.0768356417445352,
+    "patch_tilt_median_deg": 82.91359437907163
+   },
+   {
+    "f_native_px": 28296.815,
+    "f_equiv_mm": 244.86148179556452,
+    "planarity_rms_rdu": 0.0007908756179664224,
+    "planarity_rms_rdu_boot_p05": 0.0007524027360335212,
+    "planarity_rms_rdu_boot_p95": 0.0008358113742959357,
+    "planarity_median_rdu": 0.0006923453353657958,
+    "surface_variation_median": 0.005035545699337246,
+    "roughness_slope_median": 0.07114092177480907,
+    "patch_tilt_median_deg": 83.48396484863278
+   },
+   {
+    "f_native_px": 30761.375,
+    "f_equiv_mm": 266.1881156790626,
+    "planarity_rms_rdu": 0.0007282756382566539,
+    "planarity_rms_rdu_boot_p05": 0.000692842771292582,
+    "planarity_rms_rdu_boot_p95": 0.000769603023547905,
+    "planarity_median_rdu": 0.0006370843758832126,
+    "surface_variation_median": 0.0043116056208974555,
+    "roughness_slope_median": 0.06580483313186757,
+    "patch_tilt_median_deg": 84.01155870679993
+   },
+   {
+    "f_native_px": 33440.59,
+    "f_equiv_mm": 289.372228624244,
+    "planarity_rms_rdu": 0.0006705217517148839,
+    "planarity_rms_rdu_boot_p05": 0.0006378947659397425,
+    "planarity_rms_rdu_boot_p95": 0.0007085308680133553,
+    "planarity_median_rdu": 0.0005862044558638755,
+    "surface_variation_median": 0.0036852909846753815,
+    "roughness_slope_median": 0.060818768408708285,
+    "patch_tilt_median_deg": 84.49568111988228
+   },
+   {
+    "f_native_px": 36353.156,
+    "f_equiv_mm": 314.57560315905937,
+    "planarity_rms_rdu": 0.0006172632231627149,
+    "planarity_rms_rdu_boot_p05": 0.0005872216760080634,
+    "planarity_rms_rdu_boot_p95": 0.0006522209953474228,
+    "planarity_median_rdu": 0.0005393648905252658,
+    "surface_variation_median": 0.003133717354810836,
+    "roughness_slope_median": 0.056067534364303236,
+    "patch_tilt_median_deg": 84.94007232284218
+   },
+   {
+    "f_native_px": 39519.397,
+    "f_equiv_mm": 341.9741094214026,
+    "planarity_rms_rdu": 0.0005681691096284372,
+    "planarity_rms_rdu_boot_p05": 0.0005405066541752851,
+    "planarity_rms_rdu_boot_p95": 0.0006003210245911285,
+    "planarity_median_rdu": 0.0004962499953397484,
+    "surface_variation_median": 0.0026700876008334375,
+    "roughness_slope_median": 0.05174201441411109,
+    "patch_tilt_median_deg": 85.34811886339257
+   },
+   {
+    "f_native_px": 42961.407,
+    "f_equiv_mm": 371.75893393098613,
+    "planarity_rms_rdu": 0.0005229285087427592,
+    "planarity_rms_rdu_boot_p05": 0.0004974607834963696,
+    "planarity_rms_rdu_boot_p95": 0.0005525002786047381,
+    "planarity_median_rdu": 0.00045656759216585396,
+    "surface_variation_median": 0.002277343451224407,
+    "roughness_slope_median": 0.047775951925096344,
+    "patch_tilt_median_deg": 85.72289289682291
+   },
+   {
+    "f_native_px": 46703.205,
+    "f_equiv_mm": 404.1379208544148,
+    "planarity_rms_rdu": 0.0004812503776981011,
+    "planarity_rms_rdu_boot_p05": 0.0004578063781254562,
+    "planarity_rms_rdu_boot_p95": 0.0005084495051246794,
+    "planarity_median_rdu": 0.00042004751665946835,
+    "surface_variation_median": 0.001940061398204846,
+    "roughness_slope_median": 0.04408891643831727,
+    "patch_tilt_median_deg": 86.06718630500994
+   },
+   {
+    "f_native_px": 50770.902,
+    "f_equiv_mm": 439.33701711013737,
+    "planarity_rms_rdu": 0.0004428630695915991,
+    "planarity_rms_rdu_boot_p05": 0.0004212844009845908,
+    "planarity_rms_rdu_boot_p95": 0.00046788030755707226,
+    "planarity_median_rdu": 0.0003864401733158054,
+    "surface_variation_median": 0.0016503420896736723,
+    "roughness_slope_median": 0.04065796626783778,
+    "patch_tilt_median_deg": 86.38354019264094
+   },
+   {
+    "f_native_px": 55192.881,
+    "f_equiv_mm": 477.6018299665973,
+    "planarity_rms_rdu": 0.0004075136649235928,
+    "planarity_rms_rdu_boot_p05": 0.0003876537795714008,
+    "planarity_rms_rdu_boot_p95": 0.00043052436991493224,
+    "planarity_median_rdu": 0.00035551514152930795,
+    "surface_variation_median": 0.0014017810644257568,
+    "roughness_slope_median": 0.03746663599698982,
+    "patch_tilt_median_deg": 86.67427055448178
+   },
+   {
+    "f_native_px": 60000.0,
+    "f_equiv_mm": 519.1993836668145,
+    "planarity_rms_rdu": 0.0003749671060670585,
+    "planarity_rms_rdu_boot_p05": 0.00035669054641228944,
+    "planarity_rms_rdu_boot_p95": 0.0003961324843865142,
+    "planarity_median_rdu": 0.00032705978895370785,
+    "surface_variation_median": 0.001189972032308547,
+    "roughness_slope_median": 0.03451651420398576,
+    "patch_tilt_median_deg": 86.94149120048583
+   }
+  ],
+  "extrema": {
+   "primary_raster": {
+    "argmin_planarity_rms": {
+     "f_native_px": 60000.0,
+     "value": 0.0003231015412926817,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": true,
+     "relative_depth_of_extremum": 16.383383476412295
+    },
+    "argmin_planarity_median": {
+     "f_native_px": 60000.0,
+     "value": 0.00029571422147815573,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": true,
+     "relative_depth_of_extremum": 15.5628509304854
+    },
+    "argmin_surface_variation": {
+     "f_native_px": 60000.0,
+     "value": 0.0012355347785705899,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 47.977075538354526
+    },
+    "argmax_surface_variation": {
+     "f_native_px": 4506.48,
+     "value": 0.06051288018031592,
+     "at_grid_edge": false,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 0.9795822843849284
+    },
+    "argmin_roughness_slope": {
+     "f_native_px": 60000.0,
+     "value": 0.03517189830191514,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 6.215769522200898
+    },
+    "argmax_roughness_slope": {
+     "f_native_px": 4506.48,
+     "value": 0.2537923118049088,
+     "at_grid_edge": false,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 0.8614146423436502
+    }
+   },
+   "primary_geometry": {
+    "argmin_planarity_rms": {
+     "f_native_px": 60000.0,
+     "value": 0.0003749671060670585,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": true,
+     "relative_depth_of_extremum": 13.879640326493176
+    },
+    "argmin_planarity_median": {
+     "f_native_px": 60000.0,
+     "value": 0.00032705978895370785,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": true,
+     "relative_depth_of_extremum": 14.341729865863076
+    },
+    "argmin_surface_variation": {
+     "f_native_px": 400.0,
+     "value": 0.001027421992164541,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 39.19894089246379
+    },
+    "argmax_surface_variation": {
+     "f_native_px": 5325.665,
+     "value": 0.041301275934639774,
+     "at_grid_edge": false,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 0.9751237227200812
+    },
+    "argmin_roughness_slope": {
+     "f_native_px": 400.0,
+     "value": 0.032069902927393576,
+     "at_grid_edge": true,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 5.4720671455876175
+    },
+    "argmax_roughness_slope": {
+     "f_native_px": 5325.665,
+     "value": 0.2075585650985681,
+     "at_grid_edge": false,
+     "grid_span_px": [
+      400.0,
+      60000.0
+     ],
+     "monotone": false,
+     "relative_depth_of_extremum": 0.8454898601165228
+    }
+   }
+  },
+  "synthetic_control": {
+   "1502": {
+    "f_true": 1502.0,
+    "argmin_planarity_rms_f": 60000.0,
+    "argmin_surface_variation_f": 60000.0,
+    "recovered": false
+   },
+   "3005": {
+    "f_true": 3005.0,
+    "argmin_planarity_rms_f": 60000.0,
+    "argmin_surface_variation_f": 400.0,
+    "recovered": false
+   },
+   "6009": {
+    "f_true": 6009.0,
+    "argmin_planarity_rms_f": 60000.0,
+    "argmin_surface_variation_f": 400.0,
+    "recovered": false
+   }
+  },
+  "exact_plane_control": {
+   "note": "an exactly planar surface: residual is zero at every f, to floating-point. Planes are preserved by diag(s,s,1).",
+   "rows": [
+    {
+     "f_native_px": 500.0,
+     "planarity_rms_rdu": 7.007957869053382e-16,
+     "surface_variation_median": 9.493622362607918e-31,
+     "roughness_slope_median": 9.743343141123408e-16
+    },
+    {
+     "f_native_px": 1502.0,
+     "planarity_rms_rdu": 6.889508880051081e-16,
+     "surface_variation_median": 8.292577237472225e-30,
+     "roughness_slope_median": 2.8707167889902833e-15
+    },
+    {
+     "f_native_px": 3005.0,
+     "planarity_rms_rdu": 6.770628475341657e-16,
+     "surface_variation_median": 1.8983243426346496e-29,
+     "roughness_slope_median": 4.347197227384555e-15
+    },
+    {
+     "f_native_px": 4453.0,
+     "planarity_rms_rdu": 5.512531270396091e-16,
+     "surface_variation_median": 2.9979219948942447e-29,
+     "roughness_slope_median": 5.47470340905639e-15
+    },
+    {
+     "f_native_px": 20000.0,
+     "planarity_rms_rdu": 1.837512164232313e-16,
+     "surface_variation_median": 9.093996956393291e-30,
+     "roughness_slope_median": 3.0155072410732276e-15
+    }
+   ]
+  }
+ },
+ "sensitivity_sweep": {
+  "f_px_at_3000x4000": [
+   1502.0,
+   2774.0,
+   3005.0,
+   3236.0,
+   4159.0,
+   4453.0,
+   4489.0,
+   4695.0,
+   6009.0
+  ],
+  "f_equivalent_mm": [
+   13.0,
+   24.0,
+   26.0,
+   28.0,
+   36.0,
+   38.5,
+   38.8,
+   40.6,
+   52.0
+  ],
+  "widened_from_roadmap": "the roadmap's {1502, 2774, 3005, 3236, 6009} steps over DA3's own 4159-4695 px band; 4159 / 4453 / 4489 / 4695 were added as A1's FINDINGS required",
+  "plus_reference_row": "`manifest` \u2014 A1's own anisotropic camera (fx 4453, fy 4492 at 3000x4000), i.e. exactly what every shipped Phase A number used",
+  "results": "chunks/A1b/results/sensitivity.json and chunks/A1b/FINDINGS.md"
+ },
+ "plane_normal_reconciliation": {
+  "what": "A2 left A1b a 7.6 deg disagreement between the ground normals fitted on A1's two depth products",
+  "at_f_chosen_deg": 9.427787818377316,
+  "at_f_3005_deg": 6.353297516904754,
+  "monotone_increasing_in_f": false,
+  "reading": "The disagreement between the two products' ground normals is a monotone increasing function of f, going to zero as f -> 0 because every normal collapses onto the optical axis there. So 'choose f to make the two products agree' is degenerate in exactly the way the planarity refinement is: its optimum sits at the edge of the parameter range, not at a value the scene picked out. What the curve IS good for is pricing the disagreement: it says how many degrees of ground tilt the focal-length assumption is worth, which is the number A6 and any future gravity-referenced consumer needs.",
+  "detail": "chunks/A1b/results/normal_reconciliation.json"
+ },
+ "absolute_scale": {
+  "status": "UNRESOLVED",
+  "why": "no fiducial, no known dimension in frame, no EXIF, camera unavailable. DA3's metric head multiplies depth by f/300, so its metres are proportional to a focal length this file has just declared assumed. Deriving scale from plant size would violate R1.",
+  "consequence": "Any coordinate produced with these intrinsics carries `scale_confidence = 'assumed_scale'` (`depth_to_cloud.save_cloud` enforces it). Phase A reports every distance in rdu instead and never uses this file for a metric claim.",
+  "retired_by": "C0 (calibrated camera) plus an ArUco fiducial"
+ },
+ "unbounded_assumptions": [
+  {
+   "assumption": "zero distortion",
+   "category": "(d)",
+   "bounded_by_this_chunk": false,
+   "why_not": "bounding it needs a second image of a straight edge or a calibration target; `plants.jpeg` contains no straight line long enough to test against. Registered, retired by C0."
+  },
+  {
+   "assumption": "principal point at the image centre",
+   "category": "(d)",
+   "bounded_by_this_chunk": "partially",
+   "why_not": "swept in `principal_point_sweep.json` for its effect on the soil-band geometry only; the downstream stack was not re-run per principal point. Retired by C0."
+  },
+  {
+   "assumption": "absolute scale",
+   "category": "not assigned",
+   "bounded_by_this_chunk": false,
+   "why_not": "deliberately absent; see `absolute_scale`."
+  }
+ ],
+ "usage": {
+  "python": "import sys; sys.path.insert(0, 'chunks/A1'); from depth_to_cloud import Intrinsics; Intrinsics.from_focal_px(f, W, H, 'assumed+refined', principal_point_at_centre=True)",
+  "note": "`depth_to_cloud(mode='assumed')` flags the result `assumed_scale`. It refuses `model_estimated` intrinsics by design (A1 decision 3); A1b supplies its own object with provenance 'assumed+refined', which is honest about the value coinciding with DA3's res-504 estimate.",
+  "on_other_grids": {
+   "native_3000x4000": {
+    "fx": 4453.214615110367,
+    "fy": 4453.214615110367,
+    "cx": 1499.5,
+    "cy": 1999.5,
+    "width": 3000,
+    "height": 4000
+   },
+   "a1_primary_raster_1008x1344": {
+    "fx": 1496.2801106770833,
+    "fy": 1496.2801106770833,
+    "cx": 503.5,
+    "cy": 671.5,
+    "width": 1008,
+    "height": 1344
+   },
+   "a1_primary_geometry_378x504": {
+    "fx": 561.1050415039062,
+    "fy": 561.1050415039062,
+    "cx": 188.5,
+    "cy": 251.5,
+    "width": 378,
+    "height": 504
+   },
+   "a0_gt_grid_768x1024": {
+    "fx": 1140.022941468254,
+    "fy": 1140.022941468254,
+    "cx": 383.5,
+    "cy": 511.5,
+    "width": 768,
+    "height": 1024
+   }
+  }
+ }
+}

@@ -1,0 +1,379 @@
+{
+ "image": "plants2.jpeg",
+ "scored": false,
+ "why_unscored": "no ground truth for plants2; descriptive statistics only",
+ "depth_resolution_floor_rdu": {
+  "plants2": 0.0001353540973197071,
+  "plants": 4.145862809411695e-05
+ },
+ "a4": {
+  "split": {
+   "continuity_tolerance_rdu": 0.005440616514533758,
+   "tolerance_provenance": {
+    "quantile": 90.0,
+    "n_within_fragment_pairs": 3678187,
+    "percentiles_rdu": {
+     "10": 4.887580871582031e-05,
+     "25": 0.0001443624496459961,
+     "50": 0.00045299530029296875,
+     "75": 0.0015696287155151367,
+     "90": 0.005440616514533758,
+     "95": 0.012369120493531227,
+     "99": 0.06624796986579895
+    }
+   },
+   "n_fragments": 3446,
+   "n_components": 667,
+   "edges": {
+    "adjacent_pairs": 7437,
+    "connected": 4397,
+    "separated": 1203,
+    "unresolved_boundary": 1837
+   },
+   "unresolved_summary": {
+    "n_unresolved_edges": 18431,
+    "by_kind": {
+     "ambiguous_boundary": 1837,
+     "occluded_by": 16463,
+     "leaves_frame": 131
+    },
+    "n_between_distinct_components": 5900,
+    "occluders_capped_at_max_pairs": 11,
+    "max_pairs_per_occluder": 200,
+    "note": "R4: none of these is resolved by extrapolation. `already_connected` means the two fragments reached the same component by another path, so the unresolved link changes nothing; the rest are the links a second viewpoint (C1) would have to settle."
+   },
+   "component_size_px": {
+    "max": 760995,
+    "median": 61.0,
+    "n_ge_1000px": 31,
+    "n_lt_100px": 426
+   },
+   "largest_components": [
+    {
+     "component": 2,
+     "px": 760995,
+     "fraction_of_plant_px": 0.7329388343595508,
+     "material_mix": {
+      "squash_leaf": 0.214,
+      "squash_petiole": 0.194,
+      "grass": 0.383,
+      "broadleaf_weed": 0.129,
+      "fruit": 0.08
+     },
+     "n_unresolved_edges": 14789
+    },
+    {
+     "component": 259,
+     "px": 55760,
+     "fraction_of_plant_px": 0.053704254829385935,
+     "material_mix": {
+      "squash_leaf": 0.021,
+      "broadleaf_weed": 0.965,
+      "fruit": 0.014
+     },
+     "n_unresolved_edges": 487
+    },
+    {
+     "component": 72,
+     "px": 40743,
+     "fraction_of_plant_px": 0.039240897677791806,
+     "material_mix": {
+      "squash_leaf": 0.485,
+      "squash_petiole": 0.008,
+      "grass": 0.005,
+      "broadleaf_weed": 0.493,
+      "fruit": 0.01
+     },
+     "n_unresolved_edges": 376
+    },
+    {
+     "component": 9,
+     "px": 35052,
+     "fraction_of_plant_px": 0.03375971198492891,
+     "material_mix": {
+      "squash_leaf": 0.308,
+      "squash_petiole": 0.547,
+      "grass": 0.107,
+      "broadleaf_weed": 0.033,
+      "fruit": 0.006
+     },
+     "n_unresolved_edges": 728
+    },
+    {
+     "component": 68,
+     "px": 5396,
+     "fraction_of_plant_px": 0.005197061676100547,
+     "material_mix": {
+      "squash_petiole": 0.053,
+      "grass": 0.007,
+      "broadleaf_weed": 0.229,
+      "fruit": 0.712
+     },
+     "n_unresolved_edges": 156
+    },
+    {
+     "component": 346,
+     "px": 3219,
+     "fraction_of_plant_px": 0.003100322745620397,
+     "material_mix": {
+      "squash_leaf": 0.186,
+      "squash_petiole": 0.184,
+      "grass": 0.578,
+      "broadleaf_weed": 0.052
+     },
+     "n_unresolved_edges": 181
+    },
+    {
+     "component": 224,
+     "px": 3168,
+     "fraction_of_plant_px": 0.003051203000349617,
+     "material_mix": {
+      "squash_leaf": 0.033,
+      "grass": 0.872,
+      "broadleaf_weed": 0.081,
+      "fruit": 0.014
+     },
+     "n_unresolved_edges": 61
+    },
+    {
+     "component": 64,
+     "px": 3157,
+     "fraction_of_plant_px": 0.003040608545487292,
+     "material_mix": {
+      "squash_leaf": 0.006,
+      "squash_petiole": 0.226,
+      "grass": 0.515,
+      "broadleaf_weed": 0.013,
+      "fruit": 0.24
+     },
+     "n_unresolved_edges": 117
+    }
+   ],
+   "fruit_pixels_by_component_ge200": {
+    "2": 60940,
+    "64": 757,
+    "68": 3840,
+    "72": 396,
+    "82": 365,
+    "91": 268,
+    "187": 559,
+    "205": 289,
+    "215": 798,
+    "223": 865,
+    "230": 326,
+    "233": 383,
+    "259": 800,
+    "276": 381,
+    "287": 730,
+    "294": 203,
+    "301": 247,
+    "302": 321,
+    "407": 332,
+    "533": 620,
+    "534": 258,
+    "619": 330
+   },
+   "n_components_holding_fruit_ge200px": 22,
+   "grass_absorbed_into_biggest_component_by_A3": 0.8294379830077964,
+   "seconds": 34.1378231048584
+  },
+  "merge": {
+   "continuity_tolerance_rdu": 0.005440616514533758,
+   "tolerance_provenance": {
+    "quantile": 90.0,
+    "n_within_fragment_pairs": 3678187,
+    "percentiles_rdu": {
+     "10": 4.887580871582031e-05,
+     "25": 0.0001443624496459961,
+     "50": 0.00045299530029296875,
+     "75": 0.0015696287155151367,
+     "90": 0.005440616514533758,
+     "95": 0.012369120493531227,
+     "99": 0.06624796986579895
+    }
+   },
+   "n_fragments": 3446,
+   "n_components": 321,
+   "edges": {
+    "adjacent_pairs": 7437,
+    "connected": 4397,
+    "separated": 1203,
+    "unresolved_boundary": 1837
+   },
+   "unresolved_summary": {
+    "n_unresolved_edges": 18431,
+    "by_kind": {
+     "ambiguous_boundary": 1837,
+     "occluded_by": 16463,
+     "leaves_frame": 131
+    },
+    "n_between_distinct_components": 1122,
+    "occluders_capped_at_max_pairs": 11,
+    "max_pairs_per_occluder": 200,
+    "note": "R4: none of these is resolved by extrapolation. `already_connected` means the two fragments reached the same component by another path, so the unresolved link changes nothing; the rest are the links a second viewpoint (C1) would have to settle."
+   },
+   "component_size_px": {
+    "max": 958379,
+    "median": 36.0,
+    "n_ge_1000px": 4,
+    "n_lt_100px": 251
+   },
+   "largest_components": [
+    {
+     "component": 1,
+     "px": 958379,
+     "fraction_of_plant_px": 0.9230457324091116,
+     "material_mix": {
+      "squash_leaf": 0.193,
+      "squash_petiole": 0.197,
+      "grass": 0.358,
+      "broadleaf_weed": 0.174,
+      "fruit": 0.078
+     },
+     "n_unresolved_edges": 17449
+    },
+    {
+     "component": 14,
+     "px": 46043,
+     "fraction_of_plant_px": 0.044345498656912063,
+     "material_mix": {
+      "squash_leaf": 0.44,
+      "squash_petiole": 0.007,
+      "grass": 0.009,
+      "broadleaf_weed": 0.506,
+      "fruit": 0.038
+     },
+     "n_unresolved_edges": 556
+    },
+    {
+     "component": 43,
+     "px": 2172,
+     "fraction_of_plant_px": 0.0020919232691790934,
+     "material_mix": {
+      "squash_leaf": 0.006,
+      "grass": 0.595,
+      "broadleaf_weed": 0.399
+     },
+     "n_unresolved_edges": 24
+    },
+    {
+     "component": 57,
+     "px": 1194,
+     "fraction_of_plant_px": 0.0011499799186923745,
+     "material_mix": {
+      "grass": 0.106,
+      "broadleaf_weed": 0.894
+     },
+     "n_unresolved_edges": 3
+    },
+    {
+     "component": 187,
+     "px": 956,
+     "fraction_of_plant_px": 0.0009207544407620687,
+     "material_mix": {
+      "broadleaf_weed": 1.0
+     },
+     "n_unresolved_edges": 8
+    },
+    {
+     "component": 5,
+     "px": 840,
+     "fraction_of_plant_px": 0.00080903109857755,
+     "material_mix": {
+      "squash_leaf": 0.382,
+      "grass": 0.451,
+      "broadleaf_weed": 0.167
+     },
+     "n_unresolved_edges": 23
+    },
+    {
+     "component": 7,
+     "px": 782,
+     "fraction_of_plant_px": 0.0007531694274852906,
+     "material_mix": {
+      "squash_leaf": 0.087,
+      "grass": 0.575,
+      "broadleaf_weed": 0.338
+     },
+     "n_unresolved_edges": 26
+    },
+    {
+     "component": 9,
+     "px": 755,
+     "fraction_of_plant_px": 0.0007271648564595836,
+     "material_mix": {
+      "squash_leaf": 0.71,
+      "grass": 0.048,
+      "broadleaf_weed": 0.242
+     },
+     "n_unresolved_edges": 17
+    }
+   ],
+   "fruit_pixels_by_component_ge200": {
+    "1": 74678,
+    "14": 1738,
+    "166": 203,
+    "173": 247,
+    "174": 370,
+    "256": 287
+   },
+   "n_components_holding_fruit_ge200px": 6,
+   "grass_absorbed_into_biggest_component_by_A3": 0.9768981121986046,
+   "seconds": 35.61758995056152
+  }
+ },
+ "a5": {
+  "split": {
+   "status_counts": {
+    "observed": 608,
+    "extrapolated": 7,
+    "occluded": 52,
+    "total": 667,
+    "arm_admissible": 493,
+    "with_lowest_visible_point": 667,
+    "with_lowest_visible_stem_point": 168,
+    "fabricated_points": 0
+   },
+   "n_components": 667,
+   "with_point": 615,
+   "with_lowest_visible_point": 667,
+   "arm_admissible": 493,
+   "median_confidence": 0.8644560938073347,
+   "seconds": 0.9373600482940674
+  },
+  "merge": {
+   "status_counts": {
+    "observed": 313,
+    "extrapolated": 2,
+    "occluded": 6,
+    "total": 321,
+    "arm_admissible": 273,
+    "with_lowest_visible_point": 321,
+    "with_lowest_visible_stem_point": 24,
+    "fabricated_points": 0
+   },
+   "n_components": 321,
+   "with_point": 315,
+   "with_lowest_visible_point": 321,
+   "arm_admissible": 273,
+   "median_confidence": 0.8918908555833919,
+   "seconds": 0.8076779842376709
+  }
+ },
+ "scene": {
+  "sigma_datum_rdu": 0.010814921925404846,
+  "plane_tilt_from_camera_axis_deg": 23.15072914135596,
+  "camera": {
+   "fx": 1054.8500162760415,
+   "fy": 1042.011474609375,
+   "cx": 504.8333333333333,
+   "cy": 672.8333333333333,
+   "width": 1008,
+   "height": 1344,
+   "provenance": "model_estimated",
+   "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured [rescaled from 378x504]",
+   "fov_horizontal_deg": 51.0762930132911,
+   "fov_vertical_deg": 65.63646745331253
+  }
+ }
+}

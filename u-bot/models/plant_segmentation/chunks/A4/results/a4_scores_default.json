@@ -1,0 +1,336 @@
+{
+ "name": "default",
+ "material_source": "a3",
+ "statistic": "secdiff",
+ "continuity_tolerance_rdu": 0.004237532615661621,
+ "tolerance_provenance": {
+  "quantile": 90.0,
+  "n_within_fragment_pairs": 3808141,
+  "percentiles_rdu": {
+   "10": 2.467632293701172e-05,
+   "25": 7.11679458618164e-05,
+   "50": 0.00021636486053466797,
+   "75": 0.0008699297904968262,
+   "90": 0.004237532615661621,
+   "95": 0.012462377548217773,
+   "99": 0.10049650818109512
+  }
+ },
+ "scale_confidence": "scale_free",
+ "n_fragments": 1776,
+ "fragments": {
+  "n_fragments": 1776,
+  "n_fragments_before_min_merge": 3863,
+  "n_merged_below_min": 2122,
+  "px_merged_below_min": 20149,
+  "min_fragment_px": 25,
+  "plant_px": 1024682,
+  "fragment_px_p50": 93.0,
+  "fragment_px_p95": 1613.25,
+  "n_still_below_min": 29,
+  "note": "fragments still below the minimum have no plant neighbour to merge into; they are kept, and their edges are decided by the other side's surface fit alone."
+ },
+ "edges": {
+  "adjacent_pairs": 4004,
+  "connected": 1375,
+  "separated": 1392,
+  "unresolved_boundary": 1237
+ },
+ "n_components": 742,
+ "headline_eval_py": {
+  "instances": {
+   "iou_threshold": 0.5,
+   "n_gt": 10,
+   "n_pred": 674,
+   "tp": 3,
+   "fp": 671,
+   "fn": 7,
+   "precision": 0.004451038575667656,
+   "recall": 0.3,
+   "f1": 0.008771929824561405,
+   "best_iou_per_gt": {
+    "8": {
+     "iou": 0.774074074074074,
+     "pred": 674
+    },
+    "7": {
+     "iou": 0.7068645640074211,
+     "pred": 597
+    },
+    "2": {
+     "iou": 0.5148566920851959,
+     "pred": 348
+    },
+    "10": {
+     "iou": 0.47813121272365805,
+     "pred": 593
+    },
+    "1": {
+     "iou": 0.4618857539262848,
+     "pred": 37
+    },
+    "3": {
+     "iou": 0.26309646412633025,
+     "pred": 350
+    },
+    "4": {
+     "iou": 0.2313396964911076,
+     "pred": 350
+    },
+    "9": {
+     "iou": 0.13652530779753763,
+     "pred": 250
+    },
+    "6": {
+     "iou": 0.10711058594564538,
+     "pred": 350
+    },
+    "5": {
+     "iou": 0.07883181152854256,
+     "pred": 350
+    }
+   },
+   "unmatched_gt": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    9,
+    10
+   ]
+  },
+  "matches": [
+   {
+    "gt": 8,
+    "pred": 674,
+    "iou": 0.774074074074074
+   },
+   {
+    "gt": 7,
+    "pred": 597,
+    "iou": 0.7068645640074211
+   },
+   {
+    "gt": 2,
+    "pred": 348,
+    "iou": 0.5148566920851959
+   }
+  ],
+  "squash_fragmentation": {
+   "gt_instance": 1,
+   "n_pred_parts": 69,
+   "parts": {
+    "1": 81182,
+    "9": 1263,
+    "11": 234,
+    "13": 515,
+    "28": 1902,
+    "31": 1789,
+    "37": 203075,
+    "39": 1374,
+    "41": 710,
+    "47": 19209,
+    "55": 10727,
+    "59": 217,
+    "60": 202,
+    "65": 889,
+    "68": 687,
+    "74": 347,
+    "83": 1084,
+    "85": 524,
+    "94": 1655,
+    "99": 282,
+    "100": 1033,
+    "108": 1477,
+    "114": 5689,
+    "143": 405,
+    "148": 2211,
+    "159": 291,
+    "164": 1075,
+    "199": 313,
+    "201": 242,
+    "203": 213,
+    "248": 710,
+    "258": 237,
+    "262": 1416,
+    "266": 309,
+    "274": 1012,
+    "280": 1404,
+    "287": 28318,
+    "332": 1561,
+    "440": 908,
+    "441": 211,
+    "442": 415,
+    "443": 510,
+    "445": 553,
+    "447": 3269,
+    "457": 5401,
+    "458": 3012,
+    "465": 3853,
+    "471": 833,
+    "478": 2042,
+    "484": 637,
+    "503": 1392,
+    "505": 890,
+    "507": 1355,
+    "516": 1123,
+    "525": 956,
+    "536": 274,
+    "538": 282,
+    "547": 232,
+    "550": 646,
+    "560": 670,
+    "580": 261,
+    "582": 319,
+    "635": 323,
+    "650": 300,
+    "663": 220,
+    "670": 242,
+    "681": 206,
+    "689": 207,
+    "694": 202
+   },
+   "min_px": 200
+  },
+  "grass_absorbed_into_crop": {
+   "crop_pred_id": 37,
+   "gt_grass_px": 106099,
+   "absorbed_px": 12476,
+   "absorbed_fraction": 0.11758829018181133
+  }
+ },
+ "symmetric_grass_diagnostic": {
+  "f1": 0.011235955056179777,
+  "precision": 0.0057251908396946565,
+  "recall": 0.3,
+  "tp": 3,
+  "fp": 521,
+  "fn": 7,
+  "n_pred": 524,
+  "squash_best_iou": 0.4618857539262848,
+  "squash_parts": 63,
+  "grass_absorbed": 0.11758829018181133,
+  "matched_gt": [
+   2,
+   7,
+   8
+  ]
+ },
+ "unresolved_policy": "split",
+ "both_policies": {
+  "split": {
+   "f1": 0.008771929824561405,
+   "precision": 0.004451038575667656,
+   "recall": 0.3,
+   "tp": 3,
+   "fp": 671,
+   "fn": 7,
+   "n_pred": 674,
+   "squash_best_iou": 0.4618857539262848,
+   "squash_parts": 69,
+   "grass_absorbed": 0.11758829018181133,
+   "matched_gt": [
+    2,
+    7,
+    8
+   ]
+  },
+  "merge": {
+   "f1": 0.019801980198019802,
+   "precision": 0.010416666666666666,
+   "recall": 0.2,
+   "tp": 2,
+   "fp": 190,
+   "fn": 8,
+   "n_pred": 192,
+   "squash_best_iou": 0.8849564899545341,
+   "squash_parts": 12,
+   "grass_absorbed": 0.8333443293527742,
+   "matched_gt": [
+    1,
+    7
+   ]
+  }
+ },
+ "unresolved": {
+  "n_unresolved_edges": 11409,
+  "by_kind": {
+   "ambiguous_boundary": 1237,
+   "occluded_by": 10059,
+   "leaves_frame": 113
+  },
+  "n_between_distinct_components": 8185,
+  "occluders_capped_at_max_pairs": 16,
+  "max_pairs_per_occluder": 200,
+  "note": "R4: none of these is resolved by extrapolation. `already_connected` means the two fragments reached the same component by another path, so the unresolved link changes nothing; the rest are the links a second viewpoint (C1) would have to settle."
+ },
+ "provenance": {
+  "chunk": "A4",
+  "scale_confidence": "scale_free",
+  "units": "rdu (relative depth units; 1 rdu = median scene depth)",
+  "DATUM": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+  "grid": {
+   "graph_built_on": [
+    1344,
+    1008
+   ],
+   "scored_on": [
+    1024,
+    768
+   ],
+   "depth_resampled": false,
+   "material_and_regions_lifted": "nearest, GT -> depth grid"
+  },
+  "a1": {
+   "product": "primary_raster",
+   "model": {
+    "hf_repo": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+    "hf_revision": "b2359bdf726fb44ef62acca04d629dcf158053e7",
+    "code_commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4"
+   },
+   "rdu_normaliser_depth_units": 1.3996973633766174
+  },
+  "a2": {
+   "datum": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+   "sigma_datum_rdu": 0.005469617460760942,
+   "soil_surface_depth_subtracted": true
+  },
+  "a3": {
+   "material_source": "a3",
+   "provenance": {
+    "chunk": "A3",
+    "method": "frozen DINOv2 patch features + logistic probe",
+    "backbone": "facebook/dinov2-base",
+    "n_training_patches": 42,
+    "training_patch_provenance": "sampled from A0 ground truth, draw 0 of dino_probe.py (rng seed 1000); patches with a 100 % pure label-grid footprint. NOT an independent human pass.",
+    "patch_grid": [
+     "292",
+     "219"
+    ],
+    "label_px_per_patch": 3.51,
+    "classes_never_predicted": [
+     "soil"
+    ],
+    "soil_note": "A0 has zero soil pixels; a mulched bed shows none.",
+    "height_above_soil_used": false,
+    "height_ablation": "adding A2 height to these features moved mean IoU by +0.000 (0.5267 -> 0.5263)",
+    "seconds_features": 6.36630392074585,
+    "seconds_fit_and_predict": 0.047677040100097656,
+    "scored_mean_iou_this_patch_set": 0.5425,
+    "scored_grass_as_squash_this_patch_set": 0.178,
+    "approach_mean_iou": 0.5537,
+    "approach_mean_iou_sd": 0.0197,
+    "approach_mean_iou_training_patches_excluded": 0.5484,
+    "approach_grass_as_squash": 0.253,
+    "baseline_mean_iou": 0.2534,
+    "baseline_grass_absorbed_into_crop": 0.53
+   }
+  },
+  "partition": {
+   "source": "chunks/A3/work/regions_a3f.npy",
+   "n_regions": 728,
+   "why": "A3's independent SAM partition (pps 64, oracle ceiling 0.9246). A0's own partition has a ceiling of exactly 1.0 and is not used."
+  }
+ }
+}

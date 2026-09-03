@@ -1,0 +1,1023 @@
+{
+ "chunk": "A8",
+ "date": "2026-09-01",
+ "label_provenance": [
+  {
+   "file": "labels_A_r2_r1.json",
+   "framing": "A",
+   "variant": "r2",
+   "rep": 1,
+   "model": "claude-opus-5",
+   "cli_version": "2.1.257 (Claude Code)",
+   "prompt_file": "prompts/rendered/A_r2.txt"
+  },
+  {
+   "file": "labels_A_r2_r2.json",
+   "framing": "A",
+   "variant": "r2",
+   "rep": 2,
+   "model": "claude-opus-5",
+   "cli_version": "2.1.257 (Claude Code)",
+   "prompt_file": "prompts/rendered/A_r2.txt"
+  }
+ ],
+ "tool_profile": {
+  "name": "placeholder_awaiting_C3",
+  "clearance": 0.01,
+  "clearance_units": "rdu",
+  "positioning_repeatability": null,
+  "note": "A6's DEFAULT_CLEARANCE_RDU (1.83 A2 datum-sigma), category (b) tool geometry, PLACEHOLDER awaiting C3. A6 swept it over two decades: crop coverage moves 0.56 points, weed shielding moves 14. The number decides how much of the bed the robot may touch, not whether the crop is protected."
+ },
+ "registered_floor": 0.7,
+ "min_label_repeats": 2,
+ "server_info": {
+  "name": "weeding-perception",
+  "version": "0.1.0",
+  "title": "Garden weeding perception (Phase A)"
+ },
+ "tools": [
+  {
+   "name": "plan_removals",
+   "n_schema_properties": 6,
+   "required": [
+    "labels",
+    "tool_profile"
+   ]
+  },
+  {
+   "name": "segment_garden",
+   "n_schema_properties": 4,
+   "required": [
+    "image"
+   ]
+  }
+ ],
+ "segment_garden": {
+  "n_instances": 207,
+  "scale_confidence": "scale_free",
+  "soil_surface": {
+   "datum": "THE DATUM IS THE STRAW MULCH SURFACE, NOT BARE SOIL. Bare soil is largely invisible in this scene; what the depth observes, and what this surface is fitted to, is the top of the mulch. Every height here is height above straw and is offset from height above soil by the straw depth, which is unmeasured and unobservable from a single overhead photograph. An arm targeting the soil must add that offset.",
+   "datum_is_straw_not_soil": true,
+   "datum_roughness_sigma_rdu": 0.005469617460760942,
+   "scale_confidence": "scale_free",
+   "coverage_fraction": {
+    "observed": 0.2944,
+    "interpolated": 0.7056,
+    "extrapolated": 0.0
+   },
+   "valid_fraction": 0.9886,
+   "key_numbers": {
+    "inlier_fraction": 0.2910791052532124,
+    "inlier_residual_rms_rdu": 0.0068495974946936175,
+    "datum_roughness_sigma_rdu": 0.005469617460760942,
+    "ransac_threshold_rdu": 0.0005446066402624794,
+    "lam": 316.22776601683796,
+    "fit_scale_px": 146.7076256826222,
+    "observed_fraction": 0.2910791052532124,
+    "interpolated_fraction": 0.6975638345616024,
+    "extrapolated_fraction": 0.011357060185185185,
+    "max_trusted_support_px": 240.0
+   },
+   "plane_normal_camera_frame": [
+    -0.3419508949902941,
+    -0.5600207586382534,
+    -0.7546166810438079
+   ],
+   "camera": {
+    "fx": 1496.2801106770833,
+    "fy": 1509.4514973958333,
+    "cx": 504.8333333333333,
+    "cy": 672.8333333333333,
+    "width": 1008,
+    "height": 1344,
+    "provenance": "model_estimated",
+    "note": "regressed by Depth Anything 3's CameraDec.fc_fov; the depth in this product is conditioned on it, so it is self-consistent, not measured [rescaled from 378x504]",
+    "fov_horizontal_deg": 37.23068640598429,
+    "fov_vertical_deg": 47.996762060074126
+   },
+   "caveat": "Bare soil is 0 px of this frame. The surface fitted is the top of the mulch and every height is measured against it."
+  },
+  "contact_status_counts": {
+   "observed": 167,
+   "occluded": 29,
+   "extrapolated": 11
+  },
+  "n_instances_with_an_admissible_contact": 144,
+  "n_contact_candidates_total": 531,
+  "crop_flags_emitted": {
+   "None": 207
+  }
+ },
+ "refusals": {
+  "other_image": {
+   "isError": true,
+   "text": "REFUSED: A8 has products for exactly one image (/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/plants.jpeg). '/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/nope.jpeg' is r"
+  },
+  "other_intrinsics": {
+   "isError": true,
+   "text": "REFUSED: intrinsics.fx=3005.0 differs from the camera the shipped geometry was built with (1496.2801106770833, provenance 'model_estimated'). This image has no EXIF and its camera is unavailable, so t"
+  }
+ },
+ "shipped": {
+  "summary": {
+   "n_instances": 207,
+   "n_targets_admitted": 0,
+   "n_rejected": 207,
+   "rejections_by_reason": {
+    "component_unlabelled": 134,
+    "label_discarded_r3": 134,
+    "insufficient_repeats": 134,
+    "not_unanimous": 15,
+    "label_not_remove": 204,
+    "confidence_below_floor": 59,
+    "mixed_component": 4,
+    "no_contact_point": 29,
+    "contact_not_observed": 11,
+    "contact_not_arm_admissible": 23,
+    "inside_keepout": 134
+   },
+   "rejections_by_reason_note": "Reasons are not exclusive. Every condition is evaluated for every instance and every failure is reported, so these counts sum to more than the number of rejections. That is the point: it shows how many independent conditions had to fail together.",
+   "n_keep_plants": 204,
+   "keep_plant_policy": "r2_default_keep",
+   "keep_plant_policy_note": "SHIPPED. Every instance that is not unanimously `remove` is a keep-plant. This is R2 read literally: an instance the labeller was unsure about is kept, and an instance that is kept is protected. It is deliberately NOT a function of the confidence floor, so raising the floor cannot enlarge or shrink the protected region.",
+   "confidence_floor": 0.7,
+   "min_label_repeats": 2,
+   "clearance_rdu": 0.01,
+   "unlabelled_ids_supplied_by_caller": 0,
+   "refusal": null
+  },
+  "targets": [],
+  "audit_vs_A0": {
+   "n_targets": 0,
+   "n_targets_touching_gt_crop": 0,
+   "no_gt_crop_point_admitted": true,
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_px_total": 421926,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 0,
+   "gt_weed_px_total": 17530,
+   "gt_weed_fraction_reached": 0.0,
+   "per_target": [],
+   "note": "'crop px under the tool' counts every ground-truth crop pixel inside an admitted instance, which is A7's own threshold-free metric. It is an upper bound on the damage: a target is one point, not the whole instance."
+  },
+  "gt_weed_rollcall": [
+   {
+    "gt_instance": 2,
+    "name": "weed_purslane",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": false,
+    "reasons": [
+     "confidence_below_floor"
+    ],
+    "detail": {
+     "min_confidence": 0.6,
+     "floor": 0.7
+    }
+   },
+   {
+    "gt_instance": 3,
+    "name": "weed_clover_patch_lower_left",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": false,
+    "reasons": [
+     "confidence_below_floor"
+    ],
+    "detail": {
+     "min_confidence": 0.6,
+     "floor": 0.7
+    }
+   },
+   {
+    "gt_instance": 4,
+    "name": "weed_mallow",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 0,
+    "admitted": false,
+    "reasons": [
+     "confidence_below_floor"
+    ],
+    "detail": {
+     "min_confidence": 0.6,
+     "floor": 0.7
+    }
+   },
+   {
+    "gt_instance": 5,
+    "name": "weed_small_right_of_mallow",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": false,
+    "reasons": [
+     "confidence_below_floor"
+    ],
+    "detail": {
+     "min_confidence": 0.6,
+     "floor": 0.7
+    }
+   },
+   {
+    "gt_instance": 6,
+    "name": "weed_clover_by_fruit",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": false,
+    "reasons": [
+     "confidence_below_floor"
+    ],
+    "detail": {
+     "min_confidence": 0.6,
+     "floor": 0.7
+    }
+   },
+   {
+    "gt_instance": 7,
+    "name": "weed_seedling_left",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 178,
+    "merge_instance_at_gt_contact_point": 178,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "confidence_below_floor",
+     "inside_keepout"
+    ],
+    "detail": {
+     "label": "unsure",
+     "min_confidence": 0.42,
+     "floor": 0.7,
+     "nearest_keep_plant_instance": 1,
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "clearance_rdu": 0.01,
+     "voxel_bracket_rdu": 0.003031088913245535
+    }
+   },
+   {
+    "gt_instance": 8,
+    "name": "weed_seedling_mid",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   },
+   {
+    "gt_instance": 9,
+    "name": "weed_ovate_upper",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   },
+   {
+    "gt_instance": 10,
+    "name": "weed_ovate_lower",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   }
+  ]
+ },
+ "diagnostic_floor_000": {
+  "summary": {
+   "n_instances": 207,
+   "n_targets_admitted": 1,
+   "n_rejected": 206,
+   "rejections_by_reason": {
+    "component_unlabelled": 134,
+    "label_discarded_r3": 134,
+    "insufficient_repeats": 134,
+    "not_unanimous": 15,
+    "label_not_remove": 204,
+    "mixed_component": 4,
+    "no_contact_point": 29,
+    "contact_not_observed": 11,
+    "contact_not_arm_admissible": 23,
+    "inside_keepout": 134
+   },
+   "rejections_by_reason_note": "Reasons are not exclusive. Every condition is evaluated for every instance and every failure is reported, so these counts sum to more than the number of rejections. That is the point: it shows how many independent conditions had to fail together.",
+   "n_keep_plants": 204,
+   "keep_plant_policy": "r2_default_keep",
+   "keep_plant_policy_note": "SHIPPED. Every instance that is not unanimously `remove` is a keep-plant. This is R2 read literally: an instance the labeller was unsure about is kept, and an instance that is kept is protected. It is deliberately NOT a function of the confidence floor, so raising the floor cannot enlarge or shrink the protected region.",
+   "confidence_floor": 0.0,
+   "min_label_repeats": 2,
+   "clearance_rdu": 0.01,
+   "unlabelled_ids_supplied_by_caller": 0,
+   "refusal": null
+  },
+  "targets": [
+   {
+    "instance_id": 104,
+    "label": "remove",
+    "label_confidence_min_across_repeats": 0.6,
+    "n_label_repeats": 2,
+    "material_class": "broadleaf_weed",
+    "n_px_gt_grid": 19014,
+    "target": {
+     "contact_id": "104.567",
+     "split_component": 567,
+     "point_xyz_rdu": [
+      -0.25568736784503215,
+      0.23665395319024177,
+      1.1705658023189092
+     ],
+     "point_gt_grid_xy": [
+      135.61904761904762,
+      745.1428571428571
+     ],
+     "status": "observed",
+     "extrapolation_distance_rdu": 0.0,
+     "geometry_confidence": 0.5751475551792952,
+     "material_at_point": "broadleaf_weed",
+     "distance_to_nearest_keep_plant_rdu": 0.030871,
+     "nearest_keep_plant_instance": 108,
+     "inside_keepout": false,
+     "point_projects_off_frame": false
+    },
+    "alternate_points": [],
+    "rejected_points_inside_keepout": [
+     {
+      "contact_id": "104.366",
+      "split_component": 366,
+      "point_xyz_rdu": [
+       -0.24015356598870488,
+       0.3759248394579448,
+       1.076396418263831
+      ],
+      "point_gt_grid_xy": [
+       130.28571428571428,
+       914.2857142857143
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.9818184997494724,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 111,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.358",
+      "split_component": 358,
+      "point_xyz_rdu": [
+       -0.22211244814417078,
+       0.29335900720150393,
+       1.1234110596909896
+      ],
+      "point_gt_grid_xy": [
+       159.23809523809524,
+       812.952380952381
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.9293413649616963,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 108,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.354",
+      "split_component": 354,
+      "point_xyz_rdu": [
+       -0.24021990686897252,
+       0.28707211767803964,
+       1.1308954446882375
+      ],
+      "point_gt_grid_xy": [
+       142.47619047619048,
+       804.5714285714286
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.8944902103502701,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 108,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.362",
+      "split_component": 362,
+      "point_xyz_rdu": [
+       -0.22138819903494428,
+       0.36274077099509605,
+       1.0796048635131121
+      ],
+      "point_gt_grid_xy": [
+       150.85714285714286,
+       899.047619047619
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.8737971912362869,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 111,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.351",
+      "split_component": 351,
+      "point_xyz_rdu": [
+       -0.1991678735694754,
+       0.26328181875802337,
+       1.1381703166436181
+      ],
+      "point_gt_grid_xy": [
+       185.14285714285714,
+       778.6666666666666
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.8340858175019936,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 1,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.350",
+      "split_component": 350,
+      "point_xyz_rdu": [
+       -0.34481044374460385,
+       0.3753388067850773,
+       1.1418657519633864
+      ],
+      "point_gt_grid_xy": [
+       40.38095238095238,
+       890.6666666666666
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.7701511919252197,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.006405,
+      "nearest_keep_plant_instance": 1,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.348",
+      "split_component": 348,
+      "point_xyz_rdu": [
+       -0.2972108548715968,
+       0.28865506919229006,
+       1.173895356326538
+      ],
+      "point_gt_grid_xy": [
+       96.0,
+       795.4285714285714
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.7196368029397444,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.003201,
+      "nearest_keep_plant_instance": 69,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.363",
+      "split_component": 363,
+      "point_xyz_rdu": [
+       -0.2544579912414059,
+       0.36480243569034987,
+       1.10093618688393
+      ],
+      "point_gt_grid_xy": [
+       121.14285714285714,
+       893.7142857142857
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.7106660337774655,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 1,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     },
+     {
+      "contact_id": "104.353",
+      "split_component": 353,
+      "point_xyz_rdu": [
+       -0.28227833054280316,
+       0.2948075933093003,
+       1.1705333533477906
+      ],
+      "point_gt_grid_xy": [
+       109.71428571428571,
+       802.2857142857143
+      ],
+      "status": "observed",
+      "extrapolation_distance_rdu": 0.0,
+      "geometry_confidence": 0.4834211712254569,
+      "material_at_point": "broadleaf_weed",
+      "distance_to_nearest_keep_plant_rdu": 0.0,
+      "nearest_keep_plant_instance": 1,
+      "inside_keepout": true,
+      "point_projects_off_frame": false
+     }
+    ],
+    "keep_out_clearance_rdu": 0.01,
+    "scale_confidence": "scale_free",
+    "datum": "straw mulch surface, not soil",
+    "product_target": "lowest visible stem / datum contact \u2014 NOT the stem-soil intersection, which is unobservable in this image. See chunks/A5/FINDINGS.md.",
+    "order": 1
+   }
+  ],
+  "audit_vs_A0": {
+   "n_targets": 1,
+   "n_targets_touching_gt_crop": 0,
+   "no_gt_crop_point_admitted": true,
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_px_total": 421926,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_px_reached": 12500,
+   "gt_weed_px_total": 17530,
+   "gt_weed_fraction_reached": 0.713063,
+   "per_target": [
+    {
+     "instance_id": 104,
+     "gt_crop_px_in_instance": 0,
+     "gt_weed_px_in_instance": 12500,
+     "gt_crop_fraction": 0.0,
+     "crop_majority": false,
+     "gt_instance_at_contact_point": 0,
+     "gt_material_at_contact_point": 5,
+     "gt_instance_names": {
+      "0": 6091,
+      "2": 2594,
+      "3": 3862,
+      "4": 3369,
+      "5": 1134,
+      "6": 1541,
+      "255": 423
+     }
+    }
+   ],
+   "note": "'crop px under the tool' counts every ground-truth crop pixel inside an admitted instance, which is A7's own threshold-free metric. It is an upper bound on the damage: a target is one point, not the whole instance."
+  },
+  "gt_weed_rollcall": [
+   {
+    "gt_instance": 2,
+    "name": "weed_purslane",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": true,
+    "reasons": [],
+    "detail": {}
+   },
+   {
+    "gt_instance": 3,
+    "name": "weed_clover_patch_lower_left",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": true,
+    "reasons": [],
+    "detail": {}
+   },
+   {
+    "gt_instance": 4,
+    "name": "weed_mallow",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 0,
+    "admitted": true,
+    "reasons": [],
+    "detail": {}
+   },
+   {
+    "gt_instance": 5,
+    "name": "weed_small_right_of_mallow",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": true,
+    "reasons": [],
+    "detail": {}
+   },
+   {
+    "gt_instance": 6,
+    "name": "weed_clover_by_fruit",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 104,
+    "merge_instance_at_gt_contact_point": 104,
+    "admitted": true,
+    "reasons": [],
+    "detail": {}
+   },
+   {
+    "gt_instance": 7,
+    "name": "weed_seedling_left",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 178,
+    "merge_instance_at_gt_contact_point": 178,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "inside_keepout"
+    ],
+    "detail": {
+     "label": "unsure",
+     "nearest_keep_plant_instance": 1,
+     "distance_to_nearest_keep_plant_rdu": 0.0,
+     "clearance_rdu": 0.01,
+     "voxel_bracket_rdu": 0.003031088913245535
+    }
+   },
+   {
+    "gt_instance": 8,
+    "name": "weed_seedling_mid",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   },
+   {
+    "gt_instance": 9,
+    "name": "weed_ovate_upper",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   },
+   {
+    "gt_instance": 10,
+    "name": "weed_ovate_lower",
+    "gt_contact_status": "under_straw",
+    "gt_localisation": "estimated",
+    "merge_instance_by_overlap": 1,
+    "merge_instance_at_gt_contact_point": 1,
+    "admitted": false,
+    "reasons": [
+     "label_not_remove",
+     "mixed_component"
+    ],
+    "detail": {
+     "label": "keep"
+    }
+   }
+  ]
+ },
+ "sweep_confidence_floor": [
+  {
+   "floor": 0.0,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.5,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.55,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.58,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.6,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.62,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.65,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.7,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "floor": 0.9,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_crop_fraction_under_the_tool": 0.0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  }
+ ],
+ "sweep_clearance": [
+  {
+   "clearance_rdu": 0.0,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.0,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.001,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.001,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.002,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.002,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.005,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.005,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.01,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.01,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.02,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.02,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.05,
+   "floor": "registered",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "clearance_rdu": 0.05,
+   "floor": "floor_000_diagnostic",
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  }
+ ],
+ "sweep_keep_plant_policy": [
+  {
+   "policy": "r2_default_keep",
+   "floor": "registered",
+   "n_keep_plants": 204,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "policy": "r2_default_keep",
+   "floor": "floor_000_diagnostic",
+   "n_keep_plants": 204,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "policy": "labelled_keep_only",
+   "floor": "registered",
+   "n_keep_plants": 35,
+   "n_targets": 0,
+   "target_ids": [],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.0,
+   "no_gt_crop_point_admitted": true
+  },
+  {
+   "policy": "labelled_keep_only",
+   "floor": "floor_000_diagnostic",
+   "n_keep_plants": 35,
+   "n_targets": 1,
+   "target_ids": [
+    104
+   ],
+   "gt_crop_px_under_the_tool": 0,
+   "gt_weed_fraction_reached": 0.713063,
+   "no_gt_crop_point_admitted": true
+  }
+ ],
+ "ablation_one_look": {
+  "n_label_records": 207,
+  "n_targets": 0,
+  "rejections_insufficient_repeats": 207,
+  "note": "Repeat 1 only. Every instance is refused for `insufficient_repeats`: R4 is structural, so one look cannot open the gate no matter what it says."
+ },
+ "metric_tool_profile": {
+  "n_targets": 0,
+  "refusal": {
+   "reason": "metric_tool_profile_refused",
+   "detail": "clearance_units='mm'. Phase A is scale-free: every length is in rdu and there is no absolute scale for this image. Converting would require a scale factor that does not exist, so the call is refused (roadmap A1b: 'absolute scale is unresolved and stays that way')."
+  }
+ },
+ "seconds": 0.5
+}

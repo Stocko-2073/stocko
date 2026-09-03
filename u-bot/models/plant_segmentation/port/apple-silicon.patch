@@ -1,0 +1,632 @@
+diff --git a/GroundingDINO/groundingdino/util/inference.py b/GroundingDINO/groundingdino/util/inference.py
+index 58528ed..8430b87 100644
+--- a/GroundingDINO/groundingdino/util/inference.py
++++ b/GroundingDINO/groundingdino/util/inference.py
+@@ -9,6 +9,7 @@ from torchvision.ops import box_convert
+ import bisect
+ 
+ import groundingdino.datasets.transforms as T
++from zps_device import DEVICE as _DEV
+ from groundingdino.models import build_model
+ from groundingdino.util.misc import clean_state_dict
+ from groundingdino.util.slconfig import SLConfig
+@@ -26,7 +27,8 @@ def preprocess_caption(caption: str) -> str:
+     return result + "."
+ 
+ 
+-def load_model(model_config_path: str, model_checkpoint_path: str, device: str = "cuda"):
++def load_model(model_config_path: str, model_checkpoint_path: str, device: str = None):
++    device = str(_DEV) if device is None else device
+     args = SLConfig.fromfile(model_config_path)
+     args.device = device
+     model = build_model(args)
+@@ -56,10 +58,11 @@ def predict(
+         caption: str,
+         box_threshold: float,
+         text_threshold: float,
+-        device: str = "cuda",
++        device: str = None,
+         remove_combined: bool = False
+ ) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
+     caption = preprocess_caption(caption=caption)
++    device = str(_DEV) if device is None else device
+ 
+     model = model.to(device)
+     image = image.to(device)
+diff --git a/OVSeg/open_vocab_seg/data/build.py b/OVSeg/open_vocab_seg/data/build.py
+index bcd3b9d..39b7f03 100644
+--- a/OVSeg/open_vocab_seg/data/build.py
++++ b/OVSeg/open_vocab_seg/data/build.py
+@@ -50,9 +50,9 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
+     """
+     num_classes = len(class_names)
+     hist_bins = np.arange(num_classes + 1)
+-    histogram = np.zeros((num_classes,), dtype=np.int)
++    histogram = np.zeros((num_classes,), dtype=int)
+     for entry in dataset_dicts:
+-        classes = np.asarray([entry["category_id"]], dtype=np.int)
++        classes = np.asarray([entry["category_id"]], dtype=int)
+         if len(classes):
+             assert classes.min() >= 0, f"Got an invalid category_id={classes.min()}"
+             assert (
+diff --git a/OVSeg/open_vocab_seg/evaluation/generalized_sem_seg_evaluation.py b/OVSeg/open_vocab_seg/evaluation/generalized_sem_seg_evaluation.py
+index ce960ae..fb3c479 100644
+--- a/OVSeg/open_vocab_seg/evaluation/generalized_sem_seg_evaluation.py
++++ b/OVSeg/open_vocab_seg/evaluation/generalized_sem_seg_evaluation.py
+@@ -64,11 +64,11 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
+                 output["sem_seg"], image=np.array(Image.open(input["file_name"]))
+             )
+             output = output.argmax(dim=0).to(self._cpu_device)
+-            pred = np.array(output, dtype=np.int)
++            pred = np.array(output, dtype=int)
+             with PathManager.open(
+                 self.input_file_to_gt_file[input["file_name"]], "rb"
+             ) as f:
+-                gt = np.array(Image.open(f), dtype=np.int)
++                gt = np.array(Image.open(f), dtype=int)
+ 
+             gt[gt == self._ignore_label] = self._num_classes
+ 
+@@ -106,12 +106,12 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
+             with PathManager.open(file_path, "w") as f:
+                 f.write(json.dumps(self._predictions))
+ 
+-        acc = np.full(self._num_classes, np.nan, dtype=np.float)
+-        iou = np.full(self._num_classes, np.nan, dtype=np.float)
+-        tp = self._conf_matrix.diagonal()[:-1].astype(np.float)
+-        pos_gt = np.sum(self._conf_matrix[:-1, :-1], axis=0).astype(np.float)
++        acc = np.full(self._num_classes, np.nan, dtype=float)
++        iou = np.full(self._num_classes, np.nan, dtype=float)
++        tp = self._conf_matrix.diagonal()[:-1].astype(float)
++        pos_gt = np.sum(self._conf_matrix[:-1, :-1], axis=0).astype(float)
+         class_weights = pos_gt / np.sum(pos_gt)
+-        pos_pred = np.sum(self._conf_matrix[:-1, :-1], axis=1).astype(np.float)
++        pos_pred = np.sum(self._conf_matrix[:-1, :-1], axis=1).astype(float)
+         acc_valid = pos_gt > 0
+         acc[acc_valid] = tp[acc_valid] / pos_gt[acc_valid]
+         iou_valid = (pos_gt + pos_pred) > 0
+@@ -134,8 +134,8 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
+         if self._evaluation_set is not None:
+             for set_name, set_inds in self._evaluation_set.items():
+                 iou_list = []
+-                set_inds = np.array(set_inds, np.int)
+-                mask = np.zeros((len(iou),)).astype(np.bool)
++                set_inds = np.array(set_inds, int)
++                mask = np.zeros((len(iou),)).astype(bool)
+                 mask[set_inds] = 1
+                 miou = np.sum(iou[mask][acc_valid[mask]]) / np.sum(iou_valid[mask])
+                 pacc = np.sum(tp[mask]) / np.sum(pos_gt[mask])
+diff --git a/OVSeg/open_vocab_seg/utils/predictor.py b/OVSeg/open_vocab_seg/utils/predictor.py
+index 9bf580c..e1601ed 100644
+--- a/OVSeg/open_vocab_seg/utils/predictor.py
++++ b/OVSeg/open_vocab_seg/utils/predictor.py
+@@ -13,6 +13,7 @@ from detectron2.utils.visualizer import ColorMode, Visualizer
+ from detectron2.modeling.postprocessing import sem_seg_postprocess
+ 
+ import open_clip
++from zps_device import DEVICE as _DEV, autocast as _autocast
+ from segment_anything import SamAutomaticMaskGenerator, sam_model_registry 
+ from OVSeg.open_vocab_seg.modeling.clip_adapter.adapter import PIXEL_MEAN, PIXEL_STD
+ from OVSeg.open_vocab_seg.modeling.clip_adapter.utils import crop_with_mask
+@@ -130,7 +131,7 @@ class VisualizationDemo(object):
+             blank_area = (r[0] == 0)
+             pred_mask = r.argmax(dim=0).to('cpu')
+             pred_mask[blank_area] = 255
+-            pred_mask = np.array(pred_mask, dtype=np.int)
++            pred_mask = np.array(pred_mask, dtype=int)
+ 
+             vis_output = visualizer.draw_sem_seg(
+                 pred_mask
+@@ -152,7 +153,7 @@ class SAMVisualizationDemo(object):
+ 
+         self.parallel = parallel
+         self.granularity = granularity
+-        sam = sam_model_registry["vit_h"](checkpoint=sam_path).cuda()
++        sam = sam_model_registry["vit_h"](checkpoint=sam_path).to(_DEV)
+         self.predictor = SamAutomaticMaskGenerator(
+             model=sam,
+             points_per_side=32, # The number of points to be sampled along one side of the image. (The total number of points is pps**2)
+@@ -164,12 +165,12 @@ class SAMVisualizationDemo(object):
+             min_mask_region_area=100, # If > 0, disconnected regions and holes in masks with area smaller than MMRA is removed.
+         )
+         self.clip_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained=ovsegclip_path)
+-        self.clip_model.cuda()
++        self.clip_model.to(_DEV)
+ 
+     def run_on_image(self, image, class_names: list):
+         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+         visualizer = OVSegVisualizer(image, self.metadata, instance_mode=self.instance_mode, class_names=class_names)
+-        with torch.no_grad(), torch.cuda.amp.autocast():
++        with torch.no_grad(), _autocast():
+             masks = self.predictor.generate(image)
+         pred_masks = [masks[i]['segmentation'][None,:,:] for i in range(len(masks))]
+         pred_masks = np.row_stack(pred_masks)
+@@ -202,12 +203,12 @@ class SAMVisualizationDemo(object):
+ 
+         img_batches = torch.split(imgs, 32, dim=0)
+ 
+-        with torch.no_grad(), torch.cuda.amp.autocast():
+-            text_features = self.clip_model.encode_text(text.cuda())
++        with torch.no_grad(), _autocast():
++            text_features = self.clip_model.encode_text(text.to(_DEV))
+             text_features /= text_features.norm(dim=-1, keepdim=True)
+             image_features = []
+             for img_batch in img_batches:
+-                image_feat = self.clip_model.encode_image(img_batch.cuda().half())
++                image_feat = self.clip_model.encode_image(img_batch.to(_DEV).float())
+                 image_feat /= image_feat.norm(dim=-1, keepdim=True)
+                 image_features.append(image_feat.detach())
+             image_features = torch.cat(image_features, dim=0)
+@@ -237,14 +238,14 @@ class SAMVisualizationDemo(object):
+             #insseg.append(masks[idx])
+             _, selected_class_idx = torch.max(class_preds[idx], dim=0)
+             inssegs[selected_class_idx].append(masks[idx])
+-        semseg = torch.einsum("qc,qhw->chw", select_cls.float(), pred_masks.tensor.float().cuda())
++        semseg = torch.einsum("qc,qhw->chw", select_cls.float(), pred_masks.tensor.float().to(_DEV))
+ 
+         r = semseg # (N, H, W), where N is the number of input text prompts
+         
+         blank_area = (r[0] == 0)
+         pred_mask = r.argmax(dim=0).to('cpu')
+         pred_mask[blank_area] = 255
+-        pred_mask = np.array(pred_mask, dtype=np.int) # (H, W)
++        pred_mask = np.array(pred_mask, dtype=int) # (H, W)
+ 
+         vis_output = visualizer.draw_sem_seg(
+             pred_mask
+diff --git a/attention_map/get_leaf_root.py b/attention_map/get_leaf_root.py
+index 1af1139..8ce4e2c 100644
+--- a/attention_map/get_leaf_root.py
++++ b/attention_map/get_leaf_root.py
+@@ -6,6 +6,7 @@ from typing import List
+ 
+ import numpy as np
+ import cv2
++from tqdm import tqdm
+ from groundingdino.util.inference import predict
+ 
+ from attention_map.edit_mask import crop_with_mask, resize2square, mask2bbox
+@@ -146,14 +147,28 @@ def get_leaf_root_wls(bgr_img_path, leaf_masks_dir, eps, grounding_dino_model):
+     # calculation
+     leaf_root_crds = []
+     leaf_tip_crds = []
+-    for mask_id, mask in zip(mask_ids, masks):
++    kept_mask_ids = []
++    for mask_id, mask in zip(tqdm(mask_ids, desc="leaf keypoints"), masks):
+         orgn_pos = mask2bbox(mask)
+         metadata = AttentionMapMetaData(orgn_pos, length=512, id=mask_id)
+         
+-        leaf_root_crd, leaf_tip_crd = calc_leaf_keypoints(bgr_img, mask, metadata, grounding_dino_model)
++        result = calc_leaf_keypoints(bgr_img, mask, metadata, grounding_dino_model)
++        
++        # calc_leaf_keypoints has three possible returns; normalise them here so
++        # that a failed stem fit does not desynchronise crds from mask_ids.
++        if result is None:
++            # WLS could not fit a stem line for this mask -> drop it
++            continue
++        if np.ndim(result[0]) == 0:
++            # a single ref_point (x, y) was returned as the leaf root
++            leaf_root_crd = leaf_tip_crd = tuple(result)
++        else:
++            leaf_root_crd, leaf_tip_crd = result
+         
+         leaf_root_crds.append(leaf_root_crd)
+         leaf_tip_crds.append(leaf_tip_crd)
++        kept_mask_ids.append(mask_id)
++    mask_ids = kept_mask_ids
+     
+     # post processing
+     all_points = leaf_root_crds + leaf_tip_crds
+diff --git a/configs/squash.yaml b/configs/squash.yaml
+new file mode 100644
+index 0000000..2f52c95
+--- /dev/null
++++ b/configs/squash.yaml
+@@ -0,0 +1,20 @@
++leaf_mask_collection:
++  class_names: "green leaf,soil,grass"
++  trg_class_names: "green leaf"
++  granularity: 0.8
++  min_mask_area: 0
++  dsize: (1024, 1024)
++  use_sliding_window: False
++
++leaf_segmentation:
++  output_img_size: (1024, 768) # (H, W)
++  min_area_th: 300
++  max_area_th: 235929 # 30% of 1024*768
++  th_ratio: 0.7
++
++plant_segmentation:
++  eps_minsamples_dict:
++    "plants": (100, 2)
++  min_area_th: 300
++  num_steps: 15
++  output_img_size: (1024, 768)
+diff --git a/configs/squash2.yaml b/configs/squash2.yaml
+new file mode 100644
+index 0000000..ed5673a
+--- /dev/null
++++ b/configs/squash2.yaml
+@@ -0,0 +1,20 @@
++leaf_mask_collection:
++  class_names: "broad flat leaf,grass blade,soil,dry straw"
++  trg_class_names: "broad flat leaf"
++  granularity: 0.8
++  min_mask_area: 0
++  dsize: (1024, 1024)
++  use_sliding_window: False
++
++leaf_segmentation:
++  output_img_size: (1024, 768) # (H, W)
++  min_area_th: 300
++  max_area_th: 235929 # 30% of 1024*768
++  th_ratio: 0.7
++
++plant_segmentation:
++  eps_minsamples_dict:
++    "plants": (100, 2)
++  min_area_th: 300
++  num_steps: 15
++  output_img_size: (1024, 768)
+diff --git a/leaf_mask_collection.py b/leaf_mask_collection.py
+index 7b21506..4969dea 100644
+--- a/leaf_mask_collection.py
++++ b/leaf_mask_collection.py
+@@ -97,7 +97,7 @@ def inference(img_paths: list, output_dir: str, config_path: str):
+ 
+ def setup_args():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20'})
++    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20', 'squash', 'squash2'})
+     parser.add_argument('--dataset_dir',type=str)
+     parser.add_argument("--mode", type=str, help="dataset type", )
+     parser.add_argument("--strip",type=str,default="*.png")
+diff --git a/leaf_segmentation.py b/leaf_segmentation.py
+index f32593e..d41f365 100644
+--- a/leaf_segmentation.py
++++ b/leaf_segmentation.py
+@@ -87,7 +87,7 @@ def make_leaf_seg(masks_dirs: list, output_dir: str, config, VALIDATION_MODE=Fal
+ 
+ def setup_args():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20'})
++    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20', 'squash', 'squash2'})
+ 
+     parser.add_argument("--mode", type=str, help="dataset type", )
+     parser.add_argument("--strip",type=str,default="*.png")
+diff --git a/plant_segmentation.py b/plant_segmentation.py
+index c35525e..edb4a33 100644
+--- a/plant_segmentation.py
++++ b/plant_segmentation.py
+@@ -82,8 +82,8 @@ def majority_voting_masks_plants(leaf_masks_dict, clustering, mask_ids,
+                 voting_list[y][x].append(outlier_color)
+         else:
+             mask_ys, mask_xs = np.where(mask > 0)
+-            print(mask_ys)
+-            print(len(voting_list))
++            # print(mask_ys)  # leftover debug
++            # print(len(voting_list))  # leftover debug
+             for y, x in zip(mask_ys, mask_xs):
+                 voting_list[y][x].append(clustering_label)
+     
+@@ -172,6 +172,7 @@ def plant_segmentation(bgr_img_dir, masks_dirs: list, config_path, output_dir, s
+         # calc leaf keypoints
+         clustering_points, mask_ids = get_leaf_root_wls(bgr_img_path, masks_dir, eps, grounding_dino_model)
+         np.save(os.path.join("./",img_name),clustering_points)
++        np.save(os.path.join("./", img_name + "_mask_ids"), np.array(mask_ids))  # keep ids so clustering can be retuned offline
+         # clustering
+         if len(clustering_points) > 0:
+             clustering = greedyDBSCANclustering(clustering_points, eps=eps, min_samples=min_samples, num_steps=num_steps)
+@@ -200,7 +201,7 @@ def plant_segmentation(bgr_img_dir, masks_dirs: list, config_path, output_dir, s
+ 
+ def setup_args():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20'}, default='phenobench')
++    parser.add_argument("--dataset", type=str, help="dataset name", choices={'phenobench', 'growliflower', 'sb20', 'squash', 'squash2'}, default='phenobench')
+     parser.add_argument('--dataset_dir',type=str)
+     parser.add_argument("--mode", type=str, help="dataset type",default='test')
+     parser.add_argument("--base_path",type=str,default="./output_p")
+diff --git a/recluster.py b/recluster.py
+new file mode 100644
+index 0000000..6e2f5c7
+--- /dev/null
++++ b/recluster.py
+@@ -0,0 +1,52 @@
++"""Re-run only the DBSCAN stage of plant_segmentation.py from cached leaf keypoints.
++
++plant_segmentation.py saves the GroundingDINO-derived leaf-root keypoints to
++<img>.npy (and, with our patch, the matching ids to <img>_mask_ids.npy), so the
++expensive attention step does not have to be repeated to try a different eps.
++"""
++import argparse, os
++import numpy as np
++import cv2
++
++from utils.fileio import str_to_tuple
++from plant_segmentation import (greedyDBSCANclustering, majority_voting_masks_plants,
++                                post_process_outliers, load_binary_masks_as_dict)
++
++def run(points, mask_ids, masks_dir, eps, min_samples, num_steps, out_size, min_area_th):
++    clustering = greedyDBSCANclustering(points, eps=eps, min_samples=min_samples,
++                                        num_steps=num_steps) + 1
++    leaf_mask_dict = load_binary_masks_as_dict(masks_dir)
++    seg = majority_voting_masks_plants(leaf_mask_dict, clustering, mask_ids,
++                                       outlier_label=0, output_img_size=out_size,
++                                       min_area_th=min_area_th)
++    proc = post_process_outliers(seg, points, clustering, 0, GENERATE_NEW_CLUSTER=True)
++    seg_pp = majority_voting_masks_plants(leaf_mask_dict, proc, mask_ids,
++                                          outlier_label=0, output_img_size=out_size,
++                                          min_area_th=min_area_th)
++    return seg_pp, clustering
++
++if __name__ == "__main__":
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--points", default="plants.npy")
++    ap.add_argument("--mask_ids", default="plants_mask_ids.npy")
++    ap.add_argument("--masks_dir", default="output_p/leaf_mask/squash/test/plants")
++    ap.add_argument("--eps", type=float, nargs="+", default=[60])
++    ap.add_argument("--min_samples", type=int, default=2)
++    ap.add_argument("--num_steps", type=int, default=15)
++    ap.add_argument("--size", default="(1024, 768)")
++    ap.add_argument("--min_area_th", type=int, default=300)
++    ap.add_argument("--out", default="output_p/plant_instance/squash/test")
++    a = ap.parse_args()
++
++    pts = np.load(a.points); ids = np.load(a.mask_ids).tolist()
++    size = str_to_tuple(a.size)
++    os.makedirs(a.out, exist_ok=True)
++    print("keypoints:", pts.shape, "ids:", len(ids))
++    for eps in a.eps:
++        seg, clustering = run(pts, ids, a.masks_dir, eps, a.min_samples,
++                              a.num_steps, size, a.min_area_th)
++        n = len([i for i in np.unique(seg) if i not in (0, 9999)])
++        path = os.path.join(a.out, "plants_eps%g.png" % eps)
++        cv2.imwrite(path, seg)
++        sizes = sorted(((seg == i).sum() for i in np.unique(seg) if i not in (0, 9999)), reverse=True)
++        print("eps=%-5g -> %2d plant instances; largest %s px" % (eps, n, sizes[:4]))
+diff --git a/viz_compare.py b/viz_compare.py
+new file mode 100644
+index 0000000..26686b8
+--- /dev/null
++++ b/viz_compare.py
+@@ -0,0 +1,45 @@
++"""Render plant-instance label maps with a maximally-distinct palette."""
++import sys, os, colorsys
++import numpy as np, cv2
++
++def palette(n):
++    cols = []
++    for i in range(n):
++        h = (i * 0.61803398875) % 1.0                 # golden-ratio hue spacing
++        s = 0.75 + 0.25 * ((i % 3) / 2)
++        v = 0.65 + 0.35 * ((i % 2))
++        r, g, b = colorsys.hsv_to_rgb(h, s, v)
++        cols.append((int(b * 255), int(g * 255), int(r * 255)))  # BGR
++    return cols
++
++def render(img, lab, alpha=0.6, skip=(0, 9999), label_ids=True):
++    ids = [i for i in np.unique(lab) if i not in skip]
++    ids = sorted(ids, key=lambda i: -(lab == i).sum())
++    cols = palette(len(ids))
++    out = img.copy()
++    for c, i in zip(cols, ids):
++        m = lab == i
++        out[m] = (alpha * np.array(c) + (1 - alpha) * img[m]).astype(np.uint8)
++        cnts, _ = cv2.findContours(m.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
++        cv2.drawContours(out, cnts, -1, (255, 255, 255), 2)
++        if label_ids and m.sum() > 4000:
++            ys, xs = np.where(m)
++            cx, cy = int(xs.mean()), int(ys.mean())
++            txt = "%d" % i
++            cv2.putText(out, txt, (cx - 12, cy), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 0, 0), 5)
++            cv2.putText(out, txt, (cx - 12, cy), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 255), 2)
++    return out, ids
++
++if __name__ == "__main__":
++    img = cv2.imread("data/squash/test/images/plants.png")
++    os.makedirs("viz", exist_ok=True)
++    for path, name in [(p, os.path.splitext(os.path.basename(p))[0]) for p in sys.argv[1:]]:
++        lab = cv2.imread(path, cv2.IMREAD_UNCHANGED)
++        out, ids = render(img, lab)
++        dst = os.path.join("viz", "render_%s.png" % name)
++        cv2.imwrite(dst, out)
++        tot = lab.size
++        print("%s -> %d instances" % (name, len(ids)))
++        for i in ids[:6]:
++            print("    id %-4d %7d px  %5.1f%%" % (i, (lab == i).sum(), 100 * (lab == i).sum() / tot))
++        print("    wrote", dst)
+diff --git a/viz_final.py b/viz_final.py
+new file mode 100644
+index 0000000..4118c7f
+--- /dev/null
++++ b/viz_final.py
+@@ -0,0 +1,79 @@
++"""Final figures: leaf stage, plant-instance stage, and a squash-vs-rest reading."""
++import os, colorsys
++import numpy as np, cv2
++
++IMG   = "data/squash/test/images/plants.png"
++LEAF  = "output_p/leaf_instance/squash/test/plants.png"
++PLANT = "output_p/plant_instance/squash/test/plants.png"
++OUT   = "viz"
++
++def palette(n):
++    out = []
++    for i in range(n):
++        h = (i * 0.61803398875) % 1.0
++        r, g, b = colorsys.hsv_to_rgb(h, 0.8, 0.95)
++        out.append((int(b*255), int(g*255), int(r*255)))
++    return out
++
++def blend(img, mask, color, alpha=0.6, outline=True, thick=2):
++    out = img.copy()
++    out[mask] = (alpha*np.array(color) + (1-alpha)*img[mask]).astype(np.uint8)
++    if outline:
++        cnts,_ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
++        cv2.drawContours(out, cnts, -1, (255,255,255), thick)
++    return out
++
++def title(img, text):
++    out = img.copy()
++    cv2.rectangle(out, (0,0), (out.shape[1], 34), (20,20,20), -1)
++    cv2.putText(out, text, (10,24), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (255,255,255), 2)
++    return out
++
++img  = cv2.imread(IMG)
++leaf = cv2.imread(LEAF,  cv2.IMREAD_UNCHANGED)
++pl   = cv2.imread(PLANT, cv2.IMREAD_UNCHANGED)
++os.makedirs(OUT, exist_ok=True)
++
++# --- leaf instances ---
++lids = [i for i in np.unique(leaf) if i != 0]
++cols = palette(len(lids)); vis_leaf = img.copy()
++for c,i in zip(cols, lids):
++    vis_leaf = blend(vis_leaf, leaf==i, c, alpha=0.55, thick=1)
++
++# --- plant instances ---
++pids = sorted([i for i in np.unique(pl) if i not in (0,9999)], key=lambda i:-(pl==i).sum())
++cols = palette(len(pids)); vis_pl = img.copy()
++for c,i in zip(cols, pids):
++    vis_pl = blend(vis_pl, pl==i, c, alpha=0.6)
++for i in pids:
++    m = pl==i
++    if m.sum() > 4000:
++        ys,xs = np.where(m); cx,cy = int(xs.mean()), int(ys.mean())
++        for col,th in [((0,0,0),5),((255,255,255),2)]:
++            cv2.putText(vis_pl, str(i), (cx-12,cy), cv2.FONT_HERSHEY_SIMPLEX, 1.1, col, th)
++
++print("plant instances:", len(pids))
++tot = pl.size
++for i in pids:
++    print("   id %-4d %7d px  %5.1f%%" % (i, (pl==i).sum(), 100*(pl==i).sum()/tot))
++
++# --- squash vs rest: the three biggest instances are the squash's own fragments ---
++squash_ids = pids[:3]
++rest_ids   = pids[3:]
++sq   = np.isin(pl, squash_ids)
++rest = np.isin(pl, rest_ids)
++vis_sr = blend(img, sq,   (60,200,60), alpha=0.55)          # green  = squash
++vis_sr = blend(vis_sr, rest, (40,40,235), alpha=0.55)        # red    = other plants
++print("\nsquash fragments %s -> %.1f%% of frame" % (squash_ids, 100*sq.sum()/tot))
++print("other plants     %s -> %.1f%% of frame" % (rest_ids, 100*rest.sum()/tot))
++
++cv2.imwrite(f"{OUT}/final_leaf_instances.png", vis_leaf)
++cv2.imwrite(f"{OUT}/final_plant_instances.png", vis_pl)
++cv2.imwrite(f"{OUT}/final_squash_vs_rest.png", vis_sr)
++
++sheet = np.hstack([title(img,"1. input photo"),
++                   title(vis_leaf, "2. leaf instances (%d)" % len(lids)),
++                   title(vis_pl,   "3. plant instances (%d)" % len(pids)),
++                   title(vis_sr,   "4. squash (green) vs other plants (red)")])
++cv2.imwrite(f"{OUT}/final_contact_sheet.png", sheet)
++print("\nwrote", f"{OUT}/final_contact_sheet.png", sheet.shape)
+diff --git a/viz_results.py b/viz_results.py
+new file mode 100644
+index 0000000..31cc3b3
+--- /dev/null
++++ b/viz_results.py
+@@ -0,0 +1,77 @@
++"""Overlay ZeroPlantSeg outputs on the source image."""
++import os, sys, glob, argparse
++import cv2
++import numpy as np
++
++def colorize(label_img, alpha=0.55, bgr_img=None, skip=()):
++    """Colour each integer instance id and alpha-blend over the photo."""
++    rng = np.random.default_rng(0)
++    ids = [i for i in np.unique(label_img) if i != 0 and i not in skip]
++    overlay = np.zeros((*label_img.shape, 3), np.uint8)
++    for i in ids:
++        overlay[label_img == i] = rng.integers(60, 255, 3)
++    out = bgr_img.copy()
++    m = np.isin(label_img, ids)
++    out[m] = (alpha * overlay[m] + (1 - alpha) * bgr_img[m]).astype(np.uint8)
++    # outline each instance
++    for i in ids:
++        cnts, _ = cv2.findContours((label_img == i).astype(np.uint8),
++                                   cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
++        cv2.drawContours(out, cnts, -1, (255, 255, 255), 1)
++    return out, ids
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--image", required=True)
++    ap.add_argument("--leaf", help="leaf_instance png")
++    ap.add_argument("--plant", help="plant_instance png")
++    ap.add_argument("--masks_dir", help="raw leaf_mask dir")
++    ap.add_argument("--out", default="viz")
++    a = ap.parse_args()
++
++    img = cv2.imread(a.image)
++    os.makedirs(a.out, exist_ok=True)
++    panels = [("original", img)]
++
++    if a.masks_dir and os.path.isdir(a.masks_dir):
++        rng = np.random.default_rng(1)
++        drawn = img.copy()
++        paths = sorted(glob.glob(os.path.join(a.masks_dir, "*.png")))
++        masks = [cv2.imread(p, -1) for p in paths]
++        masks = sorted(masks, key=lambda m: np.count_nonzero(m), reverse=True)
++        for m in masks:
++            drawn[m > 0] = (0.5 * rng.integers(60, 255, 3) + 0.5 * drawn[m > 0]).astype(np.uint8)
++        cv2.imwrite(os.path.join(a.out, "leaf_mask_candidates.png"), drawn)
++        panels.append(("leaf mask candidates (%d)" % len(masks), drawn))
++
++    if a.leaf and os.path.exists(a.leaf):
++        lab = cv2.imread(a.leaf, cv2.IMREAD_UNCHANGED)
++        vis, ids = colorize(lab, bgr_img=img)
++        cv2.imwrite(os.path.join(a.out, "leaf_instances.png"), vis)
++        panels.append(("leaf instances (%d)" % len(ids), vis))
++        print("leaf instances:", len(ids))
++
++    if a.plant and os.path.exists(a.plant):
++        lab = cv2.imread(a.plant, cv2.IMREAD_UNCHANGED)
++        # 9999 is the "outlier" colour written by majority_voting_masks_plants
++        vis, ids = colorize(lab, bgr_img=img, skip=(9999,))
++        cv2.imwrite(os.path.join(a.out, "plant_instances.png"), vis)
++        panels.append(("plant instances (%d)" % len(ids), vis))
++        sizes = {int(i): int((lab == i).sum()) for i in ids}
++        print("plant instances:", len(ids))
++        for k, v in sorted(sizes.items(), key=lambda kv: -kv[1]):
++            print("   id %-5d %8d px  (%.1f%% of frame)" % (k, v, 100 * v / lab.size))
++
++    # side-by-side contact sheet
++    h = img.shape[0]
++    sheet = []
++    for title, p in panels:
++        p = p.copy()
++        cv2.rectangle(p, (0, 0), (p.shape[1], 26), (0, 0, 0), -1)
++        cv2.putText(p, title, (6, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
++        sheet.append(p)
++    cv2.imwrite(os.path.join(a.out, "contact_sheet.png"), np.hstack(sheet))
++    print("wrote", os.path.join(a.out, "contact_sheet.png"))
++
++if __name__ == "__main__":
++    main()
+diff --git a/zps_device.py b/zps_device.py
+new file mode 100644
+index 0000000..6454f07
+--- /dev/null
++++ b/zps_device.py
+@@ -0,0 +1,20 @@
++"""Device helper added for Apple-Silicon / CPU execution."""
++import os, contextlib, torch
++
++def get_device():
++    forced = os.environ.get("ZPS_DEVICE")
++    if forced:
++        return torch.device(forced)
++    if torch.cuda.is_available():
++        return torch.device("cuda")
++    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
++        return torch.device("mps")
++    return torch.device("cpu")
++
++DEVICE = get_device()
++
++def autocast():
++    """No-op autocast off CUDA (the original code used torch.cuda.amp.autocast)."""
++    if DEVICE.type == "cuda":
++        return torch.cuda.amp.autocast()
++    return contextlib.nullcontext()

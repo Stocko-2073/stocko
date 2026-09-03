@@ -1,0 +1,46 @@
+{
+ "a3_reference_plants": {
+  "median_confidence": 0.35843902826309204,
+  "class_fraction": {
+   "unlabelled": 0.0,
+   "squash_leaf": 0.3825,
+   "squash_petiole": 0.0827,
+   "grass": 0.2226,
+   "broadleaf_weed": 0.0439,
+   "straw": 0.2417,
+   "soil": 0.0,
+   "fruit": 0.0247,
+   "other": 0.0019
+  },
+  "confidence_correct_vs_wrong": {
+   "correct": 0.3818235695362091,
+   "wrong": 0.2928314208984375
+  }
+ },
+ "plant_material_vs_datum_band": {
+  "plants": {
+   "plant_px_fraction": 0.7452611252834467,
+   "plant_inside_3sigma_band": 0.11969763599843113,
+   "plant_confidently_above_3sigma": 0.8790652943017538,
+   "plant_below_minus3sigma": 0.0012370696998149843,
+   "sigma_datum_rdu": 0.005469617460760942,
+   "above3_squash_leaf": 0.9920921481381826,
+   "above3_squash_petiole": 0.8740570560248919,
+   "above3_grass": 0.7790628055960245,
+   "above3_broadleaf_weed": 0.3962647928994083,
+   "above3_fruit": 0.9450296935151751
+  },
+  "plants2": {
+   "plant_px_fraction": 0.7312017254818595,
+   "plant_inside_3sigma_band": 0.8439123074267336,
+   "plant_confidently_above_3sigma": 0.12061716318543263,
+   "plant_below_minus3sigma": 0.0354705293878338,
+   "sigma_datum_rdu": 0.010814921925404846,
+   "above3_squash_leaf": 0.18110353010975971,
+   "above3_squash_petiole": 0.2766094495317015,
+   "above3_grass": 0.061113224655817984,
+   "above3_broadleaf_weed": 0.05821743595650129,
+   "above3_fruit": 0.06839496077479365
+  }
+ }
+}

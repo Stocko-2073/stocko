@@ -1,0 +1,147 @@
+{
+  "chunk": "A1",
+  "purpose": "raw float monocular depth for plants.jpeg",
+  "created_utc": "2026-09-01T14:56:17Z",
+  "source_image": {
+    "path": "/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/plants.jpeg",
+    "sha256": "91a45b16b737ccf1d175dc6b2821a279625a053333dae0fffcab721b5f453fdb",
+    "size_wh": [
+      3000,
+      4000
+    ],
+    "exif": "stripped \u2014 no intrinsics available (see roadmap Known gaps)"
+  },
+  "model": {
+    "family": "Depth Anything 3 (DA3)",
+    "hf_repo": "depth-anything/DA3-LARGE",
+    "hf_revision": "c54c26b16ec04d218e8d584ecf4bce082a9fcc20",
+    "preset": "da3-large",
+    "config": "{'__object__': {'path': 'depth_anything_3.model.da3', 'name': 'DepthAnything3Net', 'args': 'as_params'}, 'net': {'__object__': {'path': 'depth_anything_3.model.dinov2.dinov2', 'name': 'DinoV2', 'args': 'as_params'}, 'name': 'vitl', 'out_layers': [11, 15, 19, 23], 'alt_start': 8, 'qknorm_start': 8, 'rope_start': 8, 'cat_token': True}, 'head': {'__object__': {'path': 'depth_anything_3.model.dualdpt', 'name': 'DualDPT', 'args': 'as_params'}, 'dim_in': 2048, 'output_dim': 2, 'features': 256, 'out_channels': [256, 512, 1024, 1024]}, 'cam_enc': {'__object__': {'path': 'depth_anything_3.model.cam_enc', 'name': 'CameraEnc', 'args': 'as_params'}, 'dim_out': 1024}, 'cam_dec': {'__object__': {'path': 'depth_anything_3.model.cam_dec', 'name': 'CameraDec', 'args': 'as_params'}, 'dim_in': 2048}}",
+    "code": {
+      "repo": "https://github.com/ByteDance-Seed/depth-anything-3",
+      "commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4",
+      "import_stubs": [
+        "pycolmap",
+        "gsplat",
+        "moviepy",
+        "moviepy.editor",
+        "e3nn",
+        "xformers",
+        "xformers.ops",
+        "open3d"
+      ]
+    }
+  },
+  "output_semantics": {
+    "quantity": "depth",
+    "is_disparity": false,
+    "convention": "z-distance along the optical axis, NOT ray length",
+    "evidence": "depth_anything_3.utils.geometry.pixel_space_to_camera_space does K^-1 @ [u, v, 1] * depth, i.e. the ray is normalised to z=1 before scaling, which is the pinhole z-depth convention. Pixel centres are integer indices 0..W-1 (torch.meshgrid over arange), no +0.5 offset.",
+    "is_metric": 0,
+    "metric_scale_factor": null,
+    "units": "relative / up to unknown scale"
+  },
+  "preprocessing": {
+    "process_res": 1120,
+    "process_res_method": "upper_bound_resize",
+    "note": "longest side resized to process_res, then each side rounded to the nearest multiple of the ViT patch size 14; ImageNet normalisation",
+    "patch_size": 14,
+    "model_input_hw": [
+      1120,
+      840
+    ]
+  },
+  "camera": {
+    "predicted_by_model": true,
+    "source": "DA3 CameraDec head: fc_fov regresses (fov_h, fov_w) in radians; pose_encoding_to_extri_intri turns them into K with the principal point pinned to the image centre and zero skew",
+    "intrinsics": {
+      "K": [
+        [
+          1044.679931640625,
+          0.0,
+          420.0
+        ],
+        [
+          0.0,
+          1739.5050048828125,
+          560.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "fx_px": 1044.679931640625,
+      "fy_px": 1739.5050048828125,
+      "cx_px": 420.0,
+      "cy_px": 560.0,
+      "fov_horizontal_deg": 43.8039056026568,
+      "fov_vertical_deg": 35.68991797045298,
+      "fov_diagonal_deg": 53.3901731743503,
+      "implied_35mm_equiv_mm": 43.02223490619965,
+      "principal_point_is_image_centre": true,
+      "f_at_original_resolution_px": {
+        "fx": 3730.999755859375,
+        "fy": 6212.517874581473,
+        "orig_w": 3000,
+        "orig_h": 4000
+      }
+    },
+    "extrinsics_c2w_or_w2c": "w2c (3x4), identity-ish for a single view",
+    "extrinsics": [
+      [
+        0.9999986886978149,
+        0.000511823280248791,
+        0.001521096914075315,
+        -0.0006099602906033397
+      ],
+      [
+        -0.000513621314894408,
+        0.9999991655349731,
+        0.0011818811763077974,
+        0.0005509638576768339
+      ],
+      [
+        -0.0015204907394945621,
+        -0.0011826608097180724,
+        0.999998152256012,
+        -4.1569630411686376e-05
+      ]
+    ]
+  },
+  "runtime": {
+    "device": "mps",
+    "torch": "2.13.0",
+    "python": "3.11.11",
+    "platform": "macOS-15.7.4-arm64-arm-64bit",
+    "autocast_dtype": "float16 (torch.cuda.is_bf16_supported() is False off-CUDA)",
+    "load_seconds": 2.61,
+    "inference_seconds": 1.71
+  },
+  "depth_stats": {
+    "shape": [
+      1120,
+      840
+    ],
+    "dtype": "float32",
+    "min": 0.6036977767944336,
+    "max": 2.4421896934509277,
+    "mean": 1.1276888847351074,
+    "median": 1.149765968322754,
+    "p01": 0.6197981834411621,
+    "p99": 1.9688007831573486,
+    "n_nonfinite": 0,
+    "n_distinct_values": 894428
+  },
+  "conf_stats": {
+    "min": 1.0,
+    "max": 1.5308682918548584,
+    "median": 1.0076158046722412
+  },
+  "caveats": [
+    "No EXIF, no calibration, no fiducial. Absolute scale is unresolved.",
+    "Any intrinsics above are the MODEL's estimate, not a measurement. Using them makes the reconstruction self-consistent with the depth, not correct.",
+    "Depth is emitted at the model's internal resolution, not 3000x4000. Upsampling it does not create detail."
+  ]
+}

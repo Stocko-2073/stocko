@@ -1,0 +1,399 @@
+{
+  "preview_file": {
+    "path": "/Users/samw3/prj/Make/stocko/u-bot/models/plant_segmentation/plants_depth.webp",
+    "size_wh": [
+      1008,
+      1344
+    ],
+    "format": "WEBP",
+    "mode": "RGB",
+    "n_distinct_levels": 220,
+    "channels_identical": false,
+    "grid_matches_float_run": true,
+    "note": "1008x1344, both multiples of the ViT patch size 14 \u2014 consistent with DA3 at process_res=1344 on a 3000x4000 input, i.e. the same grid as our primary float run"
+  },
+  "preview_identification": {
+    "da3nested-giant-large_res1344 | depth": {
+      "gain": -0.006245953416538405,
+      "offset": 2.3561077243552826,
+      "r2": 0.9817420190986054,
+      "affine_residual_rms_rdu": 0.03552670794978654,
+      "spearman_rho_vs_preview": -0.9901172372138255
+    },
+    "da3mono-large_res1344 | depth": {
+      "gain": -0.006154718771465208,
+      "offset": 1.787382963533349,
+      "r2": 0.9276897176533039,
+      "affine_residual_rms_rdu": 0.12252446486111786,
+      "spearman_rho_vs_preview": -0.9562145043313311
+    },
+    "da3nested-giant-large_res1344 | disparity": {
+      "gain": 0.003626560919802462,
+      "offset": 0.214404982155622,
+      "r2": 0.9276218243365502,
+      "affine_residual_rms_rdu": 0.04225147306938919,
+      "spearman_rho_vs_preview": -0.9901172372138255
+    },
+    "da3metric-large_res1344 | depth": {
+      "gain": -0.0017669047054004847,
+      "offset": 0.5840341375426125,
+      "r2": 0.9193732932652476,
+      "affine_residual_rms_rdu": 0.10221993578741394,
+      "spearman_rho_vs_preview": -0.9480755814438853
+    },
+    "da3-large_res1344 | depth": {
+      "gain": -0.005852596576502086,
+      "offset": 2.093913959899486,
+      "r2": 0.9051681407385453,
+      "affine_residual_rms_rdu": 0.09487041009871218,
+      "spearman_rho_vs_preview": -0.9480925134930887
+    },
+    "da3-large_res1344 | disparity": {
+      "gain": 0.004790819084158112,
+      "offset": 0.18628528110668868,
+      "r2": 0.8736025290701886,
+      "affine_residual_rms_rdu": 0.09126236265469735,
+      "spearman_rho_vs_preview": -0.9480925134930887
+    },
+    "da3metric-large_res1344 | disparity": {
+      "gain": 0.02302655449740943,
+      "offset": 0.1326217545572471,
+      "r2": 0.8241739697651682,
+      "affine_residual_rms_rdu": 2.0777345182648026,
+      "spearman_rho_vs_preview": -0.9480755814438853
+    },
+    "da3mono-large_res1344 | disparity": {
+      "gain": 0.01383757477097852,
+      "offset": -0.5781198275171311,
+      "r2": 0.688631540677082,
+      "affine_residual_rms_rdu": 0.6634676898490678,
+      "spearman_rho_vs_preview": -0.9562145043313311
+    }
+  },
+  "preview_normalisation_space": "depth",
+  "cost_of_the_container": {
+    "float (as produced)": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 1238305,
+        "distinct_fraction": 0.9140455227229781,
+        "range": [
+          0.5459490844982705,
+          1.7864335621156133
+        ],
+        "min_gap": 4.2583951587182867e-08,
+        "median_gap": 5.110074190461944e-07,
+        "min_gap_over_range": 3.432848403631448e-08,
+        "effective_bits": 20.239935269816044
+      },
+      "immerkaer_sigma_rdu": 4.145862809411695e-05,
+      "noise_floor_p10_rdu": 0.0001287660902870385,
+      "noise_floor_p50_rdu": 0.0006285187563752023,
+      "noise_floor_caveat": "for a quantised container this statistic collapses toward zero: the flattest windows are staircase treads, perfectly flat by construction. Read structure_lost instead.",
+      "structure_lost": {
+        "fraction_neighbour_pairs_identical": 5.3931216274520234e-05,
+        "fraction_windows_single_level": 0.0,
+        "fraction_windows_two_or_fewer_levels": 0.0,
+        "median_levels_per_9x9_window": 81.0,
+        "n_windows": 16688
+      },
+      "soil_fit": {
+        "thr_0.006": {
+          "label": "float (as produced)@0.006",
+          "threshold_rdu": 0.006,
+          "inlier_fraction": 0.11886160714285714,
+          "n_inliers": 17892,
+          "inlier_residual_rms_rdu": 0.003307658468498376,
+          "inlier_residual_mad_rdu": 0.0027677507615838093,
+          "all_point_residual_rms_rdu": 0.2850252530358447,
+          "plane_normal": [
+            -0.23247531579291564,
+            -0.6147068032326893,
+            -0.7537179668857793
+          ],
+          "plane_offset_rdu": -0.9234876816280069,
+          "tilt_from_camera_axis_deg": 41.08652570908323
+        },
+        "thr_0.012": {
+          "label": "float (as produced)@0.012",
+          "threshold_rdu": 0.012,
+          "inlier_fraction": 0.2117546237244898,
+          "n_inliers": 31875,
+          "inlier_residual_rms_rdu": 0.006316265599473364,
+          "inlier_residual_mad_rdu": 0.004959409583277341,
+          "all_point_residual_rms_rdu": 0.29044868381981676,
+          "plane_normal": [
+            -0.22148093508731484,
+            -0.6491755768621649,
+            -0.7276793701889074
+          ],
+          "plane_offset_rdu": -0.9074352327053751,
+          "tilt_from_camera_axis_deg": 43.30780136789219
+        },
+        "thr_0.035": {
+          "label": "float (as produced)@0.035",
+          "threshold_rdu": 0.035,
+          "inlier_fraction": 0.33239663052721086,
+          "n_inliers": 50035,
+          "inlier_residual_rms_rdu": 0.013968459237769869,
+          "inlier_residual_mad_rdu": 0.008473635482205033,
+          "all_point_residual_rms_rdu": 0.29163476439799974,
+          "plane_normal": [
+            0.21528337383473778,
+            0.6526414711323009,
+            0.7264380077533101
+          ],
+          "plane_offset_rdu": 0.9076463131763953,
+          "tilt_from_camera_axis_deg": 43.411395058432085
+        }
+      },
+      "quantisation_step_rdu": 5.110074190461944e-07
+    },
+    "float -> 8 bit in depth": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 256,
+        "distinct_fraction": 0.0001889644746787604,
+        "range": [
+          0.5468453254598981,
+          1.7893662072634031
+        ],
+        "min_gap": 0.0048726309090330044,
+        "median_gap": 0.0048726309090333375,
+        "min_gap_over_range": 0.003921568627450699,
+        "effective_bits": 8.0
+      },
+      "immerkaer_sigma_rdu": 0.0,
+      "noise_floor_p10_rdu": 0.00043634664147218434,
+      "noise_floor_p50_rdu": 0.0008967822700432259,
+      "noise_floor_caveat": "for a quantised container this statistic collapses toward zero: the flattest windows are staircase treads, perfectly flat by construction. Read structure_lost instead.",
+      "structure_lost": {
+        "fraction_neighbour_pairs_identical": 0.74090076951719,
+        "fraction_windows_single_level": 0.08772770853307767,
+        "fraction_windows_two_or_fewer_levels": 0.36343480345158197,
+        "median_levels_per_9x9_window": 4.0,
+        "n_windows": 16688
+      },
+      "soil_fit": {
+        "thr_0.006": {
+          "label": "float -> 8 bit in depth@0.006",
+          "threshold_rdu": 0.006,
+          "inlier_fraction": 0.12150563350340136,
+          "n_inliers": 18290,
+          "inlier_residual_rms_rdu": 0.0033527549025727794,
+          "inlier_residual_mad_rdu": 0.0028089064603760705,
+          "all_point_residual_rms_rdu": 0.2906810258688624,
+          "plane_normal": [
+            0.21910611422138784,
+            0.6617361563997687,
+            0.7170061157508111
+          ],
+          "plane_offset_rdu": 0.8990104616603354,
+          "tilt_from_camera_axis_deg": 44.19215021440973
+        },
+        "thr_0.012": {
+          "label": "float -> 8 bit in depth@0.012",
+          "threshold_rdu": 0.012,
+          "inlier_fraction": 0.20624734268707484,
+          "n_inliers": 31046,
+          "inlier_residual_rms_rdu": 0.006266088975260512,
+          "inlier_residual_mad_rdu": 0.00497489366201781,
+          "all_point_residual_rms_rdu": 0.2932898644243256,
+          "plane_normal": [
+            0.2119259842966588,
+            0.639609695588701,
+            0.7389092058492855
+          ],
+          "plane_offset_rdu": 0.9217484424292258,
+          "tilt_from_camera_axis_deg": 42.36142063915897
+        },
+        "thr_0.035": {
+          "label": "float -> 8 bit in depth@0.035",
+          "threshold_rdu": 0.035,
+          "inlier_fraction": 0.33249627976190477,
+          "n_inliers": 50050,
+          "inlier_residual_rms_rdu": 0.014111049635673504,
+          "inlier_residual_mad_rdu": 0.008586572821975058,
+          "all_point_residual_rms_rdu": 0.29009596241628754,
+          "plane_normal": [
+            0.22065170237888307,
+            0.6511727335198575,
+            0.7261452315877155
+          ],
+          "plane_offset_rdu": 0.9064408828698746,
+          "tilt_from_camera_axis_deg": 43.435798846056365
+        }
+      },
+      "quantisation_step_rdu": 0.0048726309090333375
+    },
+    "float -> 8 bit + lossy webp in depth": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 220,
+        "distinct_fraction": 0.00016239134542705972,
+        "range": [
+          0.5468453254598981,
+          1.7893662072634031
+        ],
+        "min_gap": 0.0048726309090330044,
+        "median_gap": 0.0048726309090334485,
+        "min_gap_over_range": 0.003921568627450699,
+        "effective_bits": 7.78135971352466
+      },
+      "immerkaer_sigma_rdu": 0.0,
+      "noise_floor_p10_rdu": 8.88178419700125e-16,
+      "noise_floor_p50_rdu": 0.000935112591063048,
+      "noise_floor_caveat": "for a quantised container this statistic collapses toward zero: the flattest windows are staircase treads, perfectly flat by construction. Read structure_lost instead.",
+      "structure_lost": {
+        "fraction_neighbour_pairs_identical": 0.7734375461739865,
+        "fraction_windows_single_level": 0.149928092042186,
+        "fraction_windows_two_or_fewer_levels": 0.4176653883029722,
+        "median_levels_per_9x9_window": 3.0,
+        "n_windows": 16688
+      },
+      "soil_fit": {
+        "thr_0.006": {
+          "label": "float -> 8 bit + lossy webp in depth@0.006",
+          "threshold_rdu": 0.006,
+          "inlier_fraction": 0.12261506164965986,
+          "n_inliers": 18457,
+          "inlier_residual_rms_rdu": 0.0034335759208095023,
+          "inlier_residual_mad_rdu": 0.0029439501685075697,
+          "all_point_residual_rms_rdu": 0.29530750748197665,
+          "plane_normal": [
+            0.2088694013273449,
+            0.6448256130671776,
+            0.7352370379147771
+          ],
+          "plane_offset_rdu": 0.9211612078588081,
+          "tilt_from_camera_axis_deg": 42.672750705866164
+        },
+        "thr_0.012": {
+          "label": "float -> 8 bit + lossy webp in depth@0.012",
+          "threshold_rdu": 0.012,
+          "inlier_fraction": 0.2096686330782313,
+          "n_inliers": 31561,
+          "inlier_residual_rms_rdu": 0.006380482144252384,
+          "inlier_residual_mad_rdu": 0.00511203292189033,
+          "all_point_residual_rms_rdu": 0.2933689324567037,
+          "plane_normal": [
+            0.2145220223688719,
+            0.6606282185921408,
+            0.7194099378786366
+          ],
+          "plane_offset_rdu": 0.9046840264129569,
+          "tilt_from_camera_axis_deg": 43.99421471718106
+        },
+        "thr_0.035": {
+          "label": "float -> 8 bit + lossy webp in depth@0.035",
+          "threshold_rdu": 0.035,
+          "inlier_fraction": 0.3320046768707483,
+          "n_inliers": 49976,
+          "inlier_residual_rms_rdu": 0.014052828496294224,
+          "inlier_residual_mad_rdu": 0.008491440862080035,
+          "all_point_residual_rms_rdu": 0.2925985491059148,
+          "plane_normal": [
+            0.2128027426839096,
+            0.652772989973823,
+            0.7270504908648651
+          ],
+          "plane_offset_rdu": 0.9103560115134244,
+          "tilt_from_camera_axis_deg": 43.360307146941075
+        }
+      },
+      "quantisation_step_rdu": 0.0048726309090334485
+    },
+    "the actual plants_depth.webp": {
+      "representation": {
+        "n_pixels": 1354752,
+        "n_distinct_values": 220,
+        "distinct_fraction": 0.00016239134542705972,
+        "range": [
+          0.5450926248814929,
+          1.6823610626777608
+        ],
+        "min_gap": 0.004459876226651671,
+        "median_gap": 0.004459876226652115,
+        "min_gap_over_range": 0.003921568627450664,
+        "effective_bits": 7.78135971352466
+      },
+      "immerkaer_sigma_rdu": 0.0,
+      "noise_floor_p10_rdu": 1.1102230246251565e-15,
+      "noise_floor_p50_rdu": 0.0008852604402992043,
+      "noise_floor_caveat": "for a quantised container this statistic collapses toward zero: the flattest windows are staircase treads, perfectly flat by construction. Read structure_lost instead.",
+      "structure_lost": {
+        "fraction_neighbour_pairs_identical": 0.7485128282416355,
+        "fraction_windows_single_level": 0.13944151486097794,
+        "fraction_windows_two_or_fewer_levels": 0.3817713326941515,
+        "median_levels_per_9x9_window": 3.0,
+        "n_windows": 16688
+      },
+      "soil_fit": {
+        "thr_0.006": {
+          "label": "the actual plants_depth.webp@0.006",
+          "threshold_rdu": 0.006,
+          "inlier_fraction": 0.12823527848639457,
+          "n_inliers": 19303,
+          "inlier_residual_rms_rdu": 0.0033309216398665193,
+          "inlier_residual_mad_rdu": 0.0027651039473864936,
+          "all_point_residual_rms_rdu": 0.30974456808767614,
+          "plane_normal": [
+            0.17630488077244277,
+            0.6502700310005393,
+            0.7389624319262601
+          ],
+          "plane_offset_rdu": 0.9337514837910766,
+          "tilt_from_camera_axis_deg": 42.356894460741785
+        },
+        "thr_0.012": {
+          "label": "the actual plants_depth.webp@0.012",
+          "threshold_rdu": 0.012,
+          "inlier_fraction": 0.1964950042517007,
+          "n_inliers": 29578,
+          "inlier_residual_rms_rdu": 0.0063347224318295965,
+          "inlier_residual_mad_rdu": 0.004973879112794954,
+          "all_point_residual_rms_rdu": 0.3159053894218773,
+          "plane_normal": [
+            0.15900038307535375,
+            0.6677506034689811,
+            0.7272056172422635
+          ],
+          "plane_offset_rdu": 0.9307943777326115,
+          "tilt_from_camera_axis_deg": 43.34736022367965
+        },
+        "thr_0.035": {
+          "label": "the actual plants_depth.webp@0.035",
+          "threshold_rdu": 0.035,
+          "inlier_fraction": 0.3234016262755102,
+          "n_inliers": 48681,
+          "inlier_residual_rms_rdu": 0.014211601775485999,
+          "inlier_residual_mad_rdu": 0.008393490646013135,
+          "all_point_residual_rms_rdu": 0.31232184754373904,
+          "plane_normal": [
+            0.16380488998297194,
+            0.6310356688742564,
+            0.7582624497006866
+          ],
+          "plane_offset_rdu": 0.953612100252696,
+          "tilt_from_camera_axis_deg": 40.688742187492394
+        }
+      },
+      "quantisation_step_rdu": 0.004459876226652115
+    }
+  },
+  "headline": {
+    "float_noise_floor_rdu": 0.0001287660902870385,
+    "eight_bit_step_rdu": 0.0048726309090333375,
+    "step_over_float_noise_floor": 37.84094786268286,
+    "float_effective_bits": 20.239935269816044,
+    "preview_effective_bits": 7.78135971352466,
+    "soil_rms_float_rdu": 0.006316265599473364,
+    "soil_rms_8bit_rdu": 0.006266088975260512,
+    "soil_rms_actual_preview_rdu": 0.0063347224318295965,
+    "soil_rms_penalty_from_8bit": -0.007944033293507458,
+    "neighbour_pairs_flattened_float": 5.3931216274520234e-05,
+    "neighbour_pairs_flattened_preview": 0.7485128282416355,
+    "median_levels_per_9x9_float": 81.0,
+    "median_levels_per_9x9_preview": 3.0
+  }
+}

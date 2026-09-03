@@ -1,0 +1,377 @@
+{
+  "how_the_fov_is_obtained": {
+    "head": "depth_anything_3.model.cam_dec.CameraDec.fc_fov",
+    "output": "(fov_h, fov_w) in radians, ReLU-activated",
+    "to_K": "fy=(H/2)/tan(fov_h/2), fx=(W/2)/tan(fov_w/2), cx=W/2, cy=H/2, skew=0",
+    "principal_point": "pinned to the image centre by construction",
+    "distortion": "none modelled",
+    "presets_without_a_camera_head": [
+      "da3metric-*",
+      "da3mono-*"
+    ],
+    "metric_scale_dependence": "utils.alignment.apply_metric_scaling: metric_depth = depth * f/300. DA3's absolute scale is directly proportional to its own guessed f."
+  },
+  "pixel_aspect_tolerance": 0.05,
+  "runs": [
+    {
+      "run": "da3-large_res1120",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 1120,
+      "input_hw": [
+        1120,
+        840
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 1044.679931640625,
+      "fy": 1739.5050048828125,
+      "fov_h_deg": 43.8039056026568,
+      "fov_v_deg": 35.68991797045298,
+      "pixel_aspect_fx_over_fy": 0.6005616130498017,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3730.999755859375,
+      "f_at_3000x4000_from_fy": 6212.517874581473,
+      "implied_35mm_equiv_mm": 43.02223490619965,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3-large_res1344",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 1344,
+      "input_hw": [
+        1344,
+        1008
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 1150.6107177734375,
+      "fy": 2663.97802734375,
+      "fov_h_deg": 47.30955369493,
+      "fov_v_deg": 28.315489454298223,
+      "pixel_aspect_fx_over_fy": 0.431914492523315,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3424.4366600399926,
+      "f_at_3000x4000_from_fy": 7928.50603376116,
+      "implied_35mm_equiv_mm": 49.120340064975736,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3-large_res1680",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 1680,
+      "input_hw": [
+        1680,
+        1260
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 1481.344970703125,
+      "fy": 3691.425537109375,
+      "fov_h_deg": 46.07904972288549,
+      "fov_v_deg": 25.639218611310138,
+      "pixel_aspect_fx_over_fy": 0.40129347207775834,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3527.0118350074404,
+      "f_at_3000x4000_from_fy": 8789.108421688989,
+      "implied_35mm_equiv_mm": 53.28768334401856,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3-large_res504",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 504,
+      "input_hw": [
+        504,
+        378
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 524.0433959960938,
+      "fy": 531.375244140625,
+      "fov_h_deg": 39.66440335948348,
+      "fov_v_deg": 50.74446438237407,
+      "pixel_aspect_fx_over_fy": 0.9862021269801743,
+      "physically_consistent": true,
+      "f_at_3000x4000_from_fx": 4159.074571397569,
+      "f_at_3000x4000_from_fy": 4217.2638423859125,
+      "implied_35mm_equiv_mm": 36.24158092588805,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3-large_res700",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 700,
+      "input_hw": [
+        700,
+        532
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 832.6116943359375,
+      "fy": 800.8248291015625,
+      "fov_h_deg": 35.43493478503083,
+      "fov_v_deg": 47.215407457243856,
+      "pixel_aspect_fx_over_fy": 1.0396926569697351,
+      "physically_consistent": true,
+      "f_at_3000x4000_from_fx": 4695.178727458294,
+      "f_at_3000x4000_from_fy": 4576.141880580357,
+      "implied_35mm_equiv_mm": 40.190989329559635,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3-large_res896",
+      "model": "depth-anything/DA3-LARGE",
+      "process_res": 896,
+      "input_hw": [
+        896,
+        672
+      ],
+      "predicts_camera": true,
+      "is_metric": 0,
+      "metric_scale_factor": null,
+      "fx": 935.474609375,
+      "fy": 1057.4818115234375,
+      "fov_h_deg": 39.51413753674294,
+      "fov_v_deg": 45.91968994065252,
+      "pixel_aspect_fx_over_fy": 0.8846247748009296,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 4176.225934709822,
+      "f_at_3000x4000_from_fy": 4720.90094430106,
+      "implied_35mm_equiv_mm": 38.49485632803154,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3metric-large_res1344",
+      "model": "depth-anything/DA3METRIC-LARGE",
+      "process_res": 1344,
+      "input_hw": [
+        1344,
+        1008
+      ],
+      "predicts_camera": false,
+      "is_metric": 0,
+      "metric_scale_factor": null
+    },
+    {
+      "run": "da3metric-large_res504",
+      "model": "depth-anything/DA3METRIC-LARGE",
+      "process_res": 504,
+      "input_hw": [
+        504,
+        378
+      ],
+      "predicts_camera": false,
+      "is_metric": 0,
+      "metric_scale_factor": null
+    },
+    {
+      "run": "da3mono-large_res1344",
+      "model": "depth-anything/DA3MONO-LARGE",
+      "process_res": 1344,
+      "input_hw": [
+        1344,
+        1008
+      ],
+      "predicts_camera": false,
+      "is_metric": 0,
+      "metric_scale_factor": null
+    },
+    {
+      "run": "da3mono-large_res504",
+      "model": "depth-anything/DA3MONO-LARGE",
+      "process_res": 504,
+      "input_hw": [
+        504,
+        378
+      ],
+      "predicts_camera": false,
+      "is_metric": 0,
+      "metric_scale_factor": null
+    },
+    {
+      "run": "da3nested-giant-large_res1120",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 1120,
+      "input_hw": [
+        1120,
+        840
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.3809469938278198,
+      "fx": 897.253662109375,
+      "fy": 1300.15673828125,
+      "fov_h_deg": 50.16812290223468,
+      "fov_v_deg": 46.60476157737537,
+      "pixel_aspect_fx_over_fy": 0.6901119193486662,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3204.477364676339,
+      "f_at_3000x4000_from_fy": 4643.416922433035,
+      "implied_35mm_equiv_mm": 33.955182068106076,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3nested-giant-large_res1344",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 1344,
+      "input_hw": [
+        1344,
+        1008
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.4112238883972168,
+      "fx": 987.555419921875,
+      "fy": 1820.3546142578125,
+      "fov_h_deg": 54.07508761240902,
+      "fov_v_deg": 40.52414130412153,
+      "pixel_aspect_fx_over_fy": 0.5425071643661677,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 2939.153035481771,
+      "f_at_3000x4000_from_fy": 5417.722066243489,
+      "implied_35mm_equiv_mm": 36.15736976294327,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3nested-giant-large_res1680",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 1680,
+      "input_hw": [
+        1680,
+        1260
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.6941262483596802,
+      "fx": 1265.6427001953125,
+      "fy": 2708.143798828125,
+      "fov_h_deg": 52.925563679564014,
+      "fov_v_deg": 34.46522460915613,
+      "pixel_aspect_fx_over_fy": 0.4673469336240508,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3013.4350004650296,
+      "f_at_3000x4000_from_fy": 6447.96142578125,
+      "implied_35mm_equiv_mm": 40.93625965367737,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3nested-giant-large_res504",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 504,
+      "input_hw": [
+        504,
+        378
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.4654675722122192,
+      "fx": 561.1050415039062,
+      "fy": 566.0443115234375,
+      "fov_h_deg": 37.23068640598429,
+      "fov_v_deg": 47.99676206007412,
+      "pixel_aspect_fx_over_fy": 0.9912740576683161,
+      "physically_consistent": true,
+      "f_at_3000x4000_from_fx": 4453.214615110367,
+      "f_at_3000x4000_from_fy": 4492.415170820933,
+      "implied_35mm_equiv_mm": 38.7047119880422,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3nested-giant-large_res700",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 700,
+      "input_hw": [
+        700,
+        532
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.613224983215332,
+      "fx": 824.1446533203125,
+      "fy": 838.4088745117188,
+      "fov_h_deg": 35.775890777374165,
+      "fov_v_deg": 45.31691682615422,
+      "pixel_aspect_fx_over_fy": 0.9829865574840038,
+      "physically_consistent": true,
+      "f_at_3000x4000_from_fx": 4647.432255565672,
+      "f_at_3000x4000_from_fy": 4790.907854352678,
+      "implied_35mm_equiv_mm": 40.907418279284975,
+      "principal_point_at_centre": true
+    },
+    {
+      "run": "da3nested-giant-large_res896",
+      "model": "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
+      "process_res": 896,
+      "input_hw": [
+        896,
+        672
+      ],
+      "predicts_camera": true,
+      "is_metric": 1,
+      "metric_scale_factor": 1.4443140029907227,
+      "fx": 858.8839111328125,
+      "fy": 955.8490600585938,
+      "fov_h_deg": 42.73140846034036,
+      "fov_v_deg": 50.224337832388514,
+      "pixel_aspect_fx_over_fy": 0.8985560032670459,
+      "physically_consistent": false,
+      "f_at_3000x4000_from_fx": 3834.303174700056,
+      "f_at_3000x4000_from_fy": 4267.183303833008,
+      "implied_35mm_equiv_mm": 35.05238963943958,
+      "principal_point_at_centre": true
+    }
+  ],
+  "fov_stability": {
+    "n_runs_with_a_camera": 12,
+    "n_physically_consistent": 4,
+    "consistent_runs": [
+      "da3-large_res504",
+      "da3-large_res700",
+      "da3nested-giant-large_res504",
+      "da3nested-giant-large_res700"
+    ],
+    "f_at_3000x4000_px": {
+      "min": 4159.074571397569,
+      "max": 4695.178727458294,
+      "mean": 4488.7250423829755,
+      "spread_over_mean": 0.119433503054604
+    },
+    "all_runs_f_at_3000x4000_px": {
+      "da3-large_res1120": 3730.999755859375,
+      "da3-large_res1344": 3424.4366600399926,
+      "da3-large_res1680": 3527.0118350074404,
+      "da3-large_res504": 4159.074571397569,
+      "da3-large_res700": 4695.178727458294,
+      "da3-large_res896": 4176.225934709822,
+      "da3nested-giant-large_res1120": 3204.477364676339,
+      "da3nested-giant-large_res1344": 2939.153035481771,
+      "da3nested-giant-large_res1680": 3013.4350004650296,
+      "da3nested-giant-large_res504": 4453.214615110367,
+      "da3nested-giant-large_res700": 4647.432255565672,
+      "da3nested-giant-large_res896": 3834.303174700056
+    },
+    "comparison_to_A1b_assumption": {
+      "A1b_f_initial_px": 3005,
+      "ratio_mean_over_A1b": 1.49375209397104,
+      "reading": "DA3 thinks the lens is longer than a 26 mm-equivalent phone main camera. If DA3's estimate is right, A1b's default f is too short; if A1b is right, DA3's depth carries the corresponding perspective error. Nothing in this image can settle which."
+    }
+  },
+  "determinism": {
+    "run": "da3-large_res504",
+    "repeats": 2,
+    "median_depth": 0.9867201745510101,
+    "diffs": [
+      {
+        "max_abs_diff": 0.0,
+        "rms_diff": 0.0,
+        "identical": true
+      }
+    ],
+    "rms_diff_rdu": 0.0
+  }
+}

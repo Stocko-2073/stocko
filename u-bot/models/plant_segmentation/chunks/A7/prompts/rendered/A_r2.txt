@@ -1,0 +1,60 @@
+First, read these image files:
+/private/tmp/claude-503/-Users-samw3-prj-Make-stocko-u-bot-models-plant-segmentation/f88ad29d-e131-4494-b946-e12ecfa37434/scratchpad/a7_arena/region_001.png
+Do not use any tool other than reading those files.
+
+You are looking at a photograph of one bed in a home vegetable garden. A
+segmentation system has already divided the plant material in that photograph
+into numbered regions. Your job is the semantic half of weeding, and only that
+half: decide what each region *is*, so that a machine can later decide what to
+do about it.
+
+For each region you are shown, choose exactly one label:
+
+  keep    - the material in this region belongs to a plant the gardener is
+            growing on purpose, or is something a weeding tool must not cut.
+  remove  - the material in this region is a weed: a plant growing here that
+            the gardener did not plant and does not want.
+  unsure  - you cannot tell which of the two it is from what you were shown.
+
+A region may be a whole plant, a part of a plant, or a patch of material that
+belongs to more than one plant. Say so in the `mixed` field when it happens.
+
+The two possible mistakes are not equally costly. Destroying a crop plant is
+catastrophic and cannot be undone; leaving a weed standing until the next pass
+costs the gardener almost nothing. So the answer defaults to `keep`: unless the
+visual evidence positively supports `remove`, answer `keep` or `unsure`.
+
+You are shown ONE region: region 1.
+
+The image has three panels, left to right:
+
+  A  the whole photograph, with every pixel belonging to region 1 tinted
+     magenta, and a magenta rectangle around the area panels B and C show.
+  B  a zoom on that area, with region 1 outlined in magenta and tinted
+     magenta.
+  C  exactly the same zoom as panel B, with nothing drawn on it, so you can see
+     the material as it really looks.
+
+The magenta is drawn by the segmentation system. It is not a plant, and there
+is nothing magenta in this garden.
+
+Reply with exactly this JSON object:
+
+{"id": 1, "label": "keep"|"remove"|"unsure", "confidence": 0.00,
+  "reason": "...", "mixed": false, "mixed_note": ""}
+
+Output rules, which are strict:
+
+* Reply with JSON and nothing else. No prose before or after, no code fence.
+* You must not output coordinates, pixel positions, bounding boxes, directions,
+  distances, or measurements of any kind, anywhere in your reply, including
+  inside `reason`. The region number is the only handle you are given on the
+  image, and it is the only one you may use. A reply containing a coordinate is
+  rejected outright.
+* `confidence` is a number from 0.00 to 1.00: how sure you are of the label you
+  chose.
+* `reason` is one line, at most 140 characters, saying what you saw.
+* `mixed` is true when the outlined region clearly contains plant material of
+  more than one kind, that is, material from more than one plant or more than
+  one species, false otherwise. `mixed_note` is at most 100 characters, or ""
+  when mixed is false.

@@ -1,0 +1,357 @@
+{
+ "summary": {
+  "n_boxes": 15,
+  "majority_hits": 5,
+  "hit_rate": 0.3333333333333333,
+  "mean_expected_fraction": 0.25626666666666664,
+  "by_expected_class": {
+   "broadleaf_weed": {
+    "n": 1,
+    "hits": 0,
+    "mean_expected_fraction": 0.183
+   },
+   "fruit": {
+    "n": 3,
+    "hits": 0,
+    "mean_expected_fraction": 0.03933333333333333
+   },
+   "grass": {
+    "n": 2,
+    "hits": 2,
+    "mean_expected_fraction": 0.705
+   },
+   "other": {
+    "n": 3,
+    "hits": 0,
+    "mean_expected_fraction": 0.0
+   },
+   "squash_leaf": {
+    "n": 4,
+    "hits": 3,
+    "mean_expected_fraction": 0.53325
+   },
+   "squash_petiole": {
+    "n": 1,
+    "hits": 0,
+    "mean_expected_fraction": 0.0
+   },
+   "straw": {
+    "n": 1,
+    "hits": 0,
+    "mean_expected_fraction": 0.0
+   }
+  }
+ },
+ "boxes": [
+  {
+   "box": "fruit_top",
+   "xyxy": [
+    398,
+    330,
+    435,
+    365
+   ],
+   "expected": "fruit",
+   "majority": "squash_petiole",
+   "hit": false,
+   "expected_fraction": 0.076,
+   "median_conf": 0.20302674174308777,
+   "hist": {
+    "squash_leaf": 0.181,
+    "squash_petiole": 0.52,
+    "grass": 0.151,
+    "broadleaf_weed": 0.019,
+    "fruit": 0.076,
+    "other": 0.053
+   }
+  },
+  {
+   "box": "fruit_right",
+   "xyxy": [
+    595,
+    470,
+    635,
+    560
+   ],
+   "expected": "fruit",
+   "majority": "broadleaf_weed",
+   "hit": false,
+   "expected_fraction": 0.039,
+   "median_conf": 0.22296780347824097,
+   "hist": {
+    "squash_leaf": 0.288,
+    "squash_petiole": 0.024,
+    "grass": 0.206,
+    "broadleaf_weed": 0.426,
+    "fruit": 0.039,
+    "other": 0.017
+   }
+  },
+  {
+   "box": "fruit_bottomleft",
+   "xyxy": [
+    105,
+    880,
+    160,
+    935
+   ],
+   "expected": "fruit",
+   "majority": "broadleaf_weed",
+   "hit": false,
+   "expected_fraction": 0.003,
+   "median_conf": 0.2991695702075958,
+   "hist": {
+    "squash_leaf": 0.003,
+    "broadleaf_weed": 0.976,
+    "straw": 0.007,
+    "fruit": 0.003,
+    "other": 0.012
+   }
+  },
+  {
+   "box": "leaf_top_centre",
+   "xyxy": [
+    380,
+    225,
+    450,
+    285
+   ],
+   "expected": "squash_leaf",
+   "majority": "squash_leaf",
+   "hit": true,
+   "expected_fraction": 0.701,
+   "median_conf": 0.24008400738239288,
+   "hist": {
+    "squash_leaf": 0.701,
+    "squash_petiole": 0.112,
+    "grass": 0.094,
+    "broadleaf_weed": 0.078,
+    "fruit": 0.006,
+    "other": 0.01
+   }
+  },
+  {
+   "box": "leaf_bottom",
+   "xyxy": [
+    370,
+    770,
+    450,
+    830
+   ],
+   "expected": "squash_leaf",
+   "majority": "broadleaf_weed",
+   "hit": false,
+   "expected_fraction": 0.333,
+   "median_conf": 0.24893219769001007,
+   "hist": {
+    "squash_leaf": 0.333,
+    "broadleaf_weed": 0.446,
+    "straw": 0.191,
+    "fruit": 0.028,
+    "other": 0.002
+   }
+  },
+  {
+   "box": "leaf_right",
+   "xyxy": [
+    640,
+    455,
+    705,
+    520
+   ],
+   "expected": "squash_leaf",
+   "majority": "squash_leaf",
+   "hit": true,
+   "expected_fraction": 0.46,
+   "median_conf": 0.24353086948394775,
+   "hist": {
+    "squash_leaf": 0.46,
+    "squash_petiole": 0.008,
+    "grass": 0.08,
+    "broadleaf_weed": 0.337,
+    "fruit": 0.094,
+    "other": 0.022
+   }
+  },
+  {
+   "box": "leaf_left_pale",
+   "xyxy": [
+    150,
+    495,
+    235,
+    550
+   ],
+   "expected": "squash_leaf",
+   "majority": "squash_leaf",
+   "hit": true,
+   "expected_fraction": 0.639,
+   "median_conf": 0.2407272458076477,
+   "hist": {
+    "squash_leaf": 0.639,
+    "squash_petiole": 0.025,
+    "grass": 0.016,
+    "broadleaf_weed": 0.308,
+    "straw": 0.001,
+    "fruit": 0.011
+   }
+  },
+  {
+   "box": "lawn_topright",
+   "xyxy": [
+    620,
+    60,
+    740,
+    140
+   ],
+   "expected": "grass",
+   "majority": "grass",
+   "hit": true,
+   "expected_fraction": 0.997,
+   "median_conf": 0.37256044149398804,
+   "hist": {
+    "squash_leaf": 0.003,
+    "grass": 0.997
+   }
+  },
+  {
+   "box": "grass_bottomright",
+   "xyxy": [
+    630,
+    910,
+    740,
+    990
+   ],
+   "expected": "grass",
+   "majority": "grass",
+   "hit": true,
+   "expected_fraction": 0.413,
+   "median_conf": 0.25617560744285583,
+   "hist": {
+    "squash_leaf": 0.008,
+    "grass": 0.413,
+    "broadleaf_weed": 0.169,
+    "straw": 0.371,
+    "other": 0.04
+   }
+  },
+  {
+   "box": "fence_post",
+   "xyxy": [
+    352,
+    70,
+    385,
+    160
+   ],
+   "expected": "other",
+   "majority": "squash_leaf",
+   "hit": false,
+   "expected_fraction": 0.0,
+   "median_conf": 0.2546428143978119,
+   "hist": {
+    "squash_leaf": 0.744,
+    "squash_petiole": 0.197,
+    "grass": 0.059
+   }
+  },
+  {
+   "box": "lattice_lowerleft",
+   "xyxy": [
+    5,
+    520,
+    50,
+    660
+   ],
+   "expected": "other",
+   "majority": "squash_petiole",
+   "hit": false,
+   "expected_fraction": 0.0,
+   "median_conf": 0.21723008155822754,
+   "hist": {
+    "squash_leaf": 0.423,
+    "squash_petiole": 0.432,
+    "straw": 0.146
+   }
+  },
+  {
+   "box": "lattice_upper",
+   "xyxy": [
+    20,
+    60,
+    120,
+    140
+   ],
+   "expected": "other",
+   "majority": "squash_petiole",
+   "hit": false,
+   "expected_fraction": 0.0,
+   "median_conf": 0.22784985601902008,
+   "hist": {
+    "squash_leaf": 0.267,
+    "squash_petiole": 0.376,
+    "grass": 0.292,
+    "broadleaf_weed": 0.019,
+    "straw": 0.045
+   }
+  },
+  {
+   "box": "groundivy_bl",
+   "xyxy": [
+    50,
+    705,
+    170,
+    765
+   ],
+   "expected": "broadleaf_weed",
+   "majority": "straw",
+   "hit": false,
+   "expected_fraction": 0.183,
+   "median_conf": 0.24131110310554504,
+   "hist": {
+    "grass": 0.256,
+    "broadleaf_weed": 0.183,
+    "straw": 0.555,
+    "fruit": 0.006
+   }
+  },
+  {
+   "box": "deadleaf_on_fruit",
+   "xyxy": [
+    515,
+    500,
+    560,
+    570
+   ],
+   "expected": "straw",
+   "majority": "squash_leaf",
+   "hit": false,
+   "expected_fraction": 0.0,
+   "median_conf": 0.2306724637746811,
+   "hist": {
+    "squash_leaf": 0.679,
+    "squash_petiole": 0.052,
+    "grass": 0.204,
+    "broadleaf_weed": 0.057,
+    "fruit": 0.007
+   }
+  },
+  {
+   "box": "vine_stem",
+   "xyxy": [
+    405,
+    120,
+    428,
+    200
+   ],
+   "expected": "squash_petiole",
+   "majority": "squash_leaf",
+   "hit": false,
+   "expected_fraction": 0.0,
+   "median_conf": 0.25550758838653564,
+   "hist": {
+    "squash_leaf": 0.607,
+    "grass": 0.393
+   }
+  }
+ ],
+ "caveat": "author-placed boxes on a gridded view; not ground truth; boundaries avoided"
+}

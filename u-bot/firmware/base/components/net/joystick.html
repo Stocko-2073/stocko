@@ -1,0 +1,227 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>U-BOT</title>
+<style>
+:root{--bg:#0e1013;--card:#171a20;--line:#282d38;--fg:#e8eaef;--mute:#8e95a3;--ok:#2fb56d;--warn:#e0a52c;--bad:#e04a44;--act:#4f8ff0}
+*{box-sizing:border-box}
+body{font:15px/1.4 system-ui,-apple-system,sans-serif;margin:0;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 14px 24px;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+header,.strip,.card,.btn,details,#cmd{width:100%;max-width:440px}
+header{display:flex;align-items:center;justify-content:space-between}
+h1{font-size:20px;margin:0;letter-spacing:.04em}
+.pill{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mute);flex:none}
+.ok .dot{background:var(--ok)}.warn .dot{background:var(--warn)}.bad .dot{background:var(--bad)}
+.strip{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.vital{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.vital b{color:var(--fg);font-weight:600}
+.vital.ok b{color:var(--ok)}.vital.warn b{color:var(--warn)}.vital.bad b{color:var(--bad)}
+.chip{font:inherit;font-size:13px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--warn);background:transparent;color:var(--warn);cursor:pointer}
+.chip:disabled{opacity:.5}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.card.ok{border-left-color:var(--ok)}.card.warn{border-left-color:var(--warn)}.card.bad{border-left-color:var(--bad)}
+.title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px}
+.sub{color:var(--mute);font-size:13px;margin-top:4px}
+.btn{font:inherit;font-weight:600;padding:13px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.btn.small{width:auto;flex:none;padding:8px 14px;font-size:14px}
+.btn.act{background:var(--act);border-color:var(--act);color:#fff}
+.btn.estop{position:sticky;top:12px;bottom:12px;background:var(--bad);border-color:var(--bad);color:#fff;font-size:20px;letter-spacing:.08em;padding:20px;box-shadow:0 4px 18px #0008}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:not(:disabled):active{filter:brightness(1.15)}
+#pad{width:min(66vw,260px);height:min(66vw,260px);border-radius:50%;background:radial-gradient(circle,#1d2129,#13161b);border:2px solid var(--line);position:relative;touch-action:none;margin-top:4px}
+#pad.locked{opacity:.4}
+#pad::before,#pad::after{content:"";position:absolute;background:var(--line)}
+#pad::before{left:50%;top:8%;bottom:8%;width:1px}
+#pad::after{top:50%;left:8%;right:8%;height:1px}
+#knob{width:26%;height:26%;border-radius:50%;background:var(--mute);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 2px 8px #0008}
+#knob.live{background:var(--ok)}
+#cmd{text-align:center;font-size:13px;color:var(--mute);min-height:1.4em;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);max-width:90vw;background:#2a2e38;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;box-shadow:0 6px 24px #0009;z-index:9}
+#toast.bad{border-color:var(--bad)}
+details{font-size:13px;color:var(--mute);-webkit-user-select:text;user-select:text}
+summary{cursor:pointer;padding:6px 0;color:var(--fg)}
+table{width:100%;border-collapse:collapse;margin:8px 0 14px}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:top}
+th{font-weight:500;color:var(--mute);white-space:nowrap}
+td{color:var(--fg)}
+td.bad{color:var(--bad)}td.warn{color:var(--warn)}td.mute{color:var(--mute)}
+.switch{display:flex;align-items:center;gap:8px;margin:4px 0 8px;color:var(--fg)}
+#log{font:11px/1.35 ui-monospace,SFMono-Regular,monospace;height:180px;overflow:auto;background:#000;border:1px solid var(--line);border-radius:8px;padding:8px;margin:0;white-space:pre-wrap;color:#cfd3da}
+</style>
+<header><h1>U-BOT</h1><span id="conn" class="pill warn"><span class="dot"></span><span id="connTxt">connecting…</span></span></header>
+<div class="strip">
+<span class="vital" id="vBatt">Battery <b>—</b></span>
+<span class="vital" id="vWifi">Wi-Fi <b>—</b></span>
+<span class="vital" id="vFw">Firmware <b>—</b></span>
+<button class="chip" id="upd" hidden></button>
+</div>
+<section class="card warn" id="state" aria-live="polite">
+<div class="grow">
+<div class="title"><span class="dot"></span><span id="stTitle">Connecting…</span></div>
+<div class="sub" id="stText">Looking for the robot.</div>
+</div>
+<button class="btn small" id="ctx" hidden></button>
+</section>
+<div id="pad" class="locked"><div id="knob"></div></div>
+<div id="cmd">Not connected</div>
+<button class="btn act" id="power" disabled>Enable motors</button>
+<button class="btn estop" id="estop" disabled>E-STOP</button>
+<details>
+<summary>Details</summary>
+<table id="sys"></table>
+<table id="wh"></table>
+<label class="switch"><input type="checkbox" id="logsw"> Mirror the robot's log here</label>
+<pre id="log" hidden></pre>
+</details>
+<div id="toast" hidden></div>
+<script>
+// One page, one state machine. The robot's 5 Hz status frame drives everything
+// on screen: the state card says what the robot is doing, the one power button
+// says what pressing it will do, contextual actions appear only when they make
+// sense, and the stick is locked (with the reason) whenever a drive would be
+// refused. E-STOP is always in the same place; it is only greyed out when there
+// is no connection to send it over.
+const $=id=>document.getElementById(id);
+const conn=$('conn'),connTxt=$('connTxt'),state=$('state'),stTitle=$('stTitle'),stText=$('stText'),ctx=$('ctx');
+const pad=$('pad'),knob=$('knob'),cmd=$('cmd'),power=$('power'),estop=$('estop');
+const vBatt=$('vBatt'),vWifi=$('vWifi'),vFw=$('vFw'),upd=$('upd');
+const det=document.querySelector('details'),sys=$('sys'),wh=$('wh'),logsw=$('logsw'),log=$('log');
+let ws=null,lastMsg=0,connecting=false,m=null;
+let timer=null,v=0,w=0,lockMsg='Not connected';
+let armed=false,armT=null,toastT=null,lines=[];
+
+// --- connection ---
+function setConn(cls,txt){conn.className='pill '+cls;connTxt.textContent=txt;}
+function connect(){
+  if(connecting)return;connecting=true;
+  const s=new WebSocket('ws://'+location.host+'/ws');ws=s;
+  s.onopen=()=>{connecting=false;lastMsg=Date.now();setConn('ok','connected');
+    send({t:'ota_check'});if(logsw.checked)send({t:'log',on:true});};
+  s.onerror=()=>{};
+  s.onclose=()=>{if(ws!==s)return;connecting=false;offline('disconnected, retrying…');setTimeout(connect,1500);};
+  s.onmessage=e=>{lastMsg=Date.now();const o=JSON.parse(e.data);
+    if(o.t==='status')render(o);
+    else if(o.t==='log')logLine(o.m);
+    else if(o.t==='ack')ack(o);};
+}
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
+// The robot sends status at 5 Hz. When it reboots (an update, a reset) the TCP
+// connection just dies and the browser can sit on a dead socket for minutes,
+// so treat 3 s of silence as gone and open a fresh one.
+setInterval(()=>{
+  if(ws&&ws.readyState===1&&Date.now()-lastMsg>3000){
+    const dead=ws;ws=null;dead.onclose=null;try{dead.close();}catch(e){}
+    connecting=false;offline('no data, reconnecting…');connect();
+  }
+},1000);
+function offline(txt){
+  m=null;setConn('bad',txt);
+  state.className='card bad';stTitle.textContent='Not connected';stText.textContent='Trying to reach the robot…';stText.hidden=false;
+  ctx.hidden=true;power.disabled=true;estop.disabled=true;upd.hidden=true;armed=false;
+  lock('Not connected');
+  for(const x of[vBatt,vWifi,vFw])x.className='vital';
+}
+function ack(o){
+  if(!o.ok){toast('Refused: '+o.err,true);logLine('refused '+o.cmd+': '+o.err);if(o.cmd==='drive')release(false);}
+  else if(o.cmd==='estop')toast('Emergency stop sent. Motors are cut.');
+}
+function toast(txt,bad){const t=$('toast');t.textContent=txt;t.className=bad?'bad':'';t.hidden=false;
+  clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3500);}
+
+// --- status -> screen ---
+function faultParts(f){const i=f.indexOf(' (');if(i<0)return[f,''];
+  let why=f.slice(i+2);if(why.endsWith(')'))why=why.slice(0,-1);return[f.slice(0,i),why[0].toUpperCase()+why.slice(1)+'.'];}
+function fmtUp(s){const h=Math.floor(s/3600),mn=Math.floor(s%3600/60);return h?h+' h '+mn+' min':mn?mn+' min '+s%60+' s':s+' s';}
+function lock(why){lockMsg=why;pad.classList.toggle('locked',!!why);if(why&&timer)release(false);}
+function render(o){
+  m=o;
+  const b=o.batt,r=o.wifi.rssi,ota=o.ota||{};
+  if(b.present){vBatt.className='vital '+(b.pct<20?'bad':b.pct<50?'warn':'ok');vBatt.innerHTML='Battery <b>'+b.pct+'%</b> · '+b.v.toFixed(1)+' V';}
+  else{vBatt.className='vital';vBatt.innerHTML='Battery <b>not sensed</b>';}
+  vWifi.className='vital '+(r>-65?'ok':r>-78?'warn':'bad');
+  vWifi.innerHTML='Wi-Fi <b>'+(r>-65?'good':r>-78?'fair':'weak')+'</b> · '+r+' dBm';
+  const otaBad=/failed/.test(ota.state||'');
+  vFw.className='vital'+(otaBad?' bad':'');vFw.innerHTML='Firmware <b>'+o.fw+'</b>'+(otaBad?' · '+ota.state:'');
+  const avail=!!ota.available&&!ota.busy;
+  upd.hidden=!avail;if(!avail)armed=false;
+  if(avail&&!armed){upd.textContent='Update to '+ota.available;upd.disabled=false;}
+
+  const down=o.wheels.filter(x=>!x.driver).map(x=>x.name);
+  let cls='',title,text,cl=null,cc=null,why=null;
+  if(ota.busy){cls='warn';title='Installing update';text=ota.state+'. The robot restarts when it is done.';why='Updating firmware';}
+  else if(o.faulted){const[f,d]=faultParts(o.fault||'fault');cls='bad';title='Fault on wheel '+o.fault_wheel+': '+f;text=d;
+    if(o.enabled){cl='Clear fault';cc={t:'clear'};why='Clear the fault to drive';}else{text+=' Enabling the motors clears it.';why='Enable the motors to drive';}}
+  else if(o.cal){cls='warn';title='Calibrating';text='A wheel is being measured. Driving is locked until it finishes.';cl='Abort calibration';cc={t:'stop'};why='Wait for the calibration to finish';}
+  else if(o.demo){cls='warn';title='Demo running';text=o.demo;cl='Stop demo';cc={t:'stop'};why='Stop the demo to drive';}
+  else if(o.enabled){cls='ok';title='Motors on';
+    if(o.cmd.active&&!timer){text='Moving on a command from another controller.';cl='Stop';cc={t:'stop'};}else text='Ready to drive.';}
+  else{title='Motors off';text=down.length?'Driver '+down.join(' and ')+' not answering. Check motor power.':'Enable the motors to drive.';why='Enable the motors to drive';}
+  state.className='card '+cls;stTitle.textContent=title;stText.textContent=text;stText.hidden=!text;
+  ctx.hidden=!cl;if(cl){ctx.textContent=cl;ctx.onclick=()=>send(cc);}
+
+  power.textContent=o.enabled?'Disable motors':'Enable motors';
+  power.className='btn'+(o.enabled?'':' act');
+  power.disabled=o.cal||ota.busy;
+  estop.disabled=false;
+
+  lock(why);
+  cmd.textContent=why?why:o.cmd.active?'forward '+o.cmd.v.toFixed(2)+' m/s · turn '+o.cmd.w.toFixed(2)+' rad/s':'Drag the stick to drive';
+  if(det.open)renderDetails(o);
+}
+function cell(t,c){return'<td'+(c?' class="'+c+'"':'')+'>'+t+'</td>';}
+function renderDetails(o){
+  const ota=o.ota||{};
+  sys.innerHTML=[['Name',o.name],['Hardware','rev '+o.hw],['Firmware',o.fw],['Uptime',fmtUp(o.up)],
+    ['Speed limits',o.limits.v.toFixed(2)+' m/s · '+o.limits.w.toFixed(2)+' rad/s'],
+    ['Updates',ota.configured?(ota.state||'not checked'):'no update bucket set']]
+    .map(r=>'<tr><th>'+r[0]+'</th>'+cell(r[1])+'</tr>').join('');
+  const W=o.wheels,row=(l,f)=>'<tr><th>'+l+'</th>'+W.map(x=>cell(...f(x))).join('')+'</tr>';
+  wh.innerHTML='<tr><th></th>'+W.map(x=>'<th>Wheel '+x.name+'</th>').join('')+'</tr>'
+   +row('Driver',x=>x.driver?['answering']:['not answering','bad'])
+   +row('Encoder',x=>x.enc?['ok · AGC '+x.agc]:['not answering','bad'])
+   +row('Magnet',x=>[x.magnet,x.magnet==='ok'?'':'bad'])
+   +row('Position, turns',x=>[x.pos.toFixed(3)])
+   +row('Velocity, turns/s',x=>[x.vel.toFixed(2)])
+   +row('Slip, steps',x=>[x.slip,Math.abs(x.slip)>100?'warn':''])
+   +row('Servo loop',x=>x.loop?['closed']:['open','mute'])
+   +row('Fault',x=>x.fault?['latched','bad']:['none','mute']);
+}
+det.ontoggle=()=>{if(det.open&&m)renderDetails(m);};
+
+// --- controls ---
+power.onclick=()=>{if(m)send({t:m.enabled?'disable':'enable'});};
+estop.onclick=()=>{send({t:'estop'});release(false);};
+upd.onclick=()=>{
+  if(!armed){armed=true;upd.textContent='Tap again to install';
+    clearTimeout(armT);armT=setTimeout(()=>{armed=false;if(m)render(m);},4000);return;}
+  armed=false;clearTimeout(armT);upd.textContent='Installing…';upd.disabled=true;send({t:'ota_update'});
+};
+logsw.onchange=()=>{log.hidden=!logsw.checked;send({t:'log',on:logsw.checked});if(logsw.checked)log.scrollTop=log.scrollHeight;};
+function logLine(s){lines.push(s);if(lines.length>300)lines.splice(0,lines.length-300);
+  log.textContent=lines.join('\n')+'\n';log.scrollTop=log.scrollHeight;}
+
+// --- stick: up = forward, left = turn left (anticlockwise). Re-sent every
+// 100 ms while held so the robot's 500 ms deadman never trips mid-drive.
+function stick(e){
+  const r=pad.getBoundingClientRect();
+  let x=(e.clientX-r.left)/r.width*2-1,y=(e.clientY-r.top)/r.height*2-1;
+  const d=Math.hypot(x,y);if(d>1){x/=d;y/=d;}
+  knob.style.left=(50+x*37)+'%';knob.style.top=(50+y*37)+'%';
+  v=-y;w=-x;
+}
+function release(sendZero){
+  knob.style.left=knob.style.top='50%';knob.className='';
+  if(timer){clearInterval(timer);timer=null;}
+  v=0;w=0;if(sendZero)send({t:'drive',v:0,w:0});
+}
+pad.onpointerdown=e=>{
+  if(lockMsg){toast(lockMsg);return;}
+  pad.setPointerCapture(e.pointerId);knob.className='live';stick(e);
+  send({t:'drive',v:v,w:w});
+  timer=setInterval(()=>send({t:'drive',v:v,w:w}),100);
+};
+pad.onpointermove=e=>{if(timer)stick(e);};
+pad.onpointerup=pad.onpointercancel=()=>{if(timer)release(true);};
+connect();
+</script>
