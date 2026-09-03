@@ -87,7 +87,7 @@ module zview(flip=false, xray=false) {
 }
 
 module xview(flip=false, xray=false) {
-    difference() {
+    render() difference() {
         union() children();
         if (flip) {
             cuboid([500,500,500],anchor=LEFT);
