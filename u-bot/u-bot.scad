@@ -6,8 +6,8 @@ include <BOSL2/nema_steppers.scad>
 include <../lib/as5600.scad>
 include <../lib/globals.scad>
 
-// $fn=0;$fa=1;$fs=$preview?2:0.25;ep=0.03;$slop=0.2;
-$fn=0;$fa=1;$fs=2;ep=0.03;$slop=0.2;
+$fn=0;$fa=1;$fs=$preview?2:0.25;ep=0.03;$slop=0.2;
+// $fn=0;$fa=1;$fs=2;ep=0.03;$slop=0.2;
 // $fn=0;$fa=1;$fs=0.25;ep=0.03;$slop=0.2;
 _6902ZZ=ball_bearing_info("6902ZZ");
 echo(_6902ZZ);
@@ -16,33 +16,42 @@ wheel_mod=5;
 wheel_teeth=40; //72;
 drive_teeth=12; //22;
 wheel_bearing_spacing=30;
+caster_x=50;
+caster_d=60;
+caster_leg_x=13;
+caster_leg_len=90;
+
 
 module m3_11() {
-    recolor("#888") screw("M3,11",head="socket",drive="hex",atype="head",thread="none",orient=RIGHT,anchor=BOT) children();
+    color("#888") screw("M3,11",head="socket",drive="hex",atype="head",thread="none",orient=RIGHT,anchor=BOT,details=false) children();
+}
+
+module m3_8(orient=UP) {
+    color("#888") screw("M3,11",head="socket",drive="hex",atype="threads",thread="none",orient=orient,anchor=TOP,details=false) children();
 }
 
 module m3_nut() {
-    recolor("#888") nut("M3",thread="none");
+    color("#888") nut("M3",thread="none");
 }
 
 module m4_30() {
-    recolor("#888") screw("M4,30",head="button",drive="hex",atype="shaft",thread="none",orient=RIGHT,anchor=TOP) children();
+    color("#888") screw("M4,30",head="button",drive="hex",atype="shaft",thread="none",orient=RIGHT,anchor=TOP,details=false) children();
 }
 
 module m4_nut() {
-    recolor("#888") nut("M4",thread="none");
+    color("#888") nut("M4",thread="none");
 }
 
 module m5_16(orient=UP,anchor=BOT) {
-    recolor("#888") screw("M5,16",head="button",drive="hex",atype="head",thread="none",orient=orient,anchor=anchor) children();
+    color("#888") screw("M5,16",head="button",drive="hex",atype="head",thread="none",orient=orient,anchor=anchor,details=false) children();
 }
 
 module m5_30(orient=UP,anchor=BOT) {
-    recolor("#888") screw("M5,30",head="button",drive="hex",atype="head",thread="none",orient=orient,anchor=anchor) children();
+    color("#888") screw("M5,30",head="button",drive="hex",atype="head",thread="none",orient=orient,anchor=anchor,details=false) children();
 }
 
 module m5_nut(orient=undef,anchor=undef) {
-    recolor("#888") nut("M5",orient=orient,anchor=anchor,thread="none");
+    color("#888") nut("M5",orient=orient,anchor=anchor,thread="none");
 }
 
 module magnet() {
@@ -66,6 +75,7 @@ module magnet_neg(depth=2) {
 module wheel() {
     id=208;
     od=218;
+    d=_6902ZZ[0]+$slop;
     color("#444") {
         difference() {
             union() {
@@ -95,13 +105,12 @@ module wheel() {
                 }
                 right(3+$slop) xcyl(d2=_6902ZZ[0]+6,d1=_6902ZZ[0]+12,h=8.1,anchor=RIGHT);
             }
-            right(3+$slop) xcyl(d=_6902ZZ[0]-0.8+$slop*2,h=40,anchor=RIGHT,extra=$slop);
+            right(3+$slop) xcyl(d=d+$slop*3,h=40,anchor=RIGHT,extra=$slop);
             left(36+ep) {
-                xcyl(d=120,h=16+ep,chamfer2=16,anchor=LEFT);
-                right(7) xrot_copies(n=4) back(55) zrot(45) xcyl(d=10,h=30);
+                xcyl(d=160,h=16+ep,chamfer2=16,anchor=LEFT);
+                right(7) xrot_copies(n=4) back(55+20) zrot(45) xcyl(d=10,h=30);
             }
         }
-        d=_6902ZZ[0]-0.8;
         difference() {
             left(20) xcyl(d=d+20,h=15,anchor=RIGHT,chamfer1=2,chamfer2=-2);
             left(20) xcyl(d=d+$slop*3,h=16,anchor=RIGHT);
@@ -113,8 +122,6 @@ module wheel() {
     }
     up(12) left(27) children(0); // bolt
 }
-// !yrot(-90) wheel(); // print
-
 
 module axle() {
     recolor("#666") diff() {
@@ -143,11 +150,10 @@ module axle() {
         children(0); // axle bearing
     right(wheel_bearing_spacing+3+ep) yrot(-90) children(1); // magnet
 }
-// !axle(); // print
 
 module motor() {
     nema_stepper_motor(size=17,h=39,shaft_len=30,orient=FWD)
-        attach(TOP) up(2+$slop) children();
+        attach(TOP) up(2+$slop) xflip_copy() yflip_copy() left(15.5) back(15.5) children();
 }
 
 module drive_gear() {
@@ -174,15 +180,25 @@ module drive_gear() {
         }
     }
 }
-// !up(102) drive_gear();
 
 module axle_mount() {
-    recolor("#f84") diff() {
+    yy=20;
+    color("#f84") diff() {
         left(3+ep) {
-            cuboid([6,50,50],anchor=LEFT,rounding=4,edges="X");
-            cuboid([wheel_bearing_spacing+7,34,50],anchor=LEFT,chamfer=1,edges="X");
-            zflip_copy() yflip_copy() back(41/2) up(41/2) {
-                right(3-ep) screw_hole("M3",l=15,head="socket",atype="head",orient=LEFT,anchor=BOT,$slop=0);
+            hull() {
+                fwd(yy) cuboid([3-$slop,50+yy*2,61],anchor=LEFT,rounding=4,edges="X");
+                fwd(71) cuboid([3-$slop,6,48],rounding=3,edges="X",anchor=LEFT+FWD);
+            }
+            cuboid([wheel_bearing_spacing+7,34,61],anchor=LEFT,chamfer=1,except=[LEFT]);
+            fwd(yy) zflip_copy() up(52/2) {
+                back(41/2+yy) {
+                    cuboid([6,9,9],anchor=LEFT,rounding=4,edges=[TOP+BACK,BOT+BACK]);
+                    right(3-ep) screw_hole("M3",l=13,head="socket",atype="head",orient=LEFT,anchor=BOT,tolerance="tap");
+                }
+                yflip() back(41/2+yy) {
+                    cuboid([6,9,9],anchor=LEFT,rounding=4,edges="X");
+                    right(3-ep) screw_hole("M3",l=13,head="socket",atype="head",orient=LEFT,anchor=BOT,tolerance="tap");
+                }
             }
         }
 
@@ -199,9 +215,16 @@ module axle_mount() {
     }
     children(0); // axle
     right(wheel_bearing_spacing) children(1); // as5600_mount
-    zflip_copy() yflip_copy() back(41/2) up(41/2) yrot(180) children(2); // mounting screws
+    fwd(yy) zflip_copy() up(52/2) {
+        back(41/2+yy) {
+            yrot(180) children(2); // mounting screws
+        }
+        yflip() back(41/2+yy) {
+            yrot(180) children(2); // mounting screws
+        }
+    }
+
 }
-// !yview() xflip_copy() left(50) yrot(-90) axle_mount();
 
 module as5600_mount_screws() {
     zflip_copy() right(4+3+2+$slop*2) up(20) {
@@ -220,7 +243,6 @@ module as5600_mount_cap() {
     }
     zflip_copy() right(9+$slop*2) up(20) children(0); // screw
 }
-// !yrot(-90) as5600_mount_cap(); // print
 
 module as5600_mount() {
     recolor("#f84") diff() {
@@ -240,13 +262,8 @@ module as5600_mount() {
     right(4) yrot(-90) children(0); // as5600
     children(1); // as5600_mount_cap
 }
-// !yrot(-90) as5600_mount(); // print
 
 
-
-caster_x=50;
-caster_d=60;
-caster_leg_x=15;
 
 module caster_side() {
     xx=(caster_x-caster_leg_x)/2-$slop;
@@ -267,20 +284,80 @@ module caster_side() {
 }
 
 module caster_leg(l) {
-    recolor("#666") diff() {
+    diff() {
         d=caster_d-4;
+        dd=_6902ZZ[0]+3;
+        ll=d/2+17.5-3;
+        zz=3+_6902ZZ[2]/2;
         xcyl(d=d,h=caster_leg_x);
-        cuboid([caster_leg_x,d/2,d/2],anchor=BOT+BACK,chamfer=caster_leg_x/3,edges=[FWD+LEFT,FWD+RIGHT]);
-        fwd(d/2)
-        cuboid([caster_leg_x,caster_leg_x,l],chamfer=caster_leg_x/3,edges="Z",anchor=BOT+FWD);
-
-        tag("remove") xcyl(d=_6902ZZ[0]-1+$slop,h=caster_leg_x+1+ep);
+        cuboid([caster_leg_x,(d-dd)/2,d/2],anchor=BOT+BACK,chamfer=caster_leg_x/3,edges=[FWD+LEFT,FWD+RIGHT]);
+        fwd((d-dd)/2) intersection() {
+            union() {
+                r=(_6902ZZ[0]-0.75)/2;
+                cyl(r=r,h=l,anchor=BOT);
+                up(ll) zrot_copies(n=14) fwd(r) cyl(d2=0.5,d1=1,h=_6902ZZ[2],anchor=BOT,extra=ep);
+                up(l-_6902ZZ[2]/2) {
+                    zrot_copies(n=14) fwd(r) cyl(d1=0.75,d2=1,h=_6902ZZ[2]/2,anchor=BOT,extra=ep);
+                    zrot_copies(n=14) fwd(r) cyl(d2=0.75,d1=1,h=_6902ZZ[2]/2,anchor=TOP,extra=ep);
+                }
+            }
+            cuboid([caster_leg_x,_6902ZZ[0]-$slop,l],anchor=BOT);
+        }
+        fwd((d-dd)/2) intersection() {
+            cyl(d=dd,h=ll,anchor=BOT);
+            cuboid([caster_leg_x,dd,ll],anchor=BOT);
+        }
+        fwd((d-dd)/2) up(l) difference() {
+            cyl(d=_6902ZZ[0]+4,h=10,anchor=BOT);
+        }
+        tag("remove") {
+            xcyl(d=_6902ZZ[0]-1+$slop,h=caster_leg_x+1+ep);
+            fwd((d-dd)/2) {
+                up(l+10+ep) {
+                    cuboid([20,5,5],anchor=TOP);
+                }
+                up(l-zz+3) {
+                    // #cyl(d=30,h=ep,anchor=BOT,extra=ep);
+                    up(3) {
+                        cyl(d=9,h=zz+10,anchor=BOT,extra=ep);
+                        screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap",counterbore=zz)
+                        down(5.5) nut_trap_side(23,"M3",$slop=0.1);
+                    }
+                }
+            }
+        }
     }
 
     xflip_copy() right(caster_leg_x/2+$slop) children(0); // caster
     children(1); // caster_cap_right
     children(2); // caster_cap_left
     right(11.75) children(3); // bolt
+}
+
+module caster_leg_top(l) {
+    recolor("#777") 
+    intersection() {
+        up(l-(_6902ZZ[2]-$slop)/2) cuboid([100,100,200],anchor=BOT);
+        caster_leg(l){
+            nop();
+            nop();
+            nop();
+            nop();
+        }
+    }
+}
+
+module caster_leg_bottom(l) {
+    recolor("#666") 
+    intersection() {
+        up(l-(_6902ZZ[2]+$slop)/2) cuboid([100,100,200],anchor=TOP);
+        caster_leg(l) {
+            children(0);
+            children(1);
+            children(2);
+            children(3);
+        }
+    }
 }
 
 module caster_cap() {
@@ -301,14 +378,15 @@ module caster_cap_right() recolor("#666") diff() {
     caster_cap() children(); 
     caster_screw_hole();
 }
+
 module caster_cap_left() recolor("#666") diff() {
     xflip() caster_cap() children();
     caster_screw_hole();
 }
 
 module caster_spacer() recolor("#333") difference() {
-    xx=(caster_x-caster_leg_x)/2-$slop*2-_6902ZZ[2]-3;
-    #xcyl(d1=_6902ZZ[0]+8,d2=_6902ZZ[0]+4,h=xx,anchor=LEFT);
+    xx=(caster_x-caster_leg_x)/2-$slop*2-_6902ZZ[2]-2.5;
+    xcyl(d1=_6902ZZ[0]+8,d2=_6902ZZ[0]+4,h=xx,anchor=LEFT);
     xcyl(d=_6902ZZ[0]-1+$slop*2,h=xx,extra=ep,anchor=LEFT);
 }
 
@@ -320,47 +398,64 @@ module caster_screw_hole() {
 
 // !yview(true,xray=true)
 module caster(l) {
-    down(l) back((caster_d-caster_leg_x-4)/2) caster_leg(l) {
-        caster_side() %ball_bearing("6902ZZ",orient=RIGHT,anchor=TOP);
-        caster_cap_right() caster_spacer();
-        caster_cap_left() caster_spacer();
-        %m4_30() down(12) m4_nut();
+    down(l) {
+        dd=_6902ZZ[0]+3;
+        back((caster_d-4-dd)/2) {
+            caster_leg_top(l);
+            caster_leg_bottom(l) {
+                caster_side() ball_bearing("6902ZZ",orient=RIGHT,anchor=TOP);
+                caster_cap_right() caster_spacer();
+                caster_cap_left() caster_spacer();
+                %m4_30() down(12) m4_nut();
+            }
+        }
+        up((caster_d-4)/2+14.5) ball_bearing("6902ZZ",anchor=BOT);
+        up(l-ep) {
+            ball_bearing("6902ZZ",anchor=TOP);
+        }
     }
 }
-// !caster(60);
+// !caster(caster_leg_len);
 
 module leg() {
+    zz=56+14;
     recolor("#ccc")
     diff() {
         left(3) {
             fwd(75) {
-                zz=56;
-                zzz=100;
                 yy=34;
-                right(3) cuboid([45,30,zz],rounding=4,edges=[FWD],anchor=LEFT+FWD)
-                attach(BACK) cuboid([45,124,zz],orient=FWD,anchor=FWD,chamfer=5,edges=[TOP+BACK]) {
+                right(3) cuboid([45,30,zz],chamfer=10,edges=[FWD+TOP,FWD+BOT],anchor=LEFT+FWD)
+                attach(BACK) cuboid([45,124,zz],orient=FWD,anchor=FWD,chamfer=3,edges=[RIGHT+BACK]) {
                     tag("remove") attach(BACK) up(ep) {
-                        cuboid([20+$slop,40+$slop,zz-10+$slop],orient=BACK,anchor=FWD,chamfer=2,edges=[BACK]);
-                        xrot(90) left(14) fwd(40/2) zflip_copy() up(15) yrot(-90)
+                        cuboid([20+$slop,40+$slop,zz-10+$slop],orient=BACK,anchor=FWD);
+                        xrot(90) left(13) fwd(40/2) zflip_copy() up(15) yrot(-90)
                             screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
-                            down(33) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
+                            down(31) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
                     }
                 }
             }
         }
         tag("remove") {
             // axel mount cutout
-            left(3+ep) {
-                cuboid([6+$slop,50+$slop*2,50+$slop*2],anchor=LEFT,rounding=4+$slop,edges="X");
-                cuboid([52.5+ep*2,34+$slop*2,50+$slop*2],anchor=LEFT);
-                zflip_copy() yflip_copy() back(41/2) up(41/2) {
-                    right(3-ep) screw_hole("M3",l=13,head="socket",atype="head",orient=LEFT,anchor=BOT,tolerance="tap");
-                    right(12) xrot(90) nut_trap_side(23,"M3",orient=LEFT,$slop=0.1);
+            left(3+ep*2) {
+                yy=20;
+                cuboid([52.5+ep*2,34+$slop*2,61+$slop*2],anchor=LEFT);
+                fwd(yy) zflip_copy() up(52/2) {
+                    back(41/2+yy) {
+                        cuboid([6,9+$slop*2,9+$slop*2],anchor=LEFT,rounding=4,edges=[TOP+BACK,BOT+BACK]);
+                        right(3-ep) screw_hole("M3",l=13,head="socket",atype="head",orient=LEFT,anchor=BOT,tolerance="tap");
+                        right(12) xrot(90) nut_trap_side(23,"M3",orient=LEFT,$slop=0.1);
+                    }
+                    yflip() back(41/2+yy) {
+                        cuboid([6,9+$slop*2,9+$slop*2],anchor=LEFT,rounding=4,edges=[TOP+FWD,TOP+BACK]);
+                        right(3-ep) screw_hole("M3",l=13,head="socket",atype="head",orient=LEFT,anchor=BOT,tolerance="tap");
+                        right(12) xrot(180) nut_trap_side(23,"M3",orient=LEFT,$slop=0.1);
+                    }
                 }
             }
             // stepper cutout
             fwd(73-2) right(21.35-ep) {
-                nema_stepper_motor(size=17,h=39,shaft_len=30,orient=FWD,details=false);
+                nema_stepper_motor(size=17,h=50,shaft_len=30,orient=FWD,details=false);
                 ycyl(d=22.5,h=10,anchor=BACK);
             }
             // stepper shaft cutout
@@ -370,7 +465,24 @@ module leg() {
                 zflip_copy() xflip_copy() left(15.5) up(15.5)
                     screw_hole("M3",l=8,head="socket",atype="head",orient=FWD,anchor=BOT,tolerance="tap");
 
-                back(42) cuboid([30,12,18],anchor=BACK+LEFT);
+                back(52) cuboid([30,24,18],anchor=BACK+LEFT);
+            }
+            // tool pin hole
+            right(45/2) back(28) cyl(d=15,h=zz,chamfer=-3,extra=ep);
+
+            right(45+$slop) {
+                yy=34;
+                wall=2;
+                fwd(75) back(154/2+5) zflip_copy() up(zz/2-5) {
+                    back(154/2-5-5) {
+                        screw_hole("M3",l=12.6+ep,head="socket",atype="shaft",orient=RIGHT,anchor=TOP,tolerance="tap",counterbore=7);
+                        left(6) fwd(1.5) xrot(90) yrot(90) nut_trap_side(30,"M3",$slop=0.1);
+                    }
+                    yflip() back(154/2-5-5) {
+                        screw_hole("M3",l=15,head="socket",atype="shaft",orient=RIGHT,anchor=TOP,tolerance="tap",counterbore=7);
+                        left(6) fwd(0*1.5) yrot(90) nut_trap_side(30,"M3",$slop=0.1);
+                    }
+                }
             }
         }
     }
@@ -380,124 +492,207 @@ module leg() {
     children(3); // axle_mount
     right(45+$slop) children(4); // leg cap
 }
-// !xflip_copy() left(50) yrot(90) leg(); // print
 
 module leg_cap() {
-    recolor("#f84") fwd(71) {
-        zz=56;
-        zzz=100;
-        yy=34;
-        cuboid([10-$slop,30,zz],anchor=LEFT+FWD,chamfer=5,edges=[FWD+RIGHT])
-        attach(BACK) cuboid([10-$slop,120,zz],orient=FWD,anchor=FWD,chamfer=5,edges=[TOP+BACK]);
+    zz=56+14;
+    yy=34;
+    wall=2;
+    recolor("#f84") fwd(75) {
+        diff() {
+            cuboid([10,35,zz],anchor=LEFT+FWD,chamfer=10,edges=[FWD+RIGHT,FWD+TOP,FWD+BOT])
+            attach(BACK) cuboid([10,119,zz],orient=FWD,anchor=FWD);
+
+            tag("remove") {
+                cuboid([$slop,119+35,zz],anchor=LEFT+FWD);
+
+                difference() {
+                    left(ep) back(wall) cuboid([10-wall,35-wall,zz-wall*2],anchor=LEFT+FWD,chamfer=10-wall,edges=[FWD+RIGHT,FWD+TOP,FWD+BOT])
+                    attach(BACK) cuboid([10-wall,119+ep,zz-wall*2],orient=FWD,anchor=FWD,chamfer=5,edges=[TOP+BACK]);
+                    back(154/2+5) zflip_copy() up(zz/2-5) {
+                        back(154/2-5-5) cuboid([20,10,10],rounding=5,edges=[FWD+TOP,FWD+BOT]);
+                        yflip() back(154/2-5-5) cuboid([20,10,10],rounding=5,edges="X");
+                    }
+                }
+
+                right(10) back(154/2+5) zflip_copy() up(zz/2-5) yflip_copy() back(154/2-5-5)
+                    screw_hole("M3",l=15,head="socket",atype="head",orient=RIGHT,anchor=TOP,tolerance="tap",counterbore=7);
+            }
+        }
+    }
+
+    fwd(75) right(10-7) back(154/2+5) zflip_copy() up(zz/2-5) yflip_copy() back(154/2-5-5)
+        children(0); // screw
+}
+
+module body_tray() {
+    wall=3;
+    color("#f84") diff() {
+        hull() {
+            cuboid([184-wall*4-$slop*2,140-wall*4-$slop*2,ep],anchor=BOT+FWD,chamfer=12+$slop*2,edges=[BACK+LEFT,BACK+RIGHT]);
+            up(5) back(5) cuboid([184-wall*4-$slop*2,140-wall*4-$slop*2-5,ep],anchor=BOT+FWD,chamfer=12+$slop*2,edges=[BACK+LEFT,BACK+RIGHT]);
+        }
+        tag("remove") down(ep) fwd(ep) cuboid([150+$slop*4,94+$slop*2+ep,5+ep*3],anchor=BOT+FWD);
+    }
+}
+
+module body_lid() {
+    w=250;
+    wall=3;
+    rr=45;
+    slop=0.5;
+    color("#ccc") diff() {
+            back(120-55+slop) {
+            cuboid([w-wall*2-slop*2,20+55-wall-slop*2,wall],anchor=FWD+TOP,rounding=rr-wall-slop,edges=[BACK+LEFT,BACK+RIGHT]);
+            xflip_copy() right(184/2-wall-ep-slop) {
+                back(ep) cuboid([12+ep,12+ep,wall],anchor=BACK+TOP+LEFT,rounding=6,edges=[RIGHT+FWD]);
+                right(6) fwd(6) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
+                    attach(BOT) down(2) nut_trap_side(30,"M3",$slop=0.1,anchor=TOP);
+            }
+        }
+        back(wall+4+slop+99/2) cuboid([184-wall*2-slop*2,99+2+wall*2-slop,wall],anchor=TOP);
+        tag("remove") up(ep) back(120) cyl(d=20,h=wall+ep*2,anchor=TOP);
     }
 }
 
 module body() {
-    w=210;
-    zz=56;
-    zzz=105;
+    w=250;
+    zz=56+14;
     yy=113;
     yyy=79;
     xx=23;
-    recolor("#ccc")
-    back($slop) diff() {
-        xflip_copy() 
-        left(w/2-0.5) {
-            back(yyy) down(zz/2-5) {
-                left(xx) {
-                    cuboid([w/2+xx,yy-50,zzz],anchor=FWD+LEFT+BOT,rounding=10,edges=LEFT+FWD)
-                        attach(BACK) cuboid([w/2+xx,50,zzz],orient=FWD,anchor=FWD,rounding=50,edges=RIGHT+BACK);
-                    wall=5;
-                    tag("remove") {
-                        up(wall) back(wall) right(wall)
-                        difference() {
-                            cuboid([50,yy-50-wall*2,zzz],anchor=FWD+LEFT+BOT,rounding=10-wall,edges=LEFT+FWD)
-                                attach(BACK) down(ep)
-                                    cuboid([50,50,zzz],orient=FWD,anchor=FWD,rounding=50-wall,edges=RIGHT+BACK);
-                            right(xx+w/2-0.5-wall)
-                            left(152/2+3)
-                            {
-                                cuboid([w/2-wall*2,yy-wall*2,zzz],anchor=FWD+LEFT+BOT);
-                            }
-                            // wheel cutout
-                            right(50) fwd(yyy) up(zz/2-5)
-                            xcyl(d=220+1,h=50,rounding1=-5,anchor=RIGHT);
-                        }
+    wall=3;
+    rr=45;
+    recolor("#ccc") back(yyy) diff() {
+        cuboid([w,140,zz],anchor=FWD,rounding=rr,edges=[BACK+LEFT,BACK+RIGHT]);
+        xflip_copy() left(w/2+3-45/2) cuboid([20-1-$slop,38,60-1-$slop],anchor=BACK);
+        tag("remove") {
+            // wire slot
+            xflip_copy() fwd(ep) left(w/2+3-45/2-(20-$slop)/2-12) down((60-$slop)/2) {
+                up(15) right(1) cuboid([5,(wall+ep)*2,30-$slop],anchor=FWD+LEFT+BOT);
+                // back(wall*2) cuboid([5,115,100-$slop],anchor=FWD+LEFT+BOT);
+            }
+
+            // main body cutout
+            //#down(zz/2-wall) back(wall*2) cuboid([150+2,99+2,64+6],anchor=BOT+FWD);
+            up(zz/2+ep) back(wall*2) {
+                cuboid([184-wall*4,140-wall*4,zz-wall],anchor=TOP+FWD,chamfer=12,edges=[BACK+LEFT,BACK+RIGHT]);
+            }
+            
+            // top pocket lip
+            up(zz/2+ep) {
+                back(120-55) {
+                    cuboid([w-wall*2,20+55-wall,wall],anchor=FWD+TOP,rounding=rr-wall,edges=[BACK+LEFT,BACK+RIGHT]);
+                    xflip_copy() right(184/2-wall-ep) {
+                        back(ep) cuboid([12+ep,12+ep,wall],anchor=BACK+TOP+LEFT,rounding=6,edges=[RIGHT+FWD]);
+                        right(6) fwd(6) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
+                            attach(BOT) down(2) nut_trap_side(30,"M3",$slop=0.1,anchor=TOP);
                     }
                 }
-                right(22.5) up((zz-10)/2) {
-                    cuboid([20,40,zz-10],anchor=BACK,chamfer=2,edges=[FWD]);
-                    tag("remove") left(14) fwd(40/2) zflip_copy() up(15) yrot(-90)
-                        screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
-                        down(33) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
-
+                back(wall+4+$slop+99/2) cuboid([184-wall*2,99+2+wall*2,wall],anchor=TOP);
+            }
+            // top pocket
+            up(zz/2+ep*2-wall) back(120-55+wall) cuboid([w-wall*4,20+55-wall*3,10],anchor=FWD+TOP,rounding=rr-wall*2,edges=[BACK+LEFT,BACK+RIGHT]);
+            
+            // tool pin hole
+            xflip_copy() back(20) fwd($slop) left(w/2+3-45/2) 
+            cyl(d=15,h=zz,chamfer=-3,extra=ep);
+            // leg screws
+            xflip_copy() left(w/2+3-8.5) fwd(40/2+$slop) zflip_copy() up(15) yrot(-90)
+            screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0,tolerance="loose");
+            // caster hole
+            back(177-15.75-yyy) xflip_copy() left(w/2+2.25-45/2)  {
+                zzz=$slop+caster_leg_len-50;
+                down(35) {
+                    cyl(d=_6902ZZ[1]+$slop,h=_6902ZZ[2]+$slop,anchor=BOT,extra=ep);
+                    cyl(d=_6902ZZ[1]-4,h=zzz,anchor=BOT,extra=ep);
+                    up(zzz) cyl(d=_6902ZZ[1]+$slop,h=_6902ZZ[2]+$slop*2+10,anchor=BOT,extra=ep);
+                }
+                // caster encoder screw holes
+                up(zz/2+ep-wall-10+4) {
+                    right(15) fwd(10) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
+                        attach(BOT) down(2) zrot(180) nut_trap_side(30,"M3",$slop=0.1,anchor=TOP);
+                    back(15) left(10) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
+                        attach(BOT) down(2) zrot(242) nut_trap_side(20,"M3",$slop=0.1,anchor=TOP);
                 }
             }
-            tag("remove") {
-                // wheel cutout
-                xcyl(d=220,h=xx+ep,rounding1=-5,anchor=RIGHT);
-            }
-        }
-        // battery cutout
-        tag("remove") {
-            down(20) back(yyy+8) {
-                cuboid([152+$slop*2,65+$slop*2,zzz+$slop],anchor=BOT+FWD);
-                cuboid([30,100,zzz+$slop],anchor=BOT+FWD);
-                back(65+3)
-                    cuboid([152+$slop*2,32,zzz+$slop],anchor=BOT+FWD);
-            }
+
         }
     }
-    xflip_copy()
-    // xflip()
-    fwd($slop) left(w/2-0.5) children(0); // leg
-    down(17.5) back(177.5-15) xflip_copy() left(112.75-15)
+
+    xflip_copy() fwd($slop) left(w/2+3) children(0); // leg
+    down(77.5-caster_leg_len) back(177-15.75) xflip_copy() left(w/2+2.25-45/2)
         zrot(180) children(1); // caster
-    down(17) back(yyy+8+$slop) children(2); // battery
+    down(33) back(6+yyy+$slop) children(2); // battery
+    back(yyy+$slop) down(zz/2-wall-$slop) back(wall*2) children(3); // body_tray
+    up(zz/2+$slop) back(yyy) children(4); // body_lid
 }
-// !body(); // print
 
 module robot() {
-    up(107.5) 
-    //zview()
+    // up(107.5) 
     body() {
+        // nop();// 
         leg() {
-            motor();
-            // skip()
+            motor() m3_8();//*4
             drive_gear();
-            // skip() 
-            wheel() %m5_30() down(27) m5_nut();
-            // skip() 
-            // !render() yview(true,xray=true)
+            wheel() m5_30() down(27) m5_nut();
             axle_mount() {
-                %axle() {
-                    %ball_bearing("6902ZZ",orient=RIGHT,anchor=BOT);
-                    %magnet();
+                axle() {
+                    ball_bearing("6902ZZ",orient=RIGHT,anchor=BOT);
+                    magnet();
                 }
-                //skip()
                 as5600_mount() {
                     as5600();
                     as5600_mount_cap() m3_11() down(11) m3_nut();
                 }
                 m3_11() down(10.5) m3_nut();
             }
-            leg_cap();
+            leg_cap() m3_11();
         }
-        caster(60);
-        color("#444") cuboid([150,65,99],anchor=BOT+FWD); // battery
+        // nop();// 
+        caster(caster_leg_len);
+        color("#444") cuboid([150,94,65],anchor=BOT+FWD); // battery
+        body_tray();
+        body_lid();
     }
 }
 
-// yview(true)
+
+// !yrot(-90) wheel(); // print
+// !axle(); // print
+// !up(102) drive_gear(); // print
+// !yrot(-90) axle_mount(); // print
+// !yrot(-90) as5600_mount_cap(); // print
+// !yrot(-90) as5600_mount(); // print
+
+// !yrot(-90) caster_side(); // print
+// !yrot(-90) caster_leg_bottom(caster_leg_len); // print
+// !xrot(180) caster_leg_top(caster_leg_len); // print
+// !yrot(90) caster_cap_right(); // print
+// !yrot(-90) caster_cap_left(); // print
+// !yrot(-90) caster_spacer(); // print
+
+// !yrot(90) leg(); // print left
+// !yrot(-90) xflip() leg(); // print right
+// !yrot(90) leg_cap() nop(); // print
+// !body(); // print
+
+// !body_tray();
+// !body_lid();
+
+// zrot($t*360) render()
+// zview(true)
+//right(128-45/2) up(15) 
+// back(154/2-5-5-5)
+
+// yview() fwd(59) left(112.75-15)
 robot();
-up(300) {
-    measure([-50,50,0],[50,50,0]);
-    // measure([-50,-93,0],[50,-93,0]);
-    measure([-105,-50,0],[105,-50,0]);
-    measure([-30,-71,0],[-30,79,0]);
-    measure([-128,200,0],[128,200,0]);
-}
 /*
+up(300) {
+    measure([-75,50,0],[75,50,0]);
+    // measure([-50,-93,0],[50,-93,0]);
+    measure([-75,-71,0],[-75,79,0]);
+    measure([-128,100,0],[128,100,0]);
+}
 xrot(90) up(300) {
     measure([-55,0,0],[-55,78,0]);
     measure([-70,0,0],[-70,78+56,0]);
@@ -509,6 +704,8 @@ xrot(90) up(300) {
     left(100) for(i=[0:9]) right(i*20) cuboid([10,10,x[i]*25.4],anchor=BOT);
 }
 */
+
+// !wheel();
 
 echo(str("\n",
 "sh ./do_mp4.sh u-bot.scad ",
