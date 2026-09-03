@@ -13,7 +13,7 @@ const unsigned long startStepDelayUs = 9000;  // step interval at start/stop (sl
 const long accelSteps                = 200;   // steps spent ramping up (and down)
 
 const int openPos  = 90;   // blade retracted, clear of the wire (TUNE THIS)
-const int stripPos = 170;   // partial cut to score insulation
+const int stripPos = 172;   // partial cut to score insulation
 const int pullPos = 140;    // position the cutter to pull insulation from the wire
 const int cutPos   = 180;   // full cut to sever the wire
 const int cutDwellMs = 400; // time for the servo/blade to reach position
