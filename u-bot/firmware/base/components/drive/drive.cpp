@@ -133,7 +133,7 @@ struct State {
     // on decides the sign of a turn. See DRIVE_MECHANISM.md.
     int8_t signA = +1;
     int8_t signB = -1;
-    bool aIsLeft = true;
+    bool aIsLeft = false;   // on this build wheel A is on the right
     float trackM = 0.263f;   // wheel centre to wheel centre, from u-bot.scad; measure it
 
     uint32_t tickWorst = 0;
@@ -478,7 +478,7 @@ void tickerCb(void *) {
 void loadSettings() {
     S.signA = settings_get_i32("sign_a", +1) < 0 ? -1 : +1;
     S.signB = settings_get_i32("sign_b", -1) < 0 ? -1 : +1;
-    S.aIsLeft = settings_get_i32("a_left", 1) != 0;
+    S.aIsLeft = settings_get_i32("a_left", 0) != 0;
     S.trackM = settings_get_f32("track_m", 0.263f);
     float vmax = constrain(settings_get_f32("vmax_tps", 1.0f), 0.05f, VMAX_LIMIT);
     float accel = constrain(settings_get_f32("accel_tps2", 8.0f), 0.5f, ACCEL_LIMIT);

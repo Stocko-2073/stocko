@@ -132,7 +132,7 @@ stats / stats reset           control timing, bus health, dropped log lines
 | key | default | meaning |
 |---|---|---|
 | `sign_a`, `sign_b` | +1, -1 | robot-forward to wheel-encoder-positive. A is +1 by fiat; B is the mirror. See below. |
-| `a_left` | 1 | wheel A is the left wheel (decides the sign of a turn) |
+| `a_left` | 0 | 1 if wheel A is the left wheel, 0 if the right (decides the sign of a turn). On this build A is on the right |
 | `track_m` | 0.263 | wheel centre to wheel centre, m. From the CAD; **measure it** |
 | `vmax_tps`, `accel_tps2` | 1.0, 8.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
 | `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
@@ -150,9 +150,12 @@ up) and stops there. The wheels are mirrored, so `sign_b = -1` is what the
 mechanism predicts and has not been confirmed by watching the robot. Run
 `enable` then `demo short` and watch beat 2, "in phase": if the wheels
 counter-rotate instead of rolling the same way, `set sign_b 1`. If the robot
-drives backwards on `drive 0.2 0`, flip **both** signs. Never fix a frame
-problem with `wheel X invert` -- that bit was measured together with the clock
-gain and the loop depends on it.
+drives backwards on `drive 0.2 0`, flip **both** signs. If forward is right but
+a turn goes the wrong way (stick left, robot turns right), the wheels sit on
+the opposite sides from what `a_left` says: flip `a_left`. That was the case
+on this build once it came off the test rack, hence the default of 0. Never
+fix a frame problem with `wheel X invert` -- that bit was measured together
+with the clock gain and the loop depends on it.
 
 ## WebSocket protocol (`ws://ubot.local/ws`)
 
