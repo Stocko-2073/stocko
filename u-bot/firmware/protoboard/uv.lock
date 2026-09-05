@@ -1,0 +1,23 @@
+version = 1
+revision = 1
+requires-python = ">=3.12"
+
+[[package]]
+name = "protoboard"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "stripboard" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "stripboard", specifier = ">=0.1.1" }]
+
+[[package]]
+name = "stripboard"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4a/5e/4b4790aa042a356413ebadaed16000a1f16bfa51b43dee4bf579086894ec/stripboard-0.1.1.tar.gz", hash = "sha256:ab5479205c362cc06ac1d4dca8adc4941aa78d064f9e8529e2aafa26859f00cf", size = 160645 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/ce/5f8696e6e04c25852e2b7bb3d3f97420b498ee4ecf5b9fb8bcb94524c048/stripboard-0.1.1-py3-none-any.whl", hash = "sha256:79ea295f194b6b4281e8fce16f18dca265a53e28d862faad396adb17debdc855", size = 94245 },
+]
