@@ -1,0 +1,34 @@
+# The Xcode project is generated from project.yml. Edit the spec, not the
+# project:  brew install xcodegen && xcodegen generate
+UBot.xcodeproj/
+UBot.xcworkspace/
+# Generated from the `info:` block in project.yml, same as the project itself.
+UBot/Info.plist
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# SwiftPM
+.build/
+.swiftpm/
+Packages/*/.build/
+Packages/*/.swiftpm/
+Package.resolved
+
+# Test footage. The root .gitattributes routes *.mp4 and *.mov through Git LFS,
+# and a screen recording is tens of megabytes -- never let one in by accident.
+*.mp4
+*.mov
+
+.DS_Store

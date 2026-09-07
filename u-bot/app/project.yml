@@ -1,0 +1,104 @@
+# XcodeGen spec. This file is the source of truth; UBot.xcodeproj is generated
+# and gitignored.
+#
+#   brew install xcodegen
+#   cd u-bot/app && xcodegen generate && open UBot.xcodeproj
+#
+name: UBot
+
+options:
+  bundleIdPrefix: com.stocko
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  # The BLE stack lives in a plain SPM package so it also builds and runs on
+  # macOS. That is what lets `ubotctl` verify the GATT contract against real
+  # hardware with no Xcode involved. See Packages/UBotCore/README notes.
+  UBotCore:
+    path: Packages/UBotCore
+
+settings:
+  base:
+    # Swift 5 language mode on purpose. Xcode 26 defaults new projects to Swift
+    # 6 with MainActor default isolation, which is right for the SwiftUI layer
+    # and wrong for BLERobotLink and DriveTicker -- those own a serial queue and
+    # must never hop to the main actor. Migrate deliberately, not by default.
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: "266VNLKVKQ"  # Sam Washburn. Xcode must be signed in as sam@samwashburn.com
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GCC_WARN_ABOUT_RETURN_TYPE: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+
+targets:
+  UBot:
+    type: application
+    platform: iOS
+    sources:
+      - path: UBot
+    dependencies:
+      - package: UBotCore
+        product: UBotCore
+    info:
+      path: UBot/Info.plist
+      properties:
+        CFBundleDisplayName: U-BOT
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+
+        # An empty dict is all iOS needs to grant the app the device's native
+        # canvas. Without it the app is treated as legacy and rendered into a
+        # 375x568 box scaled to the screen width -- which costs about a third
+        # of the height and squeezes the joystick to a coin.
+        #
+        # INFOPLIST_KEY_UILaunchScreen_Generation cannot do this job: Xcode
+        # only applies INFOPLIST_KEY_* when it generates the plist, and this
+        # target ships an explicit one. It has to be declared here.
+        UILaunchScreen: {}
+
+        # Every one of these strings is shown verbatim in the system alert, so
+        # they are written as sentences that say why.
+        NSCameraUsageDescription:
+          U-BOT shows the camera behind the controls so the video you record
+          includes what the robot is doing.
+        NSBluetoothAlwaysUsageDescription:
+          U-BOT connects to the robot over Bluetooth to drive it and read its
+          status.
+        NSPhotoLibraryAddUsageDescription:
+          U-BOT saves the videos you record to your photo library.
+        NSMicrophoneUsageDescription:
+          U-BOT records sound with your video when the microphone is switched
+          on.
+
+        # Portrait only. The resulting 19.5:9 vertical video is what Reels,
+        # TikTok and Shorts want, and a fixed orientation means the camera
+        # preview never has to rotate.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+
+        # Full-bleed camera, and it keeps the status bar out of the recording.
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: false
+        UIUserInterfaceStyle: Dark
+
+        UIRequiredDeviceCapabilities:
+          - arm64
+          - bluetooth-le
+
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+
+        # No UIBackgroundModes, on purpose. This app must not be able to drive
+        # a robot while it is off screen. See the safety model in README.md.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocko.ubot
+        TARGETED_DEVICE_FAMILY: "1"     # iPhone only
