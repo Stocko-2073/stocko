@@ -8,3 +8,4 @@ u-bot/stls
 WireHandler/stls
 u-bot/firmware/base/build
 u-bot/firmware/test_servo/__pycache__
+xyz/devlog/*.mp4

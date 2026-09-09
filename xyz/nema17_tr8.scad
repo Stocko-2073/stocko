@@ -50,7 +50,7 @@ function tr8_nut_spec(type) =
 
 // nut = "motor" | "brass" | false; nut_pos = pilot face to the nut's stub end,
 // so 0 is the nut resting on the pilot boss
-module nema17_tr8(nut="motor", nut_pos=0, threads=true, anchor=TOP, spin=0, orient=UP) {
+module nema17_tr8(nut="motor", nut_pos=0, nut_spin=0, threads=true, anchor=TOP, spin=0, orient=UP) {
     L=n17t_len; W=n17_w;
     zp = L/2+n17_pilot_h;  // pilot face
     nut_type = nut==true ? "motor" : nut;
@@ -78,7 +78,7 @@ module nema17_tr8(nut="motor", nut_pos=0, threads=true, anchor=TOP, spin=0, orie
                         starts=tr8_starts, bevel2=true, anchor=BOT);
                 else
                     cyl(d=tr8_d, h=tr8_len, chamfer2=0.5, anchor=BOT);
-            if (!is_undef(ns)) up(zp+nut_pos) tr8_flange_nut(nut_type);
+            if (!is_undef(ns)) up(zp+nut_pos) zrot(nut_spin) tr8_flange_nut(nut_type);
         }
         children();
     }
