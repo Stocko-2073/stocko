@@ -271,18 +271,82 @@ module z_carriage(anchor=BOT,spin=0,orient=UP) {
     }
 }
 
-// Draw a square path: interpolate $t from 0 to 1 around the square
-// This version ensures the value goes from 0 to the extent, rather than negative to positive
+// 7x9 cm phenolic protoboard, pads up, sitting on the table's pocket floor. The grid is
+// drawn as pads with dark dots for the holes (a real hole per pad is 800-odd differences
+// the preview can't afford); `drilled` is a list of board [x,y] to cut real holes at.
+pb_size=[90,70,1.6];
+pb_pitch=2.54;
+pb_n=[33,25];
+pb_col="#a67233";
+module protoboard(drilled=[], d=3.175, anchor=BOT, spin=0, orient=UP) {
+    attachable(anchor,spin,orient,size=pb_size) {
+        down(pb_size.z/2) difference() {
+            union() {
+                color(pb_col) cuboid(pb_size,anchor=BOT);
+                up(pb_size.z) grid_copies(spacing=pb_pitch,n=pb_n) {
+                    color("#dca070") cyl(d=1.9,h=0.1,anchor=BOT);
+                    color("#2a1a0e") cyl(d=1,h=0.15,anchor=BOT);
+                }
+            }
+            for (h=drilled) translate(h) color(pb_col) cyl(d=d,h=pb_size.z*3);
+        }
+        children();
+    }
+}
 
-function square_interp(t, w, h) = 
-    t < 0.25 ? [t*4*w, 0] :
-    t < 0.5  ? [w, (t-0.25)*4*h] :
-    t < 0.75 ? [w - (t-0.5)*4*w, h] :
-               [0, h - (t-0.75)*4*h];
+// ---- drilling demo ------------------------------------------------------------
+// A G81-style canned cycle over a list of holes: rapid to above the hole at the safe
+// height, rapid down to the retract plane just over the work, feed to depth, dwell,
+// rapid back up to the safe height, and on to the next hole. The table carries the
+// work under the fixed spindle, so hole positions are table travel (the X and Y nut
+// positions, 0..84 and 0..70) and heights are the bit's tip. The cycle starts above
+// the first hole and the last rapid returns there, so the video loops. Rapids ramp up
+// and down; the plunge runs at a steady feed. Times are seconds; the echo at the end
+// prints the frame count that plays the whole cycle once at 60 fps. The lead screws
+// turn with their nuts (see nema17_tr8) and the spindle runs throughout; holes appear
+// in the protoboard as the bit bottoms out in each.
+holes=[[8,8],[76,8],[42,35],[8,62],[76,62]];   // [x,y] table travel, in drilling order
+work_top=29+pb_size.z;    // tip Z of the top of the work: the protoboard on the pocket floor
+depth=pb_size.z+1;        // through the board, plus the drill point so the hole is full size underneath
+z_safe=work_top+6;        // tip height for XY moves
+z_retract=work_top+1;     // retract plane: rapid down to here, feed from here
+rapid_xy=60;              // mm/s
+rapid_z=20;
+feed_z=6;
+dwell=0.1;
+tip_to_nut=21;            // Z nut_pos is the tip height less this: flange 5.5 over the pilot at 49, block 51.5, shaft 24 down, chuck 12 on it, seat 13 in, bit 60
+spindle_rpm=180;          // slow enough to read at 60 fps; rounded to whole turns per cycle so the loop is clean
+// the stage's 84x70 travel is centered on the 90x70 pocket, so this is where the bit
+// lands on the board (board coordinates, centered) for a given table travel
+function bit_on_board(xy) = [42-xy.x, xy.y-35];
 
-pos = [84,70];//square_interp($t, 84, 70);
-pos_z=10.5+sin($t*360*6)*4+2;   // nut under the block now: 55 lower (block plus flange) for the same spindle height
-up(32) fwd(33) right(8.5) color("red") sphere(2);
+function smoothstep(u) = u*u*(3-2*u);
+// each move: [duration, end point [x,y,tipz], eased?]; the cycle starts above holes[0]
+function drill_moves(i) = let(h=holes[i], n=holes[(i+1)%len(holes)]) [
+    [(z_safe-z_retract)/rapid_z,       [h.x,h.y,z_retract],       true ],
+    [(z_retract-(work_top-depth))/feed_z, [h.x,h.y,work_top-depth], false],
+    [dwell,                             [h.x,h.y,work_top-depth], false],
+    [(z_safe-(work_top-depth))/rapid_z, [h.x,h.y,z_safe],         true ],
+    [norm(n-h)/rapid_xy,                [n.x,n.y,z_safe],         true ],
+];
+moves=[for (i=[0:len(holes)-1]) each drill_moves(i)];
+move_ends=cumsum([for (m=moves) m[0]]);
+demo_total=last(move_ends);
+function demo_pos(t) = let(
+        T=min(t*demo_total, demo_total-ep),
+        k=[for (i=idx(moves)) if (T<move_ends[i]) i][0],
+        t0=k==0 ? 0 : move_ends[k-1],
+        a=k==0 ? [holes[0].x,holes[0].y,z_safe] : moves[k-1][1],
+        b=moves[k][1],
+        u=moves[k][0]<=0 ? 1 : (T-t0)/moves[k][0]
+    ) lerp(a, b, moves[k][2] ? smoothstep(u) : u);
+
+p=demo_pos($t);
+pos=[p.x,p.y];
+pos_z=p.z-tip_to_nut;
+demo_T=$t*demo_total;
+drilled=[for (i=idx(holes)) if (demo_T>=move_ends[5*i+1]) bit_on_board(holes[i])];   // holes bottomed out so far
+spindle_ang=$t*round(demo_total*spindle_rpm/60)*360;
 down(17) back(35.5+hf) right(17) tag_scope() diff() {
     tag_this("keep") nema17_tr8(nut_pos=pos.y+mb,nut_spin=45,orient=FWD) {
         attach(TOP) { tower(); up(explode) base_plate(); }
@@ -293,7 +357,8 @@ down(17) back(35.5+hf) right(17) tag_scope() diff() {
             if (show_stage) xrot(-90) fwd(30) up(17) left(17+mb) tag_scope() diff() 
             tag_this("keep") nema17_tr8(nut_pos=pos.x+mb,nut_spin=45,orient=RIGHT) {
                 attach("nut_flange") {
-                    x_carriage();
+                    // the board sits on the pocket floor, drawn in the carriage's pre-rotation frame
+                    x_carriage() yrot(-90) up(29.2) left(41) protoboard(drilled=drilled);
                     zrot(45) tag("remove") tr8_nut_mount_mask(8,hole_d=m3_tap,anchor=BOT);
                     tr8_nut_screws();
                 }
@@ -317,7 +382,7 @@ nema17_tr8(nut_pos=pos_z,nut_spin=45,spin=180) {
     // the bit seat
     attach("nut_flange") z_carriage()
         attach("spindle") nema17_pancake()
-            attach("shaft_tip") down(12) mini_chuck(bit=3.175,spin=90)
+            attach("shaft_tip") down(12) mini_chuck(bit=3.175,spin=90+spindle_ang)
                 position("bit_seat") drill_bit();
 }
 
@@ -328,5 +393,5 @@ echo(str("\n",
 "sh ./do_mp4.sh xyz.scad ",
 $vpt[0],",",$vpt[1],",",$vpt[2],",",
 $vpr[0],",",$vpr[1],",",$vpr[2],",",
-$vpd,
+$vpd," ",ceil(demo_total*60),
 "\n"));

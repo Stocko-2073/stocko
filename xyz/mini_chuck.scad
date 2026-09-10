@@ -31,9 +31,9 @@ $fn=0;$fa=1;$fs=$preview?0.5:0.25;
 
 // -- colours ------------------------------------------------------------------
 mc_col_brass = "#c49a3c";
-mc_col_nut   = "#1e1e1e";
+mc_col_nut   = "#444";
 mc_col_steel = "#c8c8c8";
-mc_col_screw = "#2a2a2a";
+mc_col_screw = "#444";
 
 // -- brass arbor --------------------------------------------------------------
 mc_body_d      = 10;     // knurled body Ø

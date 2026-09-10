@@ -49,8 +49,10 @@ function tr8_nut_spec(type) =
     found[0];
 
 // nut = "motor" | "brass" | false; nut_pos = pilot face to the nut's stub end,
-// so 0 is the nut resting on the pilot boss
-module nema17_tr8(nut="motor", nut_pos=0, nut_spin=0, threads=true, anchor=TOP, spin=0, orient=UP) {
+// so 0 is the nut resting on the pilot boss. The screw turns with the nut's travel
+// (right-hand thread: one turn back per lead of travel out) unless screw_spin is given.
+module nema17_tr8(nut="motor", nut_pos=0, nut_spin=0, screw_spin=undef, threads=true, anchor=TOP, spin=0, orient=UP) {
+    ss = is_undef(screw_spin) ? -nut_pos/(tr8_pitch*tr8_starts)*360 : screw_spin;
     L=n17t_len; W=n17_w;
     zp = L/2+n17_pilot_h;  // pilot face
     nut_type = nut==true ? "motor" : nut;
@@ -72,7 +74,7 @@ module nema17_tr8(nut="motor", nut_pos=0, nut_spin=0, threads=true, anchor=TOP, 
             down(L/2-n17t_wire_exit) fwd(W/2) color(n17_col_plastic)
                 cuboid(n17t_wire_block, anchor=BACK);
             // lead screw
-            up(L/2) color(n17_col_steel)
+            up(L/2) color(n17_col_steel) zrot(ss)
                 if (threads)
                     trapezoidal_threaded_rod(d=tr8_d, l=tr8_len, pitch=tr8_pitch,
                         starts=tr8_starts, bevel2=true, anchor=BOT);
