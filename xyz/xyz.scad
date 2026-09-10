@@ -80,13 +80,14 @@ module m3_nut(anchor=BOT,spin=0,orient=UP) {
 // -22), from the housing's front face at z=4. The tower grows a foot forward along the
 // floor under the plate's end, the plate is recessed underneath to sit on it, and two
 // M3x13 come up through the foot into nuts sitting on the plate's top; nut and screw
-// end stand about 7 above the bed, which the Y carriage runs well clear of. The Y
-// nut sits right at the housing face, so nothing may stand on the plate above y=-11
-// within 11 of the screw axis; the nuts are well clear of that.
-foot_x=[-7,37];         // foot across: 6 in from the plate's edge, 12 past the housing's side
+// end stand about 7 above the bed. The Y carriage's nut mount runs the length of the
+// plate within 12 of the Y screw axis, and comes right up to the housing face, so nothing
+// may stand on the bed inside x=+-12; the screws sit to the right of that, and the foot
+// reaches out past the housing to carry them.
+foot_x=[-7,60];         // foot across: 6 in from the plate's edge, 35 past the housing's side
 foot_t=5;               // foot thickness, the plate is recessed this much to sit on it
 foot_l=20;              // foot length forward of the housing face
-foot_scr=[3,27];        // screw xs, both 12 forward of the housing face
+foot_scr=[22,50];       // screw xs, both 12 forward of the housing face
 foot_sz=4+12;
 foot_cb=3.2;            // head counterbore in the foot's underside
 hx=22+wall;             // the housing's +x face
@@ -107,11 +108,13 @@ module tower(anchor=BOT,spin=0,orient=UP) {
             // (x-17, z+17, 39.5-y) with the screw along +Y and the motor's +X to the left.
             translate([-8.5,64,-22.5]) frame_map(x=LEFT,z=BACK) {
                 fin_h=90;   // fins reach up to about the screw tip
-                fin_fl=8;   // stiffening flange along each fin's back edge, turned inward
+                fin_fl=8;   // flange along each fin's back edge, turned inward: stiffens it, and
+                            // is what the Z carriage hooks behind
                 color_this("#884") fwd(wall/2+0.5-ep) {
                     up(wall) cuboid([43+wall*2,43+wall,42],anchor=TOP);
                     // the side walls carry on up as guide fins for the Z carriage to wrap;
-                    // the flange stiffens each one and stays clear of the motor sliding in
+                    // the flange stiffens each one, gives the carriage's hook wall a wide
+                    // face to bear on, and stays clear of the motor sliding in
                     up(wall-ep) xflip_copy() right(43/2) {
                         cuboid([wall,43+wall,fin_h-wall+ep],anchor=BOT+LEFT);
                         fwd((43+wall)/2) cuboid([fin_fl,wall,fin_h-wall+ep],anchor=BOT+RIGHT+FWD);
@@ -172,47 +175,57 @@ module base_plate(anchor=BOT,spin=0,orient=UP) {
     }
 }
 
-// Z carriage: a block hanging from the shipped nut's flange that wraps the two fins on
-// the Z motor mount as its linear guide (the way the X and Y carriages hook over their
-// rails), with a cantilever arm out to the spindle motor. TOP is the nut's flange face
-// (attach it to the screw's "nut_flange"); the block top sits one flange below it.
-// Named anchor "spindle" is the motor mount face over the table, facing DOWN.
-module z_carriage(anchor=TOP,spin=0,orient=UP) {
-    top=3.5;                // shipped nut's flange thickness, the block top is under it
+// Z carriage: a block standing on the shipped nut's flange, the nut under it so the
+// carriage's weight seats it on the flange instead of hanging off screws threaded down
+// into the block. It wraps the two fins on the Z motor mount as its linear guide (the way
+// the X and Y carriages hook over their rails), with a cantilever arm out to the spindle
+// motor. The spindle's weight pitches the block nose-down: its top pushes toward the
+// table, its bottom away. The nut holds the bottom; a wall behind the fins' back edges,
+// wrapping their flanges, holds the top, so the fin channels are open toward the table.
+// BOT is the nut's flange face (attach it to the screw's "nut_flange"). Named anchor
+// "spindle" is the motor mount face over the table, facing DOWN.
+module z_carriage(anchor=BOT,spin=0,orient=UP) {
     h=51.5;                 // block height, and how much fin it grips
-    rear=15;                // block depth behind the screw axis
+    front=15;               // block depth ahead of the screw axis: the nut flange plus a wall
     fin_x=43/2;             // fins' inner faces either side of the screw (the saddle pocket)
     fin_t=wall;             // fin thickness
-    fin_y=21;               // fins' front edge, ahead of the screw
+    fin_back=25;            // fins' back edge, behind the screw
+    fin_fl=8;               // the flange along that edge, turned inward
+    hook=fin_back+$slop+wall;        // block's back face: the wall behind the fins' flanges
     bw=2*(fin_x+fin_t+$slop+wall);   // block wraps the fins with a wall outside each
-    bd=rear+fin_y+$slop+wall;        // and hooks over their front edges
+    bd=hook+front;
     aw=30;                  // arm width
     r=95;                   // screw axis to spindle axis
     t=wall*2;               // arm plate
     pad=42+wall*2;          // spindle motor pad
     skirt=15;               // arm depth at the pad
-    anchors=[named_anchor("spindle",[0,r,(top+h)/2-top],DOWN)];
-    color_this("#488") attachable(anchor,spin,orient,size=[bw,bd,top+h],anchors=anchors) {
-        tag_scope() diff() up((top+h)/2-top) {
-            fwd(rear) cuboid([bw,bd,h],anchor=TOP+FWD);
-            // arm: plate on top, a web down each side tapering from the block to the pad
-            back(rear-ep) {
-                cuboid([aw,r-rear,t],anchor=TOP+FWD);
-                xflip_copy() right((aw-wall)/2) hull() {
-                    cuboid([wall,ep,h],anchor=TOP+FWD);
-                    back(r-rear-pad/2) cuboid([wall,ep,skirt],anchor=TOP+FWD);
+    anchors=[named_anchor("spindle",[0,r,h/2],DOWN)];
+    color_this("#488") attachable(anchor,spin,orient,size=[bw,bd,h],anchors=anchors) {
+        tag_scope() diff() down(h/2) {
+            fwd(hook) cuboid([bw,bd,h],anchor=BOT+FWD);
+            up(h) {
+                // arm: plate on top, a web down each side tapering from the block to the pad
+                back(front-ep) {
+                    cuboid([aw,r-front,t],anchor=TOP+FWD);
+                    xflip_copy() right((aw-wall)/2) hull() {
+                        cuboid([wall,ep,h],anchor=TOP+FWD);
+                        back(r-front-pad/2) cuboid([wall,ep,skirt],anchor=TOP+FWD);
+                    }
+                }
+                back(r) {
+                    cuboid([pad,pad,t],anchor=TOP);
+                    rect_tube(size=pad,wall=wall,h=skirt,anchor=TOP);
                 }
             }
-            back(r) {
-                cuboid([pad,pad,t],anchor=TOP);
-                rect_tube(size=pad,wall=wall,h=skirt,anchor=TOP);
-            }
             tag("remove") {
-                up(top) zrot(45) tr8_nut_mount_mask(top+h,anchor=TOP);
-                back(r) nema17_mount_mask(t,anchor=TOP);
-                // channels the fins run in: open at the back, closed by the hook in front
-                up(ep) fwd(rear+ep) xflip_copy() right(fin_x-$slop)
-                    cuboid([fin_t+2*$slop,rear+fin_y+$slop+ep,h+2*ep],anchor=TOP+FWD+LEFT);
+                zrot(45) tr8_nut_mount_mask(h,anchor=BOT);
+                up(h) back(r) nema17_mount_mask(t,anchor=TOP);
+                // channels the fins run in: open toward the table, closed behind by the
+                // hook wall, which wraps each fin's flange as well
+                down(ep) fwd(fin_back+$slop) xflip_copy() {
+                    right(fin_x-$slop) cuboid([fin_t+2*$slop,fin_back+$slop+front+ep,h+2*ep],anchor=BOT+FWD+LEFT);
+                    right(fin_x-fin_fl-$slop) cuboid([fin_fl+2*$slop,wall+2*$slop,h+2*ep],anchor=BOT+FWD+LEFT);
+                }
             }
         }
         children();
@@ -229,7 +242,7 @@ function square_interp(t, w, h) =
                [0, h - (t-0.75)*4*h];
 
 pos = square_interp($t, 84, 70);
-pos_z=65.5+sin($t*360*6)*4+2;
+pos_z=10.5+sin($t*360*6)*4+2;   // nut under the block now: 55 lower (block plus flange) for the same spindle height
 up(32) fwd(33) right(8.5) color("red") sphere(2);
 down(17) back(39.5) right(17) tag_scope() diff() {
     tag_this("keep") nema17_tr8(nut_pos=pos.y,nut_spin=45,orient=FWD) {
