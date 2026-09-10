@@ -9,6 +9,19 @@ $fn=0;$fa=1;$fs=$preview?0.5:0.25;
 ep=0.01;
 $slop=0.2;
 wall=3;
+m3_tap=2.7;   // hole an M3 forms its own thread in, printed
+// The X and Y motors sit `mb` further back in their mounts than their carriage's home
+// needs, because the heads of the screws holding the carriage to the shipped nut stand
+// 1 proud of the nut's stub and would hit the pilot boss; the animations start their
+// nuts at `mb` for the same reason. The mounts are thicker by the same amount. The Y
+// motor's screws sit flush in the housing face (fitted before the plate goes on over two
+// of them); the X motor's sink until `mp_under` of wall is left under the heads, so an
+// M3x8 still gets 4 into the motor.
+mb=1;
+mp_under=4;
+m3_head=3;    // socket head height
+hf=4+mb;      // Y motor mount face to the housing's front face, where the base plate starts
+yc_wall=5.5+mb;   // the Y carriage's X motor mount wall
 explode=0;    // pull the base plate this far off the tower, for looking at the joint
 show_stage=true;   // draw the XY stage (off to look at the tower and plate on their own)
 
@@ -38,11 +51,11 @@ module x_carriage(anchor=BOT,spin=0,orient=UP) {
 module y_carriage(anchor=BOT,spin=0,orient=UP) {
     attachable(anchor,spin,orient) {
         up(ep) color_this("#448") attachable(anchor,spin,orient) {
-        tag_scope() diff() yrot(-90) {
+        tag_scope() diff() yrot(-90) right(mb) {   // the X motor face is mb behind where the rest is drawn from
             x=189;
             y=64;
             up(25) {
-                cuboid([5.5,y-4,54],anchor=LEFT+TOP,chamfer=1,edges=[TOP+FWD,TOP+BACK]);
+                left(mb) cuboid([yc_wall,y-4,54],anchor=LEFT+TOP,chamfer=1,edges=[TOP+FWD,TOP+BACK]);
                 xx=53.5;
                 right(xx) xflip_copy() left(xx) down(54) {
                     cuboid([4+1.5,y-4,9.5],anchor=LEFT+TOP);
@@ -74,10 +87,16 @@ module m3(l=8,anchor=TOP,spin=0,orient=UP) {
 module m3_nut(anchor=BOT,spin=0,orient=UP) {
     color_this("#ccc") nut("M3",anchor=anchor,spin=spin,orient=orient);
 }
+// The four M3x8 that fix a part to the shipped nut: heads under the flange, threading up
+// into the part sitting on it. In the "nut_flange" frame, holes at 45 to match nut_spin=45.
+module tr8_nut_screws() {
+    s=tr8_nut_spec("motor");
+    tag("keep") zrot(45) zrot_copies(n=4) right(s[5]/2) down(s[4]) m3(8,orient=DOWN);
+}
 
 // Base plate to tower joint, in the tower's frame (Y motor mount face at the origin,
 // +Y up, +Z along the plate). The plate is x -13..86, y -22..-13 (9 thick, floor at
-// -22), from the housing's front face at z=4. The tower grows a foot forward along the
+// -22), from the housing's front face at z=hf. The tower grows a foot forward along the
 // floor under the plate's end, the plate is recessed underneath to sit on it, and two
 // M3x13 come up through the foot into nuts sitting on the plate's top; nut and screw
 // end stand about 7 above the bed. The Y carriage's nut mount runs the length of the
@@ -88,7 +107,7 @@ foot_x=[-7,60];         // foot across: 6 in from the plate's edge, 35 past the 
 foot_t=5;               // foot thickness, the plate is recessed this much to sit on it
 foot_l=20;              // foot length forward of the housing face
 foot_scr=[22,50];       // screw xs, both 12 forward of the housing face
-foot_sz=4+12;
+foot_sz=hf+12;
 foot_cb=3.2;            // head counterbore in the foot's underside
 hx=22+wall;             // the housing's +x face
 
@@ -99,58 +118,55 @@ hx=22+wall;             // the housing's +x face
 module tower(anchor=BOT,spin=0,orient=UP) {
     attachable(anchor,spin,orient) {
         tag_scope() diff() {
-            color_this("#884") up(4) fwd((44)/2)
-                right(22+wall) cuboid([8+44+wall*2,44+wall,4.5+44+wall],anchor=TOP+FWD+RIGHT);
+            color_this("#884") up(hf) fwd((44)/2)
+                right(22+wall) cuboid([8+44+wall*2,44+wall,hf+0.5+44+wall],anchor=TOP+FWD+RIGHT);
             // Z motor mount: a saddle on top of the Y motor housing, flush with its left
             // and back faces, drawn in the Z motor's frame (mount face at the origin,
             // screw along +Z). The assembly puts that motor at global (8.5,62,47) with
             // spin=180; this module hangs off the Y motor facing FWD, so here that is
-            // (x-17, z+17, 39.5-y) with the screw along +Y and the motor's +X to the left.
-            translate([-8.5,64,-22.5]) frame_map(x=LEFT,z=BACK) {
+            // (x-17, z+17, 35.5+hf-y) with the screw along +Y and the motor's +X to the left.
+            translate([-8.5,64,hf-26.5]) frame_map(x=LEFT,z=BACK) {
                 fin_h=90;   // fins reach up to about the screw tip
-                fin_fl=8;   // flange along each fin's back edge, turned inward: stiffens it, and
-                            // is what the Z carriage hooks behind
+                zp=mp_under;   // saddle top plate, mount face to top: M3x8 heads on it get 4 in the motor
+                fin_fl=8;   // stiffening flange along each fin's back edge, turned inward; the
+                            // Z carriage's hook wall wraps it but bears only on the fin's edge
                 color_this("#884") fwd(wall/2+0.5-ep) {
-                    up(wall) cuboid([43+wall*2,43+wall,42],anchor=TOP);
+                    up(zp) cuboid([43+wall*2,43+wall,39+zp],anchor=TOP);
                     // the side walls carry on up as guide fins for the Z carriage to wrap;
-                    // the flange stiffens each one, gives the carriage's hook wall a wide
-                    // face to bear on, and stays clear of the motor sliding in
-                    up(wall-ep) xflip_copy() right(43/2) {
-                        cuboid([wall,43+wall,fin_h-wall+ep],anchor=BOT+LEFT);
-                        fwd((43+wall)/2) cuboid([fin_fl,wall,fin_h-wall+ep],anchor=BOT+RIGHT+FWD);
+                    // the flange stiffens each one and stays clear of the motor sliding in
+                    up(zp-ep) xflip_copy() right(43/2) {
+                        cuboid([wall,43+wall,fin_h-zp+ep],anchor=BOT+LEFT);
+                        fwd((43+wall)/2) cuboid([fin_fl,wall,fin_h-zp+ep],anchor=BOT+RIGHT+FWD);
                     }
                 }
                 tag("remove") {
-                    up(ep) back(ep) cuboid([43,20+43,42-wall+ep*2],anchor=TOP);   // just into the housing top
-                    nema17_mount_mask(7+ep,anchor=BOT);
+                    up(ep) back(ep) cuboid([43,20+43,39+ep*2],anchor=TOP);   // just into the housing top
+                    nema17_mount_mask(zp+ep,anchor=BOT);
                     // slot for the pilot boss out the back edge, so the motor slides in from behind
-                    down(ep) cuboid([22+0.5,25+ep,wall+ep*2],anchor=BACK+BOT);
+                    down(ep) cuboid([22+0.5,25+ep,zp+ep*2],anchor=BACK+BOT);
                 }
+                tag("keep") up(zp) grid_copies(spacing=31,n=2) m3_8();   // motor screws down through the saddle top
             }
             // -- base plate joint, tower side: the foot, screwed up into the plate
             color_this("#884") {
-                translate([(foot_x[0]+foot_x[1])/2,-22,4-ep]) cuboid([foot_x[1]-foot_x[0],foot_t,foot_l+ep],anchor=FWD+BOT);
+                translate([(foot_x[0]+foot_x[1])/2,-22,hf-ep]) cuboid([foot_x[1]-foot_x[0],foot_t,foot_l+ep],anchor=FWD+BOT);
                 // gusset beside the housing under the part of the foot that reaches past it,
                 // a 45 so the tower prints as drawn here (back face down) without support
                 g=foot_x[1]-hx;
-                translate([0,-22+foot_t,0]) xrot(90) linear_sweep([[hx,4],[hx+g,4],[hx,4-g]],height=foot_t);
+                translate([0,-22+foot_t,0]) xrot(90) linear_sweep([[hx,hf],[hx+g,hf],[hx,hf-g]],height=foot_t);
             }
             for (x=foot_scr) translate([x,-22,foot_sz]) {
                 tag("remove") down(ep) { ycyl(d=6.4,h=foot_cb+ep,anchor=FWD); ycyl(d=3.4,h=foot_t+2*ep,anchor=FWD); }
                 tag("keep") back(foot_cb-ep) m3(13,orient=FWD);   // head just under the floor
             }
             tag("remove") {
-                nema17_mount_mask(7,anchor=BOT);
+                nema17_mount_mask(hf,cbore=m3_head,anchor=BOT);
                 cuboid([44,44+ep,40],anchor=TOP);
                 down(30) cuboid([15,20+44+ep,60],anchor=TOP);
             }
-            tag("keep") {
-                up(4) {
-                    fwd(15.5) left(15.5) m3_8();
-                    back(15.5) left(15.5) m3_8();
-                    back(15.5) right(15.5) m3_8();
-                }
-            }
+            // motor screws flush in the housing face, so the plate can lie over the front two;
+            // hf-3 of plate under the heads, M3x6 for 4 in the motor
+            tag("keep") up(hf-m3_head) grid_copies(spacing=31,n=2) m3(6);
         }
         children();
     }
@@ -161,11 +177,11 @@ module tower(anchor=BOT,spin=0,orient=UP) {
 module base_plate(anchor=BOT,spin=0,orient=UP) {
     attachable(anchor,spin,orient) {
         tag_scope() diff() {
-            color_this("#a84") up(4) fwd(22) left(10+wall)
+            color_this("#a84") up(hf) fwd(22) left(10+wall)
                 cuboid([99,9,142],anchor=BOT+FWD+LEFT,chamfer=2,edges="Z");
             // -- joint, plate side: recess for the foot, screws through to nuts on top
             tag("remove") {
-                translate([(foot_x[0]+foot_x[1])/2,-22-ep,4-ep])
+                translate([(foot_x[0]+foot_x[1])/2,-22-ep,hf-ep])
                     cuboid([foot_x[1]-foot_x[0]+2*$slop,foot_t+$slop+ep,foot_l+$slop+ep],anchor=FWD+BOT);
                 for (x=foot_scr) translate([x,-22-ep,foot_sz]) ycyl(d=3.4,h=9+2*ep,anchor=FWD);
             }
@@ -182,6 +198,8 @@ module base_plate(anchor=BOT,spin=0,orient=UP) {
 // motor. The spindle's weight pitches the block nose-down: its top pushes toward the
 // table, its bottom away. The nut holds the bottom; a wall behind the fins' back edges,
 // wrapping their flanges, holds the top, so the fin channels are open toward the table.
+// Every face meant to slide on the fins is a narrow rib set $slop off them; the rest of
+// the channel stands `relief` clear.
 // BOT is the nut's flange face (attach it to the screw's "nut_flange"). Named anchor
 // "spindle" is the motor mount face over the table, facing DOWN.
 module z_carriage(anchor=BOT,spin=0,orient=UP) {
@@ -191,7 +209,9 @@ module z_carriage(anchor=BOT,spin=0,orient=UP) {
     fin_t=wall;             // fin thickness
     fin_back=25;            // fins' back edge, behind the screw
     fin_fl=8;               // the flange along that edge, turned inward
-    hook=fin_back+$slop+wall;        // block's back face: the wall behind the fins' flanges
+    rib=3;                  // the fins ride on vertical ribs this wide at each end of each channel wall
+    relief=1;               // the wall between the ribs stands this far off the fin
+    hook=fin_back+relief+wall;       // block's back face: the wall behind the fins' flanges
     bw=2*(fin_x+fin_t+$slop+wall);   // block wraps the fins with a wall outside each
     bd=hook+front;
     aw=30;                  // arm width
@@ -200,33 +220,52 @@ module z_carriage(anchor=BOT,spin=0,orient=UP) {
     pad=42+wall*2;          // spindle motor pad
     skirt=15;               // arm depth at the pad
     anchors=[named_anchor("spindle",[0,r,h/2],DOWN)];
-    color_this("#488") attachable(anchor,spin,orient,size=[bw,bd,h],anchors=anchors) {
+    attachable(anchor,spin,orient,size=[bw,bd,h],anchors=anchors) {
         tag_scope() diff() down(h/2) {
-            fwd(hook) cuboid([bw,bd,h],anchor=BOT+FWD);
-            up(h) {
-                // arm: plate on top, a web down each side tapering from the block to the pad
-                back(front-ep) {
-                    cuboid([aw,r-front,t],anchor=TOP+FWD);
-                    xflip_copy() right((aw-wall)/2) hull() {
-                        cuboid([wall,ep,h],anchor=TOP+FWD);
-                        back(r-front-pad/2) cuboid([wall,ep,skirt],anchor=TOP+FWD);
+            color("#488") {   // the body only, so the screws keep their own colour
+                fwd(hook) cuboid([bw,bd,h],anchor=BOT+FWD);
+                up(h) {
+                    // arm: plate on top, a web down each side tapering from the block to the pad
+                    back(front-ep) {
+                        cuboid([aw,r-front,t],anchor=TOP+FWD);
+                        xflip_copy() right((aw-wall)/2) hull() {
+                            cuboid([wall,ep,h],anchor=TOP+FWD);
+                            back(r-front-pad/2) cuboid([wall,ep,skirt],anchor=TOP+FWD);
+                        }
                     }
-                }
-                back(r) {
-                    cuboid([pad,pad,t],anchor=TOP);
-                    rect_tube(size=pad,wall=wall,h=skirt,anchor=TOP);
+                    back(r) {
+                        cuboid([pad,pad,t],anchor=TOP);
+                        rect_tube(size=pad,wall=wall,h=skirt,anchor=TOP);
+                    }
                 }
             }
             tag("remove") {
-                zrot(45) tr8_nut_mount_mask(h,anchor=BOT);
-                up(h) back(r) nema17_mount_mask(t,anchor=TOP);
+                zrot(45) tr8_nut_mount_mask(h,hole_d=m3_tap,anchor=BOT);
+                // spindle motor mount through the pad, screw heads counterbored flush in its underside
+                up(h) back(r) nema17_mount_mask(t,cbore=m3_head,anchor=BOT,orient=DOWN);
                 // channels the fins run in: open toward the table, closed behind by the
-                // hook wall, which wraps each fin's flange as well
-                down(ep) fwd(fin_back+$slop) xflip_copy() {
-                    right(fin_x-$slop) cuboid([fin_t+2*$slop,fin_back+$slop+front+ep,h+2*ep],anchor=BOT+FWD+LEFT);
-                    right(fin_x-fin_fl-$slop) cuboid([fin_fl+2*$slop,wall+2*$slop,h+2*ep],anchor=BOT+FWD+LEFT);
+                // hook wall, which wraps each fin's flange as well. The walls are relieved
+                // off the fins except for a rib at each end, so the fit is four narrow
+                // strips per fin (the twist constraint is their spacing, not their area);
+                // the hook wall likewise bears only on each fin's own back edge, relieved
+                // off the flange beside it. Drawn from the hook wall's face.
+                cd=fin_back+relief+front+ep;     // channel depth, hook face to out the front
+                down(ep) fwd(fin_back+relief) xflip_copy() difference() {
+                    union() {
+                        right(fin_x-relief) cuboid([fin_t+2*relief,cd,h+2*ep],anchor=BOT+FWD+LEFT);
+                        right(fin_x-fin_fl-relief) cuboid([fin_fl+relief-$slop,wall+2*relief,h+2*ep],anchor=BOT+FWD+LEFT);
+                    }
+                    right(fin_x-$slop) cuboid([fin_t+2*$slop,relief-$slop,h+4*ep],anchor=BOT+FWD+LEFT);   // hook rib, behind the fin's edge
+                    for (y=[0,cd-rib])                        // outer face: back and front ends
+                        right(fin_x+fin_t+$slop) back(y) cuboid([relief,y==0?rib+relief-$slop:rib,h+4*ep],anchor=BOT+FWD+LEFT);
+                    for (y=[wall+2*relief,cd-rib])            // inner face: just ahead of the flange, and the front
+                        right(fin_x-$slop) back(y) cuboid([relief,rib,h+4*ep],anchor=BOT+FWD+RIGHT);
                 }
             }
+            tr8_nut_screws();
+            // spindle motor screws, up through the pad from inside the skirt: the pancake's holes
+            // are only 3.5 deep, so M3x6 for 3 in the motor with 3 of pad under the heads
+            tag("keep") up(h-t+m3_head) back(r) grid_copies(spacing=31,n=2) m3(6,orient=DOWN);
         }
         children();
     }
@@ -241,27 +280,30 @@ function square_interp(t, w, h) =
     t < 0.75 ? [w - (t-0.5)*4*w, h] :
                [0, h - (t-0.75)*4*h];
 
-pos = square_interp($t, 84, 70);
+pos = [84,70];//square_interp($t, 84, 70);
 pos_z=10.5+sin($t*360*6)*4+2;   // nut under the block now: 55 lower (block plus flange) for the same spindle height
 up(32) fwd(33) right(8.5) color("red") sphere(2);
-down(17) back(39.5) right(17) tag_scope() diff() {
-    tag_this("keep") nema17_tr8(nut_pos=pos.y,nut_spin=45,orient=FWD) {
+down(17) back(35.5+hf) right(17) tag_scope() diff() {
+    tag_this("keep") nema17_tr8(nut_pos=pos.y+mb,nut_spin=45,orient=FWD) {
         attach(TOP) { tower(); up(explode) base_plate(); }
         attach("nut_flange") {
-            zrot(45) tag("remove") tr8_nut_mount_mask(30,anchor=BOT);
+            zrot(45) tag("remove") tr8_nut_mount_mask(30,hole_d=m3_tap,anchor=BOT);
+            tr8_nut_screws();
             
-            if (show_stage) xrot(-90) fwd(30) up(17) left(17) tag_scope() diff() 
-            tag_this("keep") nema17_tr8(nut_pos=pos.x,nut_spin=45,orient=RIGHT) {
+            if (show_stage) xrot(-90) fwd(30) up(17) left(17+mb) tag_scope() diff() 
+            tag_this("keep") nema17_tr8(nut_pos=pos.x+mb,nut_spin=45,orient=RIGHT) {
                 attach("nut_flange") {
                     x_carriage();
-                    zrot(45) tag("remove") tr8_nut_mount_mask(8,anchor=BOT);
+                    zrot(45) tag("remove") tr8_nut_mount_mask(8,hole_d=m3_tap,anchor=BOT);
+                    tr8_nut_screws();
                 }
                 attach(TOP) {
                     y_carriage();
                     tag("remove") {
-                        nema17_mount_mask(7+ep,anchor=BOT);
+                        nema17_mount_mask(yc_wall,cbore=yc_wall-mp_under,anchor=BOT);
                         cuboid([44,44,50],anchor=TOP);
                     }
+                    tag("keep") up(mp_under) grid_copies(spacing=31,n=2) m3_8();   // heads sunk into the wall
                 }
             }
         }
