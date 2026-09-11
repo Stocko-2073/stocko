@@ -55,7 +55,7 @@ module y_carriage(anchor=BOT,spin=0,orient=UP) {
         tag_scope() diff() {
             tag("remove") {
                 nema17_mount_mask(yc_wall,cbore=yc_wall-mp_under,anchor=BOT);
-                cuboid([44,44,50],anchor=TOP);
+                cuboid([44,44,90],anchor=TOP);   // motor clearance, run out the plate's left end so the motor comes in along its axis
                 yrot(-90) right(17+mb) back(30) down(17) xrot(90)
                     zrot(45) tr8_nut_mount_mask(30,hole_d=m3_tap,anchor=BOT);
             }
@@ -141,7 +141,7 @@ module tower(anchor=BOT,spin=0,orient=UP) {
             }
             tag("remove") {
                 nema17_mount_mask(hf,cbore=m3_head,anchor=BOT);
-                cuboid([44,44+ep,40],anchor=TOP);
+                cuboid([44,44+ep,-back_z+ep],anchor=TOP);   // motor pocket, open at the back so the motor slides in from behind
                 down(30) cuboid([15,20+44+ep,60],anchor=TOP);
             }
         }
@@ -376,12 +376,12 @@ module scene(role="all") {
     // the tower is drawn in the Y motor's frame: origin on the mount face, screw out along
     // +z, which is the machine's front; +y is up
     down(17) back(35.5+hf) right(17) xrot(90) asm("tower") tower() {
-        asm("y_motor", FWD, 50) nema17_tr8(nut_pos=pos.y+mb,nut_spin=45) {          // FWD: world down; up into the housing from below, before it stands on its feet
+        asm("y_motor", DOWN, 60) nema17_tr8(nut_pos=pos.y+mb,nut_spin=45) {         // DOWN: world +y; in through the open back of the housing, screw first
             attach("nut_flange") {
                 asm("y_nut_screws", DOWN, 20, engage=8) tr8_nut_screws();           // DOWN: from the motor's side of the flange
                 if (show_stage) xrot(-90) fwd(30) up(17) left(17+mb)                // world-aligned from here
                 asm("y_carriage", path=[FWD*110, UP*60]) yrot(90) y_carriage() {    // built hovering out front, then down to the plate and back along it onto the screw and the rails
-                    asm("x_motor", path=[DOWN*(mb+2), RIGHT*50]) nema17_tr8(nut_pos=pos.x+mb,nut_spin=45) {   // RIGHT: world down; up through the plate's window with the pilot boss clear of the wall, then forward onto it
+                    asm("x_motor", DOWN, 60) nema17_tr8(nut_pos=pos.x+mb,nut_spin=45) {   // DOWN: world -x; in from the left along its axis, under the plate
                         attach("nut_flange") {
                             asm("x_carriage", LEFT, 50) x_carriage()                // LEFT: world up, down over the Y carriage's rails
                                 yrot(-90) up(29.2) left(41) asm("board", UP, 40) protoboard(drilled=drilled);   // UP: into the pocket from above

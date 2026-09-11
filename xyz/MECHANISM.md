@@ -10,7 +10,7 @@ The base plate is the surface the Y carriage rides on. It shares the tower's ori
 
 The four M3×8 screws in `tr8_nut_screws()` fasten a part to the supplied lead-screw nut. Their heads sit beneath the flange and they thread upward into the part resting on it. In the `nut_flange` frame, the holes are rotated 45° to match `nut_spin=45`.
 
-`x_carriage()` includes its own nut-body clearance and four M3 mounting holes. `y_carriage()` includes the Y nut clearance and mounting holes, along with the X motor's body clearance, pilot clearance, mounting holes, and counterbores. The Y carriage's origin is the X motor mount face. Its Y nut cutter is transformed back from the Y nut flange frame through the inverse of the assembly's X motor placement.
+`x_carriage()` includes its own nut-body clearance and four M3 mounting holes. `y_carriage()` includes the Y nut clearance and mounting holes, along with the X motor's body clearance, pilot clearance, mounting holes, and counterbores. The body clearance runs from the mount wall out through the plate's left end, so the motor enters along its axis and the plate beyond the pocket is two rails. The Y carriage's origin is the X motor mount face. Its Y nut cutter is transformed back from the Y nut flange frame through the inverse of the assembly's X motor placement.
 
 ## Exporting printable parts
 
@@ -22,7 +22,7 @@ Run `./export.sh` to export all five parts into `stl/` beside the script, or `./
 
 The tower combines the Y motor housing, Z motor saddle, and guide fins in one print. Its origin is the Y motor mount face, attached to the motor's `TOP`, with the motor inside the housing. The base plate butts against the housing's front face.
 
-The lower housing's rear face is aligned with the saddle and guide fins to form a common print-bed plane. Its depth is derived from the saddle geometry; with the current dimensions this plane is at local z = −46.49, trimming 1.01 from the lower housing's previous rear face.
+The lower housing's rear face is aligned with the saddle and guide fins to form a common print-bed plane. Its depth is derived from the saddle geometry; with the current dimensions this plane is at local z = −46.49, trimming 1.01 from the lower housing's previous rear face. The motor pocket runs out through this face, so the Y motor goes in from behind and the housing meets the bed on its rim.
 
 In the tower's frame, +Y is up and +Z runs along the plate. The plate spans x = −13…86 and y = −22…−13: it is 9 thick, with the floor at −22. It starts at z = `hf`.
 
@@ -80,9 +80,9 @@ The same wrapping drives a path check. `-D 'check="z_carriage"'` draws the scene
 
 Current findings, all confirmed by the check:
 
-- **Y motor.** Its pocket is open only at the bottom, the front wall has just the pilot hole, and the foot lies under the screw's line, so no straight path exists. Either the screw goes through the pilot hole first and the body swings up into the pocket from below, or the front wall gets a slot from the pilot hole to the bottom edge and the foot a matching notch, so the motor drops in from below. The animation shows the from-below path.
-- **X motor.** The same problem in the Y carriage's mount wall: the screw can only pass it through the pilot hole, and the axial approach is blocked by the plate's 32 mm overhang behind the pocket. The animation shows it rising through the plate's window and stepping forward onto the wall, which needs a slot from the pilot hole to the wall's bottom edge to be real. The stage is built off the machine, so that edge is reachable.
-- **X carriage.** Its nut boss is a closed ring and its hooks wrap the Y carriage's plate, so it can only go on by sliding along X from an end. The far wall closes one end and the motor the other, so it has no path as drawn. Options: open the boss into a U slot facing down so the carriage drops over the nut body, or put a screw-tip hole in the far wall and thread it on from there.
+- **Y motor.** The pocket was closed at the back and the front wall has only the pilot hole, so no straight path existed. The pocket now runs out through the housing's back face and the motor slides in from behind along its axis, nut and flange passing through the pilot hole. The open back leaves the housing's rim on the print bed.
+- **X motor.** The Y carriage's plate overhung the motor pocket by 32 mm, blocking the axial approach, and the screw can only pass the mount wall through the pilot hole. The body clearance now runs out to the plate's left end, leaving the two 10 mm rails the X carriage's hooks ride on, and the motor slides in from the left along its axis.
+- **X carriage.** Its nut boss is a closed ring and its hooks wrap the Y carriage's plate, so no straight path exists. The plan is to flex it over the plate from above and snap the hooks on, which the check cannot model, so this step stays flagged; the animation shows it dropping on.
 - **Y motor lower screws** clip the foot's top corner by about 1 mm on a straight approach; they go in at a slight angle.
 - **X motor lower screws** have about 9 mm between their heads and the Y lead screw for an 11 mm screw; awkward but possible.
 
