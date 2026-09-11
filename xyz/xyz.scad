@@ -19,9 +19,13 @@ hf=4+mb;      // Y motor mount face to the housing's front face, where the base 
 yc_wall=5.5+mb;   // the Y carriage's X motor mount wall
 explode=0;    // pull the base plate this far off the tower, for looking at the joint
 show_stage=true;   // draw the XY stage (off to look at the tower and plate on their own)
+pb_holes=false;    // draw the protoboard's pad grid (1600-odd parts: on for the video, off for working)
+
+color1="#ccc";
+color2="#f84";
 
 module x_carriage(anchor=BOT,spin=0,orient=UP) {
-    color_this("#848") attachable(anchor,spin,orient) {
+    color_this(color1) attachable(anchor,spin,orient) {
         tag_scope() diff() {
             tag("remove") zrot(45) tr8_nut_mount_mask(8,hole_d=m3_tap,anchor=BOT);
             yrot(-90) {
@@ -47,7 +51,7 @@ module x_carriage(anchor=BOT,spin=0,orient=UP) {
 }
 
 module y_carriage(anchor=BOT,spin=0,orient=UP) {
-    color_this("#448") attachable(anchor,spin,orient) {
+    color_this(color2) attachable(anchor,spin,orient) {
         tag_scope() diff() {
             tag("remove") {
                 nema17_mount_mask(yc_wall,cbore=yc_wall-mp_under,anchor=BOT);
@@ -108,13 +112,13 @@ module tower(anchor=BOT,spin=0,orient=UP) {
     back_z=saddle_z-(43+wall)/2-saddle_offset;
     attachable(anchor,spin,orient) {
         tag_scope() diff() {
-            color_this("#884") up(hf) fwd((44)/2)
+            color_this(color1) up(hf) fwd((44)/2)
                 right(22+wall) cuboid([8+44+wall*2,44+wall,hf-back_z],anchor=TOP+FWD+RIGHT);
             translate([-8.5,64,saddle_z]) frame_map(x=LEFT,z=BACK) {
                 fin_h=90;   // fins reach up to about the screw tip
                 zp=mp_under;   // saddle top plate, mount face to top: M3x8 heads on it get 4 in the motor
                 fin_fl=8;   // inward flange width
-                color_this("#884") fwd(saddle_offset) {
+                color_this(color1) fwd(saddle_offset) {
                     up(zp) cuboid([43+wall*2,43+wall,39+zp],anchor=TOP);
                     up(zp-ep) xflip_copy() right(43/2) {
                         cuboid([wall,43+wall,fin_h-zp+ep],anchor=BOT+LEFT);
@@ -127,7 +131,7 @@ module tower(anchor=BOT,spin=0,orient=UP) {
                     down(ep) cuboid([22+0.5,25+ep,zp+ep*2],anchor=BACK+BOT);
                 }
             }
-            color_this("#884") {
+            color_this(color1) {
                 translate([(foot_x[0]+foot_x[1])/2,-22,hf-ep]) cuboid([foot_x[1]-foot_x[0],foot_t,foot_l+ep],anchor=FWD+BOT);
                 g=foot_x[1]-hx;
                 translate([0,-22+foot_t,0]) xrot(90) linear_sweep([[hx,hf],[hx+g,hf],[hx,hf-g]],height=foot_t);
@@ -148,7 +152,7 @@ module tower(anchor=BOT,spin=0,orient=UP) {
 module base_plate(anchor=BOT,spin=0,orient=UP) {
     attachable(anchor,spin,orient) {
         tag_scope() diff() {
-            color_this("#a84") up(hf) fwd(22) left(10+wall)
+            color_this(color1) up(hf) fwd(22) left(10+wall)
                 cuboid([99,9,142],anchor=BOT+FWD+LEFT,chamfer=2,edges="Z");
             tag("remove") {
                 translate([(foot_x[0]+foot_x[1])/2,-22-ep,hf-ep])
@@ -181,7 +185,7 @@ module z_carriage(anchor=BOT,spin=0,orient=UP) {
     anchors=[named_anchor("spindle",[0,r,h/2],DOWN)];
     attachable(anchor,spin,orient,size=[bw,bd,h],anchors=anchors) {
         tag_scope() diff() down(h/2) {
-            color("#488") {
+            color(color2) {
                 fwd(hook) cuboid([bw,bd,h],anchor=BOT+FWD);
                 up(h) {
                     back(front-ep) {
@@ -227,7 +231,7 @@ module protoboard(drilled=[], d=3.175, anchor=BOT, spin=0, orient=UP) {
         down(pb_size.z/2) difference() {
             union() {
                 color(pb_col) cuboid(pb_size,anchor=BOT);
-                up(pb_size.z) grid_copies(spacing=pb_pitch,n=pb_n) {
+                if (pb_holes) up(pb_size.z) grid_copies(spacing=pb_pitch,n=pb_n) {
                     color("#dca070") cyl(d=1.9,h=0.1,anchor=BOT);
                     color("#2a1a0e") cyl(d=1,h=0.15,anchor=BOT);
                 }
