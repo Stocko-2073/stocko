@@ -95,7 +95,7 @@ module m3_nut(anchor=BOT,spin=0,orient=UP) {
 }
 module tr8_nut_screws() {
     s=tr8_nut_spec("motor");
-    tag("keep") zrot(45) zrot_copies(n=4) right(s[5]/2) down(s[4]) m3(8,orient=DOWN);
+    zrot(45) zrot_copies(n=4) right(s[5]/2) down(s[4]) m3(8,orient=DOWN);
 }
 
 foot_x=[-7,60];         // foot across: 6 in from the plate's edge, 35 past the housing's side
@@ -276,56 +276,150 @@ function demo_pos(t) = let(
         u=moves[k][0]<=0 ? 1 : (T-t0)/moves[k][0]
     ) lerp(a, b, moves[k][2] ? smoothstep(u) : u);
 
-p=demo_pos($t);
+// ---- animation mode -----------------------------------------------------------
+anim="drill";      // "drill": the drilling cycle above; "assemble": the assembly sequence below
+check=undef;       // -D 'check="z_carriage"': path check for that assembly step (./check_assembly.sh runs them all)
+check_u=undef;     // with check: one position along the path (0 start, 1 seated) instead of the whole sweep
+
+drilling = anim=="drill" && is_undef(check);
+p = drilling ? demo_pos($t) : [42,35,z_safe+40];   // assembling: stage centered, Z run up for tool room
 pos=[p.x,p.y];
 pos_z=p.z-tip_to_nut;
 demo_T=$t*demo_total;
-drilled=[for (i=idx(holes)) if (demo_T>=move_ends[5*i+1]) bit_on_board(holes[i])];   // holes bottomed out so far
-spindle_ang=$t*round(demo_total*spindle_rpm/60)*360;
-down(17) back(35.5+hf) right(17) tag_scope() diff() {
-    tag_this("keep") nema17_tr8(nut_pos=pos.y+mb,nut_spin=45,orient=FWD) {
-        attach(TOP) {
-            tower();
-            tag("keep") {
-                translate([-8.5,64,hf-26.5]) frame_map(x=LEFT,z=BACK)
-                    up(mp_under) grid_copies(spacing=31,n=2) m3_8();
-                for (x=foot_scr) translate([x,-22,foot_sz]) back(foot_cb-ep) m3(13,orient=FWD);
-                up(hf-m3_head) grid_copies(spacing=31,n=2) m3(6);
-            }
-            up(explode) {
-                base_plate();
-                tag("keep") for (x=foot_scr) translate([x,-13,foot_sz]) m3_nut(orient=BACK);
+drilled = drilling ? [for (i=idx(holes)) if (demo_T>=move_ends[5*i+1]) bit_on_board(holes[i])] : [];   // holes bottomed out so far
+spindle_ang = drilling ? $t*round(demo_total*spindle_rpm/60)*360 : 0;
+
+// ---- assembly sequence --------------------------------------------------------
+// Every part in the scene is wrapped in asm(id, dir, dist): in the "assemble" animation
+// the part appears `dist` along `dir` from where it seats and slides home during its step,
+// and whatever is attached to it rides along, so the tree has to match the sequence: a
+// part is fitted before anything attached to it. `dir` is in the frame asm() is called in;
+// the world direction it amounts to is in each call's comment. `engage` is the length of
+// path a screw spends in its tapped hole (or a nut on its thread); the path check stops
+// there, since that overlap is the design. Steps run in this order: [id, seconds] or
+// [id, seconds, appear], where `appear` names an earlier step at whose start this part is
+// already visible, waiting at the start of its path, so parts can be fitted to it before
+// it goes on (a sub-assembly built off the machine).
+asm_steps=[
+    ["tower",           0  ],
+    ["y_motor",         1.0],
+    ["y_motor_screws",  0.7],
+    ["plate",           1.0],
+    ["foot_screws",     0.7],
+    ["foot_nuts",       0.7],
+    ["z_motor",         1.0],
+    ["z_motor_screws",  0.7],
+    ["x_motor",         1.0],
+    ["x_motor_screws",  0.7],
+    ["x_carriage",      1.0],
+    ["x_nut_screws",    0.7],
+    ["y_carriage",      1.4, "x_motor"],   // hovers from the X motor step on, gets the X stage built onto it, then goes on
+    ["y_nut_screws",    0.7],
+    ["z_carriage",      1.2],
+    ["z_nut_screws",    0.7],
+    ["spindle",         1.0],
+    ["spindle_screws",  0.7],
+    ["chuck",           0.8],
+    ["bit",             0.8],
+    ["board",           0.8],
+];
+asm_gap=0.15;     // pause between steps
+asm_hold=1.5;     // hold on the finished machine
+asm_ends=cumsum([for (s=asm_steps) s[1]+asm_gap]);
+asm_total=last(asm_ends)+asm_hold;
+asm_T=$t*asm_total;
+check_step=2;     // the path check samples the part this far apart along its path
+function asm_index(id) = let(f=[for (i=idx(asm_steps)) if (asm_steps[i][0]==id) i])
+    assert(len(f)==1, str("asm: unknown step ",id)) f[0];
+function asm_start(i) = asm_ends[i]-asm_steps[i][1]-asm_gap;
+// where the part sits with `rem` of path still to travel: path is listed from the seat
+// outward, so path[0] is the final approach
+function asm_disp(path, rem) = rem<=0 || len(path)==0 ? [0,0,0] :
+    let(n=norm(path[0])) n<=rem ? path[0]+asm_disp(list_tail(path), rem-n) : path[0]*rem/n;
+// asm(id, dir, dist) for a straight approach, asm(id, path=[v0,v1,..]) for one with corners:
+// v0 is the last move (the seat is at the origin), v1 the one before it, and so on
+module asm(id, dir=UP, dist=0, path=undef, engage=0) {
+    i=asm_index(id);
+    st=asm_steps[i];
+    pth = is_undef(path) ? [dir*dist] : path;
+    total = sum([for (v=pth) norm(v)]);
+    // the check looks at the scene as the checked step begins
+    T = is_undef(check) ? asm_T : asm_start(asm_index(check));
+    t0=asm_start(i);
+    t_show = len(st)>2 ? asm_start(asm_index(st[2])) : t0;
+    u = st[1]>0 ? constrain((T-t0)/st[1],0,1) : (T>=t0 ? 1 : 0);
+    disp = asm_disp(pth,(1-smoothstep(u))*total);
+    vis = T>=t_show;
+    if (!is_undef(check)) {
+        // two copies of the scene: the checked part swept along its path (with anything
+        // fitted to it earlier), and everything fitted before it, in place. Hidden parts
+        // still pass their placement down to what is attached to them.
+        n=max(2,ceil((total-engage)/check_step)+1);
+        rems=!is_undef(check_u) ? [(1-check_u)*total] : [for (k=[0:n-1]) engage+(total-engage)*k/(n-1)];
+        if ($asm_role=="moving") {
+            if (id==check) { $asm_in=true; for (r=rems) translate(asm_disp(pth,r)) children(); }
+            else if ($asm_in && vis) translate(disp) children();
+            else hide_this() translate(disp) children();
+        } else {
+            if (id==check || $asm_under) { $asm_under=true; hide_this() translate(disp) children(); }
+            else if (vis) translate(disp) children();
+            else hide_this() translate(disp) children();
+        }
+    } else if (anim=="assemble") {
+        if (vis) translate(disp) children();
+        else hide_this() translate(disp) children();
+    } else children();
+}
+
+module scene(role="all") {
+    $asm_role=role; $asm_in=false; $asm_under=false;
+    // the tower is drawn in the Y motor's frame: origin on the mount face, screw out along
+    // +z, which is the machine's front; +y is up
+    down(17) back(35.5+hf) right(17) xrot(90) asm("tower") tower() {
+        asm("y_motor", FWD, 50) nema17_tr8(nut_pos=pos.y+mb,nut_spin=45) {          // FWD: world down; up into the housing from below, before it stands on its feet
+            attach("nut_flange") {
+                asm("y_nut_screws", DOWN, 20, engage=8) tr8_nut_screws();           // DOWN: from the motor's side of the flange
+                if (show_stage) xrot(-90) fwd(30) up(17) left(17+mb)                // world-aligned from here
+                asm("y_carriage", path=[FWD*110, UP*60]) yrot(90) y_carriage() {    // built hovering out front, then down to the plate and back along it onto the screw and the rails
+                    asm("x_motor", path=[DOWN*(mb+2), RIGHT*50]) nema17_tr8(nut_pos=pos.x+mb,nut_spin=45) {   // RIGHT: world down; up through the plate's window with the pilot boss clear of the wall, then forward onto it
+                        attach("nut_flange") {
+                            asm("x_carriage", LEFT, 50) x_carriage()                // LEFT: world up, down over the Y carriage's rails
+                                yrot(-90) up(29.2) left(41) asm("board", UP, 40) protoboard(drilled=drilled);   // UP: into the pocket from above
+                            asm("x_nut_screws", DOWN, 20, engage=8) tr8_nut_screws();   // DOWN: from the motor's side of the flange
+                        }
+                        attach(TOP) asm("x_motor_screws", UP, 20, engage=8)         // UP: world +x, from inside the carriage; heads sink into the wall
+                            up(mp_under) grid_copies(spacing=31,n=2) m3_8();
+                    }
+                }
             }
         }
+        asm("y_motor_screws", UP, 20, engage=6) up(hf-m3_head) grid_copies(spacing=31,n=2) m3(6);   // UP: from the front, flush in the housing face
+        asm("plate", UP, 60) up(explode) base_plate();                              // UP: world -y; slid back under the screw and onto the foot
+        asm("foot_screws", FWD, 25, engage=13)                                      // FWD: world down, up through the foot
+            for (x=foot_scr) translate([x,-22,foot_sz]) back(foot_cb-ep) m3(13,orient=FWD);
+        asm("foot_nuts", BACK, 20, engage=3) up(explode)                            // BACK: world up, onto the screw ends
+            for (x=foot_scr) translate([x,-13,foot_sz]) m3_nut(orient=BACK);
+        translate([-8.5,64,hf-26.5]) frame_map(x=LEFT,z=BACK)                        // the Z motor's frame
+            asm("z_motor_screws", UP, 20, engage=8) up(mp_under) grid_copies(spacing=31,n=2) m3_8();   // UP: world up, down through the saddle top
+    }
+    // Z motor; its saddle is part of tower()
+    right(8.5) back(62) up(47) asm("z_motor", BACK, 60) nema17_tr8(nut_pos=pos_z,nut_spin=45,spin=180) {   // BACK: in under the saddle top from behind
         attach("nut_flange") {
-            tr8_nut_screws();
-            
-            if (show_stage) xrot(-90) fwd(30) up(17) left(17+mb) tag_scope() diff() 
-            tag_this("keep") nema17_tr8(nut_pos=pos.x+mb,nut_spin=45,orient=RIGHT) {
-                attach("nut_flange") {
-                    x_carriage() yrot(-90) up(29.2) left(41) protoboard(drilled=drilled);
-                    tr8_nut_screws();
-                }
-                attach(TOP) {
-                    y_carriage();
-                    tag("keep") up(mp_under) grid_copies(spacing=31,n=2) m3_8();   // heads sunk into the wall
-                }
+            asm("z_nut_screws", DOWN, 25, engage=8) tr8_nut_screws();               // DOWN: from below the flange
+            asm("z_carriage", UP, 80) z_carriage() attach("spindle") {             // UP: down over the fins from the top
+                asm("spindle_screws", UP, 20, engage=6)                             // UP: world down, up from inside the skirt
+                    up(wall*2-m3_head) grid_copies(spacing=31,n=2) m3(6);
+                asm("spindle", DOWN, 50) nema17_pancake()                           // DOWN: world up, onto the pad from above
+                    attach("shaft_tip") down(12) asm("chuck", UP, 30, engage=12)    // UP: world down, pushed onto the shaft
+                        mini_chuck(bit=3.175,spin=90+spindle_ang)
+                            position("bit_seat") asm("bit", UP, 40, engage=30) drill_bit();   // UP: world down, shank up into the chuck
             }
         }
     }
 }
-right(8.5) back(62) up(47)
-nema17_tr8(nut_pos=pos_z,nut_spin=45,spin=180) {
-    attach("nut_flange") {
-        tr8_nut_screws();
-        z_carriage() attach("spindle") {
-            up(wall*2-m3_head) grid_copies(spacing=31,n=2) m3(6);
-            nema17_pancake()
-                attach("shaft_tip") down(12) mini_chuck(bit=3.175,spin=90+spindle_ang)
-                    position("bit_seat") drill_bit();
-        }
-    }
-}
+if (is_undef(check)) scene();
+if (!is_undef(check)) scene("moving");
+if (!is_undef(check)) scene("fixed");
 
 //right(40) tr8_flange_nut("brass");
 
@@ -342,5 +436,5 @@ echo(str("\n",
 "sh ./do_mp4.sh xyz.scad ",
 $vpt[0],",",$vpt[1],",",$vpt[2],",",
 $vpr[0],",",$vpr[1],",",$vpr[2],",",
-$vpd," ",ceil(demo_total*60),
+$vpd," ",ceil((anim=="assemble" ? asm_total : demo_total)*60),
 "\n"));
