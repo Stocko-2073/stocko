@@ -6,17 +6,29 @@ These notes describe the assembly, load paths, coordinate frames, and drilling d
 
 The table carries the work under the spindle. The X and Y carriages hook over their rails, with the Y carriage carrying the X motor mount. The X motor face is set back by `mb` from the carriage's drawing reference.
 
-The base plate is the surface the Y carriage rides on. It shares the tower's origin, starts at the tower's front face, and extends under the table. The board sits on the X carriage's pocket floor; its placement is drawn in the carriage's frame before rotation.
+The base plate is the surface the Y carriage rides on. It shares the tower's origin, starts at the tower's front face, and extends under the table. The board sits on the X carriage's flat bed; its placement is drawn in the carriage's frame before rotation.
 
 The four M3×8 screws in `tr8_nut_screws()` fasten a part to the supplied lead-screw nut. Their heads sit beneath the flange and they thread upward into the part resting on it. In the `nut_flange` frame, the holes are rotated 45° to match `nut_spin=45`.
 
 `x_carriage()` includes its own nut-body clearance and four M3 mounting holes. `y_carriage()` includes the Y nut clearance and mounting holes, along with the X motor's body clearance, pilot clearance, mounting holes, and counterbores. The body clearance runs from the mount wall out through the plate's left end, so the motor enters along its axis and the plate beyond the pocket is two rails. The Y carriage's origin is the X motor mount face. Its Y nut cutter is transformed back from the Y nut flange frame through the inverse of the assembly's X motor placement.
 
+## Adjustable protoboard holder
+
+The X carriage retains its rail hooks and 29.2 mm work-support height. Two short fixed stops on the right and rear locate the board at bed coordinates x=4 and y=35; gaps at the corners accommodate rough board corners. Two identical slotted clamps on the left and front edges, on raised outboard tabs, accommodate boards 89–92 mm long and 69–72 mm wide. This is fitting tolerance for nominal 90 × 70 boards, not an increase in machine travel.
+
+The front mounting tab extends to x=7, flush with the carriage’s right face. Since the carriage prints on its right side, that tab begins on the print bed instead of starting as an unsupported cantilever.
+
+Print one `x_carriage` and two copies of `board_clamp` in white. The assembly preview uses `color1` for the clamps, matching the carriage. Each clamp uses an M3×8 socket-head screw and a standard M3 hex nut (5.5 mm across flats, 2.4 mm thick). Insert the nuts into the underside pockets before installing the X carriage on its rails; temporarily retain them with screws or tape. The tabs stay above the rail clearance. The clamp STL is oriented flat-top-down for printing without support. Its toe overlaps 1.2 mm of board edge, with an underside at 1.6 mm above the bed for the nominal board thickness.
+
+To load, loosen the screws and slide the clamps outward (or lift them off for boards at the upper size limit). Seat the board against both fixed stops, bring each clamp against its edge, and tighten gently. Keep the drill clear of the clamps and stops. This first version needs a physical fit check of the nut pockets, slots, and hold-down lips before drilling.
+
+Set `pb_size` to the measured board size to preview the fit; the board stays referenced to the fixed corner and the drilling demo accounts for the resulting center offset. `-D 'print="board_holder"'` shows the holder with its board, clamps, and hardware for inspection. The underside lip dimension is for 1.6 mm boards; materially different thicknesses require changing the clamp geometry.
+
 ## Exporting printable parts
 
-Each printable module (`x_carriage`, `y_carriage`, `tower`, `base_plate`, and `z_carriage`) contains all of its cuts and only the plastic part. Screws, nuts, motors, and the protoboard are added by the assembly.
+Each printable module (`x_carriage`, `y_carriage`, `tower`, `base_plate`, `z_carriage`, and `board_clamp`) contains all of its cuts and only the plastic part. Screws, nuts, motors, and the protoboard are added by the assembly.
 
-Run `./export.sh` to export all five parts into `stl/` beside the script, or `./export.sh /path/to/output` to choose another directory. The script passes each part name through OpenSCAD's `-D 'print="part_name"'` option. The printing section of `xyz.scad` selects and orients that part for export. Leave `print` undefined to view the complete mechanism.
+Run `./export.sh` to export all six part types (print two copies of the clamp) into `stl/` beside the script, or `./export.sh /path/to/output` to choose another directory. The script passes each part name through OpenSCAD's `-D 'print="part_name"'` option. The printing section of `xyz.scad` selects and orients that part for export. Leave `print` undefined to view the complete mechanism.
 
 ## Tower and base plate joint
 
@@ -60,13 +72,13 @@ The pancake motor carries a mini chuck on its Ø5 shaft, inserted into the chuck
 
 ## Protoboard and drilling demo
 
-The 7 × 9 cm phenolic protoboard sits pads-up on the table's pocket floor. The preview uses pads with dark dots for the grid holes, avoiding roughly 800 Boolean hole cuts. The `protoboard()` module's `drilled` argument supplies board-coordinate `[x,y]` positions where actual holes are cut.
+The 7 × 9 cm phenolic protoboard sits pads-up on the table's bed. The preview uses pads with dark dots for the grid holes, avoiding roughly 800 Boolean hole cuts. The `protoboard()` module's `drilled` argument supplies board-coordinate `[x,y]` positions where actual holes are cut.
 
 The animation follows a G81-style cycle: start at the safe height above a hole, rapid down to the retract plane just above the work, feed to depth, dwell, rapid back to the safe height, then travel to the next hole. The last rapid returns above the first hole to close the loop. Rapids ease in and out; the plunge uses a steady feed.
 
 Hole positions are table travel, corresponding to X and Y nut positions over ranges 0…84 and 0…70. Heights refer to the drill tip. The stage's 84 × 70 travel is centered on the 90 × 70 pocket, so `bit_on_board(xy)` maps table travel to centered board coordinates as `[42 - xy.x, xy.y - 35]`.
 
-The work top is the pocket floor height of 29 plus the board thickness. Drilling depth adds 1 beyond the board thickness for the drill point to leave a full-size hole underneath. `tip_to_nut=21` relates the tip height to Z `nut_pos`; the stack comprises the flange 5.5 above the pilot at 49, the 51.5-high carriage, a shaft extending 24 downward, a chuck inserted 12 onto it, a bit seat 13 inward, and the 60-long bit.
+The work top is the bed height of 29.2 plus the board thickness. Drilling depth adds 1 beyond the board thickness for the drill point to leave a full-size hole underneath. `tip_to_nut=21` relates the tip height to Z `nut_pos`; the stack comprises the flange 5.5 above the pilot at 49, the 51.5-high carriage, a shaft extending 24 downward, a chuck inserted 12 onto it, a bit seat 13 inward, and the 60-long bit.
 
 Move records contain duration, endpoint `[x,y,tipz]`, and an easing flag. Times are in seconds. The lead screws turn with their nuts, as modeled in `nema17_tr8.scad`, and the spindle runs throughout. Holes appear as the bit bottoms out at each location. The spindle's nominal 180 rpm is slow enough to follow at 60 fps and is rounded to a whole number of turns per cycle for a seamless loop.
 

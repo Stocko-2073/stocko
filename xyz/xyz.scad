@@ -24,6 +24,40 @@ pb_holes=false;    // draw the protoboard's pad grid (1600-odd parts: on for the
 color1="#ccc";
 color2="#f84";
 
+// Fixed right/rear datum: x=4, y=35. Slots accept 89..92 x 69..72.
+pb_floor=29.2;
+pb_clamp_mounts=[[-95,-20],[-3,-44]];
+pb_clamp_angles=[180,270];
+function pb_center() = [4-pb_size.x/2,35-pb_size.y/2,pb_floor];
+pb_clamp_height=5.6;
+
+// Two identical clamps. Local +X points outward from the board edge.
+// Print upside down: the top is flat and the 1.6 mm underside lip needs no support.
+module board_clamp() {
+    difference() {
+        union() {
+            translate([0,-5,2]) cube([18,10,pb_clamp_height-2]);
+            translate([-1.2,-5,1.6]) cube([1.2+ep,10,pb_clamp_height-1.6]);
+        }
+        hull() for (x=[7,10]) translate([x,0,-ep])
+            cylinder(d=3.4,h=pb_clamp_height+2*ep,$fn=32);
+    }
+}
+
+module board_clamps() {
+    assert(pb_size.x>=89 && pb_size.x<=92 && pb_size.y>=69 && pb_size.y<=72,
+           "Board clamp range is 89..92 x 69..72 mm");
+    translate([4-pb_size.x,-20,pb_floor]) zrot(180)
+        asm("board_clamps",UP,20) color(color1) board_clamp();
+    translate([-3,35-pb_size.y,pb_floor]) zrot(270)
+        asm("board_clamps",UP,20) color(color1) board_clamp();
+    for (a=pb_clamp_mounts) {
+        translate([a.x,a.y,pb_floor-3]) asm("clamp_nuts",DOWN,15) m3_nut();
+        translate([a.x,a.y,pb_floor+pb_clamp_height])
+            asm("clamp_screws",UP,20,engage=8) m3(8);
+    }
+}
+
 module x_carriage(anchor=BOT,spin=0,orient=UP) {
     color_this(color1) attachable(anchor,spin,orient) {
         tag_scope() diff() {
@@ -33,15 +67,25 @@ module x_carriage(anchor=BOT,spin=0,orient=UP) {
                 xcyl(d=d,h=7,anchor=LEFT);
                 cuboid([7,d,d/2+14+$slop],anchor=LEFT+BOT);
                 up(d/2+14+$slop) {
-                    y=70+wall*2;
-                    right(7) {
-                        cuboid([90+wall*2,y,wall*2],anchor=RIGHT+BOT);
-                        yflip_copy() fwd(60/2+$slop) {
-                            cuboid([90+wall*2,5.5,12],anchor=RIGHT+TOP+BACK);
-                            tag("remove") back(3.5) down(1)cuboid([90+wall*2,5.5,10.5],anchor=RIGHT+TOP+BACK,chamfer=2,edges="X");
-
+                    // Floor and guide hooks retain their original height and rail fit.
+                    translate([-42,-1,0]) cuboid([98,78,wall],anchor=BOT);
+                    right(7) yflip_copy() fwd(60/2+$slop) {
+                        cuboid([96,5.5,12],anchor=RIGHT+TOP+BACK);
+                        tag("remove") back(3.5) down(1)
+                            cuboid([96,5.5,10.5],anchor=RIGHT+TOP+BACK,chamfer=2,edges="X");
+                    }
+                    // Short datum walls leave the board corners unobstructed.
+                    translate([5.5,0,wall]) cuboid([3,50,3],anchor=BOT);
+                    translate([-41,36.5,wall]) cuboid([70,3,3],anchor=BOT);
+                    // Left/front tabs with bottom-loading captive M3 nuts.
+                    // Front tab ends at x=7, flush with the right-side print-bed face.
+                    for (i=[0:1]) let(a=pb_clamp_mounts[i])
+                    translate([a.x,a.y,wall+2]) {
+                        zrot(pb_clamp_angles[i]) right(1.5) cuboid([17,20,5],anchor=TOP);
+                        tag("remove") down(5+ep) {
+                            cyl(d=3.4,h=5+2*ep,anchor=BOT);
+                            cyl(d=5.8,h=2.6+ep,circum=true,$fn=6,anchor=BOT);
                         }
-                        left(wall) up(wall) tag("remove") cuboid([90,70,wall+ep],anchor=RIGHT+BOT);
                     }
                 }
             }
@@ -243,7 +287,7 @@ module protoboard(drilled=[], d=3.175, anchor=BOT, spin=0, orient=UP) {
 }
 
 holes=[[8,8],[76,8],[42,35],[8,62],[76,62]];   // [x,y] table travel, in drilling order
-work_top=29+pb_size.z;    // tip Z of the top of the work: the protoboard on the pocket floor
+work_top=pb_floor+pb_size.z;    // tip Z of the top of the work: the protoboard on the pocket floor
 depth=pb_size.z+1;        // through the board, plus the drill point so the hole is full size underneath
 z_safe=work_top+6;        // tip height for XY moves
 z_retract=work_top+1;     // retract plane: rapid down to here, feed from here
@@ -253,7 +297,7 @@ feed_z=6;
 dwell=0.1;
 tip_to_nut=21;            // bit tip Z minus Z nut_pos
 spindle_rpm=180;          // rounded to whole turns per cycle
-function bit_on_board(xy) = [42-xy.x, xy.y-35];
+function bit_on_board(xy) = [42-xy.x+(pb_size.x-90)/2, xy.y-35+(pb_size.y-70)/2];
 
 function smoothstep(u) = u*u*(3-2*u);
 // Move: [duration, end point [x,y,tipz], eased?].
@@ -311,7 +355,8 @@ asm_steps=[
     ["z_motor_screws",  0.7],
     ["x_motor",         1.0],
     ["x_motor_screws",  0.7],
-    ["x_carriage",      1.0],
+    ["clamp_nuts",      0.5],
+    ["x_carriage",      1.0, "clamp_nuts"],   // load captive nuts while clear of the rails
     ["x_nut_screws",    0.7],
     ["y_carriage",      1.4, "x_motor"],   // hovers from the X motor step on, gets the X stage built onto it, then goes on
     ["y_nut_screws",    0.7],
@@ -322,6 +367,8 @@ asm_steps=[
     ["chuck",           0.8],
     ["bit",             0.8],
     ["board",           0.8],
+    ["board_clamps",    0.5],
+    ["clamp_screws",    0.5],
 ];
 asm_gap=0.15;     // pause between steps
 asm_hold=1.5;     // hold on the finished machine
@@ -384,7 +431,11 @@ module scene(role="all") {
                     asm("x_motor", DOWN, 60) nema17_tr8(nut_pos=pos.x+mb,nut_spin=45) {   // DOWN: world -x; in from the left along its axis, under the plate
                         attach("nut_flange") {
                             asm("x_carriage", LEFT, 50) x_carriage()                // LEFT: world up, down over the Y carriage's rails
-                                yrot(-90) up(29.2) left(41) asm("board", UP, 40) protoboard(drilled=drilled);   // UP: into the pocket from above
+                                yrot(-90) {
+                                    translate(pb_center())
+                                        asm("board", UP, 40) protoboard(drilled=drilled);
+                                    board_clamps();
+                                }
                             asm("x_nut_screws", DOWN, 20, engage=8) tr8_nut_screws();   // DOWN: from the motor's side of the flange
                         }
                         attach(TOP) asm("x_motor_screws", UP, 20, engage=8)         // UP: world +x, from inside the carriage; heads sink into the wall
@@ -425,6 +476,11 @@ if (!is_undef(check)) scene("fixed");
 
 // Printing
 if(!is_undef(print)) {
+    if (print=="board_clamp") !up(pb_clamp_height) xrot(180) board_clamp();
+    if (print=="board_holder") !yrot(90) x_carriage() yrot(-90) {
+        translate(pb_center()) protoboard();
+        board_clamps();
+    }
     if (print=="x_carriage") !yrot(180) x_carriage();
     if (print=="y_carriage") !yrot(-90) y_carriage();
     if (print=="tower") !tower();
