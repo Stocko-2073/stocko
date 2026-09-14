@@ -6,6 +6,49 @@ A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
+## Wi-Fi provisioning and xyz.local (firmware v0.4)
+
+Build/upload with `make upload`, then open `make monitor` at 115200 baud.
+Commands are uppercase. Provision a 2.4 GHz network through the USB console:
+
+```text
+OFF
+WIFI SET
+```
+
+At the `SSID` prompt, type the network name and press Enter. At the password
+prompt, type its password and press Enter (empty for an open network). Input
+is not echoed by firmware; disable local echo in your terminal if needed.
+Spaces and punctuation, including `!`, are literal inside these two prompts.
+Backspace edits input; Ctrl-C cancels provisioning. LF, CR, and CRLF line
+endings work. SSIDs accept 1–32 bytes; passwords accept 8–63 bytes or a
+64-digit hexadecimal key. While either prompt is active, all lines are
+credential input, including text that normally names a motion command.
+Motors must be disabled to enter provisioning and remain disabled during it.
+USB disconnection cancels an unfinished prompt.
+
+`WIFI STATUS` reports whether credentials are configured, connection state,
+IP address, and mDNS readiness. `WIFI FORGET` (motors disabled) removes the
+saved credentials and disconnects. Credentials are stored in ESP32 NVS across
+reboots; they are not printed in status output or compiled into the firmware.
+This uses ordinary flash storage, not an encrypted credential vault.
+
+Connection runs in the background and retries every 30 seconds while motors
+are disabled. Incorrect credentials can be replaced with `WIFI SET`.
+Once connected, mDNS publishes **xyz.local**; try `ping xyz.local` from a
+computer on the same LAN with mDNS support. Client isolation or multicast
+filtering can prevent name resolution. There is no HTTP server or network
+motion interface in this change; motion commands remain on USB serial.
+Network management in the main loop is deferred while motors are armed;
+Wi-Fi radio activity can still occur, so motion timing with Wi-Fi enabled
+has not yet been validated on hardware.
+
+Hardware verification (2026-09-14): user confirmed `xyz.local` responds to
+ping after provisioning.
+
+The implementation uses Espressif's [Wi-Fi API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/wifi.html)
+and [Preferences storage API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/preferences.html).
+
 ## Commissioning findings (2026-09-13)
 
 Update 2026-09-14: replacement M2/A driver installed. User tested 200 pulses

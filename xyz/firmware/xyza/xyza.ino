@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
+#include "wifi_provisioning.h"
 #include "motion_profile.h"
 #include "demo_path.h"
 
@@ -25,6 +26,7 @@ bool demoRunning = false;
 char line[96];
 size_t lineLength = 0;
 bool discardLine = false;
+bool previousCR = false;
 
 void disableMotors() {
   portENTER_CRITICAL(&motionMux);
@@ -142,11 +144,13 @@ void command(char *input) {
     args[count++] = s;
   }
   if (!count) return;
+  if (!strcmp(args[0], "WIFI") && count == 2) { WifiProvisioning::command(args[1], armed); return; }
   if (!strcmp(args[0], "STOP") || !strcmp(args[0], "OFF")) {
     disableMotors(); Serial.println("OK disabled"); return;
   }
   if (!strcmp(args[0], "STATUS") && count == 1) { status(); return; }
   if (!strcmp(args[0], "HELP") && count == 1) {
+    Serial.println("WIFI SET | WIFI STATUS | WIFI FORGET (SET/FORGET require OFF)");
     Serial.println("HELP | STATUS | ARM | OFF | STOP | ! (immediate stop)");
     Serial.println("DEMO: XY square + circle, 3 cycles, 20x20 mm positive envelope; ARM first");
     Serial.println("MAP <X|Y|Z|A> <M0..M3> | INVERT <M0..M3> <0|1> (disabled only)");
@@ -234,17 +238,28 @@ void serviceSerial() {
   // Bound work so a flooded serial link cannot starve stepping.
   for (int budget = 0; budget < 64 && Serial.available(); ++budget) {
     char c = Serial.read();
-    if (c == '!') {
+    if (c == '\n' && previousCR) { previousCR = false; continue; }
+    previousCR = c == '\r';
+    if (c == 3) {
+      disableMotors(); WifiProvisioning::cancel(); memset(line, 0, sizeof(line));
+      lineLength = 0; discardLine = false;
+      Serial.println("OK cancelled; disabled");
+    } else if (c == '!' && !WifiProvisioning::prompt) {
       disableMotors();
       lineLength = 0;
       discardLine = true; // Discard remainder through newline, preventing trailing ARM.
       Serial.println("OK stopped; send newline before next command");
     } else if (c == '\r' || c == '\n') {
-      if (!discardLine) { line[lineLength] = 0; command(line); }
+      if (!discardLine) {
+        line[lineLength] = 0;
+        if (WifiProvisioning::prompt) WifiProvisioning::input(line); else command(line);
+      }
+      memset(line, 0, sizeof(line));
       lineLength = 0; discardLine = false;
     } else if (!discardLine) {
+      if (c == '\b' || c == 127) { if (lineLength) line[--lineLength] = 0; continue; }
       if (c == '\0' || lineLength >= sizeof(line) - 1) {
-        disableMotors(); lineLength = 0; discardLine = true;
+        disableMotors(); WifiProvisioning::cancel(); memset(line, 0, sizeof(line)); lineLength = 0; discardLine = true;
         Serial.println("ERR invalid/overlong line; disabled");
       } else line[lineLength++] = c;
     }
@@ -269,14 +284,20 @@ void setup() {
     timerAttachInterrupt(stepTimer, &onStep);
   }
   Serial.begin(115200); // Native USB CDC; do not wait for a host.
-  Serial.println("XYZA commissioning firmware v0.3; disabled; HELP");
+  Serial.println("XYZA commissioning firmware v0.4; disabled; HELP");
+  WifiProvisioning::begin();
 }
 
 void loop() {
   // USB disconnect drops enable; no motion resumes on reconnection.
   if (!Serial && armed) disableMotors();
+  if (!Serial && WifiProvisioning::prompt) {
+    WifiProvisioning::cancel(); memset(line, 0, sizeof(line)); lineLength = 0;
+    discardLine = true;
+  }
   finishMotion();
   serviceSerial();
+  WifiProvisioning::service(armed);
   if (armed && activeMotor < 0 && uint32_t(millis() - idleSinceMs) >= Config::armIdleMs) {
     disableMotors(); Serial.println("OFF idle timeout");
   }

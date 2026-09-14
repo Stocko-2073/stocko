@@ -15,6 +15,37 @@ int main() {
   assert(!armed && levels[D10] == HIGH);
   for (int i=0; i<4; ++i) assert(axisMotor[i] == Config::axisMotor[i] && rises[Config::stepPins[i]] == 0);
   assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == 2);
+  // Provisioning accepts CRLF, spaces, punctuation, and editing without echo.
+  send("WIFI SET\r\nMy Net!work\r\nsecret! passX\b\r\n");
+  assert(WiFi.ssid == "My Net!work" && WiFi.password == "secret! pass");
+  assert(!WifiProvisioning::prompt && !armed && WiFi.hostname == "xyz");
+  assert(Serial.output.find("secret!") == std::string::npos);
+  WifiProvisioning::saved = {}; WifiProvisioning::begin(); // Simulate reload from flash.
+  assert(WiFi.ssid == "My Net!work");
+  WiFi.state = WL_CONNECTED; loop();
+  assert(MDNS.running && MDNS.hostname == "xyz");
+  WiFi.state = 0; loop(); assert(!MDNS.running);
+  const int attempts = WiFi.attempts;
+  clockUs += 30000000; loop(); assert(WiFi.attempts == attempts + 1);
+  MDNS.fail = true; WiFi.state = WL_CONNECTED; loop(); assert(!MDNS.running);
+  MDNS.fail = false; clockUs += 5000000; loop(); assert(MDNS.running);
+  send("ARM\nWIFI SET\nWIFI FORGET\n");
+  assert(!WifiProvisioning::prompt && WifiProvisioning::saved.ssid[0]);
+  send("OFF\nWIFI SET\nAnother\nshort\n"); assert(WifiProvisioning::prompt == 2);
+  send(std::string(1, 3)); assert(!WifiProvisioning::prompt);
+  assert(std::string(WifiProvisioning::saved.ssid) == "My Net!work");
+  WifiProvisioning::preferences.failWrite = true;
+  send("WIFI SET\nFailed\npassword\n");
+  assert(std::string(WifiProvisioning::saved.ssid) == "My Net!work");
+  WifiProvisioning::preferences.failWrite = false;
+  send("WIFI SET\nOpen network\n\n"); assert(WiFi.password.empty());
+  send("WIFI SET\n" + std::string(100, 'x') + "\n");
+  assert(!WifiProvisioning::prompt && !armed);
+  send("WIFI SET\nPartial"); Serial.connected = false; loop();
+  assert(!WifiProvisioning::prompt && lineLength == 0);
+  Serial.connected = true; send("\nWIFI FORGET\n");
+  assert(!WifiProvisioning::saved.ssid[0] && WifiProvisioning::preferences.blob.empty() && !MDNS.running);
+  WifiProvisioning::begin(); assert(!WifiProvisioning::saved.ssid[0]);
   send("JOG M0 10\n"); assert(activeMotor == -1);
   send("ARM\n"); assert(armed && levels[D10] == LOW);
   for (const char *bad : {"JOG M0 0\n", "JOG M0 1001\n", "JOG M0 -1001\n",
