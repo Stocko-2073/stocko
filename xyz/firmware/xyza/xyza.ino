@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
@@ -13,11 +14,13 @@ bool armed = false;
 int activeMotor = -1;
 volatile long remaining = 0;
 int direction = 1;
-int64_t emitted[4] = {}; // Diagnostic pulse counts, never a machine position.
+int64_t emitted[4] = {}; // Commanded pulses; physical reference requires operator confirmation.
 uint32_t idleSinceMs = 0;
 hw_timer_t *stepTimer = nullptr;
 portMUX_TYPE motionMux = portMUX_INITIALIZER_UNLOCKED;
 uint32_t stepIntervals[Config::profileCapacity];
+PresetProfile presetProfile;
+bool presetProfileActive = false;
 volatile size_t pulseIndex = 0;
 volatile bool motionComplete = false;
 DemoEvent demoEvents[demoCapacity];
@@ -28,7 +31,18 @@ size_t lineLength = 0;
 bool discardLine = false;
 bool previousCR = false;
 
+volatile bool webArmed = false, webExpired = false;
+volatile uint32_t webHeartbeat = 0;
+bool presetRunning = false;
+const char *disableReason = "Startup";
+#include "positions.h"
+
 void disableMotors() {
+  disableReason = "Stopped";
+  const bool interrupted = activeMotor >= 0 && remaining > 0;
+  presetRunning = false;
+  webArmed = false;
+  webExpired = false;
   portENTER_CRITICAL(&motionMux);
   digitalWrite(Config::enablePin, HIGH);
   for (uint8_t pin : Config::stepPins) digitalWrite(pin, LOW);
@@ -37,8 +51,10 @@ void disableMotors() {
   remaining = 0;
   motionComplete = false;
   demoRunning = false;
+  presetProfileActive = false;
   portEXIT_CRITICAL(&motionMux);
   if (stepTimer) timerStop(stepTimer);
+  if (interrupted) Positions::settled(true);
 }
 
 // Only precomputed integer intervals and pin operations in the interrupt.
@@ -46,6 +62,12 @@ void disableMotors() {
 // can service USB or yield without adding a millisecond to every step.
 void ARDUINO_ISR_ATTR onStep() {
   portENTER_CRITICAL_ISR(&motionMux);
+  if (webArmed && uint32_t(millis() - webHeartbeat) > Config::webLeaseMs) {
+    digitalWrite(Config::enablePin, HIGH);
+    webExpired = true; // Main loop cancels the plan and persists invalid reference.
+    portEXIT_CRITICAL_ISR(&motionMux);
+    return;
+  }
   if (armed && activeMotor >= 0 && remaining > 0) {
     const uint64_t riseAt = timerRead(stepTimer);
     if (demoRunning) {
@@ -75,7 +97,7 @@ void ARDUINO_ISR_ATTR onStep() {
     --remaining;
     ++pulseIndex;
     if (remaining == 0) motionComplete = true;
-    else timerAlarm(stepTimer, riseAt + stepIntervals[pulseIndex], false, 0);
+    else timerAlarm(stepTimer, riseAt + (presetProfileActive ? presetProfile.interval(pulseIndex) : stepIntervals[pulseIndex]), false, 0);
   }
   portEXIT_CRITICAL_ISR(&motionMux);
 }
@@ -84,14 +106,36 @@ void finishMotion() {
   portENTER_CRITICAL(&motionMux);
   const bool done = motionComplete;
   const bool demoDone = done && demoRunning;
-  if (done) { motionComplete = false; activeMotor = -1; }
+  if (done) { motionComplete = false; activeMotor = -1; presetProfileActive = false; }
   portEXIT_CRITICAL(&motionMux);
   if (done) {
     timerStop(stepTimer);
     idleSinceMs = millis();
+    Positions::settled(false);
     if (demoDone) disableMotors();
     Serial.println("DONE");
   }
+}
+
+bool startPresetAxis(int m, int64_t steps) {
+  if (!armed || !stepTimer || activeMotor >= 0 || m < 0 || m > 3 || m == 2 ||
+      !steps || steps > INT32_MAX || steps < -int64_t(INT32_MAX)) return false;
+  const uint32_t pulses = uint32_t(steps > 0 ? steps : -steps);
+  if (!presetProfile.build(pulses, 1000, Config::acceleration[m]) || !Positions::beforeMove()) return false;
+  timerStop(stepTimer);
+  timerWrite(stepTimer, 0);
+  portENTER_CRITICAL(&motionMux);
+  direction = steps > 0 ? 1 : -1;
+  digitalWrite(Config::dirPins[m], (direction > 0) != inverted[m] ? HIGH : LOW);
+  remaining = long(pulses);
+  pulseIndex = 0;
+  motionComplete = false;
+  presetProfileActive = true;
+  activeMotor = m;
+  timerAlarm(stepTimer, presetProfile.interval(0), false, 0);
+  timerStart(stepTimer);
+  portEXIT_CRITICAL(&motionMux);
+  return true;
 }
 
 bool number(const char *s, long low, long high, long &out) {
@@ -155,12 +199,12 @@ void command(char *input) {
     Serial.println("DEMO: XY square + circle, 3 cycles, 20x20 mm positive envelope; ARM first");
     Serial.println("MAP <X|Y|Z|A> <M0..M3> | INVERT <M0..M3> <0|1> (disabled only)");
     Serial.println("JOG <M0..M3|X|Y|Z|A> <signed nonzero pulses> [cruise pulses/sec]");
-    Serial.println("Rate caps: M0/M1=3000, M2=1000, M3=2000; default 500 (clamped)");
-    Serial.println("Per-jog caps: M0=1000, M1=2000, M2=6000, M3=500 pulses; no travel limits");
-    Serial.println("No homing, physical coordinates, or cutting cycle. Mapping is RAM-only.");
+    Serial.println("Rate caps: M0/M1=3000, M2=1000, M3=2000; default 1000 (clamped)");
+    Serial.println("Per-jog caps: M0=1000, M1=2000, M2=6000, M3=1000 pulses; no travel limits");
+    Serial.println("Web manual home/presets: http://xyz.local; mapping is RAM-only.");
     return;
   }
-  if (activeMotor >= 0) { Serial.println("ERR busy; STOP or wait for DONE"); return; }
+  if (activeMotor >= 0 || presetRunning) { Serial.println("ERR busy; STOP or wait for DONE"); return; }
   if (!strcmp(args[0], "DEMO") && count == 1) {
     if (!armed) { Serial.println("ERR disabled; ARM first"); return; }
     if (axisMotor[0] != 0 || axisMotor[1] != 1 || inverted[0] || inverted[1]) {
@@ -168,6 +212,7 @@ void command(char *input) {
     }
     demoCount = buildDemo(demoEvents);
     if (!demoCount) { disableMotors(); Serial.println("ERR demo profile"); return; }
+    if (!Positions::beforeMove()) { Serial.println("ERR saving motion state"); return; }
     timerStop(stepTimer);
     timerWrite(stepTimer, 0);
     portENTER_CRITICAL(&motionMux);
@@ -194,6 +239,8 @@ void command(char *input) {
     if (armed || a < 0 || m < 0) { Serial.println("ERR disable first; MAP axis motor"); return; }
     for (int i = 0; i < 4; ++i) if (axisMotor[i] == m) axisMotor[i] = -1;
     axisMotor[a] = m;
+    Positions::known = false;
+    Positions::settled(false);
     Serial.println("OK mapped (RAM only)"); return;
   }
   if (!strcmp(args[0], "INVERT") && count == 3) {
@@ -202,6 +249,8 @@ void command(char *input) {
       Serial.println("ERR disable first; INVERT motor 0|1"); return;
     }
     inverted[m] = value;
+    Positions::known = false;
+    Positions::settled(false);
     Serial.println("OK inverted (RAM only)"); return;
   }
   if (!strcmp(args[0], "JOG") && (count == 3 || count == 4)) {
@@ -216,9 +265,11 @@ void command(char *input) {
     }
     if (!armed) { Serial.println("ERR disabled; ARM first"); return; }
     buildProfile(stepIntervals, labs(steps), rate, Config::acceleration[m]);
+    if (!Positions::beforeMove()) { Serial.println("ERR saving motion state"); return; }
     timerStop(stepTimer);
     timerWrite(stepTimer, 0);
     portENTER_CRITICAL(&motionMux);
+    presetProfileActive = false;
     direction = steps > 0 ? 1 : -1;
     digitalWrite(Config::dirPins[m], (direction > 0) != inverted[m] ? HIGH : LOW);
     remaining = labs(steps);
@@ -233,6 +284,8 @@ void command(char *input) {
   }
   Serial.println("ERR unknown command or arguments; HELP");
 }
+
+#include "web_control.h"
 
 void serviceSerial() {
   // Bound work so a flooded serial link cannot starve stepping.
@@ -284,13 +337,16 @@ void setup() {
     timerAttachInterrupt(stepTimer, &onStep);
   }
   Serial.begin(115200); // Native USB CDC; do not wait for a host.
-  Serial.println("XYZA commissioning firmware v0.4; disabled; HELP");
+  Serial.println("XYZA commissioning firmware v0.5; disabled; HELP");
+  disableReason = "Startup";
+  Positions::begin();
   WifiProvisioning::begin();
+  WebControl::begin();
 }
 
 void loop() {
   // USB disconnect drops enable; no motion resumes on reconnection.
-  if (!Serial && armed) disableMotors();
+  if (!Serial && armed && !webArmed) { disableMotors(); disableReason = "USB disconnected"; }
   if (!Serial && WifiProvisioning::prompt) {
     WifiProvisioning::cancel(); memset(line, 0, sizeof(line)); lineLength = 0;
     discardLine = true;
@@ -298,8 +354,9 @@ void loop() {
   finishMotion();
   serviceSerial();
   WifiProvisioning::service(armed);
-  if (armed && activeMotor < 0 && uint32_t(millis() - idleSinceMs) >= Config::armIdleMs) {
-    disableMotors(); Serial.println("OFF idle timeout");
+  WebControl::service();
+  if (armed && !webArmed && activeMotor < 0 && uint32_t(millis() - idleSinceMs) >= Config::armIdleMs) {
+    disableMotors(); disableReason = "USB idle timeout"; Serial.println("OFF idle timeout");
   }
   delay(1);
 }

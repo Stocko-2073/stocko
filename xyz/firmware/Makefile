@@ -1,4 +1,5 @@
 ARDUINO_CLI ?= arduino-cli
+NODE ?= node
 FQBN := esp32:esp32:XIAO_ESP32C6:CDCOnBoot=cdc
 PORT ?= /dev/cu.usbmodem2101
 BUILD := $(CURDIR)/build
@@ -8,6 +9,9 @@ test:
 	mkdir -p "$(BUILD)"
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -Itests tests/firmware_test.cpp -o "$(BUILD)/firmware_test"
 	"$(BUILD)/firmware_test"
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -Itests tests/web_control_test.cpp -o "$(BUILD)/web_control_test"
+	"$(BUILD)/web_control_test"
+	$(NODE) tests/web_page_test.js
 compile:
 	$(ARDUINO_CLI) compile --fqbn $(FQBN) --build-path "$(BUILD)" xyza
 upload: compile

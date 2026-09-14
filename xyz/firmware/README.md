@@ -1,12 +1,75 @@
 # XYZA stripboard cutter firmware
 
-Commissioning scaffold for a Seeed XIAO ESP32-C6 and four A4988 drivers.
+Manual control firmware for a Seeed XIAO ESP32-C6 and four A4988 drivers.
 `A` is the stepper-driven drill spindle. Current mapping is X=M0, Y=M1, Z=M3;
 A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
-## Wi-Fi provisioning and xyz.local (firmware v0.4)
+## Web jogging and saved positions (firmware v0.5)
+
+Build and upload with `make upload`. With Wi-Fi configured as below, open
+**http://xyz.local/** (or the IP reported by `WIFI STATUS`) on the same LAN.
+The page is served entirely by the ESP32; no app installation or internet is needed.
+
+1. Click **Enable motors**, select a small jog distance, and use the board/drill direction buttons
+   to reach your working origin. Click **Set home here** to save it in flash.
+2. Raise the drill clear of the board and fixtures, then jog to a convenient
+   board replacement location. Click **Set replace board here**.
+3. **Go home** and **Replace board** move between those saved XYZ positions.
+   Each move raises Z to the higher endpoint, moves X then Y, and lowers Z
+   to the target. Ensure that height clears everything along the XY path.
+   There is no automatic extra retract above the saved endpoints.
+
+The UI uses the commissioned directions: +X moves the board right, +Y away
+from the tower, and +Z moves the drill up. Jog choices are 10, 100, 500, and 1,000
+pulses (approximately 0.1, 1, 5, and 10 mm at the provisional calibration).
+The default selection is 10 mm; Z now permits 1,000 pulses per jog.
+Web moves use 1,000 pulses/sec and existing acceleration. Manual jogs retain
+their per-move caps; each axis leg of a saved-position move uses one continuous
+acceleration/cruise/deceleration profile, with no stops at jog boundaries.
+Only the short ramp is stored in RAM, so long travel does not require a larger
+per-pulse buffer. The spindle never moves as part of a web jog or preset.
+
+Home, replace board, and the last completed position are stored separately
+from Wi-Fi credentials in NVS. Boot never moves or enables the machine.
+After a clean restart, **Machine has not moved since restart** restores the
+reference only if you know the mechanism stayed in place. Otherwise jog to
+the physical saved home and click **I am at the saved home**, which preserves
+the replacement position. After a reset during motion or an interrupted move,
+this manual re-reference is required. Setting a *new* home while the reference
+is unknown clears the old replacement position; setting home while referenced
+retains the replacement's physical target.
+
+Coordinates count commanded pulses, not measured movement. Lost steps, gravity,
+or movement by hand cannot be detected without sensors. A connected controlling
+page keeps the motors enabled while idle. USB control still disables after 30 idle seconds. Re-reference if releasing the motors
+lets the mechanism move.
+Presets require the commissioned mapping/directions; USB MAP/INVERT invalidate
+the reference. Flash writes occur before moves and after completion, never in
+the pulse interrupt; write failures reject motion or invalidate the reference.
+
+**STOP** (or Escape) immediately cancels queued preset travel and disables all
+motors. The controlling page becoming hidden requests a stop; observer pages do not.
+One combined poll renews the controlling browser's 3-second lease and returns
+status; expiration inhibits further steps in the timer interrupt,
+even if HTTP handling is stalled. Network loss also stops motion. Another page
+cannot renew that lease, but can press Stop. The page reports the disable reason
+(browser timeout, Wi-Fi loss, hidden page, or explicit stop). This software stop is not a
+physical emergency-stop circuit. USB-controlled motion retains its USB
+disconnect stop; web control works without a USB connection.
+
+The HTTP controls have no login and are intended for the local trusted LAN.
+Cross-origin browser commands require a custom header, and the server grants
+no CORS access. Do not expose port 80 to the internet.
+
+`make test` (C++ compiler and Node.js required) runs motion and page tests,
+plus web action, storage failure,
+reboot/reference, preset sequencing, spindle exclusion, and lease-stop tests.
+`make compile` builds for the XIAO ESP32-C6. Web control and network-loaded
+motion timing still require physical-machine verification after flashing.
+
+## Wi-Fi provisioning and xyz.local
 
 Build/upload with `make upload`, then open `make monitor` at 115200 baud.
 Commands are uppercase. Provision a 2.4 GHz network through the USB console:
@@ -37,8 +100,8 @@ Connection runs in the background and retries every 30 seconds while motors
 are disabled. Incorrect credentials can be replaced with `WIFI SET`.
 Once connected, mDNS publishes **xyz.local**; try `ping xyz.local` from a
 computer on the same LAN with mDNS support. Client isolation or multicast
-filtering can prevent name resolution. There is no HTTP server or network
-motion interface in this change; motion commands remain on USB serial.
+filtering can prevent name resolution; use the reported IP address instead.
+The HTTP web controls above run alongside the USB console.
 Network management in the main loop is deferred while motors are armed;
 Wi-Fi radio activity can still occur, so motion timing with Wi-Fi enabled
 has not yet been validated on hardware.
@@ -200,10 +263,10 @@ Short moves use a triangular profile and may never reach the requested rate.
 | M0 / X | 3000 | 10000 | 1000 |
 | M1 / Y | 3000 | 10000 | 2000 |
 | M2 / A drill | 1000 | 500 | 6000 |
-| M3 / Z | 2000 | 10000 | 500 |
+| M3 / Z | 2000 | 10000 | 1000 |
 
-Firmware and Python default to 500 pulses/sec (clamped to the motor cap).
-At the provisional 100 pulses/mm, that is 5 mm/sec cruise for XYZ; X/Y
+Firmware and Python now default to 1,000 pulses/sec (clamped to the motor cap).
+At the provisional 100 pulses/mm, that is 10 mm/sec cruise for XYZ; X/Y
 acceleration is now 100 mm/sec². These are commissioning settings, not validated
 maximum motor speeds. First test X at 500 pulses/sec, confirm the full 10 mm
 travel, then test its return and Y before increasing to 1000 and beyond.
@@ -495,7 +558,8 @@ motion means. Repeat as needed for M1 and M3; M2 rotates the drill. A step count
 depends on microstepping, gearing, and mechanics. Even ten pulses are not a
 guaranteed safe distance. ARM enables **all four drivers**, including the drill,
 but does not generate pulses. Drivers hold after a jog until OFF, disconnect, or
-30 seconds idle; removing torque can let an unsupported Z axis drop.
+30 seconds idle under USB control; a connected web controller keeps holding.
+Removing torque can let an unsupported Z axis drop.
 
 Record observations before assigning axes:
 
@@ -527,7 +591,7 @@ identification: named-axis mapping currently assumes independent axes.
 | `MAP X M0` | Assign axis to motor while disabled |
 | `INVERT M0 1` | Reverse direction while disabled; 0 restores default |
 
-Jog bounds: nonzero ±1000 pulses for M0, ±2000 for M1, ±6000 for M2, ±500 for M3; rates start at 1
+Jog bounds: nonzero ±1000 pulses for M0, ±2000 for M1, ±6000 for M2, ±1000 for M3; rates start at 1
 pulse/sec and are capped per motor as listed above. Motion uses the hardware
 timer, one motor at a time, with acceleration and no queue. Send one command
 at a time and wait for its reply; wait for `DONE` before the next motion.

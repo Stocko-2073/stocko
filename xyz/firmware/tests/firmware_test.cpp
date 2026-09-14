@@ -49,7 +49,7 @@ int main() {
   send("JOG M0 10\n"); assert(activeMotor == -1);
   send("ARM\n"); assert(armed && levels[D10] == LOW);
   for (const char *bad : {"JOG M0 0\n", "JOG M0 1001\n", "JOG M0 -1001\n",
-                         "JOG M3 501\n", "JOG Z -501\n", "JOG M2 6001\n",
+                         "JOG M3 1001\n", "JOG Z -1001\n", "JOG M2 6001\n",
                          "JOG M1 2001\n", "JOG Y -2001\n",
                          "JOG M0 10 0\n", "JOG M0 10 3001\n", "JOG Z 10 2001\n", "JOG M4 1\n",
                          "JOG A 1 1001\n", "JOG B 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
@@ -81,7 +81,7 @@ int main() {
   send("STOP\n"); assert(!armed);
   send("ARM\nJOG M0 1000 200\n"); runMotion(); assert(emitted[0] == 1005);
   send("JOG M1 -1000 200\n"); runMotion(); assert(emitted[1] == -998);
-  send("OFF\nMAP X M3\nARM\nJOG X 501\n");
+  send("OFF\nMAP X M3\nARM\nJOG X 1001\n");
   assert(activeMotor == -1 && emitted[3] == 2); // Mapping cannot bypass Z motor cap.
   send("STOP\n");
   // The 1000-pulse 500/s trapezoid lasts 2.1 s, instead of the old ~11 s jog.
