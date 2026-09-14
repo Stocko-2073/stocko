@@ -14,14 +14,14 @@ int main() {
   setup();
   assert(!armed && levels[D10] == HIGH);
   for (int i=0; i<4; ++i) assert(axisMotor[i] == Config::axisMotor[i] && rises[Config::stepPins[i]] == 0);
-  assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == -1);
+  assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == 2);
   send("JOG M0 10\n"); assert(activeMotor == -1);
   send("ARM\n"); assert(armed && levels[D10] == LOW);
   for (const char *bad : {"JOG M0 0\n", "JOG M0 1001\n", "JOG M0 -1001\n",
-                         "JOG M3 501\n", "JOG Z -501\n", "JOG M2 201\n",
+                         "JOG M3 501\n", "JOG Z -501\n", "JOG M2 6001\n",
                          "JOG M1 2001\n", "JOG Y -2001\n",
                          "JOG M0 10 0\n", "JOG M0 10 3001\n", "JOG Z 10 2001\n", "JOG M4 1\n",
-                         "JOG A 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
+                         "JOG A 1 1001\n", "JOG B 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
     send(bad); assert(activeMotor == -1);
   }
   send("MAP X M1\n"); assert(axisMotor[0] == 0);
@@ -168,6 +168,21 @@ int main() {
   send("JOG Z -500 2000\n"); runMotion();
   assert(emitted[3]==patternZ);
   assert(rises[D1]==xBeforeZ && rises[D3]==yBeforeZ && rises[D5]==aBeforeZ);
+  send("STOP\n");
+  const int64_t originalA=emitted[2];
+  const int xBeforeA=rises[D1], yBeforeA=rises[D3], zBeforeA=rises[D9];
+  static uint32_t spindleProfile[6000];
+  buildProfile(spindleProfile, 6000, 1000, Config::acceleration[2]);
+  uint64_t spindleUs=0;
+  int cruisePulses=0;
+  for (uint32_t interval : spindleProfile) {
+    assert(interval>=1000); spindleUs+=interval;
+    if (interval<=1001) ++cruisePulses;
+  }
+  assert(spindleUs>=8000000 && spindleUs<8006000 && cruisePulses>=4000);
+  send("ARM\nJOG A 6000 1000\n"); runMotion();
+  assert(emitted[2] == originalA+6000);
+  assert(rises[D1]==xBeforeA && rises[D3]==yBeforeA && rises[D9]==zBeforeA);
   send("STOP\n");
   std::cout << "Firmware control tests passed; demo cycle " << demoUs/1000000.0 << " s\n";
 }

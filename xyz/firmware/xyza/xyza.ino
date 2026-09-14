@@ -151,8 +151,8 @@ void command(char *input) {
     Serial.println("DEMO: XY square + circle, 3 cycles, 20x20 mm positive envelope; ARM first");
     Serial.println("MAP <X|Y|Z|A> <M0..M3> | INVERT <M0..M3> <0|1> (disabled only)");
     Serial.println("JOG <M0..M3|X|Y|Z|A> <signed nonzero pulses> [cruise pulses/sec]");
-    Serial.println("Rate caps: M0/M1=3000, M2=200, M3=2000; default 500 (clamped)");
-    Serial.println("Per-jog caps: M0=1000, M1=2000, M2=200, M3=500 pulses; no travel limits");
+    Serial.println("Rate caps: M0/M1=3000, M2=1000, M3=2000; default 500 (clamped)");
+    Serial.println("Per-jog caps: M0=1000, M1=2000, M2=6000, M3=500 pulses; no travel limits");
     Serial.println("No homing, physical coordinates, or cutting cycle. Mapping is RAM-only.");
     return;
   }

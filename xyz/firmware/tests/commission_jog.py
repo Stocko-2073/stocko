@@ -14,8 +14,8 @@ parser.add_argument("--port", default="/dev/cu.usbmodem2101")
 parser.add_argument("--return-to-start", action="store_true",
                     help="after DONE, pause 0.5 s while enabled, then send the opposite jog once")
 args = parser.parse_args()
-step_limit = 2000 if args.motor in ("M1", "Y") else (1000 if args.motor in ("M0", "X") else (500 if args.motor in ("M3", "Z") else 200))
-rate_limit = 3000 if args.motor in ("M0", "M1", "X", "Y") else (2000 if args.motor in ("M3", "Z") else 200)
+step_limit = 6000 if args.motor in ("M2", "A") else (2000 if args.motor in ("M1", "Y") else (500 if args.motor in ("M3", "Z") else 1000))
+rate_limit = 3000 if args.motor in ("M0", "M1", "X", "Y") else (2000 if args.motor in ("M3", "Z") else 1000)
 if args.rate is None:
     args.rate = min(500, rate_limit)
 if not 1 <= abs(args.steps) <= step_limit or not 1 <= args.rate <= rate_limit:

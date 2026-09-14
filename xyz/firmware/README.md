@@ -2,11 +2,48 @@
 
 Commissioning scaffold for a Seeed XIAO ESP32-C6 and four A4988 drivers.
 `A` is the stepper-driven drill spindle. Current mapping is X=M0, Y=M1, Z=M3;
-A is unmapped while its driver is unavailable. Initial directions and ruler
+A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
 ## Commissioning findings (2026-09-13)
+
+Update 2026-09-14: replacement M2/A driver installed. User tested 200 pulses
+at 200 pulses/sec and reported smooth rotation. A now maps to M2 by default;
+its initial jog cap and requested cruise cap were 1000 pulses and 1000 pulses/sec.
+Acceleration remains 500 pulses/sec². The requested next test is
+`python3 tests/commission_jog.py M2 1000 --rate 1000`: a rest-to-rest triangular
+move with approximately 707 pulses/sec peak and 2.83 seconds planned duration.
+Positive spindle rotation is confirmed as the cutting direction. Replacement
+M2 has MS2 high and MS1/MS3 unconnected; the A4988's internal pull-downs select
+quarter stepping. User confirmed the drill motor is 1.8 degrees per full step:
+200 full steps/revolution, or **800 pulses/revolution** at this setting.
+XYZ settings
+are unchanged. The September 13 unavailable-driver/pause notes below are history.
+
+M2 1000/1000 test completed in **2.865 s**. Firmware reported all 1000 positive
+drill pulses, no XYZ pulses, and drivers disabled. User confirmed smooth motion
+and positive rotation in the cutting direction; M2 inversion remains false.
+With unchanged 500 pulses/sec²
+acceleration, planned peak is ~707 pulses/sec; this is not yet a sustained
+1000-pulses/sec test.
+
+Next sustained spindle test: M2's jog cap and profile capacity are increased to
+6000 pulses, while rate stays capped at 1000 pulses/sec and acceleration stays
+500 pulses/sec². `python3 tests/commission_jog.py A 6000 --rate 1000` plans
+2 seconds accelerating, 4 seconds cruising at 1000 pulses/sec, and 2 seconds
+decelerating. XYZ limits are unchanged. With the confirmed 1.8-degree motor and
+quarter stepping, **1000 pulses/sec corresponds to nominal 75 RPM** and the
+6000-pulse test commands 7.5 revolutions. This is calculated from commanded
+pulses, not measured by a tachometer. Convert using `RPM = pulses/sec * 60 / 800`.
+See the A4988 mode table linked below.
+
+Sustained A test completed in **8.174 s**, all 6000 positive spindle pulses
+reported, no XYZ pulses, and drivers disabled. Profile includes approximately
+four seconds at the requested 1000 pulses/sec cruise. User confirmed the
+steady-speed portion was smooth. This supports nominal **75 RPM unloaded**;
+there is no tachometer measurement or cutting-load validation yet. Drivers
+remain disabled after the test.
 
 - Original M0 driver failed: enable noise came from the other motors, and X did
   not move. Earlier pulse counts therefore do not describe physical X movement.
@@ -27,7 +64,7 @@ and work zero are still pending. No automatic motion happens on boot.
   Z moves the drill UP, away from the board. Raw jog inversion remains false.
 - Next calibration uses longer X/Y travel, followed by return/repeatability and
   backlash checks. M0 jogs permit 1000 pulses; M1 permits 2000 for the longer
-  Y speed test; M2 remains at 200 pulses, M3 now permits 500 for Z up/down tests.
+  Y speed test; M2 now permits 6000 pulses, M3 permits 500 for Z up/down tests.
   These are per-command caps, not cumulative travel limits.
 
 Current-position clearance estimates supplied after the initial 2 mm tests:
@@ -119,7 +156,7 @@ Short moves use a triangular profile and may never reach the requested rate.
 | --- | --- | --- | --- |
 | M0 / X | 3000 | 10000 | 1000 |
 | M1 / Y | 3000 | 10000 | 2000 |
-| M2 / unavailable drill | 200 | 500 | 200 |
+| M2 / A drill | 1000 | 500 | 6000 |
 | M3 / Z | 2000 | 10000 | 500 |
 
 Firmware and Python default to 500 pulses/sec (clamped to the motor cap).
@@ -183,7 +220,7 @@ Run and measure each separately; the tool disables all drivers after each jog.
 At 100 pulses/mm, requested rates of 50, 100, and 200 pulses/sec correspond to
 0.5, 1, and 2 mm/sec cruise. Acceleration adds time to each move. The tool
 prints command-to-DONE elapsed time, excluding connection setup. Distance is
-capped at 1000 pulses for M0, 2000 for M1, 200 for M2, and 500 for M3; increasing rate does not
+capped at 1000 pulses for M0, 2000 for M1, 6000 for M2, and 500 for M3; increasing rate does not
 increase commanded travel. Firmware applies these caps to the mapped physical
 motor, including when using named axes.
 Measure XYZ independently, taking up backlash in the measuring direction first:
@@ -396,7 +433,7 @@ a serial connection. `HELP` and `STATUS` work even if the startup banner was mis
 ## Identify the motors
 
 Start with motor power disconnected. `STATUS` should report `armed=0`, `busy=0`,
-and X=0, Y=1, Z=3, A=-1. Keep the tool clear of the workpiece. With
+and X=0, Y=1, Z=3, A=2. Keep the tool clear of the workpiece. With
 motor power off, arrange the mechanism so a small move in either direction is
 possible, and support any axis that can fall when torque is removed.
 
@@ -411,7 +448,7 @@ OFF
 ```
 
 Wait for `DONE` after each jog. Identify which mechanism moved and what positive
-motion means. Repeat for M1 and M3; skip the unavailable M2 drill. A step count means STEP pulses, so physical travel
+motion means. Repeat as needed for M1 and M3; M2 rotates the drill. A step count means STEP pulses, so physical travel
 depends on microstepping, gearing, and mechanics. Even ten pulses are not a
 guaranteed safe distance. ARM enables **all four drivers**, including the drill,
 but does not generate pulses. Drivers hold after a jog until OFF, disconnect, or
@@ -423,7 +460,7 @@ Record observations before assigning axes:
 | --- | --- | --- | --- |
 | M0 | X (after driver swap) | board right | MS2 high; 1/4 if MS1/MS3 low |
 | M1 | Y | board forward, away from tower | MS2 high; 1/4 if MS1/MS3 low |
-| M2 | drill; driver unavailable | unknown | MS2 high; 1/4 if MS1/MS3 low |
+| M2 | drill; replacement driver installed | cutting direction | 1/4: MS2 high, MS1/MS3 unconnected |
 | M3 | Z | UP, away from board | MS2 high; 1/4 if MS1/MS3 low |
 
 With drivers disabled, use `MAP X M0` and `INVERT M0 1` if positive
@@ -447,7 +484,7 @@ identification: named-axis mapping currently assumes independent axes.
 | `MAP X M0` | Assign axis to motor while disabled |
 | `INVERT M0 1` | Reverse direction while disabled; 0 restores default |
 
-Jog bounds: nonzero ±1000 pulses for M0, ±2000 for M1, ±200 for M2, ±500 for M3; rates start at 1
+Jog bounds: nonzero ±1000 pulses for M0, ±2000 for M1, ±6000 for M2, ±500 for M3; rates start at 1
 pulse/sec and are capped per motor as listed above. Motion uses the hardware
 timer, one motor at a time, with acceleration and no queue. Send one command
 at a time and wait for its reply; wait for `DONE` before the next motion.
