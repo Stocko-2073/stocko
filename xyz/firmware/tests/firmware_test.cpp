@@ -10,9 +10,39 @@ void runMotion() {
   for (int i=0; activeMotor >= 0 && i<10000; ++i) loop();
   assert(activeMotor == -1);
 }
+std::vector<uint8_t> base64Decode(const std::string &text) {
+  const std::string table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  std::vector<uint8_t> out; uint32_t bits = 0; int count = 0;
+  for (char c : text) {
+    if (c == '=' || c == '\n') continue;
+    bits = bits << 6 | uint32_t(table.find(c)); count += 6;
+    if (count >= 8) { count -= 8; out.push_back(uint8_t(bits >> count & 255)); }
+  }
+  return out;
+}
 int main() {
+  // A stored core dump from a previous panic is reported at boot and readable
+  // over the console; the web status shows why the controller restarted.
+  fakeResetReason = ESP_RST_PANIC;
+  for (int i = 0; i < 100; ++i) fakeCoreDump.push_back(uint8_t(i*7));
   setup();
   assert(!armed && levels[D10] == HIGH);
+  assert(std::string(disableReason) == "Restarted after panic");
+  assert(Serial.output.find("RESET panic; crash log stored") != std::string::npos);
+  Serial.output.clear(); send("CRASH\n");
+  assert(Serial.output.find("CRASH reason=Test panic (fake)") != std::string::npos);
+  assert(Serial.output.find("CRASH task=loopTask pc=0x42001234 ra=0x42005678") != std::string::npos);
+  assert(Serial.output.find("CRASH stack=00000001 4200abcd 40800100 \nCRASH END") != std::string::npos);
+  Serial.output.clear(); send("CRASH DUMP\n");
+  {
+    const size_t begin = Serial.output.find("COREDUMP BEGIN 100\n"), end = Serial.output.find("COREDUMP END");
+    assert(begin != std::string::npos && end != std::string::npos);
+    assert(base64Decode(Serial.output.substr(begin+19, end-begin-19)) == fakeCoreDump);
+  }
+  send("ARM\n"); send("CRASH CLEAR\n"); assert(!fakeCoreDump.empty()); // Refused while armed.
+  send("OFF\n"); send("CRASH CLEAR\n"); assert(fakeCoreDump.empty());
+  Serial.output.clear(); send("CRASH INFO\n");
+  assert(Serial.output.find("CRASH none stored; this boot followed a panic") != std::string::npos);
   for (int i=0; i<4; ++i) assert(axisMotor[i] == Config::axisMotor[i] && rises[Config::stepPins[i]] == 0);
   assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == 2);
   // Provisioning accepts CRLF, spaces, punctuation, and editing without echo.
@@ -51,7 +81,7 @@ int main() {
   for (const char *bad : {"JOG M0 0\n", "JOG M0 1001\n", "JOG M0 -1001\n",
                          "JOG M3 1001\n", "JOG Z -1001\n", "JOG M2 6001\n",
                          "JOG M1 2001\n", "JOG Y -2001\n",
-                         "JOG M0 10 0\n", "JOG M0 10 3001\n", "JOG Z 10 2001\n", "JOG M4 1\n",
+                         "JOG M0 10 0\n", "JOG M0 10 4001\n", "JOG Z 10 2001\n", "JOG M4 1\n",
                          "JOG A 1 1001\n", "JOG B 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
     send(bad); assert(activeMotor == -1);
   }

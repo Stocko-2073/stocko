@@ -6,40 +6,60 @@ A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
-## Web jogging and saved positions (firmware v0.5)
+## Web control in board coordinates (firmware v0.6)
 
 Build and upload with `make upload`. With Wi-Fi configured as below, open
 **http://xyz.local/** (or the IP reported by `WIFI STATUS`) on the same LAN.
 The page is served entirely by the ESP32; no app installation or internet is needed.
 
-1. Click **Enable motors**, select a small jog distance, and use the board/drill direction buttons
-   to reach your working origin. Click **Set home here** to save it in flash.
-2. Raise the drill clear of the board and fixtures, then jog to a convenient
-   board replacement location. Click **Set replace board here**.
-3. **Go home** and **Replace board** move between those saved XYZ positions.
-   Each move raises Z to the higher endpoint, moves X then Y, and lowers Z
-   to the target. Ensure that height clears everything along the XY path.
-   There is no automatic extra retract above the saved endpoints.
+The page speaks the board's own coordinates. Stripboards are labelled with
+numbered columns and lettered rows; with the board seated against the corner
+stops and the drill above the top-right hole, the drill is at **A1**. Columns
+count to the left and rows count forward, away from the tower, so from A1 a
+move left lands on A2 and a move forward lands on B1. The readout shows the
+hole under the drill (for example `C7`), flags any off-grid offset in
+millimetres, and shows the drill height relative to the A1 height.
 
-The UI uses the commissioned directions: +X moves the board right, +Y away
-from the tower, and +Z moves the drill up. Jog choices are 10, 100, 500, and 1,000
-pulses (approximately 0.1, 1, 5, and 10 mm at the provisional calibration).
-The default selection is 10 mm; Z now permits 1,000 pulses per jog.
-Web moves use 1,000 pulses/sec and existing acceleration. Manual jogs retain
-their per-move caps; each axis leg of a saved-position move uses one continuous
-acceleration/cruise/deceleration profile, with no stops at jog boundaries.
-Only the short ramp is stored in RAM, so long travel does not require a larger
-per-pulse buffer. The spindle never moves as part of a web jog or preset.
+1. Click **Turn on motors**, then use the arrow pad to put the drill above hole
+   A1. Each arrow is labelled with the hole it will land on when the step is a
+   whole number of holes. Click **Set A1 here** to save it in flash.
+2. Raise the drill clear of the board and clamps and move the board to where it
+   can be swapped. Click **Set here** in the *Board swap* row.
+3. **Go to A1** and **Swap board** travel between those saved positions. Each
+   raises the drill to the higher endpoint, crosses in one straight XY line,
+   and lowers it to the target. Ensure that height clears everything along
+   the diagonal path. **Go to hole**
+   (type a hole such as `D12`) travels in one straight line, both axes moving
+   together, at the *current* drill height; raise the drill first if it is in
+   a cut.
 
-Home, replace board, and the last completed position are stored separately
+Steps across the board are 1 hole, 3 holes, 1 mm, or 0.1 mm; drill height
+steps are 5, 1, or 0.1 mm. The hole pitch is 2.54 mm, 254 pulses at the
+provisional 100 pulses/mm, so on-grid positions are exact pulse multiples.
+Internally the page still speaks the raw JOG convention: a column to the left
+is raw +X (board moves right) and a row forward is raw -Y (board moves toward
+the tower). Arrow moves use 1,000 pulses/sec with the existing acceleration and per-move
+jog caps. Saved-position travel raises and lowers Z at 1,000 pulses/sec, one
+continuous profile per Z leg, and crosses XY with the same straight-line move
+as `goto` below. The `goto` action
+accepts holes A1 to Z34 only: offsets from A1 of 0 to 8,382 pulses in X (34
+columns) and 0 to -6,350 in Y (26 rows), checked in both the page and the
+firmware, and it never moves Z. It steps X and Y from one event list under a
+single rest-to-rest profile along the straight path at 4,000 pulses/sec (about
+40 mm/sec), the coordinated-XY mechanism `DEMO` uses, clamped to the X/Y rate
+caps so neither axis exceeds them; the drivers stay enabled when it finishes.
+4,000 pulses/sec is above the 3,000 previously configured and has not been
+speed-tested on the hardware; watch the first long hole move for stalls. The spindle never moves from this page.
+
+A1, the swap position, and the last completed position are stored separately
 from Wi-Fi credentials in NVS. Boot never moves or enables the machine.
-After a clean restart, **Machine has not moved since restart** restores the
-reference only if you know the mechanism stayed in place. Otherwise jog to
-the physical saved home and click **I am at the saved home**, which preserves
-the replacement position. After a reset during motion or an interrupted move,
-this manual re-reference is required. Setting a *new* home while the reference
-is unknown clears the old replacement position; setting home while referenced
-retains the replacement's physical target.
+After a clean restart, **Nothing has moved since power-off** restores the
+reference only if you know the mechanism stayed in place. Otherwise put the
+drill back above the physical A1 and click **The drill is above A1 now**, which
+preserves the swap position. After a reset during motion or an interrupted move,
+this manual re-reference is required. Setting a *new* A1 while the reference
+is unknown clears the old swap position; setting A1 while referenced
+retains the swap position's physical target.
 
 Coordinates count commanded pulses, not measured movement. Lost steps, gravity,
 or movement by hand cannot be detected without sensors. A connected controlling
@@ -59,6 +79,12 @@ cannot renew that lease, but can press Stop. The page reports the disable reason
 physical emergency-stop circuit. USB-controlled motion retains its USB
 disconnect stop; web control works without a USB connection.
 
+If the motors turn off unexpectedly, the status pill names the cause: an
+explicit stop, a hidden page, a browser lease timeout, a Wi-Fi drop, or a
+controller restart after a panic, watchdog, or brownout. For a restart, the
+stored crash log is a diagnostic option: see [Crash logs](#crash-logs) and
+`make crash`.
+
 The HTTP controls have no login and are intended for the local trusted LAN.
 Cross-origin browser commands require a custom header, and the server grants
 no CORS access. Do not expose port 80 to the internet.
@@ -68,6 +94,34 @@ plus web action, storage failure,
 reboot/reference, preset sequencing, spindle exclusion, and lease-stop tests.
 `make compile` builds for the XIAO ESP32-C6. Web control and network-loaded
 motion timing still require physical-machine verification after flashing.
+
+## Crash logs
+
+The ESP32-C6 Arduino libraries write an ELF core dump to the board's 64 KB
+`coredump` partition (0x3F0000 in the default partition table) on every panic,
+and flashing a new sketch leaves it in place. At boot the firmware prints
+`RESET <reason>` and, when a dump is stored, how to read it. The web status
+pill shows `Motors off · Restarted after panic` (or watchdog, brownout, power
+glitch, CPU lockup) so a crash is distinguishable from a Wi-Fi drop or a lease
+timeout. With the motors disabled:
+
+| Command | Behavior |
+| --- | --- |
+| `CRASH` or `CRASH INFO` | Panic reason, task, `pc`, `ra`, `sp`, `mcause`, `mtval`, a0–a7, ELF SHA-256, stack words, then `CRASH END` |
+| `CRASH DUMP` | The raw partition image as base64 between `COREDUMP BEGIN <size>` and `COREDUMP END` |
+| `CRASH CLEAR` | Erase the stored dump |
+
+`make crash` runs `tests/crash_dump.py`, which prints the summary and
+symbolises `pc`, `ra`, and every stack word that points into code with the
+toolchain's `riscv32-esp-elf-addr2line` against `build/xyza.ino.elf`; the ELF
+must be the build that crashed (compare `elf_sha256`). `make crash-dump`
+saves the full image to `build/coredump.bin` and prints the `esp-coredump`
+command (`pip install esp-coredump`; the Arduino package ships
+`riscv32-esp-elf-gdb`) to open it with registers and a full backtrace.
+`make crash-clear` erases it. Without firmware support the same bytes can be
+read with `esptool --port <port> read-flash 0x3F0000 0x10000 coredump.bin`,
+which resets the board. Panic text also goes to the USB console at the moment
+of the crash, but only a monitor attached at that time sees it.
 
 ## Wi-Fi provisioning and xyz.local
 
@@ -260,8 +314,8 @@ Short moves use a triangular profile and may never reach the requested rate.
 
 | Motor | Maximum requested rate (pulses/sec) | Acceleration (pulses/sec²) | Jog cap (pulses) |
 | --- | --- | --- | --- |
-| M0 / X | 3000 | 10000 | 1000 |
-| M1 / Y | 3000 | 10000 | 2000 |
+| M0 / X | 4000 | 10000 | 1000 |
+| M1 / Y | 4000 | 10000 | 2000 |
 | M2 / A drill | 1000 | 500 | 6000 |
 | M3 / Z | 2000 | 10000 | 1000 |
 
@@ -590,6 +644,7 @@ identification: named-axis mapping currently assumes independent axes.
 | `JOG M0 10 [rate]` | Relative motor jog; M0–M3 or a mapped X/Y/Z/A |
 | `MAP X M0` | Assign axis to motor while disabled |
 | `INVERT M0 1` | Reverse direction while disabled; 0 restores default |
+| `CRASH [INFO\|DUMP\|CLEAR]` | Diagnostic: read or erase the core dump stored by the last panic, while disabled (see Crash logs) |
 
 Jog bounds: nonzero ±1000 pulses for M0, ±2000 for M1, ±6000 for M2, ±1000 for M3; rates start at 1
 pulse/sec and are capped per motor as listed above. Motion uses the hardware

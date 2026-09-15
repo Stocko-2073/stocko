@@ -48,6 +48,37 @@ int main() {
   assert(action("go-replace")==200);
   WebControl::service(); assert(activeMotor==3); // Raise Z before XY.
   run(); assert(emitted[0]==200 && emitted[1]==100 && emitted[3]==100);
+  // Go to a hole: travel X then Y at the current drill height, never Z.
+  assert(action("goto")==400);
+  WebControl::server.args={{"op","goto"},{"x","254"},{"y","10"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==400); // Rows only run forward.
+  WebControl::server.args={{"op","goto"},{"x","8383"},{"y","0"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==400); // Past column 34.
+  WebControl::server.args={{"op","goto"},{"x","0"},{"y","-6351"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==400); // Past row Z.
+  WebControl::server.args={{"op","goto"},{"x","254"},{"y","-508"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200);
+  assert(activeMotor==0 && demoRunning && !demoDisarm); // One straight line, both axes.
+  {
+    const int zPulses=rises[D9]; const size_t y0=riseTimes[D3].size();
+    run(); assert(rises[D9]==zPulses);
+    assert(riseTimes[D1].back() > riseTimes[D3][y0]); // X and Y overlapped, not in turn.
+    assert(armed && !demoRunning && WebControl::idle()); // Unlike DEMO, stays armed.
+  }
+  assert(emitted[0]==Positions::saved.home[0]+254 && emitted[1]==Positions::saved.home[1]-508);
+  assert(emitted[3]==Positions::saved.replace[3]);
+  // An axis-aligned hole move to row Z cruises at 4,000 pulses/sec.
+  WebControl::server.args={{"op","goto"},{"x","254"},{"y","-6350"},{"client","test-browser-0001"}};
+  { const size_t y0=riseTimes[D3].size(); const int xPulses=rises[D1];
+    WebControl::action(); assert(WebControl::server.code==200); run();
+    assert(rises[D1]==xPulses && emitted[1]==Positions::saved.home[1]-6350);
+    const uint32_t gap=riseTimes[D3][y0+2001]-riseTimes[D3][y0+2000];
+    assert(gap>=249 && gap<=251); }
+  WebControl::action(); assert(WebControl::server.code==200 && WebControl::idle()); // Already there.
+  WebControl::server.args={{"op","goto"},{"x","254"},{"y","0"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(action("go-replace")==200); run(); // Back where the reboot check expects.
+  assert(emitted[0]==Positions::saved.replace[0] && emitted[1]==Positions::saved.replace[1]);
   action("stop");
   Positions::begin(); // Clean reboot restores counts but requires confirmation.
   assert(!Positions::known && Positions::saved.homeSet && Positions::saved.replaceSet);
@@ -102,7 +133,8 @@ int main() {
   WebControl::state(); assert(WebControl::server.body.find("\"known\":false")!=std::string::npos);
   // Preset distances exceed both manual jog caps and the 6,000-entry jog
   // buffer. Verify every cruise gap across former chunk boundaries, XYZ in
-  // both directions, with only one start/stop per axis leg.
+  // both directions, with only one start/stop per leg. X and Y share one
+  // diagonal line at 4,000 pulses/sec along the path: 4000/sqrt(2) per axis.
   assert(action("confirm")==200);
   auto preset = Positions::saved;
   constexpr int travel=7001;
@@ -120,10 +152,12 @@ int main() {
     for (int m : {0,1,3}) {
       const auto &times=riseTimes[Config::stepPins[m]];
       assert(times.size()-starts[m]==travel);
-      for (int i=51;i<travel-50;++i) {
+      const int margin = m==3 ? 51 : 600; // Diagonal ramp: 800 path pulses.
+      for (int i=margin;i<travel-margin;++i) {
         const uint32_t gap=times[starts[m]+i]-times[starts[m]+i-1];
-        assert(gap>=1000 && gap<=1001);
+        if (m==3) assert(gap>=1000 && gap<=1001); else assert(gap>=353 && gap<=355);
       }
+      if (m==0) assert(riseTimes[D1][starts[0]]==riseTimes[D3][starts[1]]); // Same tick.
       const int64_t expected=std::string(op)=="go-home" ? preset.home[m] : preset.replace[m];
       assert(emitted[m]==expected);
     }

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
+#include "crash_log.h"
 #include "wifi_provisioning.h"
 #include "motion_profile.h"
 #include "demo_path.h"
@@ -26,6 +27,7 @@ volatile bool motionComplete = false;
 DemoEvent demoEvents[demoCapacity];
 size_t demoCount = 0;
 bool demoRunning = false;
+bool demoDisarm = false; // DEMO ends disarmed; straight-line hole travel stays armed.
 char line[96];
 size_t lineLength = 0;
 bool discardLine = false;
@@ -106,13 +108,13 @@ void finishMotion() {
   portENTER_CRITICAL(&motionMux);
   const bool done = motionComplete;
   const bool demoDone = done && demoRunning;
-  if (done) { motionComplete = false; activeMotor = -1; presetProfileActive = false; }
+  if (done) { motionComplete = false; activeMotor = -1; presetProfileActive = false; demoRunning = false; }
   portEXIT_CRITICAL(&motionMux);
   if (done) {
     timerStop(stepTimer);
     idleSinceMs = millis();
     Positions::settled(false);
-    if (demoDone) disableMotors();
+    if (demoDone && demoDisarm) disableMotors();
     Serial.println("DONE");
   }
 }
@@ -133,6 +135,42 @@ bool startPresetAxis(int m, int64_t steps) {
   presetProfileActive = true;
   activeMotor = m;
   timerAlarm(stepTimer, presetProfile.interval(0), false, 0);
+  timerStart(stepTimer);
+  portEXIT_CRITICAL(&motionMux);
+  return true;
+}
+
+// Straight XY travel between holes. Both motors step from one event list under
+// a single rest-to-rest profile along the path, as DEMO does, so neither axis
+// exceeds the path rate or acceleration. Requires the commissioned XY mapping,
+// which the caller checks; the event interrupt drives M0/M1 DIR pins directly.
+bool startXYLine(int64_t dx, int64_t dy, long rate) {
+  const int64_t nx = dx < 0 ? -dx : dx, ny = dy < 0 ? -dy : dy, n = nx > ny ? nx : ny;
+  if (!armed || !stepTimer || activeMotor >= 0 || !n || n > int64_t(demoCapacity) ||
+      axisMotor[0] != 0 || axisMotor[1] != 1 || inverted[0] || inverted[1]) return false;
+  const long accel = min(Config::acceleration[0], Config::acceleration[1]);
+  rate = min(rate, min(Config::maxRate[0], Config::maxRate[1]));
+  const double length = std::hypot(double(dx), double(dy));
+  double previousTime = 0;
+  int64_t x = 0, y = 0;
+  for (int64_t i = 1; i <= n; ++i) {
+    const int64_t px = llround(double(dx)*i/n), py = llround(double(dy)*i/n);
+    const double t = profileTime(length*i/n, length, rate, accel);
+    demoEvents[i-1] = {uint32_t(std::ceil((t-previousTime)*1000000.0)), int8_t(px-x), int8_t(py-y)};
+    previousTime = t; x = px; y = py;
+  }
+  if (!Positions::beforeMove()) return false;
+  timerStop(stepTimer);
+  timerWrite(stepTimer, 0);
+  portENTER_CRITICAL(&motionMux);
+  demoCount = size_t(n);
+  demoRunning = true;
+  demoDisarm = false;
+  activeMotor = 0;
+  remaining = long(n);
+  pulseIndex = 0;
+  motionComplete = false;
+  timerAlarm(stepTimer, demoEvents[0].interval, false, 0);
   timerStart(stepTimer);
   portEXIT_CRITICAL(&motionMux);
   return true;
@@ -199,10 +237,15 @@ void command(char *input) {
     Serial.println("DEMO: XY square + circle, 3 cycles, 20x20 mm positive envelope; ARM first");
     Serial.println("MAP <X|Y|Z|A> <M0..M3> | INVERT <M0..M3> <0|1> (disabled only)");
     Serial.println("JOG <M0..M3|X|Y|Z|A> <signed nonzero pulses> [cruise pulses/sec]");
-    Serial.println("Rate caps: M0/M1=3000, M2=1000, M3=2000; default 1000 (clamped)");
+    Serial.println("Rate caps: M0/M1=4000, M2=1000, M3=2000; default 1000 (clamped)");
     Serial.println("Per-jog caps: M0=1000, M1=2000, M2=6000, M3=1000 pulses; no travel limits");
     Serial.println("Web manual home/presets: http://xyz.local; mapping is RAM-only.");
+    Serial.println("CRASH [INFO|DUMP|CLEAR]: stored crash log from the last panic (disabled only)");
     return;
+  }
+  if (!strcmp(args[0], "CRASH") && count <= 2) {
+    if (armed) { Serial.println("ERR disable first; CRASH [INFO|DUMP|CLEAR]"); return; }
+    CrashLog::command(count == 2 ? args[1] : "INFO"); return;
   }
   if (activeMotor >= 0 || presetRunning) { Serial.println("ERR busy; STOP or wait for DONE"); return; }
   if (!strcmp(args[0], "DEMO") && count == 1) {
@@ -217,6 +260,7 @@ void command(char *input) {
     timerWrite(stepTimer, 0);
     portENTER_CRITICAL(&motionMux);
     demoRunning = true;
+    demoDisarm = true;
     activeMotor = 0;
     remaining = demoCount * demoRepeats;
     pulseIndex = 0;
@@ -337,8 +381,9 @@ void setup() {
     timerAttachInterrupt(stepTimer, &onStep);
   }
   Serial.begin(115200); // Native USB CDC; do not wait for a host.
-  Serial.println("XYZA commissioning firmware v0.5; disabled; HELP");
-  disableReason = "Startup";
+  Serial.println("XYZA commissioning firmware v0.6; disabled; HELP");
+  CrashLog::begin();
+  disableReason = CrashLog::startupReason;
   Positions::begin();
   WifiProvisioning::begin();
   WebControl::begin();
