@@ -53,7 +53,7 @@ int main() {
   assert(action("replace")==200);
   const int spindle=rises[D5];
   assert(action("go-home")==200);
-  WebControl::service(); assert(activeMotor==0); // Already at higher Z: X first.
+  WebControl::service(); assert(lineRunning && activeMotor>=0); // Already at higher Z: cross first.
   run(); assert(emitted[0]==100 && emitted[1]==0 && emitted[3]==0);
   assert(rises[D5]==spindle);
   assert(action("go-replace")==200);
@@ -69,12 +69,12 @@ int main() {
   WebControl::action(); assert(WebControl::server.code==400); // Past row Z.
   WebControl::server.args={{"op","goto"},{"x","254"},{"y","-508"},{"client","test-browser-0001"}};
   WebControl::action(); assert(WebControl::server.code==200);
-  assert(activeMotor==0 && demoRunning && !demoDisarm); // One straight line, both axes.
+  assert(activeMotor==1 && lineRunning && !demoRunning); // One straight line; Y is the longer axis.
   {
     const int zPulses=rises[D9]; const size_t y0=riseTimes[D3].size();
     run(); assert(rises[D9]==zPulses);
     assert(riseTimes[D1].back() > riseTimes[D3][y0]); // X and Y overlapped, not in turn.
-    assert(armed && !demoRunning && WebControl::idle()); // Unlike DEMO, stays armed.
+    assert(armed && !lineRunning && WebControl::idle()); // Unlike DEMO, stays armed.
   }
   assert(emitted[0]==Positions::saved.home[0]+254 && emitted[1]==Positions::saved.home[1]-508);
   assert(emitted[3]==Positions::saved.replace[3]);

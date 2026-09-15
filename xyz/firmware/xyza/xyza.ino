@@ -27,7 +27,12 @@ volatile bool motionComplete = false;
 DemoEvent demoEvents[demoCapacity];
 size_t demoCount = 0;
 bool demoRunning = false;
-bool demoDisarm = false; // DEMO ends disarmed; straight-line hole travel stays armed.
+bool demoDisarm = false; // DEMO ends disarmed.
+// Straight XY line: the major axis steps every tick, the minor axis by integer
+// Bresenham, both on one edge, with one compact profile in tick units.
+bool lineRunning = false;
+int lineMajor = 0, lineMinor = 1, lineMajorDir = 1, lineMinorDir = 1;
+volatile int64_t lineN = 0, lineMinorCount = 0, lineAcc = 0;
 char line[96];
 size_t lineLength = 0;
 bool discardLine = false;
@@ -53,6 +58,7 @@ void disableMotors() {
   remaining = 0;
   motionComplete = false;
   demoRunning = false;
+  lineRunning = false;
   presetProfileActive = false;
   portEXIT_CRITICAL(&motionMux);
   if (stepTimer) timerStop(stepTimer);
@@ -91,6 +97,24 @@ void ARDUINO_ISR_ATTR onStep() {
       portEXIT_CRITICAL_ISR(&motionMux);
       return;
     }
+    if (lineRunning) {
+      lineAcc += lineMinorCount;
+      const bool minor = 2*lineAcc >= lineN;
+      if (minor) lineAcc -= lineN;
+      digitalWrite(Config::stepPins[lineMajor], HIGH);
+      if (minor) digitalWrite(Config::stepPins[lineMinor], HIGH);
+      delayMicroseconds(Config::pulseUs);
+      digitalWrite(Config::stepPins[lineMajor], LOW);
+      if (minor) digitalWrite(Config::stepPins[lineMinor], LOW);
+      emitted[lineMajor] += lineMajorDir;
+      if (minor) emitted[lineMinor] += lineMinorDir;
+      --remaining;
+      ++pulseIndex;
+      if (remaining == 0) motionComplete = true;
+      else timerAlarm(stepTimer, riseAt + presetProfile.interval(pulseIndex), false, 0);
+      portEXIT_CRITICAL_ISR(&motionMux);
+      return;
+    }
     const int m = activeMotor;
     digitalWrite(Config::stepPins[m], HIGH);
     delayMicroseconds(Config::pulseUs);
@@ -108,7 +132,7 @@ void finishMotion() {
   portENTER_CRITICAL(&motionMux);
   const bool done = motionComplete;
   const bool demoDone = done && demoRunning;
-  if (done) { motionComplete = false; activeMotor = -1; presetProfileActive = false; demoRunning = false; }
+  if (done) { motionComplete = false; activeMotor = -1; presetProfileActive = false; demoRunning = false; lineRunning = false; }
   portEXIT_CRITICAL(&motionMux);
   if (done) {
     timerStop(stepTimer);
@@ -140,37 +164,38 @@ bool startPresetAxis(int m, int64_t steps) {
   return true;
 }
 
-// Straight XY travel between holes. Both motors step from one event list under
-// a single rest-to-rest profile along the path, as DEMO does, so neither axis
-// exceeds the path rate or acceleration. Requires the commissioned XY mapping,
-// which the caller checks; the event interrupt drives M0/M1 DIR pins directly.
+// Straight XY travel between holes. Planning stays cheap on a chip without
+// floating-point hardware: only the acceleration ramp is computed, in tick
+// units along the path, so a full-board move plans in milliseconds and the
+// HTTP reply is never late. Neither axis exceeds the path rate. Requires the
+// commissioned XY mapping, which the caller checks.
 bool startXYLine(int64_t dx, int64_t dy, long rate) {
-  const int64_t nx = dx < 0 ? -dx : dx, ny = dy < 0 ? -dy : dy, n = nx > ny ? nx : ny;
-  if (!armed || !stepTimer || activeMotor >= 0 || !n || n > int64_t(demoCapacity) ||
-      axisMotor[0] != 0 || axisMotor[1] != 1 || inverted[0] || inverted[1]) return false;
-  const long accel = min(Config::acceleration[0], Config::acceleration[1]);
+  const int64_t nx = dx < 0 ? -dx : dx, ny = dy < 0 ? -dy : dy;
+  const int64_t n = nx > ny ? nx : ny, m = nx > ny ? ny : nx;
+  if (!armed || !stepTimer || activeMotor >= 0 || !n || n > INT32_MAX ||
+      axisMotor[0] != 0 || axisMotor[1] != 1) return false;
   rate = min(rate, min(Config::maxRate[0], Config::maxRate[1]));
-  const double length = std::hypot(double(dx), double(dy));
-  double previousTime = 0;
-  int64_t x = 0, y = 0;
-  for (int64_t i = 1; i <= n; ++i) {
-    const int64_t px = llround(double(dx)*i/n), py = llround(double(dy)*i/n);
-    const double t = profileTime(length*i/n, length, rate, accel);
-    demoEvents[i-1] = {uint32_t(std::ceil((t-previousTime)*1000000.0)), int8_t(px-x), int8_t(py-y)};
-    previousTime = t; x = px; y = py;
-  }
-  if (!Positions::beforeMove()) return false;
+  const long accel = min(Config::acceleration[0], Config::acceleration[1]);
+  // Ticks per path pulse: on a diagonal each tick covers more than one pulse
+  // of path, so per-tick rate and acceleration scale by n/length.
+  const double scale = double(n)/std::hypot(double(dx), double(dy));
+  if (!presetProfile.build(uint32_t(n), long(rate*scale), long(accel*scale)) || !Positions::beforeMove()) return false;
   timerStop(stepTimer);
   timerWrite(stepTimer, 0);
   portENTER_CRITICAL(&motionMux);
-  demoCount = size_t(n);
-  demoRunning = true;
-  demoDisarm = false;
-  activeMotor = 0;
+  lineMajor = nx > ny ? 0 : 1; lineMinor = 1-lineMajor;
+  lineMajorDir = (lineMajor == 0 ? dx : dy) < 0 ? -1 : 1;
+  lineMinorDir = (lineMinor == 0 ? dx : dy) < 0 ? -1 : 1;
+  digitalWrite(Config::dirPins[lineMajor], (lineMajorDir > 0) != inverted[lineMajor] ? HIGH : LOW);
+  digitalWrite(Config::dirPins[lineMinor], (lineMinorDir > 0) != inverted[lineMinor] ? HIGH : LOW);
+  lineN = n; lineMinorCount = m; lineAcc = 0;
   remaining = long(n);
   pulseIndex = 0;
   motionComplete = false;
-  timerAlarm(stepTimer, demoEvents[0].interval, false, 0);
+  presetProfileActive = true;
+  lineRunning = true;
+  activeMotor = lineMajor;
+  timerAlarm(stepTimer, presetProfile.interval(0), false, 0);
   timerStart(stepTimer);
   portEXIT_CRITICAL(&motionMux);
   return true;
