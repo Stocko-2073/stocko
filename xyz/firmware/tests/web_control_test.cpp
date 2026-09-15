@@ -38,8 +38,8 @@ int main() {
   assert(armed && webArmed);
   // A transient delay longer than the old lease still recovers.
   delay(1800); action("poll"); loop(); assert(armed);
-  WebControl::server.args={{"op","hidden"},{"client","observer-browser"}};
-  WebControl::action(); assert(armed);
+  WebControl::server.args={{"op","hidden"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(armed); // A hidden page no longer stops anything.
   assert(action("jog","A","10")==400);
   assert(action("jog","Z","1001")==400);
   assert(action("jog","X","1junk")==400);
@@ -112,20 +112,17 @@ int main() {
   assert(action("jog","X","100")==503);
   delay(100); assert(rises[D1]==before);
   Positions::preferences.failWrite=false;
-  // The ISR enforces the browser lease even if HTTP blocks the main loop.
+  // No dead-man's handle: a move completes with no polls at all and through
+  // network loss. Idle motors are released after a minute without the page.
   WebControl::runCommand("JOG Y 2000 200");
   assert(activeMotor==1);
-  delay(Config::webLeaseMs+100); assert(webExpired && levels[D10]==HIGH);
-  const int stopped=rises[D3]; delay(1000); assert(rises[D3]==stopped);
-  WebControl::service(); assert(!armed && !Positions::known && !presetRunning);
-  assert(std::string(disableReason)=="Browser connection timed out");
-  assert(action("reference")==200);
-  action("arm"); action("go-replace"); WebControl::service();
-  assert(action("stop")==200); assert(!presetRunning && !armed);
-  // Network loss stops an active web move.
-  action("reference"); action("arm"); action("jog","X","100");
-  WiFi.state=0; WebControl::service(); assert(!armed && !Positions::known);
-  assert(std::string(disableReason)=="Wi-Fi disconnected");
+  const int64_t yBefore=emitted[1];
+  WiFi.state=0;
+  delay(Config::webIdleMs+100);
+  WebControl::service(); assert(armed && activeMotor==1); // Still moving: not released.
+  finishMotion(); assert(activeMotor==-1 && armed && emitted[1]==yBefore+2000 && Positions::known);
+  WebControl::service(); // Idle and unheard-from for a minute: release.
+  assert(!armed && std::string(disableReason)=="Control page away for 60 s");
   WiFi.state=WL_CONNECTED;
   action("arm");
   for (const char *axis : {"X", "Y", "Z"}) {
@@ -137,7 +134,9 @@ int main() {
     assert(action("jog",axis,"-1000")==200);
     run(); assert(emitted[m]==start);
   }
-  action("stop");
+  // Stopping mid-move leaves the position unknown.
+  assert(action("jog","X","1000")==200); delay(100); action("stop");
+  assert(!armed && !Positions::known);
   // Establishing a different, unknown home invalidates the old replacement.
   assert(action("home")==200 && !Positions::saved.replaceSet);
   Positions::begin(); assert(Positions::saved.homeSet && !Positions::saved.replaceSet);

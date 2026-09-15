@@ -38,7 +38,7 @@ size_t lineLength = 0;
 bool discardLine = false;
 bool previousCR = false;
 
-volatile bool webArmed = false, webExpired = false;
+volatile bool webArmed = false;
 volatile uint32_t webHeartbeat = 0;
 bool presetRunning = false;
 const char *disableReason = "Startup";
@@ -49,7 +49,6 @@ void disableMotors() {
   const bool interrupted = activeMotor >= 0 && remaining > 0;
   presetRunning = false;
   webArmed = false;
-  webExpired = false;
   portENTER_CRITICAL(&motionMux);
   digitalWrite(Config::enablePin, HIGH);
   for (uint8_t pin : Config::stepPins) digitalWrite(pin, LOW);
@@ -70,12 +69,6 @@ void disableMotors() {
 // can service USB or yield without adding a millisecond to every step.
 void ARDUINO_ISR_ATTR onStep() {
   portENTER_CRITICAL_ISR(&motionMux);
-  if (webArmed && uint32_t(millis() - webHeartbeat) > Config::webLeaseMs) {
-    digitalWrite(Config::enablePin, HIGH);
-    webExpired = true; // Main loop cancels the plan and persists invalid reference.
-    portEXIT_CRITICAL_ISR(&motionMux);
-    return;
-  }
   if (armed && activeMotor >= 0 && remaining > 0) {
     const uint64_t riseAt = timerRead(stepTimer);
     if (demoRunning) {

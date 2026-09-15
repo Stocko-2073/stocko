@@ -41,6 +41,7 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   await vm.runInContext('refresh()', context);
   assert.equal(ids.arm.disabled,false);
   assert.equal(ids.gate.hidden,false);
+  assert.equal(ids.disarm.hidden,true);
   assert.equal(ids.here.textContent,'—');
   assert.equal(ids.refBadge.textContent,'A1 not set');
   assert.equal(ids.go.disabled,true);
@@ -63,7 +64,10 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   const labels=vm.runInContext("arrows.map(a=>a.t.textContent)",context);
   assert.equal(JSON.stringify(labels),JSON.stringify(['B7','C8','C6','D7','Up 1 mm','Down 1 mm']));
   assert.equal(ids.swapInfo.textContent,'Drill parks at P11, 8 mm above A1 height.');
-  assert.equal(ids.gate.hidden,true); // Owning page: no enable prompt.
+  assert.equal(ids.gate.hidden,false); // Owning page: offers to turn the motors off.
+  assert.equal(ids.arm.hidden,true);
+  assert.equal(ids.disarm.hidden,false);
+  assert.equal(ids.disarm.dataset.op,'stop');
   assert.equal(ids.status.dataset.tone,'ok');
   assert.equal(ids.status.textContent,'Motors on');
   assert.equal(ids.go.disabled,false);

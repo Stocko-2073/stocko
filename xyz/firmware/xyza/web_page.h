@@ -56,7 +56,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div class="dro"><div><span>Hole under the drill</span><b id="here">—</b><small id="hereNote">Position unknown</small></div><div><span>Drill height</span><b id="height">—</b><small id="heightNote">from A1 height</small></div></div>
 <div class="ref"><span id="referenceNote"></span><span class="badge" id="refBadge">Position unknown</span></div>
 <div class="actions" id="refActions"><button id="confirm" data-op="confirm">Nothing has moved since power-off</button><button id="reference" data-op="reference">The drill is above A1 now</button></div>
-<div class="gate" id="gate"><span id="gateText"></span><button class="primary" id="arm" data-op="arm">Turn on motors</button></div>
+<div class="gate" id="gate"><span id="gateText"></span><button class="primary" id="arm" data-op="arm">Turn on motors</button><button id="disarm" data-op="stop" title="Turn the motors off; the drill may settle under gravity">Turn off motors</button></div>
 <h2 style="margin-top:26px">Move the drill</h2>
 <div class="move">
 <div class="seg xy" role="radiogroup" aria-label="Move across the board by"><label><input type="radio" name="xy" value="254" checked>1 hole<small>2.54 mm</small></label><label><input type="radio" name="xy" value="762">3 holes<small>7.62 mm</small></label><label><input type="radio" name="xy" value="100">1 mm<small>fine</small></label><label><input type="radio" name="xy" value="10">0.1 mm<small>fine</small></label></div>
@@ -75,7 +75,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <details><summary><span class="warn">No limit switches.</span> Check travel and drill clearance before every move.</summary>
 <p>Go to A1 and Swap board raise the drill to the higher of the two heights, cross the board in a straight line, then lower it. Go to hole crosses the same way at the current drill height, only within A1 to Z34. Crossing moves both axes together at four times the arrow speed; the arrows also keep the current height. The spindle is never run from this page.</p>
 <p>Positions count commanded steps, not measured movement, at a provisional 100 steps per millimetre. A1 and the swap position are stored on the controller. After a reboot, confirm that nothing moved, or put the drill back above A1 and confirm it there. After an interrupted move, confirm at A1 again.</p>
-<p>STOP or Escape cancels motion and turns all motors off. Hiding this page, losing Wi-Fi, or a stalled connection also turns them off. This is a software stop, not an emergency-stop circuit.</p></details>
+<p>STOP or Escape cancels motion and turns all motors off; the machine’s own emergency stop is the safety stop. A dropped link never stops a move: every move is bounded and planned before it starts. Idle motors switch off after 60 s without this page.</p></details>
 </aside>
 </main><div id="message" role="status" aria-live="polite"></div>
 <script>
@@ -109,8 +109,8 @@ arrows.forEach(a=>{let t=a.dir+' '+stepText(a.axis==='Z'?zStep:xyStep);if(a.axis
 $('refBadge').textContent=!s.homeSet?'A1 not set':s.known?'Position known':'Position unknown';$('refBadge').dataset.tone=s.known?'ok':'warn';
 $('referenceNote').textContent=!s.commissioned?'Motor mapping changed. Restore the commissioned mapping before using this page.':s.known?'If the machine slips or is moved by hand, put the drill back above A1 and set A1 again.':s.homeSet?'Say where the drill is before moving by holes.':'Put the drill above hole A1, the top-right hole at the corner stops, then set A1.';
 $('confirm').hidden=s.known||!s.homeSet||!s.recoverable;$('reference').hidden=s.known||!s.homeSet;$('refActions').hidden=$('confirm').hidden&&$('reference').hidden;
-const why=!online||!s.commissioned||s.webArmed?'':s.armed?'Another page or the USB console controls the motors. Press STOP to release them, then turn them on here.':'Motors are off. Turn them on to move the drill.';
-$('gate').hidden=!why;$('gateText').textContent=why;$('arm').hidden=s.armed;$('arm').disabled=blocked||s.armed;
+const why=!online||!s.commissioned?'':s.webArmed?'Motors are on and this page controls them.':s.armed?'Another page or the USB console controls the motors. Press STOP to release them, then turn them on here.':'Motors are off. Turn them on to move the drill.';
+$('gate').hidden=!why;$('gateText').textContent=why;$('arm').hidden=s.armed;$('arm').disabled=blocked||s.armed;$('disarm').hidden=!s.webArmed;
 document.querySelectorAll('.jog').forEach(b=>b.disabled=blocked||!s.webArmed);
 const travel=blocked||!s.known||!s.homeSet||!s.webArmed;
 $('go').disabled=travel;$('go-home').disabled=travel;$('go-replace').disabled=travel||!s.replaceSet;$('replace').disabled=blocked||!s.known||!s.homeSet;
@@ -123,16 +123,15 @@ function say(text,error){const m=$('message');m.textContent=text;m.className='sh
 async function post(op,extra={}){const response=await fetch('/api/action',{method:'POST',headers:{'X-XYZ-Control':'1','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({op,client,...extra}),signal:AbortSignal.timeout(1200)});const text=await response.text();if(!response.ok)throw Error(text);return text;}
 async function act(op,extra={}){if(pending&&op!=='stop')return;if(op==='home'&&state?.homeSet&&!confirm(state.known?'Move A1 to the drill’s current position?':'Set a new A1 here? This clears the saved board swap position. If the drill is already above the old A1, use “The drill is above A1 now” instead.'))return;pending=true;render();try{say(await post(op,extra));}catch(e){say(failure(e),true);}finally{pending=false;await refresh();}}
 function link(ms){const now=Date.now();if(now-worstSince>60000){worst=0;worstSince=now;}worst=Math.max(worst,ms);const l=$('link');l.textContent='link '+Math.round(ms)+' ms · worst '+(worst>=1000?(worst/1000).toFixed(1)+' s':Math.round(worst)+' ms');l.className='link'+(worst>=1000?' slow':'');}
-function failure(e){return e.name==='TimeoutError'||/abort/i.test(e.message)?'No reply from the controller within 1.2 s. Motors stop if the link stays silent for 3 s.':e.message;}
+function failure(e){return e.name==='TimeoutError'||/abort/i.test(e.message)?'No reply from the controller within 1.2 s. The motors are unaffected; the request may still have run.':e.message;}
 async function refresh(){const t0=Date.now();try{state=JSON.parse(await post('poll'));online=true;link(Date.now()-t0);if(lastUptime!==null&&state.uptime<lastUptime)say('Controller restarted: uptime fell from '+lastUptime+' s to '+state.uptime+' s. Check power, then run CRASH INFO over USB.',true);lastUptime=state.uptime;}catch(e){online=false;link(Date.now()-t0);}render();}
 function goHole(){const h=parseHole($('hole').value);if(!h){say('Enter a hole from A1 to Z34: row letter, then column number.',true);return;}return act('goto',{x:(h.col-1)*PITCH,y:-h.row*PITCH});}
 $('go').onclick=goHole;$('hole').onkeydown=e=>{if(e.key==='Enter'&&!$('go').disabled)goHole();};
 $('hole').oninput=()=>{const h=parseHole($('hole').value);$('goHint').textContent=h?'Go to column '+h.col+', row '+rowName(h.row)+' in a straight line at the current drill height.':'Straight-line travel at the current drill height. Raise the drill first if it is in a cut.';};
 $('stop').onclick=()=>act('stop');document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>act(b.dataset.op));
 document.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();act('stop');}});
-// One request renews the owning page's lease and returns status. Retry even
-// after a failed request; observers never renew another page's lease.
+// One request marks the owning page present and returns status. Retry even
+// after a failed request; observers never count as the controlling page.
 async function poll(){if(!document.hidden&&!pending)await refresh();setTimeout(poll,300);}
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&state?.webArmed)post('hidden').catch(()=>{});});
 render();poll();
 </script></html>)HTML";

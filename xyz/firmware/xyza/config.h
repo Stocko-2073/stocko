@@ -23,6 +23,6 @@ constexpr long maxRate[] = {4000, 4000, 1000, 2000}; // pulses/sec; not validate
 constexpr long acceleration[] = {10000, 10000, 500, 10000}; // pulses/sec^2; XYZ ~100 mm/sec^2.
 constexpr size_t profileCapacity = 6000;
 constexpr uint32_t pulseUs = 3; // A4988 minimum high/low is 1 us.
-constexpr uint32_t webLeaseMs = 3000; // Allows retries after a transient HTTP delay.
+constexpr uint32_t webIdleMs = 60000; // Idle motors are released after this long without the controlling page.
 constexpr uint32_t armIdleMs = 30000;
 }

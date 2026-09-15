@@ -69,24 +69,26 @@ Presets require the commissioned mapping/directions; USB MAP/INVERT invalidate
 the reference. Flash writes occur before moves and after completion, never in
 the pulse interrupt; write failures reject motion or invalidate the reference.
 
-**STOP** (or Escape) immediately cancels queued preset travel and disables all
-motors. The controlling page becoming hidden requests a stop; observer pages do not.
-One combined poll renews the controlling browser's 3-second lease and returns
-status; expiration inhibits further steps in the timer interrupt,
-even if HTTP handling is stalled. Network loss also stops motion. Another page
-cannot renew that lease, but can press Stop. The stock Arduino WebServer
-keeps a connected but silent client for 5 seconds and serves nobody else
-meanwhile; browsers open such spare connections, and that freeze would outlast
-the lease and stop the motors with "Browser connection timed out" for no real
-reason (reproduced 2026-09-15 with one idle TCP connection: 4.3 s stall).
-The firmware therefore drops a client that has sent nothing within 400 ms.
-Wi-Fi modem sleep is also disabled to avoid beacon-interval latency spikes. The page reports the disable reason
-(browser timeout, Wi-Fi loss, hidden page, or explicit stop). This software stop is not a
-physical emergency-stop circuit. USB-controlled motion retains its USB
-disconnect stop; web control works without a USB connection.
+**STOP** (or Escape) immediately cancels motion and disables all motors, from
+any page. The page is not a dead-man's handle: the machine has its own
+emergency-stop switch, and every web move is bounded and fully planned before
+it starts, so a dropped link, a hidden page, or a slow request never stops
+motion. (Firmware v0.5 stopped the motors 3 seconds after the last poll; with
+a marginal Wi-Fi link that tripped on ordinary hiccups and cost the position
+each time.) One combined poll marks the controlling page present and returns
+status. Idle motors are released after 60 seconds without a poll from that
+page ("Control page away for 60 s"), matching the USB path's idle rule.
+Another page cannot take control while the owner is present, but can press
+Stop. The stock Arduino WebServer keeps a connected but silent client for
+5 seconds and serves nobody else meanwhile, and browsers open such spare
+connections (reproduced 2026-09-15: a 4.3 s stall from one idle TCP
+connection); the firmware drops a client that has sent nothing within 400 ms,
+and Wi-Fi modem sleep is disabled, so status stays responsive. USB-controlled
+motion retains its USB disconnect stop; web control works without a USB
+connection.
 
 If the motors turn off unexpectedly, the status pill names the cause: an
-explicit stop, a hidden page, a browser lease timeout, a Wi-Fi drop, or a
+explicit stop, the 60-second idle release, the USB idle timeout, or a
 controller restart after a panic, watchdog, or brownout. For a restart, the
 stored crash log is a diagnostic option: see [Crash logs](#crash-logs) and
 `make crash`.
@@ -97,7 +99,7 @@ no CORS access. Do not expose port 80 to the internet.
 
 `make test` (C++ compiler and Node.js required) runs motion and page tests,
 plus web action, storage failure,
-reboot/reference, preset sequencing, spindle exclusion, and lease-stop tests.
+reboot/reference, preset sequencing, spindle exclusion, and idle-release tests.
 `make compile` builds for the XIAO ESP32-C6. Web control and network-loaded
 motion timing still require physical-machine verification after flashing.
 

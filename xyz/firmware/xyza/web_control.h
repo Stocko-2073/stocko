@@ -60,10 +60,7 @@ void action() {
   if (server.header("X-XYZ-Control") != "1") { reply(403, "Use the XYZ control page."); return; }
   const auto op = server.arg("op");
   if (op == "stop") { disableMotors(); reply(200, "Stopped. Motors off."); return; }
-  if (op == "hidden") {
-    if (webArmed && ownsControl()) { disableMotors(); disableReason = "Control page hidden"; }
-    reply(200, "OK"); return;
-  }
+  if (op == "hidden") { reply(200, "OK"); return; } // Kept for older pages; no longer stops anything.
   if (op == "poll") {
     if (webArmed && ownsControl()) webHeartbeat = millis();
     state(); return;
@@ -136,16 +133,16 @@ void begin() {
   server.begin();
 }
 void checkConnection() {
-  if (webExpired || (webArmed && uint32_t(millis()-webHeartbeat) > Config::webLeaseMs)) {
-    disableMotors(); disableReason = "Browser connection timed out";
-  } else if (webArmed && WiFi.status() != WL_CONNECTED) {
-    disableMotors(); disableReason = "Wi-Fi disconnected";
+  // The machine has its own emergency stop; this page is not a dead-man's
+  // handle. Every move is bounded and planned before it starts, so motion
+  // always completes even if the link drops. Idle motors are released after
+  // webIdleMs without a poll from the controlling page, so a closed laptop
+  // cannot leave the drivers energised indefinitely.
+  if (webArmed && idle() && uint32_t(millis()-webHeartbeat) > Config::webIdleMs) {
+    disableMotors(); disableReason = "Control page away for 60 s";
   }
 }
 void service() {
-  // Check the lease both before and after HTTP processing. Timer stepping never
-  // waits for the network, and each jog remains bounded by existing pulse caps.
-  checkConnection();
   server.service();
   checkConnection();
   if (!presetRunning || activeMotor >= 0) return;
