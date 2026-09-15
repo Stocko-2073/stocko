@@ -1,13 +1,23 @@
 #pragma once
+#include <cstddef>
 
 // Pulse coordinates use the commissioned motor directions. A is a spindle,
 // so presets only contain XYZ (M0, M1, M3).
 namespace Positions {
 struct Record {
-  uint32_t version = 1;
+  uint32_t version = 2;
   bool homeSet = false, replaceSet = false, clean = false;
   int64_t home[4] = {}, replace[4] = {}, checkpoint[4] = {};
+  // Version 2: where hole Z34 was found, as an XY offset from A1. Boards are
+  // not exactly on a 2.54 mm pitch at the provisional 100 pulses/mm, so the
+  // grid is interpolated between the two corners. An offset, not a raw
+  // position: it describes the board and machine scale, so moving A1 keeps it.
+  bool spanSet = false;
+  int64_t span[2] = {};
 };
+// A version 1 record is this struct without the span fields.
+constexpr size_t legacySize = offsetof(Record, spanSet);
+static_assert(legacySize == 104, "version 1 record layout");
 Record saved;
 Preferences preferences;
 bool ready = false, known = false;
@@ -31,8 +41,16 @@ void begin() {
   saved = {}; known = false;
   ready = preferences.begin("xyz-position", false);
   Record loaded;
-  if (ready && preferences.getBytesLength("positions") == sizeof(loaded) &&
-      preferences.getBytes("positions", &loaded, sizeof(loaded)) == sizeof(loaded) && loaded.version == 1) {
+  const size_t length = ready ? preferences.getBytesLength("positions") : 0;
+  bool valid = false;
+  if (length == sizeof(loaded)) {
+    valid = preferences.getBytes("positions", &loaded, sizeof(loaded)) == sizeof(loaded) && loaded.version == 2;
+  } else if (length == legacySize) {
+    // Upgrade in RAM only; the next write stores version 2. Nothing moves.
+    valid = preferences.getBytes("positions", &loaded, legacySize) == legacySize && loaded.version == 1;
+    loaded.version = 2; loaded.spanSet = false; loaded.span[0] = loaded.span[1] = 0;
+  }
+  if (valid) {
     saved = loaded;
     if (saved.clean) for (int i = 0; i < 4; ++i) emitted[i] = saved.checkpoint[i];
   }
@@ -65,6 +83,16 @@ bool save(bool home) {
   next.clean = true;
   if (!write(next)) return false;
   known = true; return true;
+}
+// The drill is above Z34: record its XY offset from A1. The caller checks
+// the offset is plausible before asking.
+bool saveSpan(int64_t x, int64_t y) {
+  if (!known || !saved.homeSet || !commissioned()) return false;
+  Record next = saved;
+  snapshot(next.checkpoint);
+  next.span[0] = x; next.span[1] = y; next.spanSet = true;
+  next.clean = true;
+  return write(next);
 }
 bool reference(bool atHome) {
   if (!saved.homeSet || !commissioned() || (!atHome && !saved.clean)) return false;

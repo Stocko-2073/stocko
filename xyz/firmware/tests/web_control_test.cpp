@@ -59,40 +59,88 @@ int main() {
   assert(action("go-replace")==200);
   WebControl::service(); assert(activeMotor==3); // Raise Z before XY.
   run(); assert(emitted[0]==200 && emitted[1]==100 && emitted[3]==100);
-  // Go to a hole: travel X then Y at the current drill height, never Z.
+  // Go to a hole by name: raise Z by 1 mm, then one straight XY line; the
+  // drill stays raised.
   assert(action("goto")==400);
-  WebControl::server.args={{"op","goto"},{"x","254"},{"y","10"},{"client","test-browser-0001"}};
-  WebControl::action(); assert(WebControl::server.code==400); // Rows only run forward.
-  WebControl::server.args={{"op","goto"},{"x","8383"},{"y","0"},{"client","test-browser-0001"}};
-  WebControl::action(); assert(WebControl::server.code==400); // Past column 34.
-  WebControl::server.args={{"op","goto"},{"x","0"},{"y","-6351"},{"client","test-browser-0001"}};
-  WebControl::action(); assert(WebControl::server.code==400); // Past row Z.
-  WebControl::server.args={{"op","goto"},{"x","254"},{"y","-508"},{"client","test-browser-0001"}};
+  for (const char *bad : {"A0", "A35", "AA1", " B2", "B 2", "B2 ", "B+2", "2B", "B", "B2x"}) {
+    WebControl::server.args={{"op","goto"},{"hole",bad},{"client","test-browser-0001"}};
+    WebControl::action(); assert(WebControl::server.code==400);
+  }
+  assert(WebControl::roundDiv(5,2)==3 && WebControl::roundDiv(-5,2)==-2); // Halves up, like Math.round.
+  assert(WebControl::roundDiv(-7,2)==-3 && WebControl::roundDiv(7,3)==2 && WebControl::roundDiv(-7,3)==-2 && WebControl::roundDiv(-8,3)==-3);
+  WebControl::server.args={{"op","goto"},{"hole","c2"},{"client","test-browser-0001"}};
   WebControl::action(); assert(WebControl::server.code==200);
-  assert(activeMotor==1 && lineRunning && !demoRunning); // One straight line; Y is the longer axis.
+  const int64_t zStart=emitted[3];
+  WebControl::service(); assert(activeMotor==3 && !lineRunning); // Lift first.
   {
-    const int zPulses=rises[D9]; const size_t y0=riseTimes[D3].size();
-    run(); assert(rises[D9]==zPulses);
+    const size_t x0=riseTimes[D1].size(), y0=riseTimes[D3].size();
+    while (activeMotor==3) loop();
+    assert(emitted[3]==zStart+100 && riseTimes[D1].size()==x0 && riseTimes[D3].size()==y0); // XY waited for the lift.
+    WebControl::service(); assert(activeMotor==1 && lineRunning && !demoRunning); // One straight line; Y is the longer axis.
+    run(); assert(emitted[3]==zStart+100); // No lowering afterwards.
     assert(riseTimes[D1].back() > riseTimes[D3][y0]); // X and Y overlapped, not in turn.
     assert(armed && !lineRunning && WebControl::idle()); // Unlike DEMO, stays armed.
   }
   assert(emitted[0]==Positions::saved.home[0]+254 && emitted[1]==Positions::saved.home[1]-508);
-  assert(emitted[3]==Positions::saved.replace[3]);
+  assert(emitted[3]==Positions::saved.replace[3]+100);
   // An axis-aligned hole move to row Z cruises at 4,000 pulses/sec.
-  WebControl::server.args={{"op","goto"},{"x","254"},{"y","-6350"},{"client","test-browser-0001"}};
+  WebControl::server.args={{"op","goto"},{"hole","Z2"},{"client","test-browser-0001"}};
   { const size_t y0=riseTimes[D3].size(); const int xPulses=rises[D1];
     WebControl::action(); assert(WebControl::server.code==200); run();
     assert(rises[D1]==xPulses && emitted[1]==Positions::saved.home[1]-6350);
     const uint32_t gap=riseTimes[D3][y0+2001]-riseTimes[D3][y0+2000];
     assert(gap>=249 && gap<=251); }
-  WebControl::action(); assert(WebControl::server.code==200 && WebControl::idle()); // Already there.
-  WebControl::server.args={{"op","goto"},{"x","254"},{"y","0"},{"client","test-browser-0001"}};
+  { const int64_t z=emitted[3]; WebControl::action(); assert(WebControl::server.code==200 && WebControl::idle()); // Already there: no lift either.
+    run(); assert(emitted[3]==z); }
+  WebControl::server.args={{"op","goto"},{"hole","B1"},{"client","test-browser-0001"}};
   WebControl::action(); assert(WebControl::server.code==200); run();
+  // Calibrate the grid: boards are not exactly on a 2.54 mm pitch. Saving
+  // Z34 far from its nominal place is refused as a probable wrong hole.
+  const int64_t *home=Positions::saved.home;
+  assert(action("span")==409 && !Positions::saved.spanSet);
+  WebControl::state(); assert(WebControl::server.body.find("\"spanSet\":false")!=std::string::npos);
+  WebControl::server.args={{"op","goto"},{"hole","Z34"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==home[0]+8382 && emitted[1]==home[1]-6350); // Nominal grid until Z34 is set.
+  assert(action("jog","X","80")==200); run(); assert(action("jog","Y","-60")==200); run();
+  assert(action("span")==200 && Positions::saved.spanSet);
+  assert(Positions::saved.span[0]==8462 && Positions::saved.span[1]==-6410 && Positions::saved.clean);
+  WebControl::state(); assert(WebControl::server.body.find("\"spanSet\":true")!=std::string::npos);
+  assert(WebControl::server.body.find("\"span\":[8462,-6410]")!=std::string::npos);
+  // Holes interpolate per axis between A1 and Z34, rounded to whole pulses.
+  WebControl::server.args={{"op","goto"},{"hole","A34"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==home[0]+8462 && emitted[1]==home[1]);
+  WebControl::server.args={{"op","goto"},{"hole","M12"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==home[0]+2821 && emitted[1]==home[1]-3077); // 8462*11/33, -6410*12/25.
+  // Arrow steps in whole holes use the local calibrated pitch, so an on-grid
+  // start lands on the grid and an off-grid start keeps its offset.
+  WebControl::server.args={{"op","jog"},{"axis","X"},{"holes","1"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==home[0]+3077); // Column 13: 8462*12/33.
+  WebControl::server.args={{"op","jog"},{"axis","Y"},{"holes","-1"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[1]==home[1]-3333); // Row N: -6410*13/25.
+  assert(action("jog","X","10")==200); run();
+  WebControl::server.args={{"op","jog"},{"axis","X"},{"holes","-1"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==home[0]+2821+10);
+  WebControl::server.args={{"op","jog"},{"axis","Y"},{"holes","3"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[1]==home[1]-2564); // Row K: -6410*10/25.
+  for (auto bad : {std::pair<const char*,const char*>{"X","4"}, {"Z","1"}, {"X","0"}, {"Y","-4"}, {"X","1.5"}}) {
+    WebControl::server.args={{"op","jog"},{"axis",bad.first},{"holes",bad.second},{"client","test-browser-0001"}};
+    WebControl::action(); assert(WebControl::server.code==400);
+  }
+  assert(WebControl::nearestIndex(0,8462)==34 && WebControl::nearestIndex(0,128)==1 && WebControl::nearestIndex(0,129)==2);
+  assert(WebControl::nearestIndex(1,-6410)==25 && WebControl::nearestIndex(1,-128)==0 && WebControl::nearestIndex(1,-129)==1);
+  assert(WebControl::nearestIndex(0,-300)==0 && WebControl::nearestIndex(1,300)==-1); // Off-board extrapolation.
   assert(action("go-replace")==200); run(); // Back where the reboot check expects.
   assert(emitted[0]==Positions::saved.replace[0] && emitted[1]==Positions::saved.replace[1]);
   action("stop");
   Positions::begin(); // Clean reboot restores counts but requires confirmation.
-  assert(!Positions::known && Positions::saved.homeSet && Positions::saved.replaceSet);
+  assert(!Positions::known && Positions::saved.homeSet && Positions::saved.replaceSet && Positions::saved.spanSet);
   assert(Positions::saved.clean && emitted[0]==200);
   action("arm"); assert(action("go-home")==409);
   assert(action("confirm")==200 && Positions::known);
@@ -137,9 +185,24 @@ int main() {
   // Stopping mid-move leaves the position unknown.
   assert(action("jog","X","1000")==200); delay(100); action("stop");
   assert(!armed && !Positions::known);
-  // Establishing a different, unknown home invalidates the old replacement.
-  assert(action("home")==200 && !Positions::saved.replaceSet);
-  Positions::begin(); assert(Positions::saved.homeSet && !Positions::saved.replaceSet);
+  // Establishing a different, unknown home invalidates the old replacement,
+  // but the Z34 offset describes the board and scale, so it is kept.
+  assert(action("home")==200 && !Positions::saved.replaceSet && Positions::saved.spanSet);
+  Positions::begin(); assert(Positions::saved.homeSet && !Positions::saved.replaceSet && Positions::saved.spanSet);
+  // A version 1 record (no Z34) loads with the nominal grid; the next write upgrades it.
+  {
+    auto &blob=Positions::preferences.blob; const auto keep=Positions::saved;
+    assert(blob.size()==sizeof(Positions::Record));
+    blob.resize(Positions::legacySize); const uint32_t v1=1; memcpy(blob.data(), &v1, sizeof(v1));
+    Positions::begin();
+    assert(Positions::saved.version==2 && Positions::saved.homeSet && !Positions::saved.spanSet && blob.size()==Positions::legacySize);
+    int64_t x,y; WebControl::holeOffset(34,25,x,y); assert(x==8382 && y==-6350);
+    assert(Positions::write(Positions::saved) && blob.size()==sizeof(Positions::Record));
+    const uint32_t bad=3; memcpy(blob.data(), &bad, sizeof(bad));
+    Positions::begin(); assert(!Positions::saved.homeSet); // Unknown versions are ignored.
+    Positions::ready=true; assert(Positions::write(keep)); Positions::begin();
+    assert(Positions::saved.homeSet && Positions::saved.spanSet);
+  }
   WebControl::state(); assert(WebControl::server.body.find("\"known\":false")!=std::string::npos);
   // Preset distances exceed both manual jog caps and the 6,000-entry jog
   // buffer. Verify every cruise gap across former chunk boundaries, XYZ in

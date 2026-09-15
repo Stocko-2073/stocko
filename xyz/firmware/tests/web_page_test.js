@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const {webcrypto} = require('node:crypto');
 const html = fs.readFileSync('xyza/web_page.h', 'utf8');
-assert(html.includes('<input type="radio" name="xy" value="254" checked>1 hole'));
+assert(html.includes('<input type="radio" name="xy" value="1h" checked>1 hole'));
 assert(html.includes('<input type="radio" name="z" value="100" checked>1 mm'));
 assert(!/\)HTML"/.test(html.match(/R"HTML\(([\s\S]*)\)HTML";/)[1]));
 const elements = [];
@@ -29,7 +29,7 @@ const document = {hidden: false, getElementById: id => ids[id] || elements.find(
 const requests = [];
 let failNextPoll=false;
 let responseState = {armed:false,webArmed:false,busy:false,known:false,homeSet:false,
-  replaceSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0],uptime:500};
+  replaceSet:false,spanSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0],span:[0,0],uptime:500};
 const context = vm.createContext({document,crypto:webcrypto,Uint8Array,URLSearchParams,
   AbortSignal,confirm:()=>true,setTimeout:()=>{},clearTimeout:()=>{},fetch:async (url, options) => {
     requests.push({url,options});
@@ -46,7 +46,9 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   assert.equal(ids.refBadge.textContent,'A1 not set');
   assert.equal(ids.go.disabled,true);
   assert.equal(ids.replace.disabled,true);
+  assert.equal(ids.span.disabled,true);
   assert.equal(ids['go-home'].disabled,true);
+  assert.equal(ids['go-span'].disabled,true);
   await vm.runInContext("act('arm')", context);
   const request = requests.find(r => r.options.body?.get('op') === 'arm');
   assert.equal(request.options.headers['X-XYZ-Control'],'1');
@@ -55,7 +57,10 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
     replaceSet:true,position:[1524,-508,250],replace:[2540,-3810,800]};
   await vm.runInContext('refresh()',context);
   assert.equal(ids['go-home'].disabled,false);
+  assert.equal(ids['go-span'].disabled,false);
   assert.equal(ids.replace.disabled,false);
+  assert.equal(ids.span.disabled,false);
+  assert(ids.spanInfo.textContent.startsWith('Not set: holes assumed 2.54 mm apart.'));
   // Raw +X counts columns leftward; raw -Y counts rows forward from A.
   assert.equal(ids.here.textContent,'C7');
   assert.equal(ids.hereNote.textContent,'Column 7 · Row C · on the grid');
@@ -78,11 +83,34 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   assert.equal(ids.hereNote.textContent,'0.3 mm left, 0.1 mm back of C7');
   assert.equal(ids.height.textContent,'−0.3 mm');
   assert.equal(vm.runInContext("arrows[1].t.textContent",context),'Left 1 hole');
-  vm.runInContext("xyStep=10;render()",context);
+  vm.runInContext("xyStep={pulses:10};render()",context);
   assert.equal(vm.runInContext("arrows[1].t.textContent",context),'Left 0.1 mm');
-  vm.runInContext("xyStep=254",context);
+  vm.runInContext("xyStep={holes:1}",context);
   responseState={...responseState,position:[1524,-508,250]};
   await vm.runInContext('refresh()',context);
+  // With Z34 saved, the grid interpolates between the corners, with the
+  // controller's rounding, and the measured pitch is shown.
+  responseState={...responseState,spanSet:true,span:[8462,-6410],position:[2821,-3077,0]};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.here.textContent,'M12');
+  assert.equal(ids.hereNote.textContent,'Column 12 · Row M · on the grid');
+  assert.equal(ids.spanInfo.textContent,'Set. Holes measure 2.564 mm apart across and 2.564 mm forward; nominal 2.540 mm.');
+  assert.equal(JSON.stringify(vm.runInContext("arrows.map(a=>a.t.textContent)",context)),JSON.stringify(['L12','M13','M11','N12','Up 1 mm','Down 1 mm']));
+  assert.equal(JSON.stringify(vm.runInContext("hole(34,25)",context)),'[8462,-6410]');
+  assert.equal(JSON.stringify(vm.runInContext("hole(1,0)",context)),'[0,0]');
+  responseState={...responseState,position:[2831,-3077,0]};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.hereNote.textContent,'0.1 mm left of M12');
+  assert.equal(vm.runInContext("arrows[1].t.textContent",context),'Left 1 hole');
+  responseState={...responseState,position:[8462,-6410,0]};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.here.textContent,'Z34');
+  ids['go-span'].onclick();
+  await new Promise(r=>setImmediate(r));
+  assert.equal(requests.findLast(r=>r.options.body?.get('op')==='goto').options.body.get('hole'),'Z34');
+  responseState={...responseState,spanSet:false,span:[0,0],position:[1524,-508,250]};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.here.textContent,'C7');
   // Go to hole: letters are rows, numbers are columns; A1 is the origin.
   assert.equal(JSON.stringify(vm.runInContext("parseHole('d12')",context)),'{"col":12,"row":3}');
   assert.equal(JSON.stringify(vm.runInContext("parseHole('z34')",context)),'{"col":34,"row":25}');
@@ -95,8 +123,8 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   ids.hole.value='d12';
   await vm.runInContext('goHole()',context);
   const goto=requests.findLast(r=>r.options.body?.get('op')==='goto');
-  assert.equal(goto.options.body.get('x'),String(11*254));
-  assert.equal(goto.options.body.get('y'),String(-3*254));
+  assert.equal(goto.options.body.get('hole'),'D12');
+  assert.equal(goto.options.body.has('x'),false);
   // Poll must retry after a network failure, even with online=false.
   failNextPoll=true;
   await vm.runInContext('poll()',context);
@@ -121,17 +149,24 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   assert(requests.some(r=>r.options.body?.get('op')==='stop'));
   responseState.busy=false;
   await vm.runInContext('refresh()',context);
-  // Forward (toward row B) is raw -Y; left (next column) is raw +X.
-  vm.runInContext("xyStep=254;document.querySelectorAll('.jog')[3].onclick()",context);
+  // Forward (toward row B) is raw -Y; left (next column) is raw +X. Whole
+  // holes are sent as hole counts so the controller applies the local pitch.
+  vm.runInContext("xyStep={holes:1};document.querySelectorAll('.jog')[3].onclick()",context);
   await new Promise(r=>setImmediate(r));
   let jog=requests.findLast(r=>r.options.body?.get('op')==='jog');
   assert.equal(jog.options.body.get('axis'),'Y');
-  assert.equal(jog.options.body.get('pulses'),'-254');
-  vm.runInContext("document.querySelectorAll('.jog')[1].onclick()",context);
+  assert.equal(jog.options.body.get('holes'),'-1');
+  assert.equal(jog.options.body.has('pulses'),false);
+  vm.runInContext("xyStep={holes:3};document.querySelectorAll('.jog')[1].onclick()",context);
   await new Promise(r=>setImmediate(r));
   jog=requests.findLast(r=>r.options.body?.get('op')==='jog');
   assert.equal(jog.options.body.get('axis'),'X');
-  assert.equal(jog.options.body.get('pulses'),'254');
+  assert.equal(jog.options.body.get('holes'),'3');
+  vm.runInContext("xyStep={pulses:100};document.querySelectorAll('.jog')[1].onclick()",context);
+  await new Promise(r=>setImmediate(r));
+  jog=requests.findLast(r=>r.options.body?.get('op')==='jog');
+  assert.equal(jog.options.body.get('pulses'),'100');
+  assert.equal(jog.options.body.has('holes'),false);
   vm.runInContext("document.querySelectorAll('.jog')[5].onclick()",context);
   await new Promise(r=>setImmediate(r));
   jog=requests.findLast(r=>r.options.body?.get('op')==='jog');

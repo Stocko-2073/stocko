@@ -6,7 +6,7 @@ A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
-## Web control in board coordinates (firmware v0.6)
+## Web control in board coordinates (firmware v0.7)
 
 Build and upload with `make upload`. With Wi-Fi configured as below, open
 **http://xyz.local/** (or the IP reported by `WIFI STATUS`) on the same LAN.
@@ -25,34 +25,58 @@ millimetres, and shows the drill height relative to the A1 height.
    whole number of holes. Click **Set A1 here** to save it in flash.
 2. Raise the drill clear of the board and clamps and move the board to where it
    can be swapped. Click **Set here** in the *Board swap* row.
-3. **Go to A1** and **Swap board** travel between those saved positions. Each
+3. Calibrate the grid. Raise the drill clear of the board and click **Go to
+   Z34** in the *Board* card; it travels to where Z34 would be on an exact
+   2.54 mm pitch. The boards are not exactly on that pitch at the provisional
+   100 pulses/mm, so the drill lands close to the hole but not over it. Nudge
+   it onto the hole with the 1 mm and 0.1 mm steps and click **Set Z34 here**.
+   From then on every hole is placed by interpolating along each axis between
+   the saved A1 and Z34, and the card shows the measured pitch across and
+   forward. The firmware refuses a Z34 more than 10% away from its nominal
+   place (about 8.4 mm across or 6.4 mm forward) as a probable wrong hole;
+   a neighbouring hole would pass, so check that the measured pitch is near
+   2.54 mm. Until Z34 is set, the nominal pitch is assumed.
+4. **Go to A1** and **Swap board** travel between those saved positions. Each
    raises the drill to the higher endpoint, crosses in one straight XY line,
    and lowers it to the target. Ensure that height clears everything along
    the diagonal path. **Go to hole**
-   (type a hole such as `D12`) travels in one straight line, both axes moving
-   together, at the *current* drill height; raise the drill first if it is in
-   a cut.
+   (type a hole such as `D12`) and **Go to Z34** first raise the drill 1 mm,
+   so it clears the cut it may be sitting in, then travel in one straight
+   line, both axes moving together, and stay at the raised height. Lower the
+   drill again with the arrows once it is over the new hole. If the drill is
+   more than 1 mm deep, raise it further before travelling.
 
 Steps across the board are 1 hole, 3 holes, 1 mm, or 0.1 mm; drill height
-steps are 5, 1, or 0.1 mm. The hole pitch is 2.54 mm, 254 pulses at the
-provisional 100 pulses/mm, so on-grid positions are exact pulse multiples.
+steps are 5, 1, or 0.1 mm. Whole-hole steps are sent as hole counts, and the
+firmware moves from the nearest hole to the one that many further on using
+the calibrated grid, so a step from a hole lands on a hole and a step from an
+off-grid position keeps its offset; the local pitch varies by a pulse from
+hole to hole as the interpolation rounds. Hole positions are offsets from A1
+in whole pulses: column `c` sits at `round(spanX * (c-1) / 33)` and row `r`
+(A = 0) at `round(spanY * r / 25)`, where the span is the saved XY offset of
+Z34 or the nominal (8,382, -6,350). The page and firmware share this rounding
+(halves round up, like `Math.round`), so the readout and the moves agree.
 Internally the page still speaks the raw JOG convention: a column to the left
 is raw +X (board moves right) and a row forward is raw -Y (board moves toward
 the tower). Arrow moves use 1,000 pulses/sec with the existing acceleration and per-move
 jog caps. Saved-position travel raises and lowers Z at 1,000 pulses/sec, one
 continuous profile per Z leg, and crosses XY with the same straight-line move
-as `goto` below. The `goto` action
-accepts holes A1 to Z34 only: offsets from A1 of 0 to 8,382 pulses in X (34
-columns) and 0 to -6,350 in Y (26 rows), checked in both the page and the
-firmware, and it never moves Z. It steps X and Y from one event list under a
+as `goto` below. The `goto` action takes a hole name (`hole=D12`), accepts
+holes A1 to Z34 only, checked in both the page and the firmware, and runs as
+a staged move like the saved positions: Z up 100 pulses at 1,000 pulses/sec,
+then the XY line, with no Z move at the end. A request for the hole already
+under the drill does nothing, not even the lift. The XY leg steps X and Y from one event list under a
 single rest-to-rest profile along the straight path at 4,000 pulses/sec (about
 40 mm/sec), the coordinated-XY mechanism `DEMO` uses, clamped to the X/Y rate
 caps so neither axis exceeds them; the drivers stay enabled when it finishes.
 4,000 pulses/sec is above the 3,000 previously configured and has not been
 speed-tested on the hardware; watch the first long hole move for stalls. The spindle never moves from this page.
 
-A1, the swap position, and the last completed position are stored separately
-from Wi-Fi credentials in NVS. Boot never moves or enables the machine.
+A1, Z34, the swap position, and the last completed position are stored
+separately from Wi-Fi credentials in NVS. Z34 is stored as an offset from A1:
+it describes the board and the machine scale, so setting a new A1 keeps it,
+and a version 1 position record from firmware v0.6 loads with Z34 unset.
+Boot never moves or enables the machine.
 After a clean restart, **Nothing has moved since power-off** restores the
 reference only if you know the mechanism stayed in place. Otherwise put the
 drill back above the physical A1 and click **The drill is above A1 now**, which
@@ -99,7 +123,8 @@ no CORS access. Do not expose port 80 to the internet.
 
 `make test` (C++ compiler and Node.js required) runs motion and page tests,
 plus web action, storage failure,
-reboot/reference, preset sequencing, spindle exclusion, and idle-release tests.
+reboot/reference, preset sequencing, spindle exclusion, idle-release, grid
+calibration, and position-record upgrade tests.
 `make compile` builds for the XIAO ESP32-C6. Web control and network-loaded
 motion timing still require physical-machine verification after flashing.
 

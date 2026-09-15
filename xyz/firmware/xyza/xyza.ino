@@ -399,7 +399,7 @@ void setup() {
     timerAttachInterrupt(stepTimer, &onStep);
   }
   Serial.begin(115200); // Native USB CDC; do not wait for a host.
-  Serial.println("XYZA commissioning firmware v0.6; disabled; HELP");
+  Serial.println("XYZA commissioning firmware v0.7; disabled; HELP");
   CrashLog::begin();
   disableReason = CrashLog::startupReason;
   Positions::begin();
