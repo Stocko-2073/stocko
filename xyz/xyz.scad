@@ -29,32 +29,51 @@ pb_floor=29.2;
 pb_clamp_mounts=[[-95,-20],[-3,-44]];
 pb_clamp_angles=[180,270];
 function pb_center() = [4-pb_size.x/2,35-pb_size.y/2,pb_floor];
-pb_clamp_height=5.6;
+pb_clamp_height=9.8;
+pb_clamp_screw_length=13;   // same M3x13 hardware as the base-plate foot
+pb_clamp_toe=0.6;
+pb_clamp_pivot=[17,0,3];   // 1 mm radius heel rests on the existing tab at z=2
+// Rotate about the heel so the outer edge of the toe contacts the board.
+function pb_clamp_angle(t) = atan2(3-pb_clamp_toe,17)
+    + asin((t-3)/norm([17,3-pb_clamp_toe]));
+function pb_clamp_screw_x(i) = i==0 ? 99-pb_size.x : 79-pb_size.y;
+// Vertical socket-head screw bears on the high edge of the tilted top face.
+function pb_clamp_screw_z(i) = let(a=pb_clamp_angle(pb_size.z))
+    3+(pb_clamp_height-3)/cos(a)-(pb_clamp_screw_x(i)-2.75-17)*tan(a);
 
-// Two identical clamps. Local +X points outward from the board edge.
-// Print upside down: the top is flat and the 1.6 mm underside lip needs no support.
+// Two identical rocking clamps; print flat top down. The relieved underside
+// lets the nose move down instead of the body bottoming out on the mounting tab.
 module board_clamp() {
     difference() {
         union() {
-            translate([0,-5,2]) cube([18,10,pb_clamp_height-2]);
-            translate([-1.2,-5,1.6]) cube([1.2+ep,10,pb_clamp_height-1.6]);
+            translate([0,-5,3]) cube([18,10,pb_clamp_height-3]);
+            translate([-1.2,-5,pb_clamp_toe])
+                cube([1.2,10,pb_clamp_height-pb_clamp_toe]);
+            translate(pb_clamp_pivot) ycyl(r=1,h=10,$fn=64);
         }
-        hull() for (x=[7,10]) translate([x,0,-ep])
-            cylinder(d=3.4,h=pb_clamp_height+2*ep,$fn=32);
+        hull() for (x=[6.5,10.5]) translate([x,0,-ep])
+            cylinder(d=3.8,h=pb_clamp_height+2*ep,$fn=32);
     }
+}
+
+module seated_board_clamp() {
+    translate(pb_clamp_pivot) yrot(pb_clamp_angle(pb_size.z))
+        translate(-pb_clamp_pivot) board_clamp();
 }
 
 module board_clamps() {
     assert(pb_size.x>=89 && pb_size.x<=92 && pb_size.y>=69 && pb_size.y<=72,
            "Board clamp range is 89..92 x 69..72 mm");
+    assert(pb_size.z>=0.6 && pb_size.z<=2.0,
+           "Rocking clamp thickness range is 0.6..2.0 mm");
     translate([4-pb_size.x,-20,pb_floor]) zrot(180)
-        asm("board_clamps",UP,20) color(color1) board_clamp();
+        asm("board_clamps",UP,20) color(color1) seated_board_clamp();
     translate([-3,35-pb_size.y,pb_floor]) zrot(270)
-        asm("board_clamps",UP,20) color(color1) board_clamp();
-    for (a=pb_clamp_mounts) {
+        asm("board_clamps",UP,20) color(color1) seated_board_clamp();
+    for (i=[0:1]) let(a=pb_clamp_mounts[i]) {
         translate([a.x,a.y,pb_floor-3]) asm("clamp_nuts",DOWN,15) m3_nut();
-        translate([a.x,a.y,pb_floor+pb_clamp_height])
-            asm("clamp_screws",UP,20,engage=8) m3(8);
+        translate([a.x,a.y,pb_floor+pb_clamp_screw_z(i)])
+            asm("clamp_screws",UP,20,engage=pb_clamp_screw_length) m3(pb_clamp_screw_length);
     }
 }
 
@@ -113,7 +132,10 @@ module y_carriage(anchor=BOT,spin=0,orient=UP) {
                         cuboid([4+1.5,y-4,9.5],anchor=LEFT+TOP);
                         tag("remove") right(4-$slop) down(1) cuboid([4+1.5,y-4,9],chamfer=2,edges="Y",anchor=LEFT+TOP);
                     }
-                    right(101.5) cuboid([5.5,y-4,54],anchor=LEFT+TOP,chamfer=1,edges=[TOP+FWD,TOP+BACK]);
+                    right(101.5) {
+                        cuboid([5.5,y-4,54],anchor=LEFT+TOP,chamfer=1,edges=[TOP+FWD,TOP+BACK]);
+                        yflip_copy() fwd((y-6)/2) cuboid([50,7,50],anchor=RIGHT+TOP+FWD,chamfer=50,edges=[LEFT+BOT]);
+                    }
                     right(12.5) cuboid([x,y,10],chamfer=2,edges="X",anchor=TOP);
                 }
                 d=24;
