@@ -177,8 +177,8 @@ void action() {
   }
   if (op == "goto") {
     // A hole name such as D12, placed on the grid interpolated between A1
-    // and Z34. The drill first rises travelLift clear of the cut it may be
-    // in, then crosses in one straight XY line and stays at that height.
+    // and Z34. The drill rises travelLift clear of the cut it may be in,
+    // crosses in one straight XY line, and returns to its starting height.
     long col, row;
     if (!parseHole(server.arg("hole").c_str(), col, row)) {
       reply(400, "That hole is off the board. Holes run A1 to Z34."); return;
@@ -189,9 +189,8 @@ void action() {
     if (Positions::saved.home[0] + x == current[0] && Positions::saved.home[1] + y == current[1]) { reply(200, "Already at that hole."); return; }
     for (int i = 0; i < 4; ++i) target[i] = current[i];
     target[0] = Positions::saved.home[0] + x; target[1] = Positions::saved.home[1] + y;
-    target[3] = current[3] + travelLift;
-    clearance = target[3]; stage = 0; presetRunning = true;
-    reply(200, "Raising the drill 1 mm, then moving to the hole."); return;
+    clearance = current[3] + travelLift; stage = 0; presetRunning = true;
+    reply(200, "Moving to the hole: up 1 mm, across, and back down."); return;
   }
   if (op == "go-home" || op == "go-replace") {
     if (!Positions::known || !Positions::saved.homeSet || (op == "go-replace" && !Positions::saved.replaceSet)) {

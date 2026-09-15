@@ -40,11 +40,11 @@ millimetres, and shows the drill height relative to the A1 height.
    raises the drill to the higher endpoint, crosses in one straight XY line,
    and lowers it to the target. Ensure that height clears everything along
    the diagonal path. **Go to hole**
-   (type a hole such as `D12`) and **Go to Z34** first raise the drill 1 mm,
-   so it clears the cut it may be sitting in, then travel in one straight
-   line, both axes moving together, and stay at the raised height. Lower the
-   drill again with the arrows once it is over the new hole. If the drill is
-   more than 1 mm deep, raise it further before travelling.
+   (type a hole such as `D12`) and **Go to Z34** raise the drill 1 mm, so it
+   clears the cut it may be sitting in, travel in one straight line with both
+   axes moving together, then lower it 1 mm again to the height it started
+   at. If the drill is more than 1 mm deep, raise it further before
+   travelling; the lift is fixed.
 
 Steps across the board are 1 hole, 3 holes, 1 mm, or 0.1 mm; drill height
 steps are 5, 1, or 0.1 mm. Whole-hole steps are sent as hole counts, and the
@@ -64,8 +64,8 @@ continuous profile per Z leg, and crosses XY with the same straight-line move
 as `goto` below. The `goto` action takes a hole name (`hole=D12`), accepts
 holes A1 to Z34 only, checked in both the page and the firmware, and runs as
 a staged move like the saved positions: Z up 100 pulses at 1,000 pulses/sec,
-then the XY line, with no Z move at the end. A request for the hole already
-under the drill does nothing, not even the lift. The XY leg steps X and Y from one event list under a
+the XY line, then Z down 100 pulses to the starting height. A request for the
+hole already under the drill does nothing, not even the lift. The XY leg steps X and Y from one event list under a
 single rest-to-rest profile along the straight path at 4,000 pulses/sec (about
 40 mm/sec), the coordinated-XY mechanism `DEMO` uses, clamped to the X/Y rate
 caps so neither axis exceeds them; the drivers stay enabled when it finishes.

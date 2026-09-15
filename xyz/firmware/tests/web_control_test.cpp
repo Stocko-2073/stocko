@@ -59,8 +59,8 @@ int main() {
   assert(action("go-replace")==200);
   WebControl::service(); assert(activeMotor==3); // Raise Z before XY.
   run(); assert(emitted[0]==200 && emitted[1]==100 && emitted[3]==100);
-  // Go to a hole by name: raise Z by 1 mm, then one straight XY line; the
-  // drill stays raised.
+  // Go to a hole by name: raise Z by 1 mm, one straight XY line, then back
+  // down to the starting height.
   assert(action("goto")==400);
   for (const char *bad : {"A0", "A35", "AA1", " B2", "B 2", "B2 ", "B+2", "2B", "B", "B2x"}) {
     WebControl::server.args={{"op","goto"},{"hole",bad},{"client","test-browser-0001"}};
@@ -77,12 +77,14 @@ int main() {
     while (activeMotor==3) loop();
     assert(emitted[3]==zStart+100 && riseTimes[D1].size()==x0 && riseTimes[D3].size()==y0); // XY waited for the lift.
     WebControl::service(); assert(activeMotor==1 && lineRunning && !demoRunning); // One straight line; Y is the longer axis.
-    run(); assert(emitted[3]==zStart+100); // No lowering afterwards.
-    assert(riseTimes[D1].back() > riseTimes[D3][y0]); // X and Y overlapped, not in turn.
+    while (activeMotor==1) loop();
+    assert(emitted[3]==zStart+100 && riseTimes[D1].back() > riseTimes[D3][y0]); // X and Y overlapped, not in turn.
+    WebControl::service(); assert(activeMotor==3 && !lineRunning); // Lower only after XY has finished.
+    run(); assert(emitted[3]==zStart); // Back to the starting height.
     assert(armed && !lineRunning && WebControl::idle()); // Unlike DEMO, stays armed.
   }
   assert(emitted[0]==Positions::saved.home[0]+254 && emitted[1]==Positions::saved.home[1]-508);
-  assert(emitted[3]==Positions::saved.replace[3]+100);
+  assert(emitted[3]==Positions::saved.replace[3]);
   // An axis-aligned hole move to row Z cruises at 4,000 pulses/sec.
   WebControl::server.args={{"op","goto"},{"hole","Z2"},{"client","test-browser-0001"}};
   { const size_t y0=riseTimes[D3].size(); const int xPulses=rises[D1];

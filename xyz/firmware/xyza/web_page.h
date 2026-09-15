@@ -64,7 +64,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div class="pad" id="xy"></div><div class="zpad" id="z"></div>
 </div>
 <p class="muted" style="text-align:center;margin:14px 0 0">Arrows say where the drill goes over the board: columns count to the left, rows count forward from A. One press, one move.</p>
-<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Raises the drill 1 mm, then travels in a straight line and stays at that height.</p></div>
+<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Raises the drill 1 mm, travels in a straight line, then lowers it back to the same height.</p></div>
 </section>
 <aside>
 <section class="card"><h2>Board</h2>
@@ -74,7 +74,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <p class="hint" id="savedHint"></p>
 </section>
 <details><summary><span class="warn">No limit switches.</span> Check travel and drill clearance before every move.</summary>
-<p>Go to A1 and Swap board raise the drill to the higher of the two heights, cross the board in a straight line, then lower it. Go to hole and Go to Z34 first raise the drill 1 mm, then cross the same way and stay at that height, only within A1 to Z34. Crossing moves both axes together at four times the arrow speed; the arrows keep the current height. The spindle is never run from this page.</p>
+<p>Go to A1 and Swap board raise the drill to the higher of the two heights, cross the board in a straight line, then lower it. Go to hole and Go to Z34 raise the drill 1 mm, cross the same way, then lower it back to the height it started at, only within A1 to Z34. Crossing moves both axes together at four times the arrow speed; the arrows keep the current height. The spindle is never run from this page.</p>
 <p>Positions count commanded steps, not measured movement, at a provisional 100 steps per millimetre. Boards are not exactly on a 2.54 mm pitch at that scale, so once Z34 is set the holes between A1 and Z34 are interpolated along each axis; until then the nominal pitch is assumed. A1, Z34, and the swap position are stored on the controller. After a reboot, confirm that nothing moved, or put the drill back above A1 and confirm it there. After an interrupted move, confirm at A1 again.</p>
 <p>STOP or Escape cancels motion and turns all motors off; the machine’s own emergency stop is the safety stop. A dropped link never stops a move: every move is bounded and planned before it starts. Idle motors switch off after 60 s without this page.</p></details>
 </aside>
@@ -124,7 +124,7 @@ const pitch=(p,n)=>(Math.abs(p)/n/PPM).toFixed(3)+' mm';
 $('spanInfo').textContent=s.spanSet?'Set. Holes measure '+pitch(s.span[0],COLS-1)+' apart across and '+pitch(s.span[1],ROWS-1)+' forward; nominal 2.540 mm.':'Not set: holes assumed 2.54 mm apart. Go to Z34, nudge the drill onto the hole with the fine steps, then set it.';
 const r=s.replaceSet?grid(s.replace):null,rz=s.replace[2];
 $('swapInfo').textContent=r?'Drill parks '+(r.on&&r.name?'at '+r.name:mm(s.replace[0])+' left, '+mm(-s.replace[1])+' forward of A1')+', '+mm(Math.abs(rz))+(rz<0?' below':' above')+' A1 height.':'Not set. Raise the drill and move the board clear of it, then set here.';
-$('savedHint').textContent=!s.homeSet?'':!s.known?'Confirm the position before saving or travelling.':!s.webArmed?'Turn on the motors to travel.':'Go to A1 and Swap board raise the drill to the higher of the two heights, cross the board, then lower it. Go to Z34 raises the drill 1 mm first and stays there.';
+$('savedHint').textContent=!s.homeSet?'':!s.known?'Confirm the position before saving or travelling.':!s.webArmed?'Turn on the motors to travel.':'Go to A1 and Swap board raise the drill to the higher of the two heights, cross the board, then lower it. Go to Z34 lifts the drill 1 mm for the crossing and lowers it again.';
 }
 function say(text,error){const m=$('message');m.textContent=text;m.className='show'+(error?' err':'');clearTimeout(hideTimer);if(!error)hideTimer=setTimeout(()=>{m.className='';},3500);}
 async function post(op,extra={}){const response=await fetch('/api/action',{method:'POST',headers:{'X-XYZ-Control':'1','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({op,client,...extra}),signal:AbortSignal.timeout(1200)});const text=await response.text();if(!response.ok)throw Error(text);return text;}
@@ -134,7 +134,7 @@ function failure(e){return e.name==='TimeoutError'||/abort/i.test(e.message)?'No
 async function refresh(){const t0=Date.now();try{state=JSON.parse(await post('poll'));online=true;link(Date.now()-t0);if(lastUptime!==null&&state.uptime<lastUptime)say('Controller restarted: uptime fell from '+lastUptime+' s to '+state.uptime+' s. Check power, then run CRASH INFO over USB.',true);lastUptime=state.uptime;}catch(e){online=false;link(Date.now()-t0);}render();}
 function goHole(){const h=parseHole($('hole').value);if(!h){say('Enter a hole from A1 to Z34: row letter, then column number.',true);return;}return act('goto',{hole:rowName(h.row)+h.col});}
 $('go').onclick=goHole;$('go-span').onclick=()=>act('goto',{hole:'Z34'});$('hole').onkeydown=e=>{if(e.key==='Enter'&&!$('go').disabled)goHole();};
-$('hole').oninput=()=>{const h=parseHole($('hole').value);$('goHint').textContent=h?'Raise the drill 1 mm, then go to column '+h.col+', row '+rowName(h.row)+' in a straight line.':'Raises the drill 1 mm, then travels in a straight line and stays at that height.';};
+$('hole').oninput=()=>{const h=parseHole($('hole').value);$('goHint').textContent=h?'Up 1 mm, straight to column '+h.col+', row '+rowName(h.row)+', then back down 1 mm.':'Raises the drill 1 mm, travels in a straight line, then lowers it back to the same height.';};
 $('stop').onclick=()=>act('stop');document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>act(b.dataset.op));
 document.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();act('stop');}});
 // One request marks the owning page present and returns status. Retry even
