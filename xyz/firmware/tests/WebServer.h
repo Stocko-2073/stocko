@@ -4,7 +4,10 @@
 #include <string>
 #define PROGMEM
 constexpr int HTTP_GET=0, HTTP_POST=1;
+enum HTTPClientStatus { HC_NONE, HC_WAIT_READ, HC_WAIT_CLOSE };
+struct NetworkClient { int avail=0; bool stopped=false; int available() { return avail; } void stop() { stopped=true; } };
 struct WebServer {
+  NetworkClient _currentClient; HTTPClientStatus _currentStatus=HC_NONE; unsigned long _statusChange=0;
   std::map<std::string,std::function<void()>> routes;
   std::map<std::string,std::string> args, headers;
   int code=0; std::string body;

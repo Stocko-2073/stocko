@@ -16,6 +16,17 @@ void run() {
 }
 int main() {
   setup(); WiFi.state=WL_CONNECTED; Serial.connected=false;
+  // A connected client that sends nothing is dropped after 400 ms, not the
+  // stock 5 s that would starve the 3 s lease and stop the motors.
+  WebControl::server._currentStatus=HC_WAIT_READ; WebControl::server._statusChange=millis();
+  delay(300); WebControl::service();
+  assert(WebControl::server._currentStatus==HC_WAIT_READ && !WebControl::server._currentClient.stopped);
+  delay(200); WebControl::service();
+  assert(WebControl::server._currentStatus==HC_NONE && WebControl::server._currentClient.stopped);
+  WebControl::server._currentStatus=HC_WAIT_READ; WebControl::server._statusChange=millis();
+  WebControl::server._currentClient={1,false}; delay(600); WebControl::service();
+  assert(!WebControl::server._currentClient.stopped); // Data pending: not silent.
+  WebControl::server._currentStatus=HC_NONE; WebControl::server._currentClient={};
   assert(action("arm")==403 && !armed);
   WebControl::server.headers["X-XYZ-Control"]="1";
   assert(action("replace")==409);

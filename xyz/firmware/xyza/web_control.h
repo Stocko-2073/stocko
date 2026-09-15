@@ -3,7 +3,23 @@
 #include "web_page.h"
 
 namespace WebControl {
-WebServer server(80);
+// The stock server keeps a connected but silent client for HTTP_MAX_DATA_WAIT
+// (5 s) and accepts nobody else meanwhile. Browsers open spare connections
+// like that, and a 5 s freeze outlasts the 3 s motor lease: motors stop with
+// "Browser connection timed out" although nothing failed. Drop silent clients
+// early; a real request's first bytes follow the handshake within one RTT.
+constexpr uint32_t silentClientMs = 400;
+struct LeaseSafeServer : WebServer {
+  using WebServer::WebServer;
+  void service() {
+    if (_currentStatus == HC_WAIT_READ && !_currentClient.available() && uint32_t(millis()-_statusChange) > silentClientMs) {
+      _currentClient.stop();
+      _currentStatus = HC_NONE;
+    }
+    handleClient();
+  }
+};
+LeaseSafeServer server(80);
 char owner[65] = {};
 bool ownsControl() { return server.arg("client") == owner && owner[0]; }
 int stage = 0;
@@ -130,7 +146,7 @@ void service() {
   // Check the lease both before and after HTTP processing. Timer stepping never
   // waits for the network, and each jog remains bounded by existing pulse caps.
   checkConnection();
-  server.handleClient();
+  server.service();
   checkConnection();
   if (!presetRunning || activeMotor >= 0) return;
   if (!armed || !Positions::known || !Positions::commissioned()) { disableMotors(); return; }

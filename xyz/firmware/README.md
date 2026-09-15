@@ -74,7 +74,13 @@ motors. The controlling page becoming hidden requests a stop; observer pages do 
 One combined poll renews the controlling browser's 3-second lease and returns
 status; expiration inhibits further steps in the timer interrupt,
 even if HTTP handling is stalled. Network loss also stops motion. Another page
-cannot renew that lease, but can press Stop. The page reports the disable reason
+cannot renew that lease, but can press Stop. The stock Arduino WebServer
+keeps a connected but silent client for 5 seconds and serves nobody else
+meanwhile; browsers open such spare connections, and that freeze would outlast
+the lease and stop the motors with "Browser connection timed out" for no real
+reason (reproduced 2026-09-15 with one idle TCP connection: 4.3 s stall).
+The firmware therefore drops a client that has sent nothing within 400 ms.
+Wi-Fi modem sleep is also disabled to avoid beacon-interval latency spikes. The page reports the disable reason
 (browser timeout, Wi-Fi loss, hidden page, or explicit stop). This software stop is not a
 physical emergency-stop circuit. USB-controlled motion retains its USB
 disconnect stop; web control works without a USB connection.
