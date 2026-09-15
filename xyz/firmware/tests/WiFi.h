@@ -9,6 +9,7 @@ struct FakeWiFi {
   void setHostname(const char *s) { hostname = s; }
   void mode(int) {}
   void setAutoReconnect(bool) {}
+  bool sleep=true; void setSleep(bool on) { sleep=on; }
   void begin(const char *s, const char *p) { ssid = s; password = p; ++attempts; }
   void disconnect(bool, bool) { state = 0; }
   void reconnect() { ++attempts; }

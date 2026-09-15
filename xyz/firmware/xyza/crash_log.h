@@ -55,7 +55,7 @@ void base64Line(const uint8_t *in, size_t n, char *out) {
 void info() {
   size_t addr = 0, size = 0;
   if (esp_core_dump_image_get(&addr, &size) != ESP_OK) {
-    Serial.printf("CRASH none stored; this boot followed a %s\n", resetName(esp_reset_reason())); return;
+    Serial.printf("CRASH none stored; this boot followed a %s, up %lu s\n", resetName(esp_reset_reason()), (unsigned long)(millis()/1000)); return;
   }
   char reason[96] = "unknown";
   esp_core_dump_get_panic_reason(reason, sizeof(reason));

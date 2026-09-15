@@ -34,6 +34,9 @@ void connect() {
   WiFi.setHostname("xyz");
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
+  // Modem sleep adds beacon-interval latency spikes that abort the page's 1.2 s
+  // requests and can starve the 3 s motor lease while idle. Power is not scarce.
+  WiFi.setSleep(false);
   WiFi.begin(saved.ssid, saved.password);
   lastAttempt = millis();
   Serial.println("WIFI connecting; use WIFI STATUS (retries every 30s)");

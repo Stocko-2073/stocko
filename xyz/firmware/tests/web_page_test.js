@@ -29,7 +29,7 @@ const document = {hidden: false, getElementById: id => ids[id] || elements.find(
 const requests = [];
 let failNextPoll=false;
 let responseState = {armed:false,webArmed:false,busy:false,known:false,homeSet:false,
-  replaceSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0]};
+  replaceSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0],uptime:500};
 const context = vm.createContext({document,crypto:webcrypto,Uint8Array,URLSearchParams,
   AbortSignal,confirm:()=>true,setTimeout:()=>{},clearTimeout:()=>{},fetch:async (url, options) => {
     requests.push({url,options});
@@ -133,6 +133,12 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   jog=requests.findLast(r=>r.options.body?.get('op')==='jog');
   assert.equal(jog.options.body.get('axis'),'Z');
   assert.equal(jog.options.body.get('pulses'),'-100');
+  // A controller restart shows as uptime going backwards.
+  assert(ids.link.textContent.startsWith('link '));
+  responseState={...responseState,uptime:3};
+  await vm.runInContext('refresh()',context);
+  assert(ids.message.textContent.startsWith('Controller restarted: uptime fell from 500 s to 3 s'));
+  assert.equal(ids.message.className,'show err');
   vm.runInContext('online=false;render()',context);
   assert.equal(ids['go-home'].disabled,true);
   assert.equal(ids.status.textContent,'Disconnected');

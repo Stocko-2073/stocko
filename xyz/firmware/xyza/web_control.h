@@ -27,13 +27,14 @@ void state() {
   snprintf(body, sizeof(body),
     "{\"armed\":%s,\"webArmed\":%s,\"busy\":%s,\"known\":%s,\"recoverable\":%s,"
     "\"homeSet\":%s,\"replaceSet\":%s,\"commissioned\":%s,\"position\":[%lld,%lld,%lld],"
-    "\"replace\":[%lld,%lld,%lld],\"disableReason\":\"%s\"}",
+    "\"replace\":[%lld,%lld,%lld],\"disableReason\":\"%s\",\"uptime\":%lu}",
     armed ? "true":"false", (webArmed && ownsControl()) ? "true":"false", idle() ? "false":"true",
     Positions::known ? "true":"false", s.clean ? "true":"false",
     s.homeSet ? "true":"false", s.replaceSet ? "true":"false",
     Positions::commissioned() ? "true":"false",
     (long long)(p[0]-s.home[0]), (long long)(p[1]-s.home[1]), (long long)(p[3]-s.home[3]),
-    (long long)(s.replace[0]-s.home[0]), (long long)(s.replace[1]-s.home[1]), (long long)(s.replace[3]-s.home[3]), disableReason);
+    (long long)(s.replace[0]-s.home[0]), (long long)(s.replace[1]-s.home[1]), (long long)(s.replace[3]-s.home[3]), disableReason,
+    (unsigned long)(millis()/1000));
   server.sendHeader("Cache-Control", "no-store");
   server.send(200, "application/json", body);
 }

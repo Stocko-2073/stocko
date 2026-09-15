@@ -42,12 +42,13 @@ int main() {
   send("ARM\n"); send("CRASH CLEAR\n"); assert(!fakeCoreDump.empty()); // Refused while armed.
   send("OFF\n"); send("CRASH CLEAR\n"); assert(fakeCoreDump.empty());
   Serial.output.clear(); send("CRASH INFO\n");
-  assert(Serial.output.find("CRASH none stored; this boot followed a panic") != std::string::npos);
+  assert(Serial.output.find("CRASH none stored; this boot followed a panic, up ") != std::string::npos);
   for (int i=0; i<4; ++i) assert(axisMotor[i] == Config::axisMotor[i] && rises[Config::stepPins[i]] == 0);
   assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == 2);
   // Provisioning accepts CRLF, spaces, punctuation, and editing without echo.
   send("WIFI SET\r\nMy Net!work\r\nsecret! passX\b\r\n");
   assert(WiFi.ssid == "My Net!work" && WiFi.password == "secret! pass");
+  assert(!WiFi.sleep); // Modem sleep off: no beacon-interval latency spikes.
   assert(!WifiProvisioning::prompt && !armed && WiFi.hostname == "xyz");
   assert(Serial.output.find("secret!") == std::string::npos);
   WifiProvisioning::saved = {}; WifiProvisioning::begin(); // Simulate reload from flash.

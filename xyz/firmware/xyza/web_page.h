@@ -8,6 +8,7 @@ static const char webPage[] PROGMEM = R"HTML(<!doctype html>
 .bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:16px;max-width:1000px;margin:0 auto 20px;padding:12px 0;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{font-weight:700;letter-spacing:.02em;line-height:1.2}.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
 .pill{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:6px 12px;border-radius:999px;background:var(--raise);font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link{color:var(--muted);font-size:12px;white-space:nowrap}.link.slow{color:var(--warn)}
 .pill::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;background:var(--muted)}
 .pill[data-tone=ok]::before{background:var(--ok);box-shadow:0 0 0 3px #62d6a433}.pill[data-tone=busy]::before{background:var(--warn);animation:blink 1s infinite}.pill[data-tone=bad]::before{background:var(--danger)}
 @keyframes blink{50%{opacity:.25}}
@@ -46,9 +47,9 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 .warn{color:var(--warn)}
 #message{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:min(90vw,560px);padding:12px 18px;border-radius:12px;background:#243036;border:1px solid var(--line);box-shadow:0 8px 30px #0008;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
 #message.show{opacity:1}#message.err{border-color:var(--danger);color:#ffd9dc}
-@media(max-width:720px){main{grid-template-columns:1fr}body{padding:0 12px 90px}.card{padding:16px}.bar{gap:10px}.brand small{display:none}.pill{font-size:13px}#stop{padding:12px 18px}.dro{grid-template-columns:1fr 1fr}.dro b{font-size:26px}.move{gap:8px 12px}.pad{grid-template-columns:repeat(3,72px);grid-auto-rows:72px}.zpad{grid-template-columns:72px;grid-auto-rows:72px}.seg label{font-size:13px;padding:6px 2px}}
+@media(max-width:720px){.link{display:none}main{grid-template-columns:1fr}body{padding:0 12px 90px}.card{padding:16px}.bar{gap:10px}.brand small{display:none}.pill{font-size:13px}#stop{padding:12px 18px}.dro{grid-template-columns:1fr 1fr}.dro b{font-size:26px}.move{gap:8px 12px}.pad{grid-template-columns:repeat(3,72px);grid-auto-rows:72px}.zpad{grid-template-columns:72px;grid-auto-rows:72px}.seg label{font-size:13px;padding:6px 2px}}
 </style>
-<header class="bar"><div class="brand">XYZ<small>Stripboard cutter</small></div><span id="status" class="pill" role="status">Connecting…</span><button id="stop" title="Stop all motion and turn the motors off (Esc)">STOP</button></header>
+<header class="bar"><div class="brand">XYZ<small>Stripboard cutter</small></div><span id="status" class="pill" role="status">Connecting…</span><small id="link" class="link" title="Round trip of the last status request, and the slowest in the past minute"></small><button id="stop" title="Stop all motion and turn the motors off (Esc)">STOP</button></header>
 <main>
 <section class="card">
 <h2>Drill position</h2>
@@ -79,7 +80,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 </main><div id="message" role="status" aria-live="polite"></div>
 <script>
 const $=id=>document.getElementById(id);const PPM=100,PITCH=254,COLS=34,ROWS=26; // Boards run A1 to Z34.
-let state=null,pending=false,online=false,xyStep=PITCH,zStep=100,hideTimer;
+let state=null,pending=false,online=false,xyStep=PITCH,zStep=100,hideTimer,lastUptime=null,worst=0,worstSince=0;
 const client=Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');
 const rowName=i=>(i>=26?rowName(Math.floor(i/26)-1):'')+String.fromCharCode(65+i%26);
 const holeName=(col,row)=>col>=1&&col<=COLS&&row>=0&&row<ROWS?rowName(row)+col:null;
@@ -120,8 +121,10 @@ $('savedHint').textContent=!s.homeSet?'':!s.known?'Confirm the position before s
 }
 function say(text,error){const m=$('message');m.textContent=text;m.className='show'+(error?' err':'');clearTimeout(hideTimer);if(!error)hideTimer=setTimeout(()=>{m.className='';},3500);}
 async function post(op,extra={}){const response=await fetch('/api/action',{method:'POST',headers:{'X-XYZ-Control':'1','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({op,client,...extra}),signal:AbortSignal.timeout(1200)});const text=await response.text();if(!response.ok)throw Error(text);return text;}
-async function act(op,extra={}){if(pending&&op!=='stop')return;if(op==='home'&&state?.homeSet&&!confirm(state.known?'Move A1 to the drill’s current position?':'Set a new A1 here? This clears the saved board swap position. If the drill is already above the old A1, use “The drill is above A1 now” instead.'))return;pending=true;render();try{say(await post(op,extra));}catch(e){say(e.message,true);}finally{pending=false;await refresh();}}
-async function refresh(){try{state=JSON.parse(await post('poll'));online=true;}catch{online=false;}render();}
+async function act(op,extra={}){if(pending&&op!=='stop')return;if(op==='home'&&state?.homeSet&&!confirm(state.known?'Move A1 to the drill’s current position?':'Set a new A1 here? This clears the saved board swap position. If the drill is already above the old A1, use “The drill is above A1 now” instead.'))return;pending=true;render();try{say(await post(op,extra));}catch(e){say(failure(e),true);}finally{pending=false;await refresh();}}
+function link(ms){const now=Date.now();if(now-worstSince>60000){worst=0;worstSince=now;}worst=Math.max(worst,ms);const l=$('link');l.textContent='link '+Math.round(ms)+' ms · worst '+(worst>=1000?(worst/1000).toFixed(1)+' s':Math.round(worst)+' ms');l.className='link'+(worst>=1000?' slow':'');}
+function failure(e){return e.name==='TimeoutError'||/abort/i.test(e.message)?'No reply from the controller within 1.2 s. Motors stop if the link stays silent for 3 s.':e.message;}
+async function refresh(){const t0=Date.now();try{state=JSON.parse(await post('poll'));online=true;link(Date.now()-t0);if(lastUptime!==null&&state.uptime<lastUptime)say('Controller restarted: uptime fell from '+lastUptime+' s to '+state.uptime+' s. Check power, then run CRASH INFO over USB.',true);lastUptime=state.uptime;}catch(e){online=false;link(Date.now()-t0);}render();}
 function goHole(){const h=parseHole($('hole').value);if(!h){say('Enter a hole from A1 to Z34: row letter, then column number.',true);return;}return act('goto',{x:(h.col-1)*PITCH,y:-h.row*PITCH});}
 $('go').onclick=goHole;$('hole').onkeydown=e=>{if(e.key==='Enter'&&!$('go').disabled)goHole();};
 $('hole').oninput=()=>{const h=parseHole($('hole').value);$('goHint').textContent=h?'Go to column '+h.col+', row '+rowName(h.row)+' in a straight line at the current drill height.':'Straight-line travel at the current drill height. Raise the drill first if it is in a cut.';};
