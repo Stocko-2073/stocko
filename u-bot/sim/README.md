@@ -560,3 +560,66 @@ uv run python -m ubot_sim.elevation_showcase
 Regression tests cover elevated route completion with both wheel models at
 1 ms and 2 ms, off-origin heightfield spawns, thin obstacles, waypoint marker
 height changes, terrain below world zero, and terrain-relative failure checks.
+
+
+### Continuous surface transitions
+
+`TerrainRegion` adds a complete contact material inside a flat, axis-aligned
+rectangle. Unlike `TerrainPatch`, which changes only grip, a region sets its
+own sliding, torsional, and rolling friction, contact dimension, and compliance.
+Use regions with either environment or `gym.make`:
+
+```python
+from ubot_sim.contact_model import TerrainContact, TerrainRegion
+from ubot_sim.waypoints import UBotWaypointsEnv
+
+resistant = TerrainContact(sliding_friction=0.8, rolling_friction=0.002,
+                           condim=6, time_constant=0.02, damping_ratio=1.2)
+slippery = TerrainContact(sliding_friction=0.12, condim=4)
+env = UBotWaypointsEnv(
+    surface="concrete",
+    regions=[TerrainRegion((0.7, 0), (0.2, 0.7), resistant),
+             TerrainRegion((1.4, 0), (0.2, 0.7), slippery)],
+    waypoints=[[2, 0], [0, 0]],
+)
+```
+
+Centres and half-sizes are world XY metres. The selected base surface fills
+all remaining ground; regions use their explicit `TerrainContact` without
+inheriting its fields. Materials take effect in individual solver contacts,
+so drive wheels and casters can touch different materials simultaneously.
+At boundaries a wheel can contact both neighbouring tiles. No episode reset,
+teleport, or global material switch occurs during a crossing.
+
+Regions and grip-only patches share one partition of the flat ground, covering
+[-8, 8] m on both axes with flush, disjoint boxes and no underlying plane.
+Their interiors must not overlap; shared edges are allowed. Both must fit
+strictly inside that boundary. Regions have `terrain_region_*` geometry names;
+existing patch names are preserved. Obstacles retain their independently
+specified or base-inherited contacts. Heightfields and rough-concrete terrain
+cannot be combined with these flat regions. This feature changes contact
+materials, not terrain geometry or elevation between presets.
+
+`randomize=True` applies one seeded multiplier to all sliding-grip values,
+preserving their ratios; rolling friction, compliance, and layout remain fixed.
+Reset restores the original coefficients before applying randomization.
+The example's values are estimates: the resistant material keeps concrete's
+0.8 grip while increasing rolling friction 20-fold and changing compliance.
+It is not a calibrated soil or grass model. The slippery region uses dim4,
+which disables rolling friction.
+
+[Watch the 18-second surface-transition showcase](videos/surface-transitions-showcase.mp4).
+The baseline controller crosses concrete, the resistant region, and the slippery
+region, then returns through all three in one episode. Coloured cards highlight
+actual drive-wheel contacts. The adjacent JSON includes contact coefficients,
+material transitions, 5 Hz position/speed samples, arrival times, and solver
+warnings. Reproduce with the video extra, FFmpeg, and graphics access:
+
+```sh
+uv run python -m ubot_sim.region_showcase
+```
+
+Tests complete the route with smooth and lugged wheels at 1 ms and 2 ms,
+inspect actual contact parameters on both legs and split wheel/caster contacts,
+and verify partition coverage, unchanged robot dynamics, seeded randomization,
+shared edges, and rejection of conflicting geometry.

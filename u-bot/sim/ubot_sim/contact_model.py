@@ -141,19 +141,49 @@ class TerrainPatch:
         return x - hx, x + hx, y - hy, y + hy
 
 
-def _patch_ground(root, patches, contact):
+@dataclass(frozen=True)
+class TerrainRegion:
+    """Flush, axis-aligned rectangle with a complete contact material.
+
+    Centre and half-sizes are world XY metres. Regions and grip-only patches
+    may share edges but cannot overlap. Only flat terrain is supported.
+    """
+
+    center: tuple[float, float]
+    half_size: tuple[float, float]
+    contact: TerrainContact
+
+    def __post_init__(self):
+        # Use the same footprint validation as grip-only patches.
+        TerrainPatch(self.center, self.half_size)
+        if not isinstance(self.contact, TerrainContact):
+            raise TypeError("region contact must be a TerrainContact instance")
+
+    @property
+    def bounds(self):
+        x, y = self.center
+        hx, hy = self.half_size
+        return x - hx, x + hx, y - hy, y + hy
+
+
+def _partition_ground(root, patches, contact, regions):
     # Tile the ground with disjoint boxes whose top faces are exactly z=0.
     # Keeping an infinite colliding plane beneath a patch would also apply dry
     # friction there; raising patches to hide the plane would create steps.
-    dry = [(-PATCH_EXTENT, PATCH_EXTENT, -PATCH_EXTENT, PATCH_EXTENT)]
-    for i, patch in enumerate(patches):
+    for patch in patches:
         if not isinstance(patch, TerrainPatch):
             raise TypeError("patches must contain TerrainPatch instances")
+    for region in regions:
+        if not isinstance(region, TerrainRegion):
+            raise TypeError("regions must contain TerrainRegion instances")
+    rectangles = patches + regions
+    dry = [(-PATCH_EXTENT, PATCH_EXTENT, -PATCH_EXTENT, PATCH_EXTENT)]
+    for i, patch in enumerate(rectangles):
         x0, x1, y0, y1 = patch.bounds
-        for previous in patches[:i]:
+        for previous in rectangles[:i]:
             a, b, c, d = previous.bounds
             if max(a, x0) < min(b, x1) and max(c, y0) < min(d, y1):
-                raise ValueError("patch interiors must not overlap")
+                raise ValueError("patch and region interiors must not overlap")
         remaining = []
         for a, b, c, d in dry:
             lo, hi, bottom, top = max(a, x0), min(b, x1), max(c, y0), min(d, y1)
@@ -169,12 +199,14 @@ def _patch_ground(root, patches, contact):
     floor = world.find("geom[@name='floor']")
     template = dict(floor.attrib)
     world.remove(floor)
-    regions = [("floor" if i == 0 else f"terrain_ground_{i}", rect, contact, False)
+    tiles = [("floor" if i == 0 else f"terrain_ground_{i}", rect, contact, False)
                for i, rect in enumerate(dry)]
-    regions += [(f"terrain_patch_{i}", patch.bounds,
+    tiles += [(f"terrain_patch_{i}", patch.bounds,
                  replace(contact, sliding_friction=patch.sliding_friction), True)
                 for i, patch in enumerate(patches)]
-    for name, (x0, x1, y0, y1), settings, is_patch in regions:
+    tiles += [(f"terrain_region_{i}", region.bounds, region.contact, True)
+              for i, region in enumerate(regions)]
+    for name, (x0, x1, y0, y1), settings, is_patch in tiles:
         geom = ET.SubElement(world, "geom", template)
         geom.set("name", name)
         geom.set("type", "box")
@@ -182,13 +214,15 @@ def _patch_ground(root, patches, contact):
         geom.set("size", f"{(x1 - x0) / 2} {(y1 - y0) / 2} 0.1")
         if is_patch:
             geom.attrib.pop("material", None)
-            geom.set("rgba", "0.12 0.4 0.58 1")
+            geom.set("rgba", "0.48 0.37 0.22 1" if name.startswith("terrain_region_")
+                     else "0.12 0.4 0.58 1")
         settings.apply(geom)
 
 
 def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
-               terrain_contact=None, obstacles=(), surface=None, patches=()):
+               terrain_contact=None, obstacles=(), surface=None, patches=(), regions=()):
     patches = tuple(patches)
+    regions = tuple(regions)
     if surface is not None:
         if surface not in SURFACE_PRESETS:
             raise ValueError(f"unknown surface preset: {surface!r}")
@@ -201,8 +235,8 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
         raise ValueError("terrain must be flat or bumps")
     if surface is not None:
         terrain = SURFACE_TERRAINS[surface]
-    if patches and terrain != "flat":
-        raise ValueError("local grip patches require flat terrain")
+    if (patches or regions) and terrain != "flat":
+        raise ValueError("local grip patches and material regions require flat terrain")
     if (not np.isfinite(timestep) or not 0 < timestep <= 0.02
             or not np.isclose(0.02 / timestep, round(0.02 / timestep))):
         raise ValueError("timestep must be positive and divide the 20 ms control period")
@@ -213,8 +247,8 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
     if not isinstance(contact, TerrainContact):
         raise TypeError("terrain_contact must be a TerrainContact instance")
     contact.apply(root.find(".//geom[@name='floor']"))
-    if patches:
-        _patch_ground(root, patches, contact)
+    if patches or regions:
+        _partition_ground(root, patches, contact, regions)
     for index, obstacle in enumerate(SURFACE_OBSTACLES.get(surface, ())):
         obstacle.add_to(root.find("worldbody"), f"surface_obstacle_{index}", contact)
     for index, obstacle in enumerate(obstacles):

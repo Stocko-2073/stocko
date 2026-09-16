@@ -58,7 +58,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   [Split-grip video](videos/slippery-patch-showcase.mp4).
 - [ ] Sloped lawn: combine grass settings with uphill, downhill, and cross-slope
   routes.
-- [ ] Support transitions between surface types within one continuous route.
+- [x] Support transitions between surface types within one continuous route.
+  `TerrainRegion` assigns complete contact materials to flush flat rectangles,
+  including grip, rolling resistance, contact dimension, and compliance.
+  Tests cross all materials in both directions without resetting, with both
+  wheel models at 1 ms and 2 ms. [Video](videos/surface-transitions-showcase.mp4).
 
 Treat initial preset values as estimates until measured on the robot.
 
