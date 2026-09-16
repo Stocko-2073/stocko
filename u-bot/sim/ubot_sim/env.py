@@ -11,6 +11,10 @@ MODEL = Path(__file__).parent / "assets" / "robot.xml"
 WHEEL_RADIUS = 0.1075
 TRACK = 0.3027
 MAX_WHEEL_SPEED = 2 * np.pi
+# StepperServo velocity-mode defaults, converted from output turns to radians.
+WHEEL_ACCEL = 8 * 2 * np.pi
+WHEEL_DECEL = 2 * 2 * np.pi
+WHEEL_SETTLE_SPEED = (205 / 4096) * 2 * np.pi
 
 
 class UBotNavigationEnv(gym.Env):
@@ -106,10 +110,13 @@ class UBotNavigationEnv(gym.Env):
         if action.shape != (2,) or not np.isfinite(action).all():
             raise ValueError("action must contain two finite normalized wheel speeds")
         target = np.clip(action, -1, 1) * MAX_WHEEL_SPEED
-        # Firmware default acceleration envelope: 8 output turns/s².
+        # Match StepperServo's velocity ramp at each physics tick. Reversals
+        # brake through zero, then accelerate once command and target agree.
         for _ in range(self.frame_skip):
-            self.command += np.clip(target - self.command, -8 * 2 * np.pi * self.model.opt.timestep,
-                                    8 * 2 * np.pi * self.model.opt.timestep)
+            slowing = (target * self.command < 0) | (np.abs(target) < np.abs(self.command))
+            slew = np.where(slowing, WHEEL_DECEL, WHEEL_ACCEL) * self.model.opt.timestep
+            self.command += np.clip(target - self.command, -slew, slew)
+            self.command[(target == 0) & (np.abs(self.command) < WHEEL_SETTLE_SPEED)] = 0
             self.data.ctrl[:] = self.command
             mujoco.mj_step(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)

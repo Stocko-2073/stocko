@@ -1,5 +1,7 @@
 # U-bot in MuJoCo
 
+Planned terrain work: [terrain TODO](TODO.md).
+
 A working MuJoCo model of `../u-bot.scad` and a Gymnasium **navigation-to-a-goal**
 environment. The included visual meshes are exported from the current CAD.
 Two driven wheels, two free caster swivels, and four independent caster rollers
@@ -59,7 +61,12 @@ env.close()
   `(-CAD_Y, CAD_X, CAD_Z) / 1000`. The open end of the U is forward.
 - Actions: `[left, right]` wheel velocity targets in `[-1, 1]`, scaled to
   ±2π rad/s (one output turn/s). Both positive means forward. Targets ramp
-  at 8 output turns/s², matching the firmware's default envelope.
+  at 8 output turns/s² when speeding up and 2 turns/s² when slowing down,
+  matching the firmware's default velocity-mode envelope. Reversals brake
+  through zero before accelerating in the new direction. A zero target snaps
+  commands below 205/4096 turns/s (about 0.05) to standstill. The ramp runs at
+  the physics timestep; actual wheel motion still depends on servo torque and
+  contact forces.
 - Physics: 500 Hz; policy: 50 Hz. Torque-limited wheel velocity servos represent
   the existing wheel controller, with the 40:12 transmission absorbed into
   output-side dynamics. Individual stepper steps and gear contacts are omitted.
@@ -189,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-15 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+17 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -285,4 +292,5 @@ compare XY trajectories at matching control times over their common duration.
 Results: [benchmark report](benchmarks/README.md), [raw measurements](benchmarks/lugs.json).
 Tests also check actual lug-ground contact, unchanged mass/inertia/joints,
 route completion on both terrains, and the 50 Hz control rate at a 1 ms
-physics timestep (15 tests total).
+physics timestep. Ramp tests cover acceleration, braking, reversals, and
+standstill snapping at both 1 ms and 2 ms (17 tests total).

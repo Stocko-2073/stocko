@@ -1,5 +1,11 @@
 # Wheel lug benchmark
 
+These recorded results predate the velocity-ramp braking correction from
+8 to 2 turns/s². Waypoint timings and trajectories describe the old ramp;
+rerun the benchmark before using them to assess current stopping behavior.
+The direct-command physics measurements bypass the ramp and are unaffected
+by that correction.
+
 ## Conclusion
 
 Simplified lug contacts are practical in the tested scenes. Keep the 2 ms timestep for initial navigation experiments; lug contacts are now the default, with smooth contacts available explicitly. These results establish computational usability, not physical accuracy on grass or soil.

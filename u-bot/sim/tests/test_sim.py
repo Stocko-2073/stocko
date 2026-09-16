@@ -72,6 +72,48 @@ def test_limits_and_reset():
     env.close()
 
 
+@pytest.mark.parametrize("timestep", [0.002, 0.001])
+def test_firmware_velocity_ramp(timestep):
+    with UBotNavigationEnv(timestep=timestep) as env:
+        env.reset(seed=0)
+        # Opposite wheel directions must have symmetric acceleration.
+        env.step([1, -1])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.16, -0.16])
+        # Each wheel chooses its own rate: left slows while right speeds up.
+        env.step([0.1, -1])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.12, -0.32])
+        env.step([0.1, -1])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.1, -0.48])
+        # Reversal brakes even when the new target has a larger magnitude.
+        env.step([-1, 1])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.06, -0.44])
+        env.step([-1, 1])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.02, -0.40])
+        env.step([-1, 1])
+        # Zero crossing is quantized to one physics tick, as in firmware.
+        assert -0.08 - 1e-10 <= env.command[0] / (2 * np.pi) <= -0.06 + 1e-10
+        assert env.command[1] / (2 * np.pi) == pytest.approx(-0.36)
+        before = env.command.copy()
+        env.step([-1, 1])
+        np.testing.assert_allclose((env.command - before) / (2 * np.pi), [-0.16, 0.04])
+        # A zero target snaps the deceleration tail to standstill.
+        for _ in range(10):
+            obs, *_ = env.step([0, 0])
+        np.testing.assert_array_equal(env.command, [0, 0])
+        np.testing.assert_array_equal(env.data.ctrl, [0, 0])
+        np.testing.assert_array_equal(obs[18:20], [0, 0])
+        env.step([1, -1])
+        env.reset(seed=0)
+        np.testing.assert_array_equal(env.command, [0, 0])
+        np.testing.assert_array_equal(env.data.ctrl, [0, 0])
+        env.step([0.06, -0.06])
+        env.step([0, 0])
+        np.testing.assert_array_equal(env.command, [0, 0])
+        # Small nonzero targets are not subject to the standstill snap.
+        env.step([0.01, -0.01])
+        np.testing.assert_allclose(env.command / (2 * np.pi), [0.01, -0.01])
+
+
 def test_waypoints_preserve_simulation_and_finish_route():
     from ubot_sim.waypoints import UBotWaypointsEnv
     env = UBotWaypointsEnv()
