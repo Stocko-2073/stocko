@@ -196,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-17 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+36 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -273,7 +273,46 @@ changes are bundled with this comparison.
 a 129×129 heightfield across 6×6 m with smooth undulations up to 12 mm and a
 flat launch pad. It exercises uneven contacts without simulating soil or grass.
 
-Reproduce the benchmark:
+### Terrain contact settings
+
+Python constructors accept a `TerrainContact` for either terrain and wheel model:
+
+```python
+from ubot_sim.contact_model import TerrainContact
+from ubot_sim.env import UBotNavigationEnv
+
+surface = TerrainContact(sliding_friction=0.2, time_constant=0.02)
+env = UBotNavigationEnv(terrain="bumps", terrain_contact=surface)
+```
+
+These settings also work with `UBotWaypointsEnv` and `gym.make`. They apply to
+the entire ground surface, including drive-wheel, caster, and chassis contacts.
+Local patches and calibrated presets remain TODO items.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `sliding_friction` | 0.8 | Dimensionless sliding grip |
+| `torsional_friction` | 0.002 m | Resistance to spinning about the contact normal |
+| `rolling_friction` | 0.0001 m | Contact rolling resistance; active only with `condim=6` |
+| `condim` | 4 | 3: sliding; 4: adds torsion; 6: adds rolling |
+| `time_constant` | 0.01 s | Positive-format contact `solref` time constant |
+| `damping_ratio` | 1.0 | Positive-format contact `solref` damping ratio |
+
+Ground geoms use priority 1 and robot geoms use priority 0. This makes the
+surface select contact friction, dimension, and compliance; equal-priority
+friction mixing would otherwise retain the higher wheel coefficient on slippery
+ground. See [MuJoCo contact parameters](https://mujoco.readthedocs.io/en/latest/modeling.html#contact-parameters).
+The contact impedance is explicitly fixed at `solimp="0.9 0.95 0.001 0.5 2"`.
+MuJoCo's default reference-safety setting limits the effective time constant to
+at least twice the physics timestep. These are solver settings and estimates,
+not measured soil properties; soft contact does not model ground deformation.
+
+Defaults retain the existing contact values. `randomize=True` still scales
+sliding friction by 0.7–1.3 from the selected surface on each reset, reproducibly
+for a given seed. Other contact settings stay fixed. Selecting `condim=6` enables
+experimentation; its rolling behavior and performance still need evaluation.
+
+### Reproduce the benchmark
 
 ```sh
 uv run python -m ubot_sim.benchmark --output benchmarks/lugs.json
@@ -293,4 +332,23 @@ Results: [benchmark report](benchmarks/README.md), [raw measurements](benchmarks
 Tests also check actual lug-ground contact, unchanged mass/inertia/joints,
 route completion on both terrains, and the 50 Hz control rate at a 1 ms
 physics timestep. Ramp tests cover acceleration, braking, reversals, and
-standstill snapping at both 1 ms and 2 ms (17 tests total).
+standstill snapping at both 1 ms and 2 ms. Surface tests inspect actual contact
+friction, dimension, and compliance for both wheel models and terrains, plus
+seeded randomization and invalid settings (36 tests total).
+
+### Terrain contact showcase
+
+[Watch the 19-second grip comparison](videos/terrain-contact-showcase.mp4).
+Both panels use the same seeded initial pose and start, brake, turn, and reverse
+commands. Only sliding friction changes (0.8 versus 0.08). The overlays show
+body speed and ramped wheel commands; trails expose the resulting path difference.
+Both runs use the corrected firmware braking envelope. These are estimated
+contact values on flat ground, not calibrated dry/wet surface predictions.
+
+```sh
+uv run python -m ubot_sim.showcase
+```
+
+Requires the video extra, FFmpeg, and working graphics. Output is a 1280×720,
+25 fps H.264 MP4 with opening/closing PNGs and a JSON report containing surface
+settings, commands, sampled paths/speeds, and solver warning counts.

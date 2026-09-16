@@ -21,13 +21,14 @@ class UBotNavigationEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self, render_mode=None, max_steps=1500, randomize=False,
-                 wheel_contact="lugs", terrain="flat", timestep=0.002):
+                 wheel_contact="lugs", terrain="flat", timestep=0.002,
+                 terrain_contact=None):
         if render_mode not in (None, *self.metadata["render_modes"]):
             raise ValueError(f"Unsupported render mode: {render_mode}")
         self.render_mode = render_mode
         self.max_steps = max_steps
         self.randomize = randomize
-        self.model = load_model(MODEL, wheel_contact, terrain, timestep)
+        self.model = load_model(MODEL, wheel_contact, terrain, timestep, terrain_contact)
         self.data = mujoco.MjData(self.model)
         self.frame_skip = round(0.02 / self.model.opt.timestep)
         self.dt = self.model.opt.timestep * self.frame_skip

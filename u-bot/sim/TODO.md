@@ -21,8 +21,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   `condim=4` does not use the configured rolling-friction coefficient.
 - [ ] Compare contact rolling friction with a ground-dependent resistance model.
   Grass should be able to resist rolling without necessarily having low grip.
-- [ ] Make effective wheel–terrain contact parameters explicit so each patch
+- [x] Make effective wheel–terrain contact parameters explicit so each patch
   actually produces its intended friction and compliance.
+  `TerrainContact` defines friction, contact dimension, and compliance for the
+  current flat/bumps surfaces. Terrain priority overrides wheel mixing; tests
+  inspect actual drive-wheel and caster contacts. Local patches remain below.
 - [ ] Add separate collision shapes for rocks, roots, seams, and small edges.
 - [ ] Adapt spawn height, goal markers, and failure checks to terrain elevation.
 

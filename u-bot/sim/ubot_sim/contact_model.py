@@ -1,12 +1,50 @@
 """Optional collision-only wheel lugs and deterministic benchmark terrain."""
 from pathlib import Path
+from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 
 import mujoco
 import numpy as np
 
 
-def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002):
+@dataclass(frozen=True)
+class TerrainContact:
+    """Estimated surface contact settings; rolling friction requires condim=6.
+
+    Sliding friction is dimensionless; torsional and rolling friction have
+    units of metres. Compliance uses MuJoCo's positive-format solref.
+    """
+
+    sliding_friction: float = 0.8
+    torsional_friction: float = 0.002
+    rolling_friction: float = 0.0001
+    condim: int = 4
+    time_constant: float = 0.01
+    damping_ratio: float = 1.0
+
+    def __post_init__(self):
+        friction = (self.sliding_friction, self.torsional_friction, self.rolling_friction)
+        if not np.isfinite(friction).all() or min(friction) < 0:
+            raise ValueError("terrain friction coefficients must be finite and nonnegative")
+        if self.condim not in (3, 4, 6):
+            raise ValueError("terrain condim must be 3, 4, or 6")
+        compliance = (self.time_constant, self.damping_ratio)
+        if not np.isfinite(compliance).all() or min(compliance) <= 0:
+            raise ValueError("terrain time_constant and damping_ratio must be finite and positive")
+
+    def apply(self, geom):
+        # Robot collision geoms have priority 0. Surface priority prevents
+        # max-friction mixing from erasing slippery terrain, and selects the
+        # surface's condim and compliance instead of averaging with the wheel.
+        geom.set("priority", "1")
+        geom.set("friction", f"{self.sliding_friction} {self.torsional_friction} {self.rolling_friction}")
+        geom.set("condim", str(int(self.condim)))
+        geom.set("solref", f"{self.time_constant} {self.damping_ratio}")
+        geom.set("solimp", "0.9 0.95 0.001 0.5 2")
+
+
+def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
+               terrain_contact=None):
     if wheel_contact not in ("smooth", "lugs"):
         raise ValueError("wheel_contact must be smooth or lugs")
     if terrain not in ("flat", "bumps"):
@@ -17,6 +55,10 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002)
     root = ET.parse(path).getroot()
     root.find("compiler").set("meshdir", str(path.parent.resolve()))
     root.find("option").set("timestep", str(timestep))
+    contact = TerrainContact() if terrain_contact is None else terrain_contact
+    if not isinstance(contact, TerrainContact):
+        raise TypeError("terrain_contact must be a TerrainContact instance")
+    contact.apply(root.find(".//geom[@name='floor']"))
     if wheel_contact == "lugs":
         for side in ("left", "right"):
             wheel = root.find(f".//body[@name='{side}_wheel']")
