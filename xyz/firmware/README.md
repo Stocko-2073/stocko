@@ -6,7 +6,7 @@ A=M2 with its replacement driver installed. Initial directions and ruler
 measurements and coordinate conventions are recorded below; precise calibration
 and work zero are still pending. No automatic motion happens on boot.
 
-## Web control in board coordinates (firmware v0.7)
+## Web control in board coordinates (firmware v0.8)
 
 Build and upload with `make upload`. With Wi-Fi configured as below, open
 **http://xyz.local/** (or the IP reported by `WIFI STATUS`) on the same LAN.
@@ -18,72 +18,89 @@ stops and the drill above the top-right hole, the drill is at **A1**. Columns
 count to the left and rows count forward, away from the tower, so from A1 a
 move left lands on A2 and a move forward lands on B1. The readout shows the
 hole under the drill (for example `C7`), flags any off-grid offset in
-millimetres, and shows the drill height relative to the A1 height.
+millimetres, and shows drill height relative to the calibrated bed (or A1
+when no mesh is saved).
 
-1. Click **Turn on motors**, then use the arrow pad to put the drill above hole
-   A1. Each arrow is labelled with the hole it will land on when the step is a
-   whole number of holes. Click **Set A1 here** to save it in flash.
-2. Raise the drill clear of the board and clamps and move the board to where it
-   can be swapped. Click **Set here** in the *Board swap* row.
-3. Calibrate the grid. Raise the drill clear of the board and click **Go to
-   Z34** in the *Board* card; it travels to where Z34 would be on an exact
-   2.54 mm pitch. The boards are not exactly on that pitch at the provisional
-   100 pulses/mm, so the drill lands close to the hole but not over it. Nudge
-   it onto the hole with the 1 mm and 0.1 mm steps and click **Set Z34 here**.
-   From then on every hole is placed by interpolating along each axis between
-   the saved A1 and Z34, and the card shows the measured pitch across and
-   forward. The firmware refuses a Z34 more than 10% away from its nominal
-   place (about 8.4 mm across or 6.4 mm forward) as a probable wrong hole;
-   a neighbouring hole would pass, so check that the measured pitch is near
-   2.54 mm. Until Z34 is set, the nominal pitch is assumed.
-4. **Go to A1** and **Swap board** travel between those saved positions. Each
-   raises the drill to the higher endpoint, crosses in one straight XY line,
-   and lowers it to the target. Ensure that height clears everything along
-   the diagonal path. **Go to hole**
-   (type a hole such as `D12`) and **Go to Z34** raise the drill 1 mm, so it
-   clears the cut it may be sitting in, travel in one straight line with both
-   axes moving together, then lower it 1 mm again to the height it started
-   at. If the drill is more than 1 mm deep, raise it further before
-   travelling; the lift is fixed.
+1. Click **Motors on** and fine-jog the tip to the surface at **A1**, the
+   top-right hole against the corner stops. In *Bed calibration · XYZ*, click
+   **Start at A1**. This saves the current XYZ as the A1 origin and captures
+   the first calibration point. It starts a fresh draft; any saved mesh stays
+   active until the draft is applied.
+2. Select each remaining point in the 3×3 grid: **A17, A34, M1, M17, M34,
+   Z1, Z17, Z34**. The grid matches the board orientation: column numbers
+   increase to the left, row letters downward. Select a point, click **Go to**,
+   then fine-jog XY to the hole and Z to the same tip contact height used at A1.
+   Click **Save**. Calibration travel lifts at least 1 mm and stays raised;
+   it never lowers automatically onto an unmeasured point. Raise further if
+   needed to clear clamps or an unknown bed shape.
+3. Once **9/9** points are measured, click **Apply mesh**. All three coordinates
+   are interpolated between the four surrounding measurements. The measured
+   pattern is saved as offsets from A1, independently of the home coordinates.
+   Draft points also survive a reboot; confirm or re-reference A1 before
+   continuing. **Cancel** discards the draft and retains the active mesh.
+4. Raise the drill and move the board clear for swapping; save the *Board swap*
+   position with **Set here**. **Go to A1** and **Swap board** retain their saved
+   XYZ destinations and lift over the mesh before crossing.
 
-Steps across the board are 1 hole, 3 holes, 1 mm, or 0.1 mm; drill height
-steps are 5, 1, or 0.1 mm. Whole-hole steps are sent as hole counts, and the
-firmware moves from the nearest hole to the one that many further on using
-the calibrated grid, so a step from a hole lands on a hole and a step from an
-off-grid position keeps its offset; the local pitch varies by a pulse from
-hole to hole as the interpolation rounds. Hole positions are offsets from A1
-in whole pulses: column `c` sits at `round(spanX * (c-1) / 33)` and row `r`
-(A = 0) at `round(spanY * r / 25)`, where the span is the saved XY offset of
-Z34 or the nominal (8,382, -6,350). The page and firmware share this rounding
-(halves round up, like `Math.round`), so the readout and the moves agree.
-Internally the page still speaks the raw JOG convention: a column to the left
-is raw +X (board moves right) and a row forward is raw -Y (board moves toward
-the tower). Arrow moves use 1,000 pulses/sec with the existing acceleration and per-move
-jog caps. Saved-position travel raises and lowers Z at 1,000 pulses/sec, one
-continuous profile per Z leg, and crosses XY with the same straight-line move
-as `goto` below. The `goto` action takes a hole name (`hole=D12`), accepts
-holes A1 to Z34 only, checked in both the page and the firmware, and runs as
-a staged move like the saved positions: Z up 100 pulses at 1,000 pulses/sec,
-the XY line, then Z down 100 pulses to the starting height. A request for the
-hole already under the drill does nothing, not even the lift. The XY leg steps X and Y from one event list under a
-single rest-to-rest profile along the straight path at 4,000 pulses/sec (about
-40 mm/sec), the coordinated-XY mechanism `DEMO` uses, clamped to the X/Y rate
-caps so neither axis exceeds them; the drivers stay enabled when it finishes.
-4,000 pulses/sec is above the 3,000 previously configured and has not been
-speed-tested on the hardware; watch the first long hole move for stalls. The spindle never moves from this page.
+**Go to hole**, **Go to Z34**, and whole-hole arrow steps use the full XYZ mesh.
+They preserve the tip's height relative to the bed: for example, a tip 0.2 mm
+below the bed at the starting hole arrives 0.2 mm below the interpolated bed
+at the destination. The height readout shows this bed-relative height while a
+mesh is active; without a mesh, it shows height relative to A1.
+Before crossing, the tip lifts to at least the highest mesh point plus its
+current bed-relative offset plus 1 mm. This covers interior humps as well as
+the endpoints. If the tip is more than 1 mm deep, raise it before travelling.
+The straight XY crossing does not cut along the surface; Z compensation sets
+the destination height after travel. The spindle never moves from this page.
 
-A1, Z34, the swap position, and the last completed position are stored
-separately from Wi-Fi credentials in NVS. Z34 is stored as an offset from A1:
-it describes the board and the machine scale, so setting a new A1 keeps it,
-and a version 1 position record from firmware v0.6 loads with Z34 unset.
-Boot never moves or enables the machine.
-After a clean restart, **Nothing has moved since power-off** restores the
-reference only if you know the mechanism stayed in place. Otherwise put the
-drill back above the physical A1 and click **The drill is above A1 now**, which
-preserves the swap position. After a reset during motion or an interrupted move,
-this manual re-reference is required. Setting a *new* A1 while the reference
-is unknown clears the old swap position; setting A1 while referenced
-retains the swap position's physical target.
+Whole-hole arrows move from the nearest hole to the selected neighbour and
+retain any fine XY offset. With a mesh, they can move both X and Y and follow
+the bed in Z, using the same lift/cross/lower sequence at the slower arrow
+speed. Whole-hole steps beyond A1–Z34 are refused while a mesh is active.
+**1 mm / 0.1 mm XY jogs and all Z jogs remain direct, single-axis movements**,
+so they can be used to measure and fine-align points. Fine XY jogs keep raw Z
+unchanged. Away from the board, bed height is held at the nearest edge in
+board coordinates; it is never extrapolated in Z.
+
+The mesh uses bilinear interpolation in four cells with columns **1, 17, 34**
+and rows **A, M, Z** (indices **0, 12, 25**). Their intervals are deliberately
+unequal: 16/17 columns and 12/13 rows. X, Y and Z interpolate independently,
+then round to whole pulses (halves up, as in JavaScript `Math.round`). The
+readout inverts the same XY map to locate the drill. Saving a point more than
+10% of the nominal full-board span from its expected XY, or more than 10 mm
+from A1 in Z, is rejected. These broad bounds catch the wrong region, not a
+neighbouring hole; check each point. Folded or reversed XY cells cannot be
+applied. Changing the A1 origin cancels an unfinished draft but keeps the
+active mesh. To recapture the draft's A1, use **Restart at A1**.
+
+**Clear mesh** returns to the previous two-corner XY calibration, or nominal
+2.54 mm pitch if Z34 has never been set. Without a mesh, **Set Z34 here** saves
+its XY offset from A1; intermediate holes interpolate per axis between those
+two corners. This legacy control is disabled while a mesh or draft exists.
+Without a mesh, hole travel lifts 1 mm and returns to its starting raw Z;
+whole-hole arrows remain single-axis moves. The nominal full-board span is
+8,382 pulses along +X and −6,350 along Y at the provisional 100 pulses/mm.
+
+Hole crossings run at 4,000 pulses/sec along the XY path, whole-hole arrow
+crossings at 1,000 pulses/sec, and Z legs at 1,000 pulses/sec, with existing
+acceleration and motor rate caps. Raw millimetre jogs retain the per-move jog
+caps. The two XY motors share one straight-line profile. A request for the
+hole already under the drill does nothing, including no lift.
+
+A1, the active mesh, draft measurements, legacy Z34 span, swap position and
+last completed position are stored in NVS separately from Wi-Fi credentials.
+Position records from versions 1 and 2 upgrade without losing saved presets;
+they start without a mesh. Boot never moves or enables the machine.
+
+After a clean restart, **Nothing moved since power-off** restores the reference
+only if the mechanism stayed in place. If it moved while powered off, manually
+align **X, Y and Z at A1 at the original tip height**, then click **Drill is
+above A1**. This restores the origin and keeps the mesh and swap position.
+**Set A1 here** also keeps the mesh; if the prior position is unknown, it clears
+the old swap position. After interrupted motion, re-reference at A1 before
+resuming. The mesh describes the board's shape, so no levelling is needed
+just because the machine lost its position; recalibrate when that shape or
+alignment relative to A1 changes.
 
 Coordinates count commanded pulses, not measured movement. Lost steps, gravity,
 or movement by hand cannot be detected without sensors. A connected controlling
@@ -124,7 +141,8 @@ no CORS access. Do not expose port 80 to the internet.
 `make test` (C++ compiler and Node.js required) runs motion and page tests,
 plus web action, storage failure,
 reboot/reference, preset sequencing, spindle exclusion, idle-release, grid
-calibration, and position-record upgrade tests.
+calibration, full XYZ mesh interpolation, draft persistence, compensated travel,
+and position-record upgrade tests.
 `make compile` builds for the XIAO ESP32-C6. Web control and network-loaded
 motion timing still require physical-machine verification after flashing.
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <WebServer.h>
 #include "web_page.h"
+#include "bed_mesh.h"
 
 namespace WebControl {
 // The stock server keeps a connected but silent client for HTTP_MAX_DATA_WAIT
@@ -24,6 +25,7 @@ char owner[65] = {};
 bool ownsControl() { return server.arg("client") == owner && owner[0]; }
 int stage = 0;
 int64_t target[4] = {}, clearance = 0;
+long travelRate = 4000;
 constexpr int order[] = {3, -1, 3}; // Z to clearance, one straight XY line, Z to target.
 // Boards run A1 to Z34: 34 columns along +X and 26 rows along -Y at a nominal
 // 2.54 mm pitch, 254 pulses at the provisional 100 pulses/mm.
@@ -50,13 +52,55 @@ void span(int64_t &x, int64_t &y) {
   x = usable ? s.span[0] : maxHoleX;
   y = usable ? s.span[1] : -maxHoleY;
 }
-// Raw offset from A1 of column col (1..34) and row (0 = A .. 25 = Z). The
-// grid is interpolated per axis between A1 and Z34, and extrapolated for
-// off-board indices, so a hole step near the edge stays consistent.
+// Raw XY offset from A1: mesh first, otherwise the legacy two-corner grid.
 void holeOffset(long col, long row, int64_t &x, int64_t &y) {
+  if (Positions::saved.meshSet) {
+    double p[3]; BedMesh::sample(Positions::saved.mesh, col, row, p);
+    x=BedMesh::rounded(p[0]); y=BedMesh::rounded(p[1]); return;
+  }
   int64_t sx, sy; span(sx, sy);
   x = roundDiv(sx*(col-1), boardColumns-1);
   y = roundDiv(sy*row, boardRows-1);
+}
+int64_t bedHeight(int64_t x, int64_t y) {
+  if (!Positions::saved.meshSet) return 0;
+  double col,row,p[3];
+  if (!BedMesh::locate(Positions::saved.mesh,x,y,col,row)) return 0;
+  // Exact hole destinations are rounded in XY. Snap their inverse back to
+  // the logical hole so XYZ all use the same interpolation coordinates.
+  const long c=long(BedMesh::rounded(col)),r=long(BedMesh::rounded(row));
+  int64_t hx,hy; holeOffset(c,r,hx,hy);
+  if (hx==x && hy==y) { col=c; row=r; }
+  // Outside the board, hold the nearest edge height; never extrapolate Z.
+  col=std::fmax(1,std::fmin(34,col)); row=std::fmax(0,std::fmin(25,row));
+  BedMesh::sample(Positions::saved.mesh,col,row,p);
+  // Quantize the surface before taking differences: closed tours then keep
+  // exactly the same depth instead of accumulating fractional-step drift.
+  return BedMesh::rounded(p[2]);
+}
+void planHole(const int64_t current[4], int64_t x, int64_t y, bool calibration=false, long rate=holeRate) {
+  const auto &s=Positions::saved;
+  for (int i=0;i<4;++i) target[i]=current[i];
+  target[0]=s.home[0]+x; target[1]=s.home[1]+y;
+  clearance=current[3]+travelLift;
+  if (s.meshSet) {
+    const int64_t offset=current[3]-s.home[3]-bedHeight(current[0]-s.home[0],current[1]-s.home[1]);
+    target[3]=s.home[3]+bedHeight(x,y)+offset;
+    // All bilinear heights lie within their corner heights. The global
+    // maximum clears even an interior hump along the straight XY crossing.
+    int64_t highest=0;
+    for (const auto &p:s.mesh) if (p[2]>highest) highest=p[2];
+    const int64_t safe=s.home[3]+highest+offset+travelLift;
+    if (safe>clearance) clearance=safe;
+  }
+  if (calibration) {
+    for (int i=0;i<9;++i) if (s.draftMask & (1<<i)) {
+      const int64_t safe=s.home[3]+s.draft[i][2]+travelLift;
+      if (safe>clearance) clearance=safe;
+    }
+    target[3]=clearance; // Approach an unmeasured point from above.
+  }
+  travelRate=rate; stage=0; presetRunning=true;
 }
 // The nearest column (X) or row (Y) index to a raw offset from A1.
 long nearestIndex(int axis, int64_t offset) {
@@ -82,12 +126,12 @@ void runCommand(const char *text) {
 }
 void state() {
   int64_t p[4]; Positions::snapshot(p);
-  char body[768];
+  char body[3072];
   const auto &s = Positions::saved;
   snprintf(body, sizeof(body),
     "{\"armed\":%s,\"webArmed\":%s,\"busy\":%s,\"known\":%s,\"recoverable\":%s,"
     "\"homeSet\":%s,\"replaceSet\":%s,\"spanSet\":%s,\"commissioned\":%s,\"position\":[%lld,%lld,%lld],"
-    "\"replace\":[%lld,%lld,%lld],\"span\":[%lld,%lld],\"disableReason\":\"%s\",\"uptime\":%lu}",
+    "\"replace\":[%lld,%lld,%lld],\"span\":[%lld,%lld],\"disableReason\":\"%s\",\"uptime\":%lu,",
     armed ? "true":"false", (webArmed && ownsControl()) ? "true":"false", idle() ? "false":"true",
     Positions::known ? "true":"false", s.clean ? "true":"false",
     s.homeSet ? "true":"false", s.replaceSet ? "true":"false", s.spanSet ? "true":"false",
@@ -96,6 +140,12 @@ void state() {
     (long long)(s.replace[0]-s.home[0]), (long long)(s.replace[1]-s.home[1]), (long long)(s.replace[3]-s.home[3]),
     (long long)s.span[0], (long long)s.span[1], disableReason,
     (unsigned long)(millis()/1000));
+  size_t used=strlen(body);
+  used+=snprintf(body+used,sizeof(body)-used,"\"meshSet\":%s,\"calibrating\":%s,\"draftMask\":%u,\"mesh\":[",
+    s.meshSet?"true":"false",s.calibrating?"true":"false",unsigned(s.draftMask));
+  for (int i=0;i<9;++i) used+=snprintf(body+used,sizeof(body)-used,"%s[%lld,%lld,%lld]",i?",":"",
+    (long long)s.mesh[i][0],(long long)s.mesh[i][1],(long long)s.mesh[i][2]);
+  snprintf(body+used,sizeof(body)-used,"]}");
   server.sendHeader("Cache-Control", "no-store");
   server.send(200, "application/json", body);
 }
@@ -130,7 +180,58 @@ void action() {
     bool ok = (op == "home" || op == "replace") ? Positions::save(op == "home") : Positions::reference(op == "reference");
     reply(ok ? 200:409, ok ? "Position saved.":"Cannot save: set A1 first, or position storage failed."); return;
   }
+  if (op == "mesh-start") {
+    // The operator has aligned XYZ with the A1 surface. Re-anchor once;
+    // the previous mesh stays usable until the complete draft is applied.
+    auto next=Positions::saved;
+    if (!Positions::known) next.replaceSet=false;
+    Positions::snapshot(next.home); Positions::snapshot(next.checkpoint);
+    next.homeSet=true; next.clean=true; next.calibrating=true; next.draftMask=1;
+    for (auto &p:next.draft) for (auto &v:p) v=0;
+    const bool ok=Positions::write(next);
+    if (ok) Positions::known=true;
+    reply(ok?200:503,ok?"A1 saved. Measure the remaining eight points.":"Calibration not saved."); return;
+  }
+  if (op == "mesh-cancel" || op == "mesh-clear" || op == "mesh-apply") {
+    auto next=Positions::saved;
+    if (op == "mesh-apply") {
+      if (!Positions::known || !next.calibrating || next.draftMask!=BedMesh::complete || !BedMesh::valid(next.draft)) {
+        reply(409,"Measure all nine points with a valid position first."); return;
+      }
+      memcpy(next.mesh,next.draft,sizeof(next.mesh)); next.meshSet=true;
+    }
+    if (op == "mesh-clear") next.meshSet=false;
+    next.calibrating=false; next.draftMask=0;
+    const bool ok=Positions::write(next);
+    reply(ok?200:503,ok?"Calibration updated.":"Calibration not saved."); return;
+  }
+  if (op == "mesh-save" || op == "mesh-go") {
+    long point;
+    if (!number(server.arg("point").c_str(),0,8,point)) { reply(400,"Invalid calibration point."); return; }
+    const auto &s=Positions::saved;
+    if (!Positions::known || !s.homeSet || !s.calibrating) { reply(409,"Start calibration at A1 first."); return; }
+    const long col=BedMesh::columns[point%3],row=BedMesh::rows[point/3];
+    int64_t current[4]; Positions::snapshot(current);
+    if (op == "mesh-go") {
+      if (!armed || !webArmed) { reply(409,"Turn on the motors in this page first."); return; }
+      int64_t x,y; holeOffset(col,row,x,y); planHole(current,x,y,true);
+      reply(200,"Moving above calibration point; jog down to the surface."); return;
+    }
+    if (!point) { reply(409,"To change A1, restart calibration there."); return; }
+    auto next=s;
+    const int motors[]={0,1,3};
+    for (int a=0;a<3;++a) next.draft[point][a]=current[motors[a]]-s.home[motors[a]];
+    // Broad bounds catch a wrong region or height, not a neighbouring hole.
+    if (std::abs(next.draft[point][0]-(col-1)*holePitch)>maxHoleX/10 ||
+        std::abs(next.draft[point][1]+row*holePitch)>maxHoleY/10 || std::abs(next.draft[point][2])>1000) {
+      reply(409,"Point too far from expected XY or over 10 mm from A1 height."); return;
+    }
+    next.draftMask|=uint16_t(1<<point);
+    const bool ok=Positions::write(next);
+    reply(ok?200:503,ok?"Point saved.":"Point not saved."); return;
+  }
   if (op == "span") {
+    if (Positions::saved.meshSet || Positions::saved.calibrating) { reply(409,"Clear the mesh before changing Z34 pitch."); return; }
     // The drill is above Z34. Its XY offset from A1 calibrates the hole grid.
     if (!Positions::known || !Positions::saved.homeSet) { reply(409, "Set A1 and confirm the position first."); return; }
     int64_t current[4]; Positions::snapshot(current);
@@ -156,6 +257,22 @@ void action() {
       // `count` further on, so an on-grid start lands on the grid and an
       // off-grid start keeps its offset. Unknown positions count from A1.
       if (a > 1 || !number(holes.c_str(), -maxHoleJog, maxHoleJog, count) || !count) { reply(400, "Invalid hole step."); return; }
+      if (Positions::saved.meshSet) {
+        if (!Positions::known || !Positions::saved.homeSet) { reply(409,"Confirm A1 before mesh moves."); return; }
+        int64_t current[4]; Positions::snapshot(current);
+        const auto &s=Positions::saved;
+        const int64_t x=current[0]-s.home[0], y=current[1]-s.home[1];
+        double c,r;
+        if (!BedMesh::locate(s.mesh,x,y,c,r)) { reply(409,"Cannot locate drill on mesh."); return; }
+        const long col=long(BedMesh::rounded(c)),row=long(BedMesh::rounded(r));
+        const long nc=col+(a==0?count:0),nr=row-(a==1?count:0);
+        if (nc<1 || nc>34 || nr<0 || nr>25 || col<1 || col>34 || row<0 || row>25) {
+          reply(400,"Hole step is outside A1–Z34. Use mm jogs."); return;
+        }
+        int64_t fx,fy,tx,ty; holeOffset(col,row,fx,fy); holeOffset(nc,nr,tx,ty);
+        planHole(current,x+tx-fx,y+ty-fy,false,1000);
+        reply(200,"Moving by calibrated holes."); return;
+      }
       int64_t offset = 0;
       if (Positions::known && Positions::saved.homeSet) {
         int64_t current[4]; Positions::snapshot(current);
@@ -176,9 +293,8 @@ void action() {
     reply(activeMotor >= 0 ? 200:503, activeMotor >= 0 ? "Moving.":"Unable to start the move; check position storage."); return;
   }
   if (op == "goto") {
-    // A hole name such as D12, placed on the grid interpolated between A1
-    // and Z34. The drill rises travelLift clear of the cut it may be in,
-    // crosses in one straight XY line, and returns to its starting height.
+    // A named hole on the calibrated grid: lift, cross in a straight XY
+    // line, then restore the starting bed-relative height (raw Z without mesh).
     long col, row;
     if (!parseHole(server.arg("hole").c_str(), col, row)) {
       reply(400, "That hole is off the board. Holes run A1 to Z34."); return;
@@ -187,10 +303,8 @@ void action() {
     int64_t x, y; holeOffset(col, row, x, y);
     int64_t current[4]; Positions::snapshot(current);
     if (Positions::saved.home[0] + x == current[0] && Positions::saved.home[1] + y == current[1]) { reply(200, "Already at that hole."); return; }
-    for (int i = 0; i < 4; ++i) target[i] = current[i];
-    target[0] = Positions::saved.home[0] + x; target[1] = Positions::saved.home[1] + y;
-    clearance = current[3] + travelLift; stage = 0; presetRunning = true;
-    reply(200, "Moving to the hole: up 1 mm, across, and back down."); return;
+    planHole(current,x,y);
+    reply(200, "Moving to hole with travel clearance."); return;
   }
   if (op == "go-home" || op == "go-replace") {
     if (!Positions::known || !Positions::saved.homeSet || (op == "go-replace" && !Positions::saved.replaceSet)) {
@@ -200,7 +314,13 @@ void action() {
     for (int i = 0; i < 4; ++i) target[i] = p[i];
     int64_t current[4]; Positions::snapshot(current);
     clearance = current[3] > target[3] ? current[3] : target[3];
-    stage = 0; presetRunning = true;
+    if (Positions::saved.meshSet) {
+      for (const auto &point:Positions::saved.mesh) {
+        const int64_t safe=Positions::saved.home[3]+point[2]+travelLift;
+        if (safe>clearance) clearance=safe;
+      }
+    }
+    travelRate=holeRate; stage = 0; presetRunning = true;
     reply(200, "Moving to saved position."); return;
   }
   reply(400, "Unknown action.");
@@ -235,7 +355,7 @@ void service() {
       // Both axes together at the hole-travel rate, like Go to hole.
       const int64_t dx = target[0]-current[0], dy = target[1]-current[1];
       if (!dx && !dy) { ++stage; continue; }
-      if (!startXYLine(dx, dy, holeRate)) { disableMotors(); disableReason = "Unable to start saved move"; }
+      if (!startXYLine(dx, dy, travelRate)) { disableMotors(); disableReason = "Unable to start saved move"; }
       return;
     }
     const int64_t destination = stage == 0 ? clearance : target[m];

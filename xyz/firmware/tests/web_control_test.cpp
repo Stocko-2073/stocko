@@ -14,6 +14,150 @@ void run() {
   }
   assert(WebControl::idle());
 }
+int meshAction(const char *op,int point=0) {
+  WebControl::server.args={{"op",op},{"point",std::to_string(point)},{"client","test-browser-0001"}};
+  WebControl::action(); return WebControl::server.code;
+}
+void testMesh() {
+  action("stop");
+  assert(action("home")==200);
+  // Upgrade the actual v2 prefix without losing the existing span/home.
+  {
+    auto &blob=Positions::preferences.blob;
+    blob.resize(Positions::version2Size); const uint32_t v2=2; memcpy(blob.data(),&v2,sizeof(v2));
+    Positions::begin();
+    assert(Positions::saved.version==3 && Positions::saved.homeSet && Positions::saved.spanSet && !Positions::saved.meshSet);
+    assert(!Positions::saved.calibrating && !Positions::saved.draftMask);
+    assert(action("confirm")==200);
+  }
+  assert(action("mesh-start")==200 && Positions::saved.draftMask==1);
+  assert(action("mesh-apply")==409 && !Positions::saved.meshSet);
+  assert(meshAction("mesh-save",9)==400 && meshAction("mesh-save",0)==409);
+  emitted[0]=Positions::saved.home[0]+4064; emitted[3]=Positions::saved.home[3]+1001;
+  assert(meshAction("mesh-save",1)==409 && Positions::saved.draftMask==1);
+  int64_t mesh[9][3];
+  // Skewed XY and a hump at M17, deliberately non-planar in all axes.
+  for (int r=0;r<3;++r) for (int c=0;c<3;++c) {
+    const int i=r*3+c;
+    mesh[i][0]=(BedMesh::columns[c]-1)*254+r*c*2+(r==1?20:0);
+    mesh[i][1]=-BedMesh::rows[r]*254+c*15;
+    mesh[i][2]=r*40+c*15+(r==1&&c==1?100:0);
+    if (!i) continue;
+    emitted[0]=Positions::saved.home[0]+mesh[i][0];
+    emitted[1]=Positions::saved.home[1]+mesh[i][1];
+    emitted[3]=Positions::saved.home[3]+mesh[i][2];
+    Positions::settled(false);
+    if (i==4) {
+      const auto before=Positions::saved;
+      Positions::preferences.failWrite=true;
+      assert(meshAction("mesh-save",i)==503 && Positions::saved.draftMask==before.draftMask);
+      Positions::preferences.failWrite=false;
+    }
+    assert(meshAction("mesh-save",i)==200);
+  }
+  assert(Positions::saved.draftMask==511 && !Positions::saved.meshSet);
+  // In-progress measurements survive a reboot and require re-reference.
+  Positions::begin(); assert(!Positions::known && Positions::saved.draftMask==511);
+  assert(action("mesh-apply")==409);
+  assert(action("confirm")==200);
+  Positions::preferences.failWrite=true;
+  assert(action("mesh-apply")==503 && !Positions::saved.meshSet && Positions::saved.calibrating);
+  Positions::preferences.failWrite=false;
+  assert(action("mesh-apply")==200 && Positions::saved.meshSet && !Positions::saved.calibrating);
+  assert(!memcmp(mesh,Positions::saved.mesh,sizeof(mesh)));
+  assert(action("span")==409);
+  WebControl::state();
+  assert(WebControl::server.body.find("\"meshSet\":true")!=std::string::npos);
+  assert(WebControl::server.body.find("\"mesh\":[[0,0,0]")!=std::string::npos);
+  // Exact knots, cell interiors, shared seams, and inverse mapping at every hole.
+  for (int r=0;r<3;++r) for (int c=0;c<3;++c) {
+    double p[3]; BedMesh::sample(mesh,BedMesh::columns[c],BedMesh::rows[r],p);
+    for (int a=0;a<3;++a) assert(p[a]==mesh[r*3+c][a]);
+  }
+  {
+    double p[3]; BedMesh::sample(mesh,9,6,p);
+    assert(p[0]==2042.5 && p[1]==-1516.5 && p[2]==52.5);
+    BedMesh::sample(mesh,25.5,18.5,p);
+    for (int a=0;a<3;++a) assert(p[a]==(mesh[4][a]+mesh[5][a]+mesh[7][a]+mesh[8][a])/4.0);
+    double left[3],right[3]; BedMesh::sample(mesh,17-1e-7,12,left); BedMesh::sample(mesh,17+1e-7,12,right);
+    for (int a=0;a<3;++a) assert(std::abs(left[a]-right[a])<0.001);
+  }
+  for (int r=0;r<26;++r) for (int c=1;c<=34;++c) {
+    int64_t x,y; WebControl::holeOffset(c,r,x,y);
+    double col,row; assert(BedMesh::locate(mesh,x,y,col,row));
+    assert(BedMesh::rounded(col)==c && BedMesh::rounded(row)==r);
+    double p[3]; BedMesh::sample(mesh,c,r,p);
+    assert(WebControl::bedHeight(x,y)==BedMesh::rounded(p[2]));
+  }
+  auto bad=Positions::saved;
+  for (int i=0;i<9;++i) bad.draft[i][0]=-mesh[i][0];
+  assert(!BedMesh::valid(bad.draft));
+  // From a low endpoint, clearance includes the interior hump; arrival Z
+  // follows the destination bed while preserving the starting tip offset.
+  assert(action("reference")==200); // Back at all three A1 coordinates.
+  action("arm");
+  WebControl::server.args={{"op","goto"},{"hole","Z34"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200);
+  assert(WebControl::target[3]==Positions::saved.home[3]+110);
+  assert(WebControl::clearance==Positions::saved.home[3]+255); // M17 = 155, plus 100 lift.
+  run();
+  assert(emitted[0]==Positions::saved.home[0]+mesh[8][0] && emitted[1]==Positions::saved.home[1]+mesh[8][1]);
+  assert(emitted[3]==Positions::saved.home[3]+mesh[8][2]);
+  assert(action("jog","Z","-20")==200); run();
+  WebControl::server.args={{"op","goto"},{"hole","M17"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[3]==Positions::saved.home[3]+135); // Keeps the -0.2 mm cutting depth.
+  // Fractional interpolation must not accumulate depth error over a tour.
+  for (const char *destination:{"G9","T25","A1","Z17","M17"}) {
+    WebControl::server.args={{"op","goto"},{"hole",destination},{"client","test-browser-0001"}};
+    WebControl::action(); assert(WebControl::server.code==200); run();
+    assert(emitted[3]-Positions::saved.home[3]-WebControl::bedHeight(
+      emitted[0]-Positions::saved.home[0],emitted[1]-Positions::saved.home[1])==-20);
+  }
+  // Whole-hole arrows use both XY corrections plus bed Z; fine jogs remain raw.
+  WebControl::server.args={{"op","jog"},{"axis","X"},{"holes","1"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200 && WebControl::travelRate==1000); run();
+  int64_t x,y; WebControl::holeOffset(18,12,x,y);
+  assert(emitted[0]==Positions::saved.home[0]+x && emitted[1]==Positions::saved.home[1]+y);
+  const int64_t expectedZ=Positions::saved.home[3]+BedMesh::rounded(WebControl::bedHeight(x,y)-20);
+  assert(emitted[3]==expectedZ);
+  const int64_t z=emitted[3];
+  assert(action("jog","X","10")==200); run(); assert(emitted[3]==z);
+  // No extrapolated whole-hole steps beyond a mesh edge.
+  assert(action("reference")==200);
+  WebControl::server.args={{"op","jog"},{"axis","X"},{"holes","-1"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==400 && WebControl::idle());
+  assert(std::abs(WebControl::bedHeight(-10000,0))<1000); // Edge-clamped Z.
+  // A replacement draft never mutates the active mesh, including on cancel.
+  assert(action("mesh-start")==200);
+  assert(!memcmp(mesh,Positions::saved.mesh,sizeof(mesh)) && Positions::saved.meshSet);
+  assert(meshAction("mesh-save",8)==409); // Still at A1, wrong region.
+  assert(meshAction("mesh-go",8)==200);
+  const int64_t raised=WebControl::clearance;
+  assert(WebControl::target[3]==raised); run(); assert(emitted[3]==raised);
+  assert(action("mesh-cancel")==200 && Positions::saved.meshSet);
+  // Unknown-position re-homing and even saving a new origin preserve the shape.
+  action("stop"); Positions::begin();
+  assert(!Positions::known && Positions::saved.meshSet);
+  emitted[0]=987; emitted[1]=-654; emitted[3]=321;
+  assert(action("reference")==200 && !memcmp(mesh,Positions::saved.mesh,sizeof(mesh)));
+  assert(emitted[0]==Positions::saved.home[0] && emitted[3]==Positions::saved.home[3]);
+  Positions::known=false; emitted[0]=987; emitted[1]=-654; emitted[3]=321;
+  assert(action("home")==200 && Positions::saved.home[0]==987 && Positions::saved.home[3]==321);
+  Positions::begin(); assert(Positions::saved.meshSet && !memcmp(mesh,Positions::saved.mesh,sizeof(mesh)));
+  assert(action("confirm")==200);
+  action("arm");
+  WebControl::server.args={{"op","goto"},{"hole","Z34"},{"client","test-browser-0001"}};
+  WebControl::action(); assert(WebControl::server.code==200); run();
+  assert(emitted[0]==987+mesh[8][0] && emitted[1]==-654+mesh[8][1] && emitted[3]==321+mesh[8][2]);
+  assert(action("go-home")==200 && WebControl::clearance==321+255); run();
+  assert(emitted[0]==987 && emitted[1]==-654 && emitted[3]==321);
+  assert(action("mesh-start")==200 && action("home")==200 && !Positions::saved.calibrating);
+  Positions::preferences.failWrite=true;
+  assert(action("mesh-clear")==503 && Positions::saved.meshSet);
+  Positions::preferences.failWrite=false;
+  assert(action("mesh-clear")==200 && !Positions::saved.meshSet && Positions::saved.spanSet);
+}
 int main() {
   setup(); WiFi.state=WL_CONNECTED; Serial.connected=false;
   // A connected client that sends nothing is dropped after 400 ms, not the
@@ -197,10 +341,10 @@ int main() {
     assert(blob.size()==sizeof(Positions::Record));
     blob.resize(Positions::legacySize); const uint32_t v1=1; memcpy(blob.data(), &v1, sizeof(v1));
     Positions::begin();
-    assert(Positions::saved.version==2 && Positions::saved.homeSet && !Positions::saved.spanSet && blob.size()==Positions::legacySize);
+    assert(Positions::saved.version==3 && Positions::saved.homeSet && !Positions::saved.spanSet && blob.size()==Positions::legacySize);
     int64_t x,y; WebControl::holeOffset(34,25,x,y); assert(x==8382 && y==-6350);
     assert(Positions::write(Positions::saved) && blob.size()==sizeof(Positions::Record));
-    const uint32_t bad=3; memcpy(blob.data(), &bad, sizeof(bad));
+    const uint32_t bad=99; memcpy(blob.data(), &bad, sizeof(bad));
     Positions::begin(); assert(!Positions::saved.homeSet); // Unknown versions are ignored.
     Positions::ready=true; assert(Positions::write(keep)); Positions::begin();
     assert(Positions::saved.homeSet && Positions::saved.spanSet);
@@ -242,6 +386,7 @@ int main() {
   assert(action("stop")==200);
   const int stoppedZ=rises[D9]; delay(1000);
   assert(rises[D9]==stoppedZ && !presetRunning && !Positions::known);
+  testMesh();
   // Compare compressed and full profiles, including short triangular moves
   // and odd lengths. Mirrored floating-point rounding differs by at most 1 us.
   for (int count : {1,2,3,49,50,51,99,100,101,1000,6000}) {

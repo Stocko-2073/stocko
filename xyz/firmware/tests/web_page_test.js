@@ -11,6 +11,7 @@ const elements = [];
 function element(tag = 'div') {
   const e = {tag, children: [], dataset: {}, disabled: false, hidden: false,
     textContent: '', value: '10', className: '', title: '',
+    setAttribute(name,value) { this[name]=value; },
     append(child) { this.children.push(child); },
     replaceChildren() { this.children = []; }};
   elements.push(e); return e;
@@ -60,15 +61,15 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   assert.equal(ids['go-span'].disabled,false);
   assert.equal(ids.replace.disabled,false);
   assert.equal(ids.span.disabled,false);
-  assert(ids.spanInfo.textContent.startsWith('Not set: holes assumed 2.54 mm apart.'));
+  assert(ids.spanInfo.textContent.startsWith('Default pitch: 2.54 mm.'));
   // Raw +X counts columns leftward; raw -Y counts rows forward from A.
   assert.equal(ids.here.textContent,'C7');
-  assert.equal(ids.hereNote.textContent,'Column 7 · Row C · on the grid');
+  assert.equal(ids.hereNote.textContent,'On grid');
   assert.equal(ids.height.textContent,'+2.5 mm');
   assert.equal(document.getElementById('hub').textContent,'C7');
   const labels=vm.runInContext("arrows.map(a=>a.t.textContent)",context);
   assert.equal(JSON.stringify(labels),JSON.stringify(['B7','C8','C6','D7','Up 1 mm','Down 1 mm']));
-  assert.equal(ids.swapInfo.textContent,'Drill parks at P11, 8 mm above A1 height.');
+  assert.equal(ids.swapInfo.textContent,'Park: P11, 8 mm above A1.');
   assert.equal(ids.gate.hidden,false); // Owning page: offers to turn the motors off.
   assert.equal(ids.arm.hidden,true);
   assert.equal(ids.disarm.hidden,false);
@@ -93,8 +94,8 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   responseState={...responseState,spanSet:true,span:[8462,-6410],position:[2821,-3077,0]};
   await vm.runInContext('refresh()',context);
   assert.equal(ids.here.textContent,'M12');
-  assert.equal(ids.hereNote.textContent,'Column 12 · Row M · on the grid');
-  assert.equal(ids.spanInfo.textContent,'Set. Holes measure 2.564 mm apart across and 2.564 mm forward; nominal 2.540 mm.');
+  assert.equal(ids.hereNote.textContent,'On grid');
+  assert.equal(ids.spanInfo.textContent,'Pitch: 2.564 mm across · 2.564 mm forward');
   assert.equal(JSON.stringify(vm.runInContext("arrows.map(a=>a.t.textContent)",context)),JSON.stringify(['L12','M13','M11','N12','Up 1 mm','Down 1 mm']));
   assert.equal(JSON.stringify(vm.runInContext("hole(34,25)",context)),'[8462,-6410]');
   assert.equal(JSON.stringify(vm.runInContext("hole(1,0)",context)),'[0,0]');
@@ -178,6 +179,61 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   await vm.runInContext('refresh()',context);
   assert(ids.message.textContent.startsWith('Controller restarted: uptime fell from 500 s to 3 s'));
   assert.equal(ids.message.className,'show err');
+  // Full XYZ mesh: readout, destinations and height use the same bilinear
+  // map as firmware, including the unequal 16/17 and 12/13 intervals.
+  const mesh=[];
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++)mesh.push([
+    ([1,17,34][c]-1)*254+r*c*2+(r===1?20:0),
+    -[0,12,25][r]*254+c*15,r*40+c*15+(r===1&&c===1?100:0)]);
+  responseState={...responseState,known:true,homeSet:true,armed:true,webArmed:true,busy:false,
+    meshSet:true,mesh,calibrating:false,draftMask:0,position:[...mesh[4]]};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.here.textContent,'M17');
+  assert.equal(ids.hereNote.textContent,'On grid');
+  assert.equal(ids.height.textContent,'+0 mm');
+  assert.equal(ids.heightNote.textContent,'above bed');
+  assert.equal(ids.span.disabled,true);
+  assert.equal(ids.meshEditor.hidden,true);
+  assert.equal(ids['mesh-clear'].hidden,false);
+  assert.equal(ids['mesh-apply'].disabled,true);
+  assert.equal(JSON.stringify(vm.runInContext('meshSample(9,6)',context)),'[2042.5,-1516.5,52.5]');
+  assert.equal(JSON.stringify(vm.runInContext('hole(9,6)',context)),'[2043,-1516]');
+  for(let r=0;r<26;r++)for(let c=1;c<=34;c++){
+    const g=vm.runInContext(`grid(hole(${c},${r}))`,context);
+    assert.equal(g.col,c);assert.equal(g.row+0,r);assert.equal(g.on,true);
+    assert.equal(vm.runInContext(`bedHeight(hole(${c},${r}))`,context),
+      vm.runInContext(`Math.round(meshSample(${c},${r})[2])`,context));
+  }
+  responseState={...responseState,calibrating:true,draftMask:1};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.meshEditor.hidden,false);
+  assert.equal(ids['mesh-go'].disabled,false);
+  assert.equal(ids['mesh-save'].disabled,false);
+  assert.equal(ids['mesh-apply'].disabled,true);
+  assert(ids.meshInfo.textContent.startsWith('1/9 measured'));
+  assert.equal(vm.runInContext('meshButtons[0].textContent',context),'✓ A1');
+  vm.runInContext('meshButtons[4].onclick()',context);
+  assert.equal(ids['mesh-save'].textContent,'Save M17');
+  assert.equal(vm.runInContext("meshButtons[4]['aria-pressed']",context),'true');
+  ids['mesh-save'].onclick();await new Promise(r=>setImmediate(r));
+  assert.equal(requests.findLast(r=>r.options.body?.get('op')==='mesh-save').options.body.get('point'),'4');
+  ids['mesh-go'].onclick();await new Promise(r=>setImmediate(r));
+  assert.equal(requests.findLast(r=>r.options.body?.get('op')==='mesh-go').options.body.get('point'),'4');
+  vm.runInContext('meshButtons[0].onclick()',context);
+  assert.equal(ids['mesh-save'].disabled,true); // A1 is captured by Start, never edited alone.
+  responseState={...responseState,draftMask:511};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids['mesh-apply'].disabled,false);
+  vm.runInContext('xyStep={holes:1}',context);
+  responseState={...responseState,known:false};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids['mesh-go'].disabled,true);
+  assert.equal(ids['mesh-save'].disabled,true);
+  assert.equal(ids['mesh-apply'].disabled,true);
+  assert.equal(ids['mesh-start'].disabled,false); // Can establish A1 after physical movement.
+  assert(vm.runInContext("arrows.filter(a=>a.axis!=='Z').every(a=>a.b.disabled)",context));
+  vm.runInContext('xyStep={pulses:10};render()',context);
+  assert(vm.runInContext('arrows.every(a=>!a.b.disabled)',context)); // Manual re-home still possible.
   vm.runInContext('online=false;render()',context);
   assert.equal(ids['go-home'].disabled,true);
   assert.equal(ids.status.textContent,'Disconnected');

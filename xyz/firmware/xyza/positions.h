@@ -1,11 +1,12 @@
 #pragma once
 #include <cstddef>
+#include "bed_mesh.h"
 
 // Pulse coordinates use the commissioned motor directions. A is a spindle,
 // so presets only contain XYZ (M0, M1, M3).
 namespace Positions {
 struct Record {
-  uint32_t version = 2;
+  uint32_t version = 3;
   bool homeSet = false, replaceSet = false, clean = false;
   int64_t home[4] = {}, replace[4] = {}, checkpoint[4] = {};
   // Version 2: where hole Z34 was found, as an XY offset from A1. Boards are
@@ -14,10 +15,17 @@ struct Record {
   // position: it describes the board and machine scale, so moving A1 keeps it.
   bool spanSet = false;
   int64_t span[2] = {};
+  // Version 3: board shape in XYZ offsets from A1, independent of home.
+  // A draft never replaces the active mesh until explicitly applied.
+  int64_t mesh[9][3] = {}, draft[9][3] = {};
+  uint16_t draftMask = 0;
+  bool meshSet = false, calibrating = false;
 };
 // A version 1 record is this struct without the span fields.
 constexpr size_t legacySize = offsetof(Record, spanSet);
+constexpr size_t version2Size = offsetof(Record, mesh);
 static_assert(legacySize == 104, "version 1 record layout");
+static_assert(version2Size == 128, "version 2 record layout");
 Record saved;
 Preferences preferences;
 bool ready = false, known = false;
@@ -44,13 +52,17 @@ void begin() {
   const size_t length = ready ? preferences.getBytesLength("positions") : 0;
   bool valid = false;
   if (length == sizeof(loaded)) {
-    valid = preferences.getBytes("positions", &loaded, sizeof(loaded)) == sizeof(loaded) && loaded.version == 2;
+    valid = preferences.getBytes("positions", &loaded, sizeof(loaded)) == sizeof(loaded) && loaded.version == 3;
+  } else if (length == version2Size) {
+    valid = preferences.getBytes("positions", &loaded, version2Size) == version2Size && loaded.version == 2;
+    loaded.version = 3;
   } else if (length == legacySize) {
-    // Upgrade in RAM only; the next write stores version 2. Nothing moves.
+    // Upgrade in RAM only; the next write stores version 3. Nothing moves.
     valid = preferences.getBytes("positions", &loaded, legacySize) == legacySize && loaded.version == 1;
-    loaded.version = 2; loaded.spanSet = false; loaded.span[0] = loaded.span[1] = 0;
+    loaded.version = 3; loaded.spanSet = false; loaded.span[0] = loaded.span[1] = 0;
   }
   if (valid) {
+    if (loaded.meshSet && !BedMesh::valid(loaded.mesh)) loaded.meshSet=false;
     saved = loaded;
     if (saved.clean) for (int i = 0; i < 4; ++i) emitted[i] = saved.checkpoint[i];
   }
@@ -79,6 +91,7 @@ bool save(bool home) {
     // new origin. Re-referencing the existing home preserves them instead.
     if (!known) next.replaceSet = false;
     snapshot(next.home); next.homeSet = true;
+    next.calibrating = false; next.draftMask = 0;
   } else { snapshot(next.replace); next.replaceSet = true; }
   next.clean = true;
   if (!write(next)) return false;
