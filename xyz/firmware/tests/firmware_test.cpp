@@ -45,6 +45,13 @@ int main() {
   assert(Serial.output.find("CRASH none stored; this boot followed a panic, up ") != std::string::npos);
   for (int i=0; i<4; ++i) assert(axisMotor[i] == Config::axisMotor[i] && rises[Config::stepPins[i]] == 0);
   assert(axisMotor[0] == 0 && axisMotor[1] == 1 && axisMotor[2] == 3 && axisMotor[3] == 2);
+  // USB commissioning retains normal command replies and completion notices.
+  Serial.output.clear();
+  send("ARM\nJOG X 10\n"); runMotion();
+  assert(Serial.output.find("OK jogging\n") != std::string::npos);
+  assert(Serial.output.find("DONE\n") != std::string::npos);
+  send("JOG X -10\n"); runMotion(); send("OFF\n");
+  for (int i=0;i<4;++i) { rises[Config::stepPins[i]]=0; riseTimes[Config::stepPins[i]].clear(); }
   // Provisioning accepts CRLF, spaces, punctuation, and editing without echo.
   send("WIFI SET\r\nMy Net!work\r\nsecret! passX\b\r\n");
   assert(WiFi.ssid == "My Net!work" && WiFi.password == "secret! pass");
@@ -83,7 +90,7 @@ int main() {
                          "JOG M3 1001\n", "JOG Z -1001\n", "JOG M2 6001\n",
                          "JOG M1 2001\n", "JOG Y -2001\n",
                          "JOG M0 10 0\n", "JOG M0 10 4001\n", "JOG Z 10 2001\n", "JOG M4 1\n",
-                         "JOG A 1 1001\n", "JOG B 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
+                         "JOG A 1 3201\n", "JOG B 1\n", "JOG M0 1junk\n", "JOG M0 999999999999999999999\n"}) {
     send(bad); assert(activeMotor == -1);
   }
   send("MAP X M1\n"); assert(axisMotor[0] == 0);
@@ -241,7 +248,7 @@ int main() {
     assert(interval>=1000); spindleUs+=interval;
     if (interval<=1001) ++cruisePulses;
   }
-  assert(spindleUs>=8000000 && spindleUs<8006000 && cruisePulses>=4000);
+  assert(spindleUs>=7000000 && spindleUs<7006000 && cruisePulses>=5000);
   send("ARM\nJOG A 6000 1000\n"); runMotion();
   assert(emitted[2] == originalA+6000);
   assert(rises[D1]==xBeforeA && rises[D3]==yBeforeA && rises[D9]==zBeforeA);

@@ -21,6 +21,8 @@ for (const match of html.matchAll(/id="([^"]+)"(?: data-op="([^"]+)")?/g)) {
   ids[match[1]] = element();
   if (match[2]) ids[match[1]].dataset.op = match[2];
 }
+ids.cutDepth.value='1'; ids.cutRpm.value='60'; ids.cutFeed.value='2'; ids.cutAccel.value='75';
+ids.cutList.value='';
 const document = {hidden: false, getElementById: id => ids[id] || elements.find(e => e.id === id),
   createElement: element, addEventListener() {},
   querySelectorAll(selector) {
@@ -30,7 +32,8 @@ const document = {hidden: false, getElementById: id => ids[id] || elements.find(
 const requests = [];
 let failNextPoll=false;
 let responseState = {armed:false,webArmed:false,busy:false,known:false,homeSet:false,
-  replaceSet:false,spanSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0],span:[0,0],uptime:500};
+  replaceSet:false,spanSet:false,recoverable:false,commissioned:true,position:[0,0,0],replace:[0,0,0],span:[0,0],uptime:500,
+  cutSettings:{depth:2.5,rpm:180,feed:3.5,accel:150}};
 const context = vm.createContext({document,crypto:webcrypto,Uint8Array,URLSearchParams,
   AbortSignal,confirm:()=>true,setTimeout:()=>{},clearTimeout:()=>{},fetch:async (url, options) => {
     requests.push({url,options});
@@ -40,12 +43,31 @@ const context = vm.createContext({document,crypto:webcrypto,Uint8Array,URLSearch
 vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
 (async () => {
   await vm.runInContext('refresh()', context);
+  assert.equal(ids.cutDepth.value,'2.5');
+  assert.equal(ids.cutRpm.value,'180');
+  assert.equal(ids.cutFeed.value,'3.5');
+  assert.equal(ids.cutAccel.value,'150');
+  assert.equal(ids.saveCut.disabled,false); // Save with motors off, no reference.
+  ids.cutFeed.value='2';
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.cutFeed.value,'2'); // Polling must not overwrite edits.
+  await ids.saveCut.onclick();
+  const savedRequest=requests.findLast(r=>r.options.body?.get('op')==='cut-settings');
+  assert.equal(savedRequest.options.body.get('feed'),'2');
+  assert.equal(requests.some(r=>r.options.body?.get('op')==='cut'),false);
+  // A fresh page restores the stored controller values, not browser storage.
+  vm.runInContext('cutSettingsLoaded=false',context);
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.cutFeed.value,'3.5');
+  assert.equal(ids.cutAccel.value,'150');
+  ids.cutFeed.value='2';
   assert.equal(ids.arm.disabled,false);
   assert.equal(ids.gate.hidden,false);
   assert.equal(ids.disarm.hidden,true);
   assert.equal(ids.here.textContent,'—');
   assert.equal(ids.refBadge.textContent,'A1 not set');
   assert.equal(ids.go.disabled,true);
+  assert.equal(ids.cut.disabled,true);
   assert.equal(ids.replace.disabled,true);
   assert.equal(ids.span.disabled,true);
   assert.equal(ids['go-home'].disabled,true);
@@ -77,6 +99,78 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   assert.equal(ids.status.dataset.tone,'ok');
   assert.equal(ids.status.textContent,'Motors on');
   assert.equal(ids.go.disabled,false);
+  assert.equal(ids.cut.disabled,false);
+  assert.equal(ids.cutAll.disabled,true);
+  for (const list of ['', 'A1,N35', 'A1,,B2', 'A1,', ',A1', 'A 1', 'A1 B2', Array(885).fill('A1').join(',')]) {
+    ids.cutList.value=list;
+    const count=requests.length;await ids.cutAll.onclick();assert.equal(requests.length,count);
+  }
+  ids.cutList.value=' a1,\nN15, a1 ';
+  await vm.runInContext('render()',context);assert.equal(ids.cutAll.disabled,false);
+  await ids.cutAll.onclick();
+  const batchRequest=requests.findLast(r=>r.options.body?.get('op')==='cut-all');
+  assert.equal(batchRequest.options.body.get('holes'),'A1,N15,A1');
+  assert.equal(batchRequest.options.body.get('accel'),'150');
+  responseState={...responseState,busy:true,batch:{active:true,completed:1,total:3,hole:'N15'}};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.cutAll.disabled,true);assert.equal(ids.cutList.disabled,true);
+  assert.equal(ids.cut.disabled,true);assert.equal(ids.stop.disabled,false);
+  assert.equal(ids.batchHint.textContent,'Going to N15 · 2 of 3');
+  responseState={...responseState,cutPhase:1};await vm.runInContext('refresh()',context);
+  assert.equal(ids.batchHint.textContent,'Cutting N15 · 2 of 3');
+  responseState={...responseState,busy:true,cutPhase:0,batch:{active:true,completed:3,total:3,hole:'',returning:true}};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.batchHint.textContent,'Cuts complete · returning to A1');
+  assert.equal(ids.status.textContent,'Returning to A1');
+  assert.equal(ids.cutAll.disabled,true);assert.equal(ids.stop.disabled,false);
+  responseState={...responseState,busy:false,batch:{active:false,completed:3,total:3,hole:'',returning:false,returned:false}};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.batchHint.textContent,'Stopped after 3 of 3 cuts.');
+  responseState={...responseState,batch:{...responseState.batch,returned:true}};
+  await vm.runInContext('refresh()',context);
+  assert.equal(ids.batchHint.textContent,'Completed 3 cuts · returned to A1.');
+  ids.cutDepth.value='2.5'; ids.cutRpm.value='240';
+  ids.cut.onclick(); await new Promise(r=>setImmediate(r));
+  const cutRequest=requests.findLast(r=>r.options.body?.get('op')==='cut');
+  assert.equal(cutRequest.options.body.get('depth'),'2.5');
+  assert.equal(cutRequest.options.body.get('rpm'),'240');
+  assert.equal(cutRequest.options.body.get('feed'),'2');
+  assert.equal(cutRequest.options.body.get('accel'),'150');
+  for (const [depth,rpm] of [['','60'],['0','60'],['10.1','60'],['0.15','60'],['2','241'],['2','1.5']]) {
+    ids.cutDepth.value=depth;ids.cutRpm.value=rpm;
+    await vm.runInContext('render()',context);
+    assert.equal(ids.cut.disabled,true);
+    const count=requests.length;
+    await ids.cut.onclick();assert.equal(requests.length,count);
+  }
+  ids.cutDepth.value='2.5';ids.cutRpm.value='60';
+  for (const feed of ['', '0', '-1', '20.1', '0.15', 'NaN']) {
+    ids.cutFeed.value=feed;vm.runInContext('render()',context);
+    assert.equal(ids.cut.disabled,true);
+    const count=requests.length;await ids.cut.onclick();assert.equal(requests.length,count);
+  }
+  ids.cutFeed.value='2.5';
+  for (const accel of ['', '14', '751', '75.5', 'NaN']) {
+    ids.cutAccel.value=accel;vm.runInContext('render()',context);
+    assert.equal(ids.cut.disabled,true);assert.equal(ids.saveCut.disabled,true);
+    const count=requests.length;await ids.cut.onclick();assert.equal(requests.length,count);
+  }
+  ids.cutAccel.value='150';
+  await ids.cut.onclick();
+  assert.equal(requests.findLast(r=>r.options.body?.get('op')==='cut').options.body.get('feed'),'2.5');
+  assert.equal(requests.findLast(r=>r.options.body?.get('op')==='cut').options.body.get('client'),request.options.body.get('client'));
+  for (let phase=1;phase<=4;phase++) {
+    responseState={...responseState,busy:true,cutPhase:phase};
+    await vm.runInContext('refresh()',context);
+    assert.equal(ids.cut.disabled,true);
+    assert.equal(ids.cutFeed.disabled,true);
+    assert.equal(ids.cutAccel.disabled,true);
+    assert.equal(ids.saveCut.disabled,true);
+    assert.equal(ids.stop.disabled,false);
+    assert.equal(ids.status.textContent,'Cutting');
+    assert(ids.cutHint.textContent.includes(['','lowering','two turns','returning','stopping'][phase]));
+  }
+  responseState={...responseState,busy:false,cutPhase:0};
   // Off-grid and fine steps fall back to direction words.
   responseState={...responseState,position:[1554,-498,-30]};
   await vm.runInContext('refresh()',context);
@@ -143,6 +237,7 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   await vm.runInContext('refresh()',context);
   assert(ids.gateText.textContent.includes('Press STOP'));
   assert.equal(ids.arm.hidden,true);
+  assert.equal(ids.cut.disabled,true);
   assert(vm.runInContext("document.querySelectorAll('.jog').every(b=>b.disabled)",context));
   responseState={...responseState,busy:true,webArmed:true};
   await vm.runInContext('refresh()',context);
@@ -207,6 +302,7 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   responseState={...responseState,calibrating:true,draftMask:1};
   await vm.runInContext('refresh()',context);
   assert.equal(ids.meshEditor.hidden,false);
+  assert.equal(ids.cut.disabled,true);
   assert.equal(ids['mesh-go'].disabled,false);
   assert.equal(ids['mesh-save'].disabled,false);
   assert.equal(ids['mesh-apply'].disabled,true);
@@ -237,5 +333,6 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
   vm.runInContext('online=false;render()',context);
   assert.equal(ids['go-home'].disabled,true);
   assert.equal(ids.status.textContent,'Disconnected');
+  assert.equal(ids.cut.disabled,true);
   console.log('Web page state and request tests passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -158,6 +158,285 @@ void testMesh() {
   Positions::preferences.failWrite=false;
   assert(action("mesh-clear")==200 && !Positions::saved.meshSet && Positions::saved.spanSet);
 }
+int cutAction(const char *depth="1", const char *rpm="60", const char *feed="2", const char *op="cut", const char *accel="75", const char *holes="") {
+  WebControl::server.args={{"op",op},{"depth",depth},{"rpm",rpm},{"feed",feed},{"accel",accel},{"holes",holes},{"client","test-browser-0001"}};
+  WebControl::action(); return WebControl::server.code;
+}
+int batchAction(const char *holes) { return cutAction("0.1","240","20","cut-all","750",holes); }
+void testBatch() {
+  action("stop"); action("home"); action("arm");
+  int64_t initial[4]; Positions::snapshot(initial);
+  const int writes=CutSettings::preferences.writes;
+  for (const char *bad : {"", " ", "A1,N35", "A1,AA1", "A1,Z0", ",A1", "A1,", "A1,,B2", "A 1", "A1 B2"}) {
+    assert(batchAction(bad)==400 && WebControl::idle() && !batchRunning);
+    for (int m=0;m<4;++m) assert(emitted[m]==initial[m]);
+    assert(CutSettings::preferences.writes==writes);
+  }
+  WebControl::BatchHole parsed[WebControl::maxBatchHoles]; size_t count; char error[128];
+  std::string full="A1";
+  for (size_t i=1;i<WebControl::maxBatchHoles;++i) full+=",Z34";
+  assert(WebControl::parseBatch(full.c_str(),full.size(),parsed,count,error,sizeof(error)) && count==884);
+  full+=",B2";
+  assert(!WebControl::parseBatch(full.c_str(),full.size(),parsed,count,error,sizeof(error)));
+  full=std::string(8193,' ');
+  assert(!WebControl::parseBatch(full.c_str(),full.size(),parsed,count,error,sizeof(error)));
+  const char nul[]={'A','1',0,',','B','2'};
+  assert(!WebControl::parseBatch(nul,sizeof(nul),parsed,count,error,sizeof(error)));
+  Positions::known=false; assert(batchAction("A1")==409); Positions::known=true;
+  Positions::saved.calibrating=true; assert(batchAction("A1")==409); Positions::saved.calibrating=false;
+  CutSettings::preferences.failWrite=true;
+  assert(batchAction("A1")==503 && WebControl::idle());
+  CutSettings::preferences.failWrite=false;
+  // Sloped mesh: every cut must begin at the same height above the local bed.
+  auto &s=Positions::saved;
+  for (int r=0;r<3;++r) for (int c=0;c<3;++c) {
+    s.mesh[r*3+c][0]=(BedMesh::columns[c]-1)*254;
+    s.mesh[r*3+c][1]=-BedMesh::rows[r]*254;
+    s.mesh[r*3+c][2]=r*40+c*20;
+  }
+  s.meshSet=true;
+  emitted[3]+=200; initial[3]+=200; // Cut starting height differs from saved A1.
+  assert(batchAction(" a1,\nB2, b2 ")==200 && batchRunning && !WebControl::idle());
+  assert(action("home")==409 && batchAction("Z34")==409 && cutAction()==409);
+  char jog[]="JOG X 10"; command(jog); assert(activeMotor<0); // Between legs still busy.
+  const int wifiState=WiFi.state; WiFi.state=0;
+  clockUs+=Config::webIdleMs*1000+1000; // No poll keeps this job alive.
+  Serial.txFree=0; const int blocked=Serial.blockedWrites;
+  size_t seen=0; bool cutting=false, returned=false; int64_t lastSpindle=emitted[2];
+  for (int i=0;batchRunning && i<40000;++i) {
+    loop();
+    if (cutPhase && !cutting) {
+      const long col=seen?2:1,row=seen?1:0;
+      int64_t x,y; WebControl::holeOffset(col,row,x,y);
+      assert(emitted[0]==s.home[0]+x && emitted[1]==s.home[1]+y);
+      assert(emitted[3]==initial[3]+WebControl::bedHeight(x,y));
+      assert(WebControl::batchIndex==seen); ++seen;
+    }
+    if (!cutPhase && !cutting) assert(emitted[2]==lastSpindle); // Spindle off in transit.
+    cutting=cutPhase!=0; lastSpindle=emitted[2];
+    if (WebControl::batchReturning) {
+      returned=true;
+      assert(batchRunning && !WebControl::idle() && WebControl::batchIndex==3);
+      assert(WebControl::target[0]==s.home[0] && WebControl::target[1]==s.home[1] && WebControl::target[3]==s.home[3]);
+      assert(WebControl::clearance>=s.home[3]+220); // Above the highest mesh point.
+    }
+  }
+  assert(!batchRunning && WebControl::idle() && seen==3 && WebControl::batchIndex==3);
+  assert(returned && WebControl::batchReturned);
+  assert(emitted[0]==s.home[0] && emitted[1]==s.home[1] && emitted[3]==s.home[3]);
+  assert(Positions::known && Serial.blockedWrites==blocked);
+  WiFi.state=wifiState; Serial.txFree=-1;
+  // The return also lifts with no mesh, and STOP/storage failures cancel it.
+  s.meshSet=false;
+  for (bool fail : {false,true}) {
+    action("stop"); action("home"); action("arm"); assert(batchAction("B2")==200);
+    for (int i=0;!WebControl::batchReturning && i<20000;++i) loop();
+    assert(WebControl::batchReturning && batchRunning && !WebControl::batchReturned);
+    assert(WebControl::clearance>=emitted[3]+100);
+    if (fail) { Positions::preferences.failWrite=true; loop(); Positions::preferences.failWrite=false; }
+    else { loop(); delay(50); action("stop"); }
+    assert(!batchRunning && !WebControl::batchReturned);
+    int64_t stopped[4]; Positions::snapshot(stopped);
+    for (int i=0;i<1000;++i) loop();
+    for (int m=0;m<4;++m) assert(emitted[m]==stopped[m]);
+  }
+  // STOP cancels during travel, cutting, and the gap after a completed cut.
+  for (int when=0;when<3;++when) {
+    action("stop"); action("home"); action("arm"); assert(batchAction("B2,A1")==200);
+    if (!when) { loop(); delay(50); assert(activeMotor>=0); }
+    if (when) {
+      while (!cutPhase) loop();
+      if (when==2) { delay(10000); finishMotion(); assert(activeMotor<0 && !presetRunning); }
+    }
+    assert(action("stop")==200 && !batchRunning);
+    int64_t stopped[4]; Positions::snapshot(stopped);
+    for (int i=0;i<1000;++i) loop();
+    for (int m=0;m<4;++m) assert(emitted[m]==stopped[m]);
+    assert(WebControl::idle());
+  }
+  // A travel checkpoint failure aborts before the first cut.
+  action("home"); action("arm"); const int64_t a=emitted[2];
+  assert(batchAction("B2,A1")==200); loop();
+  Positions::preferences.failWrite=true;
+  for (int i=0;batchRunning && i<5000;++i) loop();
+  assert(!batchRunning && !armed && !Positions::known && emitted[2]==a);
+  Positions::preferences.failWrite=false;
+}
+void testCutSettings() {
+  action("stop");
+  auto &prefs=CutSettings::preferences;
+  prefs.blob.clear(); CutSettings::begin();
+  assert(CutSettings::saved.depth==100 && CutSettings::saved.rpm==60 && CutSettings::saved.feed==200);
+  assert(!CutSettings::stored);
+  const uint32_t legacy[]={1,250,180,350};
+  prefs.putBytes("settings",legacy,sizeof(legacy)); CutSettings::begin();
+  assert(CutSettings::saved.version==2 && CutSettings::saved.depth==250 && CutSettings::saved.rpm==180 &&
+    CutSettings::saved.feed==350 && CutSettings::saved.accel==75 && !CutSettings::stored);
+  // Explicit save requires no motors or reference and never starts motion.
+  assert(cutAction("2.5","180","3.5","cut-settings")==200);
+  assert(!armed && WebControl::idle());
+  const int writes=prefs.writes;
+  assert(cutAction("2.5","180","3.5","cut-settings")==200 && prefs.writes==writes);
+  CutSettings::saved={}; CutSettings::begin(); // Reload as on boot.
+  assert(CutSettings::saved.depth==250 && CutSettings::saved.rpm==180 && CutSettings::saved.feed==350);
+  WebControl::state();
+  assert(WebControl::server.body.find("\"cutSettings\":{\"depth\":2.5,\"rpm\":180,\"feed\":3.5,\"accel\":75}")!=std::string::npos);
+  assert(cutAction("2.5","180","3.5","cut-settings","150")==200);
+  CutSettings::begin(); assert(CutSettings::saved.accel==150);
+  const int accelWrites=prefs.writes;
+  assert(cutAction("2.5","180","3.5","cut-settings","150")==200 && prefs.writes==accelWrites);
+  const auto blob=prefs.blob;
+  assert(cutAction("2.5","241","3.5","cut-settings")==400 && prefs.blob==blob);
+  prefs.failWrite=true;
+  assert(cutAction("3","180","3.5","cut-settings")==503 && prefs.blob==blob);
+  action("home"); action("arm");
+  assert(cutAction("3","180","3.5")==503 && WebControl::idle());
+  assert(CutSettings::saved.depth==250);
+  prefs.failWrite=false;
+  assert(cutAction("3","180","3.5")==200); // Cut also saves settings.
+  assert(CutSettings::saved.depth==300);
+  assert(cutAction("4","180","3.5","cut-settings")==409); // No writes during motion.
+  action("stop");
+  // Corrupt, obsolete, or truncated records fall back to defaults.
+  for (auto bad : {CutSettings::Record{3,100,60,200}, {2,1001,60,200}, {2,100,241,200}, {2,100,60,2001}, {2,100,60,200,0}, {2,100,60,200,751}}) {
+    prefs.putBytes("settings",&bad,sizeof(bad)); CutSettings::begin();
+    assert(!CutSettings::stored && CutSettings::saved.depth==100 && CutSettings::saved.rpm==60 && CutSettings::saved.feed==200);
+  }
+  prefs.blob.resize(3); CutSettings::begin(); assert(!CutSettings::stored);
+  prefs.blob.clear(); CutSettings::begin();
+}
+void testCut() {
+  action("stop"); assert(cutAction()==409);
+  action("home"); action("arm");
+  Positions::known=false; assert(cutAction()==409); Positions::known=true;
+  Positions::saved.calibrating=true; assert(cutAction()==409); Positions::saved.calibrating=false;
+  Positions::preferences.failWrite=true;
+  assert(cutAction()==503 && WebControl::idle() && !cutPhase);
+  Positions::preferences.failWrite=false;
+  for (const char *bad : {"", "0", "-1", "10.1", "0.15", "nan", "inf", "1junk"})
+    assert(cutAction(bad)==400 && WebControl::idle());
+  for (const char *bad : {"", "0", "-1", "241", "1.5", "nan", "60rpm"})
+    assert(cutAction("1",bad)==400 && WebControl::idle());
+  for (const char *bad : {"", "0", "-1", "20.1", "0.15", "nan", "inf", "2junk"})
+    assert(cutAction("1","60",bad)==400 && WebControl::idle());
+  for (const char *bad : {"", "0", "14", "751", "75.5", "nan", "100junk"})
+    assert(cutAction("1","60","2","cut",bad)==400 && WebControl::idle());
+  assert(action("cut")==400); // Stale pages must supply explicit settings.
+  WebControl::server.args={{"op","cut"},{"client","another-browser"}};
+  WebControl::action(); assert(WebControl::server.code==409);
+  // Exercise both parameter boundaries and a fractional depth. No browser
+  // heartbeats; Wi-Fi is absent and the USB transmit buffer stays full.
+  const int wifiState=WiFi.state; WiFi.state=0; Serial.txFree=0;
+  const int blocked=Serial.blockedWrites;
+  for (auto setting : {std::pair<const char *,const char *>{"0.1","1"}, {"2.5","60"}, {"0.1","240"}, {"10","240"}}) {
+    action("stop"); action("home"); action("arm");
+    const long depth=std::lround(std::stod(setting.first)*100);
+    const long rate=(std::stol(setting.second)*800+30)/60;
+    int64_t before[4]; Positions::snapshot(before);
+    const size_t zs=riseTimes[D9].size(), as=riseTimes[D5].size();
+    assert(cutAction(setting.first,setting.second)==200 && presetRunning && cutPhase==1);
+    assert(cutAction()==409 && action("jog","X","10")==409 && action("home")==409);
+    long atDepth=-1, atRetract=-1;
+    // Advance only the hardware timer, with no loop() at all: stage changes
+    // and both axes must continue even if a synchronous HTTP call blocks.
+    for (int i=0;!motionComplete && i<3000000;++i) {
+      delayMicroseconds(50);
+      if (cutPhase==2) {
+        assert(emitted[3]==before[3]-depth);
+        if (atDepth<0) atDepth=emitted[2]+cutDwell-1600;
+      }
+      if (cutPhase==3 && atRetract<0) atRetract=emitted[2];
+    }
+    assert(motionComplete && cutPhase==4 && !Positions::saved.clean);
+    assert(atDepth>before[2] && atRetract-atDepth==1600);
+    assert(emitted[0]==before[0] && emitted[1]==before[1] && emitted[3]==before[3]);
+    assert(riseTimes[D9].size()==zs+2*depth);
+    const auto &zt=riseTimes[D9], &at=riseTimes[D5];
+    assert(at[as]<=zt[zs] && at.back()>zt.back());
+    // There are spindle pulses during both Z legs, with no stop at either
+    // dwell transition. Outside acceleration/deceleration gaps stay at cruise.
+    bool plunge=false,retract=false;
+    for (size_t i=as+1;i<at.size();++i) {
+      const auto t=at[i], gap=t-at[i-1];
+      assert(gap>=uint32_t(1000000/rate));
+      if (t>zt[zs] && t<zt[zs+depth-1]) plunge=true;
+      if (t>zt[zs+depth] && t<zt.back()) retract=true;
+      if (i-as>cutSpinProfile.rampCount && t<=zt.back())
+        assert(gap<=cutSpinProfile.cruise+10);
+      if (i>as+1 && at[i-1]>zt.back())
+        assert(gap+10>=at[i-1]-at[i-2]); // Decelerate from actual, not requested, speed.
+    }
+    // The shallowest move at 1 RPM can have no extra spindle pulse during
+    // its short Z leg; at normal cutting speeds both overlaps are required.
+    if (rate>100) assert(plunge && retract);
+    loop();
+    assert(WebControl::idle() && !cutPhase && Positions::known && Positions::saved.clean);
+    assert(Serial.blockedWrites==blocked);
+  }
+  WiFi.state=wifiState; Serial.txFree=-1;
+  // Acceleration settings affect the actual spindle pulse ramp, including
+  // the slowest supported ramp at maximum RPM (the largest workspace).
+  for (const char *accel : {"15","150","750"}) {
+    action("stop"); action("home"); action("arm");
+    const int64_t z=emitted[3]; const size_t first=riseTimes[D5].size();
+    assert(cutAction("1","240","2","cut",accel)==200);
+    const long a=(std::stol(accel)*800+30)/60;
+    assert(cutSpinProfile.rampCount==uint32_t((3200*3200+2*a-1)/(2*a)));
+    assert(cutSpinProfile.ramp[0]==uint32_t(std::ceil(std::sqrt(2.0/a)*1000000)));
+    delay(60000); loop();
+    assert(WebControl::idle() && emitted[3]==z && !cutPhase);
+    for (size_t i=1;i<20;++i) {
+      const uint32_t gap=riseTimes[D5][first+i]-riseTimes[D5][first+i-1];
+      assert(gap>=cutSpinProfile.ramp[i] && gap<=cutSpinProfile.ramp[i]+10);
+    }
+  }
+  // The selected feed controls both Z legs. Check actual pulse intervals,
+  // including fractional and boundary feeds, while the timer runs alone.
+  for (const char *feed : {"0.1","1","2","2.5","20"}) {
+    action("stop"); action("home"); action("arm");
+    const int count=std::stod(feed)<1 ? 100:1000;
+    const int64_t z=emitted[3]; const size_t first=riseTimes[D9].size();
+    assert(cutAction(count==100 ? "1":"10","60",feed)==200);
+    delay(40000); loop();
+    assert(WebControl::idle() && emitted[3]==z);
+    assert(riseTimes[D9].size()==first+2*count);
+    assert(cutZProfile.cruise==uint32_t(std::ceil(1000000/(std::stod(feed)*100))));
+    for (int leg=0;leg<2;++leg) for (int i=1;i<count;++i) {
+      const size_t index=first+leg*count+i;
+      const uint32_t gap=riseTimes[D9][index]-riseTimes[D9][index-1];
+      assert(gap>=cutZProfile.interval(i) && gap<=cutZProfile.interval(i)+10);
+    }
+  }
+  for (int phase=1;phase<=4;++phase) {
+    action("stop"); action("home"); action("arm");
+    assert(cutAction()==200);
+    for (int i=0;cutPhase!=phase && i<15000;++i) loop();
+    assert(cutPhase==phase);
+    delay(1);
+    assert(action("stop")==200 && !cutPhase && !presetRunning);
+    int64_t stopped[4]; Positions::snapshot(stopped);
+    delay(20000); loop();
+    for (int m=0;m<4;++m) assert(emitted[m]==stopped[m]);
+    assert(!armed && !Positions::known);
+  }
+  // A final checkpoint failure invalidates the reference, never restarts a cut.
+  action("home"); action("arm"); assert(cutAction()==200);
+  Positions::preferences.failWrite=true;
+  delay(20000); loop();
+  assert(WebControl::idle() && !cutPhase && !Positions::known);
+  assert(cutAction()==409);
+  Positions::preferences.failWrite=false;
+  action("stop");
+  // Cutting and DEMO reuse RAM; each must reinitialize its own planner.
+  const bool connected=Serial.connected; Serial.connected=true;
+  char armCommand[]="ARM", demoCommand[]="DEMO";
+  command(armCommand); command(demoCommand);
+  assert(demoRunning && demoCount>0);
+  delay(100); action("stop"); action("home"); action("arm");
+  assert(cutAction("1","240")==200);
+  delay(30000); loop(); assert(WebControl::idle() && !cutPhase);
+  action("stop"); Serial.connected=connected;
+}
 int main() {
   setup(); WiFi.state=WL_CONNECTED; Serial.connected=false;
   // A connected client that sends nothing is dropped after 400 ms, not the
@@ -173,6 +452,34 @@ int main() {
   WebControl::server._currentStatus=HC_NONE; WebControl::server._currentClient={};
   assert(action("arm")==403 && !armed);
   WebControl::server.headers["X-XYZ-Control"]="1";
+  // Repeated 0.1 mm jogs used to fill unread USB output and then block both
+  // the action reply (OK jogging) and the next poll (DONE) for seconds.
+  Serial.connected=true;
+  Serial.txFree=64;
+  assert(action("arm")==200);
+  const int64_t start=emitted[0];
+  for (int i=0;i<100;++i) {
+    const uint32_t began=millis();
+    assert(action("jog","X",i%2 ? "-10":"10")==200);
+    run();
+    assert(action("poll")==200);
+    assert(uint32_t(millis()-began)<300);
+    assert(Serial.blockedWrites==0);
+  }
+  assert(emitted[0]==start);
+  // Also cover a completely full queue, re-arming, and the one-byte-short
+  // boundary where DONE would fit but its CRLF would block.
+  for (int space : {0,5}) {
+    Serial.txFree=space;
+    assert(action("stop")==200);
+    assert(action("arm")==200);
+    assert(action("jog","X","10")==200); run();
+    assert(action("jog","X","-10")==200); run();
+    assert(Serial.blockedWrites==0);
+  }
+  assert(action("stop")==200);
+  Serial.txFree=-1;
+  Serial.connected=false;
   assert(action("replace")==409);
   assert(action("arm")==200 && armed && webArmed);
   WebControl::server.args={{"op","heartbeat"},{"client","different-browser"}};
@@ -387,6 +694,9 @@ int main() {
   const int stoppedZ=rises[D9]; delay(1000);
   assert(rises[D9]==stoppedZ && !presetRunning && !Positions::known);
   testMesh();
+  testCutSettings();
+  testCut();
+  testBatch();
   // Compare compressed and full profiles, including short triangular moves
   // and odd lengths. Mirrored floating-point rounding differs by at most 1 us.
   for (int count : {1,2,3,49,50,51,99,100,101,1000,6000}) {

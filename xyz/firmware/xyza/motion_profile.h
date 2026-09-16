@@ -26,8 +26,9 @@ inline void buildProfile(uint32_t *intervals, long count, long rate, long accel)
 // A long preset needs only its acceleration ramp in RAM. The cruise interval
 // repeats, and deceleration mirrors acceleration. No refills or floating-point
 // work are needed in the step interrupt, regardless of travel distance.
-struct PresetProfile {
-  static constexpr uint32_t capacity = 1024; // 4,000 pulses/sec at 10,000 pulses/sec^2 ramps over 800.
+template<uint32_t RampCapacity>
+struct CompactProfile {
+  static constexpr uint32_t capacity = RampCapacity;
   uint32_t ramp[capacity] = {}, count = 0, rampCount = 0, cruise = 0;
 
   bool build(uint32_t pulses, long rate, long accel) {
@@ -52,3 +53,4 @@ struct PresetProfile {
     return fromEnd < rampCount ? ramp[fromEnd] : cruise;
   }
 };
+using PresetProfile = CompactProfile<1024>; // XY: 4,000/s at 10,000/s² needs 800 ramp pulses.

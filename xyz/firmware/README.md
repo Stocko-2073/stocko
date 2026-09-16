@@ -51,7 +51,8 @@ Before crossing, the tip lifts to at least the highest mesh point plus its
 current bed-relative offset plus 1 mm. This covers interior humps as well as
 the endpoints. If the tip is more than 1 mm deep, raise it before travelling.
 The straight XY crossing does not cut along the surface; Z compensation sets
-the destination height after travel. The spindle never moves from this page.
+the destination height after travel. Only the explicit **Cut** and **Cut All** actions turn
+the spindle; jogs and travel leave it stationary.
 
 Whole-hole arrows move from the nearest hole to the selected neighbour and
 retain any fine XY offset. With a mesh, they can move both X and Y and follow
@@ -127,6 +128,15 @@ connection); the firmware drops a client that has sent nothing within 400 ms,
 and Wi-Fi modem sleep is disabled, so status stays responsive. USB-controlled
 motion retains its USB disconnect stop; web control works without a USB
 connection.
+
+Browser-triggered ARM/JOG replies, motion-completion notices, and position
+checkpoint diagnostics are best-effort USB logs: a whole line is skipped if
+the USB transmit buffer has insufficient room. A computer connected by USB
+without a reader can otherwise fill that buffer after repeated jogs. The
+installed HWCDC driver waits up to about 2 seconds per blocked write, delaying
+HTTP replies and triggering the page's 1.2-second warning on subsequent clicks.
+This depends on accumulated USB output, not the 0.1 mm step size. USB console
+commands retain their regular replies, including `OK jogging` and `DONE`.
 
 If the motors turn off unexpectedly, the status pill names the cause: an
 explicit stop, the 60-second idle release, the USB idle timeout, or a
@@ -367,7 +377,7 @@ Short moves use a triangular profile and may never reach the requested rate.
 | --- | --- | --- | --- |
 | M0 / X | 4000 | 10000 | 1000 |
 | M1 / Y | 4000 | 10000 | 2000 |
-| M2 / A drill | 1000 | 500 | 6000 |
+| M2 / A drill | 3200 | 1000 | 6000 |
 | M3 / Z | 2000 | 10000 | 1000 |
 
 Firmware and Python now default to 1,000 pulses/sec (clamped to the motor cap).
@@ -711,14 +721,79 @@ heartbeat. The idle timer starts at ARM or motion completion, and does not
 interrupt a valid slow jog. Pulse counters describe commands emitted since reset,
 not actual position; there is no motor-power sensing or missed-step detection.
 
-## Next stage: calibrated cutting
+## Trace cutting
 
-There is no homing command and no assumed zero. This scaffold deliberately has
-no G-code, millimetre moves, continuous spindle mode, or automatic cutting cycle.
-Before implementing those, establish independent/coupled kinematics, positive
-directions, pulses/mm for XYZ, pulses/revolution for A, usable travel, manual
-work-zero procedure, board hole pitch, safe Z clearance, cut depth, and feed/RPM.
-With no switches, work position must be manually established each session and
-invalidated after disable, reset, or any suspected lost motion. A later cutting
-cycle should retract, travel to a selected hole, run A while feeding Z through
-the strip, and retract before the next travel move.
+Position the bit at the intended XY location and starting height. Enter
+**Depth (mm)** (0.1–10 mm), **Drill speed (RPM)** (whole numbers 1–240),
+**Drill acceleration (RPM/s)** (whole numbers 15–750), and **Plunge/retract
+(mm/s)** (0.1–20 mm/s), then press **Cut**. Depth and vertical speed accept
+increments of 0.1. Defaults are 1 mm, 60 RPM, 75 RPM/s, and 2 mm/s. The fields
+are restored from controller NVRAM when the page opens and are locked during
+motion. **Cut** saves all four values before starting; **Save settings** stores
+them without moving anything, including with motors off. Unchanged settings
+skip the flash write. A failed settings write prevents the cut from starting.
+Settings use a separate versioned NVS record from the board calibration; an
+absent or invalid record uses the defaults above. Editing a field alone does
+not save it, and status polls do not overwrite edits. Older saved settings
+retain their depth, RPM, and feed and gain the previous 75 RPM/s acceleration
+when loaded; the next save upgrades their record.
+
+The controller accelerates the drill in the confirmed positive cutting
+direction as Z starts lowering, makes two additional turns at full depth,
+then raises Z to the starting height while continuing to spin. Only after
+Z has returned does the spindle decelerate to a stop. The selected vertical
+speed applies to both directions, with the existing Z acceleration limit. The UI shows plunge, full-depth cutting, retract,
+and spindle stopping. Total turns include the rotation during plunge,
+retract, and acceleration/deceleration, as well as the two turns at depth.
+
+Depth is relative to the current height, not an automatic surface touch-off
+or a mesh-derived cut depth. The XYZ scale remains provisional at 100 pulses/mm;
+the spindle scale is 800 pulses/revolution. The speed limit corresponds to the
+3200-pulse/s spindle cap; speed is rounded to a whole pulse per second.
+The selected drill acceleration also controls deceleration. At the default
+75 RPM/s (1000 pulses/s²), reaching 240 RPM takes about 3.2 seconds; at
+150 RPM/s it takes about 1.6 seconds. Short cuts may finish before reaching
+the requested RPM. USB jog acceleration remains 1000 pulses/s². The firmware
+validates all four fields before
+enabling motion. A page loaded before these fields were added must be refreshed
+to send the new parameters.
+
+Both axes have independent step deadlines on the hardware timer, and all
+cut-stage transitions happen in its interrupt. No HTTP request, browser poll,
+or main-loop service is needed to advance the sequence. The position record
+is marked dirty before either axis moves and checkpointed after the entire
+cycle; no flash writes occur between stages.
+
+Cutting requires motors enabled by this page, a known A1 reference, and no
+unfinished bed calibration. Other motion and calibration commands are rejected
+until completion. **STOP** cancels the entire sequence and disables motors
+immediately, without an automatic retract. A controller restart never resumes
+a cut. Failure to store the initial dirty marker rejects the cut; a final
+checkpoint failure invalidates the reference and requires position recovery.
+
+
+### Cutting a coordinate list
+
+Below bed calibration, enter a comma-separated list such as `A1, N15, Z34`
+and press **Cut All**. Both the page and controller validate the entire list
+before anything moves. Coordinates run from A1 to Z34; surrounding spaces,
+newlines, and lowercase letters are accepted. Empty entries, invalid holes,
+more than 884 entries, or more than 8192 characters reject the whole job.
+Duplicates are kept and cut again in the order entered.
+
+The controller saves and snapshots the current depth, RPM, feed, and
+acceleration for the job. For each entry it performs the normal clearance
+travel (including mesh compensation), returns to the starting height above
+that hole's bed surface, then executes a complete spinning plunge, two-turn
+cut, spinning retract, and spin-down. The spindle stays stopped during XY
+travel. Set the initial drill height before starting the list.
+
+Progress shows the current hole and how many cuts are complete. The entire
+list runs locally without browser polls, and other motion/settings changes
+are blocked until it finishes. **STOP** cancels the remaining list, including
+between moves. Position or storage failures abort the job. The queue is held
+in RAM only; a restart never resumes it. After the last cut the controller returns to the saved A1 XYZ position. It
+lifts at least 1 mm before crossing, clears the mesh when present, then lowers
+to the saved A1 height. The job stays busy and shows “Returning to A1” until
+arrival; STOP also cancels this final return. Completion is reported only after
+returning successfully.

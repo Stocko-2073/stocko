@@ -60,13 +60,28 @@ inline void delayMicroseconds(uint32_t n) {
 inline void delay(uint32_t n) { delayMicroseconds(n*1000); }
 struct FakeSerial {
   bool connected=true;
+  // Negative capacity means a host that continuously drains output. A finite
+  // capacity models a connected host that leaves its USB output unread.
+  int txFree=-1, blockedWrites=0;
   std::deque<char> input;
   std::string output;
   explicit operator bool() const { return connected; }
   void begin(int) {}
+  int availableForWrite() { return txFree < 0 ? 4096 : txFree; }
   int available() { return input.size(); }
   char read() { char c=input.front(); input.pop_front(); return c; }
-  void println(const char *s) { output += std::string(s) + "\n"; }
+  void println(const char *s) {
+    const int bytes=std::string(s).size()+2;
+    if (txFree >= 0) {
+      if (txFree < bytes) {
+        ++blockedWrites;
+        delay(2000); // Installed HWCDC retries a full ring 20 times at 100 ms.
+        return;
+      }
+      txFree-=bytes;
+    }
+    output += std::string(s) + "\n";
+  }
   void printf(const char *fmt, ...) {
     char buffer[256]; va_list args; va_start(args, fmt);
     vsnprintf(buffer, sizeof(buffer), fmt, args); va_end(args); output += buffer;

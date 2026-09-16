@@ -34,6 +34,12 @@ constexpr long maxHoleX = (boardColumns-1)*holePitch, maxHoleY = (boardRows-1)*h
 constexpr long holeRate = 4000; // Hole-to-hole travel; clamped to the X/Y motor rate caps.
 constexpr int64_t travelLift = 100; // Hole travel first raises the drill this far: 1 mm at 100 pulses/mm.
 constexpr long maxHoleJog = 3; // Arrow steps in whole holes.
+constexpr size_t maxBatchHoles=884, maxBatchText=8192;
+struct BatchHole { uint8_t col, row; };
+BatchHole batchHoles[maxBatchHoles];
+size_t batchCount=0, batchIndex=0; // Index is the number of completed cuts.
+bool batchCutting=false, batchReturning=false, batchReturned=false;
+CutSettings::Record batchSettings;
 // Saving Z34 more than this far from its nominal place is treated as a
 // mistake (wrong hole, or the drill never moved), not as calibration.
 constexpr int64_t spanTolerancePercent = 10;
@@ -102,6 +108,20 @@ void planHole(const int64_t current[4], int64_t x, int64_t y, bool calibration=f
   }
   travelRate=rate; stage=0; presetRunning=true;
 }
+void planSaved(const int64_t *p, bool lift=false) {
+  for (int i = 0; i < 4; ++i) target[i] = p[i];
+  int64_t current[4]; Positions::snapshot(current);
+  clearance = current[3] > target[3] ? current[3] : target[3];
+  if (Positions::saved.meshSet) {
+    for (const auto &point:Positions::saved.mesh) {
+      const int64_t safe=Positions::saved.home[3]+point[2]+travelLift;
+      if (safe>clearance) clearance=safe;
+    }
+  }
+  travelRate=holeRate; stage = 0; presetRunning = true;
+  // After a cut, lift before crossing even without a mesh.
+  if (lift && current[3]+travelLift>clearance) clearance=current[3]+travelLift;
+}
 // The nearest column (X) or row (Y) index to a raw offset from A1.
 long nearestIndex(int axis, int64_t offset) {
   int64_t sx, sy; span(sx, sy);
@@ -119,20 +139,58 @@ bool parseHole(const char *s, long &col, long &row) {
   return true;
 }
 
+bool listSpace(char c) { return c==' ' || c=='\t' || c=='\r' || c=='\n'; }
+// Parse every entry before publishing the job. Empty entries, embedded NULs,
+// and out-of-board coordinates reject the whole request, never a partial job.
+bool parseBatch(const char *text, size_t length, BatchHole *parsed, size_t &count, char *error, size_t errorSize) {
+  count=0;
+  if (!length || length>maxBatchText || memchr(text,0,length)) {
+    snprintf(error,errorSize,"Enter a comma-separated list, at most 8192 characters."); return false;
+  }
+  size_t begin=0;
+  while (begin<=length) {
+    size_t end=begin;
+    while (end<length && text[end]!=',') ++end;
+    size_t first=begin,last=end;
+    while (first<last && listSpace(text[first])) ++first;
+    while (last>first && listSpace(text[last-1])) --last;
+    char token[4]={}; long col,row;
+    if (last-first<2 || last-first>3) {
+      snprintf(error,errorSize,"Invalid coordinate %u; use A1–Z34.",unsigned(count+1)); return false;
+    }
+    memcpy(token,text+first,last-first);
+    if (!parseHole(token,col,row)) {
+      snprintf(error,errorSize,"Invalid coordinate %u: %s. Use A1–Z34.",unsigned(count+1),token); return false;
+    }
+    if (count==maxBatchHoles) { snprintf(error,errorSize,"Use at most 884 coordinates."); return false; }
+    parsed[count++]={uint8_t(col),uint8_t(row)};
+    if (end==length) return true;
+    begin=end+1;
+  }
+  return false;
+}
+void planBatchHole() {
+  const auto h=batchHoles[batchIndex];
+  int64_t current[4],x,y; Positions::snapshot(current);
+  holeOffset(h.col,h.row,x,y);
+  planHole(current,x,y);
+  batchCutting=false;
+}
+
 void reply(int code, const char *message) { server.send(code, "text/plain", message); }
-bool idle() { return activeMotor < 0 && !presetRunning; }
+bool idle() { return activeMotor < 0 && !presetRunning && !batchRunning; }
 void runCommand(const char *text) {
-  char buffer[96]; snprintf(buffer, sizeof(buffer), "%s", text); command(buffer);
+  char buffer[96]; snprintf(buffer, sizeof(buffer), "%s", text); command(buffer, true);
 }
 void state() {
   int64_t p[4]; Positions::snapshot(p);
   char body[3072];
   const auto &s = Positions::saved;
   snprintf(body, sizeof(body),
-    "{\"armed\":%s,\"webArmed\":%s,\"busy\":%s,\"known\":%s,\"recoverable\":%s,"
+    "{\"cutPhase\":%d,\"armed\":%s,\"webArmed\":%s,\"busy\":%s,\"known\":%s,\"recoverable\":%s,"
     "\"homeSet\":%s,\"replaceSet\":%s,\"spanSet\":%s,\"commissioned\":%s,\"position\":[%lld,%lld,%lld],"
     "\"replace\":[%lld,%lld,%lld],\"span\":[%lld,%lld],\"disableReason\":\"%s\",\"uptime\":%lu,",
-    armed ? "true":"false", (webArmed && ownsControl()) ? "true":"false", idle() ? "false":"true",
+    cutPhase, armed ? "true":"false", (webArmed && ownsControl()) ? "true":"false", idle() ? "false":"true",
     Positions::known ? "true":"false", s.clean ? "true":"false",
     s.homeSet ? "true":"false", s.replaceSet ? "true":"false", s.spanSet ? "true":"false",
     Positions::commissioned() ? "true":"false",
@@ -141,6 +199,14 @@ void state() {
     (long long)s.span[0], (long long)s.span[1], disableReason,
     (unsigned long)(millis()/1000));
   size_t used=strlen(body);
+  char batchHole[5]={};
+  if (batchIndex<batchCount) snprintf(batchHole,sizeof(batchHole),"%c%u",'A'+batchHoles[batchIndex].row,unsigned(batchHoles[batchIndex].col));
+  used+=snprintf(body+used,sizeof(body)-used,"\"batch\":{\"active\":%s,\"completed\":%u,\"total\":%u,\"hole\":\"%s\",\"returning\":%s,\"returned\":%s},",
+    batchRunning?"true":"false",unsigned(batchIndex),unsigned(batchCount),batchHole,
+    batchRunning&&batchReturning?"true":"false",batchReturned?"true":"false");
+  const auto &c=CutSettings::saved;
+  used+=snprintf(body+used,sizeof(body)-used,"\"cutSettings\":{\"depth\":%u.%u,\"rpm\":%u,\"feed\":%u.%u,\"accel\":%u},",
+    unsigned(c.depth/100),unsigned(c.depth%100/10),unsigned(c.rpm),unsigned(c.feed/100),unsigned(c.feed%100/10),unsigned(c.accel));
   used+=snprintf(body+used,sizeof(body)-used,"\"meshSet\":%s,\"calibrating\":%s,\"draftMask\":%u,\"mesh\":[",
     s.meshSet?"true":"false",s.calibrating?"true":"false",unsigned(s.draftMask));
   for (int i=0;i<9;++i) used+=snprintf(body+used,sizeof(body)-used,"%s[%lld,%lld,%lld]",i?",":"",
@@ -246,6 +312,55 @@ void action() {
     const bool ok = Positions::saveSpan(x, y);
     reply(ok ? 200:409, ok ? "Z34 saved. Hole positions now interpolate between A1 and Z34." : "Cannot save: position storage failed."); return;
   }
+  if (op == "cut" || op == "cut-all" || op == "cut-settings") {
+    if ((op!="cut-settings" && (!armed || !webArmed)) || (armed && !webArmed)) {
+      reply(409, "Turn on the motors in this page first."); return;
+    }
+    if (op!="cut-settings" && (!Positions::known || !Positions::saved.homeSet || Positions::saved.calibrating)) {
+      reply(409, "Confirm position and finish calibration before cutting."); return;
+    }
+    const auto depthText=server.arg("depth");
+    char *end=nullptr; errno=0;
+    const double depth=strtod(depthText.c_str(), &end);
+    long rpm;
+    if (errno || end==depthText.c_str() || *end || !std::isfinite(depth) ||
+        depth<0.1 || depth>10 || std::abs(depth*10-std::round(depth*10))>0.000001 ||
+        !number(server.arg("rpm").c_str(),1,240,rpm)) {
+      reply(400, "Use depth 0.1–10 mm in 0.1 mm steps and speed 1–240 RPM."); return;
+    }
+    const long pulses=long(std::lround(depth*100)), rate=(rpm*800+30)/60;
+    const auto feedText=server.arg("feed"); errno=0;
+    const double feed=strtod(feedText.c_str(), &end);
+    if (errno || end==feedText.c_str() || *end || !std::isfinite(feed) ||
+        feed<0.1 || feed>double(Config::maxRate[3])/100 ||
+        std::abs(feed*10-std::round(feed*10))>0.000001) {
+      reply(400, "Use plunge/retract speed 0.1–20 mm/s in 0.1 mm/s steps."); return;
+    }
+    long accel;
+    if (!number(server.arg("accel").c_str(),Config::cutMinAccelRpm,Config::cutMaxAccelRpm,accel)) {
+      reply(400, "Use drill acceleration 15–750 RPM/s, in whole numbers."); return;
+    }
+    const CutSettings::Record settings{2,uint32_t(pulses),uint32_t(rpm),uint32_t(std::lround(feed*100)),uint32_t(accel)};
+    size_t count=0; BatchHole parsed[maxBatchHoles];
+    if (op=="cut-all") {
+      const auto holes=server.arg("holes"); char error[128];
+      if (!parseBatch(holes.c_str(),holes.length(),parsed,count,error,sizeof(error))) { reply(400,error); return; }
+    }
+    if (!CutSettings::save(settings)) {
+      reply(503, "Cut settings could not be saved. No cut started."); return;
+    }
+    if (op=="cut-settings") { reply(200, "Cut settings saved."); return; }
+    if (op=="cut-all") {
+      memcpy(batchHoles,parsed,count*sizeof(BatchHole));
+      batchSettings=settings; batchCount=count; batchIndex=0; batchRunning=true; batchReturning=batchReturned=false;
+      planBatchHole();
+      reply(200, "List validated. Cutting holes in order."); return;
+    }
+    if (!startCut(pulses,rate,settings.feed,(accel*800+30)/60)) {
+      reply(503, "Unable to start cut; check position storage."); return;
+    }
+    reply(200, "Cut started: spinning plunge, two turns at depth, spinning retract."); return;
+  }
   if (!armed || !webArmed) { reply(409, "Turn on the motors in this page first."); return; }
   if (op == "jog") {
     const auto axis = server.arg("axis"), pulses = server.arg("pulses"), holes = server.arg("holes");
@@ -311,16 +426,7 @@ void action() {
       reply(409, "Set A1 and confirm the position first."); return;
     }
     const int64_t *p = op == "go-home" ? Positions::saved.home : Positions::saved.replace;
-    for (int i = 0; i < 4; ++i) target[i] = p[i];
-    int64_t current[4]; Positions::snapshot(current);
-    clearance = current[3] > target[3] ? current[3] : target[3];
-    if (Positions::saved.meshSet) {
-      for (const auto &point:Positions::saved.mesh) {
-        const int64_t safe=Positions::saved.home[3]+point[2]+travelLift;
-        if (safe>clearance) clearance=safe;
-      }
-    }
-    travelRate=holeRate; stage = 0; presetRunning = true;
+    planSaved(p);
     reply(200, "Moving to saved position."); return;
   }
   reply(400, "Unknown action.");
@@ -346,6 +452,30 @@ void checkConnection() {
 void service() {
   server.service();
   checkConnection();
+  if (batchRunning && activeMotor<0) {
+    if (!armed || !Positions::known || !Positions::commissioned()) {
+      disableMotors(); disableReason="Cut list aborted; check position"; return;
+    }
+    if (!presetRunning) {
+      if (batchReturning) {
+        batchReturned=true; batchReturning=false; batchRunning=false; return;
+      }
+      if (batchCutting) {
+        if (++batchIndex==batchCount) {
+          batchReturning=true; batchCutting=false;
+          planSaved(Positions::saved.home,true); return;
+        }
+        planBatchHole();
+      } else {
+        const auto &c=batchSettings;
+        if (!startCut(c.depth,(c.rpm*800+30)/60,c.feed,(c.accel*800+30)/60)) {
+          disableMotors(); disableReason="Unable to start next cut"; return;
+        }
+        batchCutting=true;
+      }
+      return;
+    }
+  }
   if (!presetRunning || activeMotor >= 0) return;
   if (!armed || !Positions::known || !Positions::commissioned()) { disableMotors(); return; }
   int64_t current[4]; Positions::snapshot(current);

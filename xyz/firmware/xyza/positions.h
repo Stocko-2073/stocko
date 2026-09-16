@@ -80,7 +80,7 @@ void settled(bool interrupted) {
   Record next = saved;
   snapshot(next.checkpoint);
   next.clean = known && commissioned();
-  if (!write(next)) { known = false; Serial.println("ERR saving position checkpoint"); }
+  if (!write(next)) { known = false; diagnostic("ERR saving position checkpoint"); }
 }
 bool save(bool home) {
   if (!commissioned() || (!home && (!known || !saved.homeSet))) return false;

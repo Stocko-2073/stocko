@@ -17,9 +17,9 @@ static const char webPage[] PROGMEM = R"HTML(<!doctype html>
 main{max-width:1000px;margin:auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
 h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 14px}
-button,input{font:inherit;color:var(--text);background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+button,input,textarea{font:inherit;color:var(--text);background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
 button{cursor:pointer;touch-action:manipulation}button:hover:enabled{border-color:#4b5f66;background:#2a3840}button:disabled{opacity:.35;cursor:not-allowed}
-button:focus-visible,input:focus-visible,.seg label:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.seg label:focus-within{outline:3px solid var(--accent);outline-offset:2px}
 .primary{background:var(--accent);color:var(--ink);border-color:transparent;font-weight:700}.primary:hover:enabled{background:#a6f0d2;border-color:transparent}
 .dro{display:grid;grid-template-columns:3fr 2fr;gap:10px}
 .dro div{background:var(--bg);border-radius:12px;padding:10px 14px;min-width:0}.dro span,.dro small{display:block;font-size:12px;color:var(--muted)}
@@ -41,6 +41,9 @@ button:focus-visible,input:focus-visible,.seg label:focus-within{outline:3px sol
 .jog i{font-style:normal;font-size:26px;line-height:1;color:var(--text)}.jog:disabled i{color:var(--muted)}.jog span{font-weight:600;color:var(--text)}.jog:disabled span{color:var(--muted)}
 .goto{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 .goto input{width:7em;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.goto .hint{flex:1 1 200px;margin:0}
+#cutList{display:block;width:100%;min-height:7em;resize:vertical;margin:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cut-controls{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.cut-fields{display:grid;grid-template-columns:minmax(0,1fr) 7em;gap:10px 16px;align-items:center}.cut-fields input{width:100%;min-width:0}
 .row{display:flex;align-items:center;gap:10px;padding:14px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0;padding-top:0}
 .row div{flex:1;min-width:0}.row b{display:block}.row small,.hint,.muted{color:var(--muted);font-size:13px}.hint{margin:6px 0 0;min-height:1.2em}
 details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{cursor:pointer;color:var(--text);font-weight:600;padding:4px 0}details p{margin:10px 0}
@@ -58,6 +61,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div class="ref"><span id="referenceNote"></span><span class="badge" id="refBadge">Position unknown</span></div>
 <div class="actions" id="refActions"><button id="confirm" data-op="confirm">Nothing moved since power-off</button><button id="reference" data-op="reference">Drill is above A1</button></div>
 <div class="gate" id="gate"><span id="gateText"></span><button class="primary" id="arm" data-op="arm">Motors on</button><button id="disarm" data-op="stop" title="Turn the motors off; the drill may settle under gravity">Motors off</button></div>
+<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Lift 1 mm → travel straight → lower 1 mm.</p></div>
 <h2 style="margin-top:26px">Move</h2>
 <div class="move">
 <div class="seg xy" role="radiogroup" aria-label="Move across the board by"><label><input type="radio" name="xy" value="1h" checked>1 hole<small>2.54 mm</small></label><label><input type="radio" name="xy" value="3h">3 holes<small>7.62 mm</small></label><label><input type="radio" name="xy" value="100">1 mm<small>fine</small></label><label><input type="radio" name="xy" value="10">0.1 mm<small>fine</small></label></div>
@@ -65,7 +69,15 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div class="pad" id="xy"></div><div class="zpad" id="z"></div>
 </div>
 <p class="muted" style="text-align:center;margin:14px 0 0">Columns increase ← · Rows increase ↓ · One press per move.</p>
-<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Lift 1 mm → travel straight → lower 1 mm.</p></div>
+<div class="cut-controls"><h2>Cut trace</h2><div class="cut-fields">
+<label for="cutDepth">Depth (mm)</label><input id="cutDepth" type="number" min="0.1" max="10" step="0.1" value="1">
+<label for="cutRpm">Drill speed (RPM)</label><input id="cutRpm" type="number" min="1" max="240" step="1" value="60">
+<label for="cutAccel">Drill acceleration (RPM/s)</label><input id="cutAccel" type="number" min="15" max="750" step="1" value="75">
+<label for="cutFeed">Plunge/retract (mm/s)</label><input id="cutFeed" type="number" min="0.1" max="20" step="0.1" value="2">
+</div><div class="actions"><button id="cut" class="primary">Cut</button><button id="saveCut">Save settings</button></div></div>
+<p class="hint">Spins while lowering and raising, with two turns at full depth. Returns to the starting height. Settings are saved when you cut, or press Save settings.</p>
+<p class="hint" id="cutHint">Position the bit before cutting. Runs on the controller; STOP cancels.</p>
+
 </section>
 <aside>
 <section class="card"><h2>Board</h2>
@@ -83,8 +95,15 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <p class="hint">Go stays raised. Fine-jog to the hole and touch the surface; Save.</p>
 <div class="actions"><button class="primary" id="mesh-apply" data-op="mesh-apply">Apply mesh</button><button id="mesh-cancel" data-op="mesh-cancel">Cancel</button></div>
 </div></section>
+<section class="card" style="margin-top:20px"><h2>Cut a list</h2>
+<label for="cutList">Coordinates, separated by commas</label>
+<textarea id="cutList" rows="4" maxlength="8192" placeholder="A1, N15, Z34" spellcheck="false" aria-describedby="batchHint"></textarea>
+<p class="hint">Uses the current cut settings. Travels with clearance, then cuts each hole in order and returns to A1. Runs on the controller; STOP cancels the whole list.</p>
+<div class="actions"><button id="cutAll" class="primary">Cut All</button></div>
+<p class="hint" id="batchHint" role="status">Enter up to 884 coordinates, A1–Z34.</p>
+</section>
 <details><summary><span class="warn">No limit switches.</span> Check travel & clearance before moving.</summary>
-<p><b>Travel:</b> A1 and Swap board use the higher endpoint height. Hole moves (A1–Z34) lift 1 mm and return to the starting height. Travel is straight, at 4× arrow speed. XY arrows keep the current height. This page does not run the spindle.</p>
+<p><b>Travel:</b> A1 and Swap board use the higher endpoint height. Hole moves (A1–Z34) lift 1 mm and return to the starting height. Travel is straight, at 4× arrow speed. XY arrows keep the current height. Only Cut and Cut All run the spindle.</p>
 <p><b>Position:</b> Estimated from steps at a provisional 100 steps/mm. Default pitch is 2.54 mm; setting Z34 calibrates the grid between A1 and Z34. A1, Z34 and swap are saved on the controller.</p>
 <p><b>Mesh:</b> Touch the A1 surface, then Start at A1. Measure all nine XYZ points at the same tip contact height and Apply mesh. Hole travel and whole-hole steps interpolate XYZ and preserve height above the bed, lifting over the highest mesh point first. Millimetre jogs stay manual. Outside the board, bed height holds at the nearest mesh edge. A1 and swap travel to their saved heights.</p>
 <p><b>Re-home:</b> Align XYZ with A1 at the original tip height, then confirm or set A1. The mesh is kept; setting A1 cancels any unfinished calibration.</p>
@@ -94,6 +113,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 </main><div id="message" role="status" aria-live="polite"></div>
 <script>
 const $=id=>document.getElementById(id);const PPM=100,PITCH=254,COLS=34,ROWS=26; // Boards run A1 to Z34.
+let cutSettingsLoaded=false;
 let state=null,pending=false,online=false,xyStep={holes:1},zStep=100,hideTimer,lastUptime=null,worst=0,worstSince=0;
 const meshNames=['A1','A17','A34','M1','M17','M34','Z1','Z17','Z34'],meshColumns=[1,17,34],meshRows=[0,12,25];
 let meshPoint=1;const meshButtons=[];
@@ -121,9 +141,9 @@ for(let i=0;i<9;i++)$('xy').append(i===4?hub('hub','drill'):xy[i]?jog(...xy[i]):
 $('z').append(jog('Z',1,'▲','Up'));$('z').append(hub('zhub','height'));$('z').append(jog('Z',-1,'▼','Down'));
 for(const i of [2,1,0,5,4,3,8,7,6]){const b=document.createElement('button');b.onclick=()=>{meshPoint=i;render();};b.title='Select '+meshNames[i];$('meshGrid').append(b);meshButtons[i]=b;}
 document.addEventListener('change',e=>{if(e.target.name==='xy')xyStep=/h$/.test(e.target.value)?{holes:parseInt(e.target.value)}:{pulses:+e.target.value};if(e.target.name==='z')zStep=+e.target.value;render();});
-function render(){const s=state,blocked=!online||pending||!s||s.busy||!s.commissioned;document.querySelectorAll('[data-op],.jog').forEach(b=>b.disabled=blocked);$('go').disabled=true;
+function render(){const s=state,blocked=!online||pending||!s||s.busy||!s.commissioned;document.querySelectorAll('[data-op],.jog').forEach(b=>b.disabled=blocked);$('go').disabled=true;$('cut').disabled=true;$('saveCut').disabled=true;$('cutAll').disabled=true;$('cutList').disabled=blocked;$('cutDepth').disabled=blocked;$('cutRpm').disabled=blocked;$('cutFeed').disabled=blocked;$('cutAccel').disabled=blocked;
 const st=$('status');if(!online){st.textContent='Disconnected';st.dataset.tone='bad';}if(!s)return;
-if(online){st.textContent=s.busy?'Moving':s.armed?'Motors on':'Motors off · '+(s.disableReason||'Stopped');st.dataset.tone=s.busy?'busy':s.armed?'ok':'off';}
+if(online){st.textContent=s.batch?.returning?'Returning to A1':s.batch?.active?'Cut list '+(s.batch.completed+1)+'/'+s.batch.total:s.cutPhase?'Cutting':s.busy?'Moving':s.armed?'Motors on':'Motors off · '+(s.disableReason||'Stopped');st.dataset.tone=s.busy?'busy':s.armed?'ok':'off';}
 const g=s.known?grid(s.position):null,z=Math.round(s.position[2]-bedHeight(s.position));
 $('here').textContent=g?g.name||'Off board':'—';$('hereNote').textContent=g?place(g):'Position unknown';$('hereNote').className=g&&g.name&&!g.on?'off':'';
 $('height').textContent=s.known?(z<0?'−':'+')+mm(Math.abs(z)):'—';$('heightNote').textContent=s.known?(z<0?'below':'above')+(s.meshSet?' bed':' A1'):'Position unknown';
@@ -137,6 +157,12 @@ const why=!online||!s.commissioned?'':s.webArmed?'Controlled here.':s.armed?'Con
 $('gate').hidden=!why;$('gateText').textContent=why;$('arm').hidden=s.armed;$('arm').disabled=blocked||s.armed;$('disarm').hidden=!s.webArmed;
 arrows.forEach(a=>a.b.disabled=blocked||!s.webArmed||!!(s.meshSet&&!s.known&&a.axis!=='Z'&&xyStep.holes));
 const travel=blocked||!s.known||!s.homeSet||!s.webArmed;
+$('cut').disabled=travel||!!s.calibrating||!cutOptions();
+$('cutAll').disabled=$('cut').disabled||!$('cutList').value.trim();
+const batch=s.batch;
+$('batchHint').textContent=batch?.returning?'Cuts complete · returning to A1':batch?.active?(s.cutPhase?'Cutting ':'Going to ')+batch.hole+' · '+(batch.completed+1)+' of '+batch.total:batch?.returned?'Completed '+batch.total+' cuts · returned to A1.':batch?.total?'Stopped after '+batch.completed+' of '+batch.total+' cuts.':'Enter up to 884 coordinates, A1–Z34.';
+$('saveCut').disabled=blocked||(s.armed&&!s.webArmed)||!cutOptions();
+$('cutHint').textContent=s.cutPhase?['','Cutting · spinning and lowering','Cutting · two turns at full depth','Cutting · spinning and returning','Cutting · stopping the drill'][s.cutPhase]:s.calibrating?'Finish calibration before cutting.':'Position the bit before cutting. Runs on the controller; STOP cancels.';
 $('go').disabled=travel;$('go-home').disabled=travel;$('go-span').disabled=travel;$('go-replace').disabled=travel||!s.replaceSet;$('replace').disabled=blocked||!s.known||!s.homeSet;$('span').disabled=blocked||!s.known||!s.homeSet;
 $('span').disabled=$('span').disabled||!!s.meshSet||!!s.calibrating;
 $('meshInfo').textContent=s.calibrating?((s.draftMask||0).toString(2).split('1').length-1)+'/9 measured · '+(s.meshSet?'Saved mesh stays active.':'Apply when complete.'):s.meshSet?'3×3 mesh active · retained when A1 changes.':'Touch A1 surface, then start.';
@@ -159,7 +185,13 @@ async function post(op,extra={}){const response=await fetch('/api/action',{metho
 async function act(op,extra={}){if(pending&&op!=='stop')return;if(op==='home'&&state?.homeSet&&!confirm((state.known?'Move A1 to the drill’s current position?':'Replace A1 and clear the saved swap position? To keep A1, use “Drill is above A1”.')+(state.calibrating?' This cancels the unfinished calibration.':'')))return;if(op==='span'&&state?.spanSet&&!confirm('Set Z34 at the current position?'))return;if(op==='mesh-start'&&!confirm('Tip touching the A1 surface? This sets A1 here and starts a new calibration. The saved mesh stays active until Apply.'))return;if(op==='mesh-clear'&&!confirm('Clear the mesh and use the saved Z34 pitch (or default pitch)?'))return;pending=true;render();try{say(await post(op,extra));}catch(e){say(failure(e),true);}finally{pending=false;await refresh();}}
 function link(ms){const now=Date.now();if(now-worstSince>60000){worst=0;worstSince=now;}worst=Math.max(worst,ms);const l=$('link');l.textContent='link '+Math.round(ms)+' ms · worst '+(worst>=1000?(worst/1000).toFixed(1)+' s':Math.round(worst)+' ms');l.className='link'+(worst>=1000?' slow':'');}
 function failure(e){return e.name==='TimeoutError'||/abort/i.test(e.message)?'No reply from the controller within 1.2 s. The motors are unaffected; the request may still have run.':e.message;}
-async function refresh(){const t0=Date.now();try{state=JSON.parse(await post('poll'));online=true;link(Date.now()-t0);if(lastUptime!==null&&state.uptime<lastUptime)say('Controller restarted: uptime fell from '+lastUptime+' s to '+state.uptime+' s. Check power, then run CRASH INFO over USB.',true);lastUptime=state.uptime;}catch(e){online=false;link(Date.now()-t0);}render();}
+async function refresh(){const t0=Date.now();try{state=JSON.parse(await post('poll'));online=true;if(!cutSettingsLoaded&&state.cutSettings){$('cutDepth').value=String(state.cutSettings.depth);$('cutRpm').value=String(state.cutSettings.rpm);$('cutFeed').value=String(state.cutSettings.feed);$('cutAccel').value=String(state.cutSettings.accel);cutSettingsLoaded=true;}link(Date.now()-t0);if(lastUptime!==null&&state.uptime<lastUptime)say('Controller restarted: uptime fell from '+lastUptime+' s to '+state.uptime+' s. Check power, then run CRASH INFO over USB.',true);lastUptime=state.uptime;}catch(e){online=false;link(Date.now()-t0);}render();}
+function cutOptions(){const depth=Number($('cutDepth').value),rpm=Number($('cutRpm').value),feed=Number($('cutFeed').value),accel=Number($('cutAccel').value);return Number.isFinite(depth)&&depth>=0.1&&depth<=10&&Math.abs(depth*10-Math.round(depth*10))<0.000001&&Number.isInteger(rpm)&&rpm>=1&&rpm<=240&&Number.isFinite(feed)&&feed>=0.1&&feed<=20&&Math.abs(feed*10-Math.round(feed*10))<0.000001&&Number.isInteger(accel)&&accel>=15&&accel<=750?{depth,rpm,feed,accel}:null;}
+function cut(){const options=cutOptions();if(!options){say('Use depth 0.1–10 mm, speed 1–240 RPM, acceleration 15–750 RPM/s, and plunge/retract 0.1–20 mm/s.',true);return;}return act('cut',options);}
+$('saveCut').onclick=()=>{const options=cutOptions();if(options)return act('cut-settings',options);};
+$('cut').onclick=cut;$('cutDepth').oninput=()=>render();$('cutRpm').oninput=()=>render();$('cutFeed').oninput=()=>render();$('cutAccel').oninput=()=>render();
+function cutAll(){const options=cutOptions();if(!options){say('Enter valid cut settings first.',true);return;}const text=$('cutList').value;if(text.length>8192){say('Use at most 8192 characters.',true);return;}const entries=text.split(',');if(entries.length>884){say('Use at most 884 coordinates.',true);return;}const holes=[];for(let i=0;i<entries.length;i++){const token=entries[i].trim();if(!/^[A-Za-z][0-9]{1,2}$/.test(token)||!parseHole(token)){say('Invalid coordinate '+(i+1)+': '+(token||'(empty)')+'. Use A1–Z34.',true);return;}const h=parseHole(token);holes.push(rowName(h.row)+h.col);}return act('cut-all',{...options,holes:holes.join(',')});}
+$('cutAll').onclick=cutAll;$('cutList').oninput=()=>render();
 function goHole(){const h=parseHole($('hole').value);if(!h){say('Enter A1–Z34 (e.g. D12).',true);return;}return act('goto',{hole:rowName(h.row)+h.col});}
 $('go').onclick=goHole;$('go-span').onclick=()=>act('goto',{hole:'Z34'});$('hole').onkeydown=e=>{if(e.key==='Enter'&&!$('go').disabled)goHole();};
 $('hole').oninput=()=>render();

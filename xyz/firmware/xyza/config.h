@@ -19,9 +19,12 @@ constexpr bool inverted[] = {false, false, false, false};
 // Relative jog caps, not cumulative travel limits or collision protection.
 constexpr long maxJogSteps[] = {1000, 2000, 6000, 1000};
 constexpr long defaultRate = 1000; // requested cruise rate; clamped to motor cap.
-constexpr long maxRate[] = {4000, 4000, 1000, 2000}; // pulses/sec; not validated motor limits. X/Y raised for 4,000 hole travel.
-constexpr long acceleration[] = {10000, 10000, 500, 10000}; // pulses/sec^2; XYZ ~100 mm/sec^2.
+constexpr long maxRate[] = {4000, 4000, 3200, 2000}; // pulses/sec; A supports requested 240 RPM.
+constexpr long acceleration[] = {10000, 10000, 1000, 10000}; // pulses/sec^2; XYZ ~100 mm/sec^2.
 constexpr size_t profileCapacity = 6000;
+constexpr long cutTurnsPulses = 1600; // Two turns at 800 pulses/revolution.
+constexpr long cutMinAccelRpm = 15, cutMaxAccelRpm = 750; // RPM per second.
+constexpr long cutMinAccel = (cutMinAccelRpm*800+30)/60; // Pulses/s².
 constexpr uint32_t pulseUs = 3; // A4988 minimum high/low is 1 us.
 constexpr uint32_t webIdleMs = 60000; // Idle motors are released after this long without the controlling page.
 constexpr uint32_t armIdleMs = 30000;

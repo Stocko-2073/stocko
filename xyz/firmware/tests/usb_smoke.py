@@ -41,7 +41,7 @@ try:
     exchange("JOG M0 1\n", "ERR disabled; ARM first")
     exchange("JOG A 1\n", "ERR disabled; ARM first")
     exchange("JOG A 6001\n", "ERR invalid jog")
-    exchange("JOG A 1 1001\n", "ERR invalid jog")
+    exchange("JOG A 1 3201\n", "ERR invalid jog")
     exchange("DEMO\n", "ERR disabled; ARM first")
     exchange("JOG M0 1001\n", "ERR invalid jog")
     exchange("JOG Y -2001\n", "ERR invalid jog")
