@@ -31,7 +31,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   `TerrainObstacle` supplies static ellipsoids, capsules, and boxes with world
   placement, yaw, and optional contact overrides. Tests exercise actual wheel
   encounters on flat/bumps terrain with smooth and lugged wheels.
-- [ ] Adapt spawn height, goal markers, and failure checks to terrain elevation.
+- [x] Adapt spawn height, goal markers, and failure checks to terrain elevation.
+  Static collision geometry now sets footprint-aware spawn clearance, goal
+  marker height, and terrain-relative failure checks. Resets accept XY spawn
+  positions; tests cover heightfields, elevated routes, and missing ground.
+  [Elevation video](videos/elevation-showcase.mp4).
 
 ## Surface presets
 

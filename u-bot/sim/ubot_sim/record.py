@@ -98,17 +98,27 @@ def main():
             scene = renderer.scene
             points = np.vstack(([0, 0], env.waypoints))
             for start, end in zip(points[:-1], points[1:]):
-                add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*start, 0.006],
-                             [0.004, 0, 0], [0.45, 0.55, 0.6, 1], [*end, 0.006])
+                samples = np.linspace(start, end, max(2, int(np.linalg.norm(end - start) / 0.025) + 1))
+                for a, b in zip(samples[:-1], samples[1:]):
+                    za, zb = env.terrain_height(a), env.terrain_height(b)
+                    if za is not None and zb is not None:
+                        add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*a, za + 0.006],
+                                     [0.004, 0, 0], [0.45, 0.55, 0.6, 1], [*b, zb + 0.006])
             for i, point in enumerate(env.waypoints):
+                height = env.terrain_height(point)
+                if height is None:
+                    continue
                 color = [0.2, 0.85, 0.65, 1] if i < env.waypoint_index else [0.55, 0.62, 0.66, 1]
                 if i == env.waypoint_index:
                     color = [1, 0.65, 0.2, 1]
-                add_geometry(scene, mujoco.mjtGeom.mjGEOM_CYLINDER, [*point, 0.009],
+                add_geometry(scene, mujoco.mjtGeom.mjGEOM_CYLINDER, [*point, height + 0.009],
                              [0.045, 0.006, 0], color)
             for start, end in zip(trail[:-1], trail[1:]):
-                add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*start, 0.014],
-                             [0.006, 0, 0], [0.2, 0.85, 0.65, 1], [*end, 0.014])
+                za, zb = env.terrain_height(start), env.terrain_height(end)
+                if za is None or zb is None:
+                    continue
+                add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*start, za + 0.014],
+                             [0.006, 0, 0], [0.2, 0.85, 0.65, 1], [*end, zb + 0.014])
             image = Image.fromarray(renderer.render()).convert("RGBA")
             overlay = Image.new("RGBA", image.size)
             draw = ImageDraw.Draw(overlay)

@@ -36,7 +36,7 @@ class UBotWaypointsEnv(UBotNavigationEnv):
                 # Preserve physical state, controls, simulation time, and route
                 # time budget. Only goal-dependent bookkeeping changes.
                 self.goal = self.waypoints[self.waypoint_index].copy()
-                self.data.mocap_pos[0, :2] = self.goal
+                self._place_goal()
                 self.success_steps = 0
                 self.previous_distance = np.linalg.norm(self.goal - self.data.xpos[self.base, :2])
                 mujoco.mj_forward(self.model, self.data)

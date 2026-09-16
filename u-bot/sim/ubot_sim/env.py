@@ -6,6 +6,7 @@ import mujoco
 import numpy as np
 from gymnasium import spaces
 from ubot_sim.contact_model import load_model
+from ubot_sim.elevation import TerrainElevation
 
 MODEL = Path(__file__).parent / "assets" / "robot.xml"
 WHEEL_RADIUS = 0.1075
@@ -31,6 +32,7 @@ class UBotNavigationEnv(gym.Env):
         self.model = load_model(MODEL, wheel_contact, terrain, timestep,
                                 terrain_contact, obstacles, surface, patches)
         self.data = mujoco.MjData(self.model)
+        self.elevation = TerrainElevation(self.model)
         self.frame_skip = round(0.02 / self.model.opt.timestep)
         self.dt = self.model.opt.timestep * self.frame_skip
         self.action_space = spaces.Box(-1, 1, shape=(2,), dtype=np.float32)
@@ -50,6 +52,15 @@ class UBotNavigationEnv(gym.Env):
         self.command = np.zeros(2)
         self.steps = 0
         self.success_steps = 0
+
+    def terrain_height(self, xy):
+        return self.elevation.height(self.data, xy)
+
+    def _place_goal(self):
+        height = self.terrain_height(self.goal)
+        if height is None:
+            raise ValueError("goal position has no terrain beneath it")
+        self.data.mocap_pos[0] = [*self.goal, height + 0.005]
 
     def _state(self):
         rotation = self.data.xmat[self.base].reshape(3, 3)
@@ -93,7 +104,15 @@ class UBotNavigationEnv(gym.Env):
         self.goal = np.asarray(goal, dtype=float)
         if self.goal.shape != (2,) or not np.isfinite(self.goal).all():
             raise ValueError("goal must contain two finite world coordinates in metres")
-        self.data.mocap_pos[0, :2] = self.goal
+        position = np.asarray(options.get("position", [0, 0]), dtype=float)
+        if position.shape != (2,) or not np.isfinite(position).all():
+            raise ValueError("position must contain two finite world coordinates in metres")
+        self.data.qpos[:2] = position
+        mujoco.mj_forward(self.model, self.data)
+        if self.terrain_height(position) is None:
+            raise ValueError("spawn position has no terrain beneath it")
+        self.data.qpos[2] += self.elevation.spawn_lift(self.data)
+        self._place_goal()
         # Settle the free body before the episode starts.
         mujoco.mj_forward(self.model, self.data)
         for _ in range(round(0.3 / self.model.opt.timestep)):
@@ -128,7 +147,9 @@ class UBotNavigationEnv(gym.Env):
         stopped_at_goal = distance < 0.12 and np.linalg.norm(velocity[3:5]) < 0.08 and abs(velocity[2]) < 0.2
         self.success_steps = self.success_steps + 1 if stopped_at_goal else 0
         success = self.success_steps >= 15
-        failed = (rotation[2, 2] < 0.5 or self.data.xpos[self.base, 2] < 0.05
+        height = self.terrain_height(self.data.xpos[self.base, :2])
+        clearance = self.data.xpos[self.base, 2] - height if height is not None else -np.inf
+        failed = (rotation[2, 2] < 0.5 or clearance < 0.05
                   or np.linalg.norm(self.data.xpos[self.base, :2]) > 6
                   or not np.isfinite(self.data.qpos).all())
         reward = 10 * (self.previous_distance - distance) - 0.01 - 0.001 * float(np.square(np.clip(action, -1, 1)).sum())

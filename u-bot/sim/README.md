@@ -466,8 +466,8 @@ represent raised joints, and edges represent finite step blocks. These are
 simple rigid proxies, not scanned rocks or deformable roots.
 
 Place Z explicitly to account for terrain height or embed part of an obstacle.
-Keep the initial robot footprint clear: automatic spawn/elevation adjustment is
-still pending. Obstacles inherit the selected `TerrainContact` unless given
+Reset automatically lifts the robot above terrain and obstacles across its
+collision footprint, then lets it settle. Obstacles inherit the selected `TerrainContact` unless given
 their own `contact=TerrainContact(...)`; episode friction randomization also
 applies to them. They add no robot mass or joints. Collision tests verify drive
 wheel encounters, finite simulation state, and the chosen contact parameters;
@@ -522,3 +522,41 @@ uv run python -m ubot_sim.showcase
 Requires the video extra, FFmpeg, and working graphics. Output is a 1280×720,
 25 fps H.264 MP4 with opening/closing PNGs and a JSON report containing surface
 settings, commands, sampled paths/speeds, and solver warning counts.
+
+
+### Terrain-aware elevation
+
+Spawn height, goal markers, and low-clearance failure checks use the actual
+static collision geometry, including heightfields, patches, and obstacles.
+`reset(options={"position": [x, y], "yaw": angle})` selects a world XY spawn
+in metres; the default remains the origin. The robot starts upright with 1 mm
+clearance above conservative collision bounds and settles for 0.3 seconds.
+Heightfield bounds include all vertices of overlapping cells; obstacle bounds
+include thin seams and roots. This avoids initial penetration but does not
+guarantee that a precarious placement will settle stably.
+
+The goal cylinder sits 5 mm above the surface at its centre and updates at
+every waypoint. Recorder route markers and trails also follow elevation.
+The existing 5 cm minimum body-height check is now relative to terrain beneath
+the base; tilt and 6 m radial limits remain in effect. Leaving finite terrain
+coverage fails the episode. Spawn/goal centres outside coverage raise
+`ValueError`. XY goals, observations, and arrival distances retain their
+existing meaning. Queries ignore robot visuals and the goal marker itself.
+These controls cover the current horizontal planes, axis-aligned heightfields,
+and static obstacle proxies; they do not add slope presets or spawn orientation
+alignment.
+
+[Watch the elevation showcase](videos/elevation-showcase.mp4): identical
+out-and-back routes at ground level and on a 30 cm platform. Live overlays show
+body height, terrain-relative clearance, goal height, and completed stops.
+Both runs use seed 0, lugged wheels, the baseline controller, and 2 ms physics.
+The adjacent JSON records route arrivals, heights, completion, and warnings.
+Reproduce with the video extra, FFmpeg, and graphics access:
+
+```sh
+uv run python -m ubot_sim.elevation_showcase
+```
+
+Regression tests cover elevated route completion with both wheel models at
+1 ms and 2 ms, off-origin heightfield spawns, thin obstacles, waypoint marker
+height changes, terrain below world zero, and terrain-relative failure checks.
