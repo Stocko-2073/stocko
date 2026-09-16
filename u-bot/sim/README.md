@@ -273,6 +273,38 @@ changes are bundled with this comparison.
 a 129×129 heightfield across 6×6 m with smooth undulations up to 12 mm and a
 flat launch pad. It exercises uneven contacts without simulating soil or grass.
 
+### Concrete surface preset
+
+Use `surface="concrete"` with either environment or `gym.make`, or select it
+from the demo, viewer, recorder, or training CLI:
+
+```sh
+uv run python -m ubot_sim.viewer --waypoints --surface concrete
+uv run python -m ubot_sim.record --surface concrete --width 1280 --height 720 --output videos/concrete-showcase.mp4
+uv run python -m ubot_sim.train --surface concrete
+```
+
+The preset uses a flat plane for relatively smooth concrete, sliding grip 0.8,
+torsional friction 0.002 m, and low rolling friction 0.0001 m. It selects
+`condim=6` so rolling resistance is active, with contact time constant 0.01 s
+and damping ratio 1.0 for firm contact. These are initial estimates, not
+measurements of concrete or a calibrated robot/material pair. The plane has
+no seams or roughness. Rolling resistance here comes from contact friction;
+it does not model motor or bearing losses.
+
+Both smooth and lugged wheels are supported. `randomize=True` scales grip by
+0.7–1.3 as usual. Combining the preset with `terrain="bumps"` or a
+`terrain_contact` override raises an error; use explicit terrain/contact
+settings for custom experiments. Omitting `surface` retains existing defaults.
+Training and evaluation receive the same selected preset.
+
+[Watch the concrete showcase](videos/concrete-showcase.mp4): a continuous
+five-waypoint run using lugged wheels and the baseline controller, rendered
+at 1280×720 and 25 fps. The adjacent JSON records the chosen surface settings,
+arrival times, completion, and solver warning count. Tests verify actual
+six-dimensional contacts, route completion with both wheel models, seeded
+grip randomization, and rejection of conflicting settings.
+
 ### Terrain contact settings
 
 Python constructors accept a `TerrainContact` for either terrain and wheel model:

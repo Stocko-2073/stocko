@@ -89,8 +89,23 @@ class TerrainObstacle:
         (self.contact or default_contact).apply(geom)
 
 
+# Initial estimates, not a hardware-calibrated material model. A flat plane
+# represents relatively smooth concrete; dim6 makes low rolling drag active.
+SURFACE_PRESETS = {
+    "concrete": TerrainContact(sliding_friction=0.8, torsional_friction=0.002,
+                               rolling_friction=0.0001, condim=6,
+                               time_constant=0.01, damping_ratio=1.0),
+}
+
+
 def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
-               terrain_contact=None, obstacles=()):
+               terrain_contact=None, obstacles=(), surface=None):
+    if surface is not None:
+        if surface not in SURFACE_PRESETS:
+            raise ValueError(f"unknown surface preset: {surface!r}")
+        if terrain != "flat" or terrain_contact is not None:
+            raise ValueError("surface presets require terrain='flat' and no terrain_contact override")
+        terrain_contact = SURFACE_PRESETS[surface]
     if wheel_contact not in ("smooth", "lugs"):
         raise ValueError("wheel_contact must be smooth or lugs")
     if terrain not in ("flat", "bumps"):

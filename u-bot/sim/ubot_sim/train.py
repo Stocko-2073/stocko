@@ -6,6 +6,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
 
+from ubot_sim.contact_model import SURFACE_PRESETS
 from ubot_sim.env import UBotNavigationEnv
 
 
@@ -18,11 +19,14 @@ def main():
     parser.add_argument("--randomize", action="store_true")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
+    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated material preset (flat terrain only)")
     args = parser.parse_args()
+    if args.surface and args.terrain != "flat":
+        parser.error("--surface requires --terrain flat")
     if args.steps <= 0 or args.envs <= 0:
         parser.error("steps and envs must be positive")
     args.output.mkdir(parents=True, exist_ok=True)
-    model_options = {"wheel_contact": args.wheel_contact, "terrain": args.terrain}
+    model_options = {"wheel_contact": args.wheel_contact, "terrain": args.terrain, "surface": args.surface}
     train = make_vec_env(UBotNavigationEnv, n_envs=args.envs, seed=args.seed,
                          env_kwargs={"randomize": args.randomize, **model_options}, monitor_dir=str(args.output / "monitor"))
     evaluation = make_vec_env(UBotNavigationEnv, n_envs=1, seed=args.seed + 10000,

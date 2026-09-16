@@ -34,7 +34,10 @@ soil model. See [benchmark results](benchmarks/README.md).
 
 ## Surface presets
 
-- [ ] Concrete: firm, relatively smooth, low rolling resistance.
+- [x] Concrete: firm, relatively smooth, low rolling resistance.
+  `surface="concrete"` selects flat ground with explicit estimated contact
+  settings and active low rolling friction (dim6). Both wheel models complete
+  the five-waypoint route. [Video](videos/concrete-showcase.mp4).
 - [ ] Rough concrete: small bumps, seams, and occasional edges.
 - [ ] Short grass approximation: uneven ground, increased rolling resistance,
   and variable grip.

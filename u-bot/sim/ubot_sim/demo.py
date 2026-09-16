@@ -3,6 +3,7 @@ import argparse
 import json
 import time
 
+from ubot_sim.contact_model import SURFACE_PRESETS
 from ubot_sim.env import UBotNavigationEnv, baseline_action
 from ubot_sim.waypoints import UBotWaypointsEnv
 
@@ -17,7 +18,10 @@ def main():
     parser.add_argument("--route", help="JSON file containing a list of [x, y] waypoints")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
+    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated material preset (flat terrain only)")
     args = parser.parse_args()
+    if args.surface and args.terrain != "flat":
+        parser.error("--surface requires --terrain flat")
     policy = None
     if args.policy:
         from stable_baselines3 import PPO
@@ -28,10 +32,10 @@ def main():
             with open(args.route) as file:
                 route = json.load(file)
         env = UBotWaypointsEnv(waypoints=route, render_mode="human" if args.viewer else None,
-                              wheel_contact=args.wheel_contact, terrain=args.terrain)
+                              wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
     else:
         env = UBotNavigationEnv(render_mode="human" if args.viewer else None,
-                               wheel_contact=args.wheel_contact, terrain=args.terrain)
+                               wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
     try:
         for episode in range(1 if args.waypoints or args.route else args.episodes):
             obs, _ = env.reset(seed=args.seed + episode, options={"yaw": 0} if args.waypoints or args.route else None)

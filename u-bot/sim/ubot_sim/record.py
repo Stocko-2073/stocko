@@ -1,5 +1,6 @@
 """Render a continuous waypoint run to an H.264 MP4 using MuJoCo and FFmpeg."""
 import argparse
+from dataclasses import asdict
 import json
 from pathlib import Path
 import shutil
@@ -9,6 +10,7 @@ import mujoco
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from ubot_sim.contact_model import SURFACE_PRESETS
 from ubot_sim.env import baseline_action
 from ubot_sim.waypoints import UBotWaypointsEnv
 
@@ -42,14 +44,17 @@ def main():
     parser.add_argument("--preview-only", action="store_true")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
+    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated material preset (flat terrain only)")
     args = parser.parse_args()
+    if args.surface and args.terrain != "flat":
+        parser.error("--surface requires --terrain flat")
     if args.width < 640 or args.height < 360 or args.width % 2 or args.height % 2:
         parser.error("Use even dimensions, at least 640 x 360")
     if not shutil.which("ffmpeg") and not args.preview_only:
         parser.error("FFmpeg must be installed and on PATH")
     route = json.loads(args.route.read_text()) if args.route else None
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    env = UBotWaypointsEnv(waypoints=route, wheel_contact=args.wheel_contact, terrain=args.terrain)
+    env = UBotWaypointsEnv(waypoints=route, wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
     renderer = None
     encoder = None
     fps = 25  # exactly two 50 Hz policy steps per video frame, real-time playback
@@ -101,8 +106,8 @@ def main():
                 draw.text((round(x * scale), round(y * scale)), value, font=selected_font, fill=fill)
             h = args.height / scale
             rect((0, 0, 1920, 150), (12, 21, 29, 235))
-            text(56, 28, "U-BOT  /  WAYPOINT NAVIGATION", title_font)
-            text(58, 98, "MuJoCo simulation  •  Baseline controller  •  Continuous run", text_font, "#abc0cb")
+            text(56, 28, "U-BOT  /  " + (f"{args.surface.upper()} SURFACE" if args.surface else "WAYPOINT NAVIGATION"), title_font)
+            text(58, 98, ("Estimated concrete • Grip 0.8 • Rolling 0.0001 m (dim6) • Baseline controller" if args.surface else "MuJoCo simulation  •  Baseline controller  •  Continuous run"), text_font, "#abc0cb")
             rect((0, h - 118, 1920, h), (12, 21, 29, 240))
             done = env.waypoint_index == len(env.waypoints)
             status = "ROUTE COMPLETE" if done else f"TARGET {env.waypoint_index + 1:02d} / {len(env.waypoints):02d}"
@@ -154,6 +159,9 @@ def main():
             raise RuntimeError(f"FFmpeg failed with exit code {result}")
         report = {"controller": "geometric baseline (not a trained policy)", "seed": args.seed,
                   "wheel_contact": args.wheel_contact, "terrain": args.terrain,
+                  "surface": args.surface,
+                  "surface_contact": asdict(SURFACE_PRESETS[args.surface]) if args.surface else None,
+                  "warning_count": sum(int(w.number) for w in env.data.warning),
                   "route_metres": env.waypoints.tolist(), "waypoint_times_seconds": reached_times,
                   "simulation_seconds": float(env.data.time), "video_seconds": frames / fps,
                   "fps": fps, "resolution": [args.width, args.height], **info}

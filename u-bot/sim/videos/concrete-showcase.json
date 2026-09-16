@@ -1,0 +1,58 @@
+{
+  "controller": "geometric baseline (not a trained policy)",
+  "seed": 0,
+  "wheel_contact": "lugs",
+  "terrain": "flat",
+  "surface": "concrete",
+  "surface_contact": {
+    "sliding_friction": 0.8,
+    "torsional_friction": 0.002,
+    "rolling_friction": 0.0001,
+    "condim": 6,
+    "time_constant": 0.01,
+    "damping_ratio": 1.0
+  },
+  "warning_count": 0,
+  "route_metres": [
+    [
+      0.8,
+      0.0
+    ],
+    [
+      1.0,
+      0.8
+    ],
+    [
+      0.2,
+      1.0
+    ],
+    [
+      -0.5,
+      0.5
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "waypoint_times_seconds": [
+    3.2799999999998604,
+    7.179999999999431,
+    11.180000000000403,
+    15.000000000001679,
+    18.700000000000514
+  ],
+  "simulation_seconds": 18.700000000000514,
+  "video_seconds": 21.72,
+  "fps": 25,
+  "resolution": [
+    1280,
+    720
+  ],
+  "distance": 0.07969254880284357,
+  "is_success": true,
+  "failed": false,
+  "waypoint_reached": true,
+  "waypoints_reached": 5,
+  "waypoint_count": 5
+}
