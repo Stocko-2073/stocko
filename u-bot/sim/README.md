@@ -623,3 +623,57 @@ Tests complete the route with smooth and lugged wheels at 1 ms and 2 ms,
 inspect actual contact parameters on both legs and split wheel/caster contacts,
 and verify partition coverage, unchanged robot dynamics, seeded randomization,
 shared edges, and rejection of conflicting geometry.
+
+
+### Evaluate routes across surface presets
+
+[The surface evaluation](benchmarks/surfaces.md) compares every current preset
+(`concrete` and `rough_concrete`) on the five-waypoint route and a 1.8 m
+out-and-back route. It tests smooth/lugged wheels at 1 ms and 2 ms with seeds
+0, 1, and 2: all 48 runs completed, with zero solver warnings. Geometry and
+contact settings remain fixed; seeds change the initial caster orientations.
+The JSON retains individual runs and every completed waypoint stop.
+
+```sh
+uv run python -m ubot_sim.surface_evaluation
+```
+
+The command discovers all entries in `SURFACE_PRESETS`; `--seeds N` changes
+the number of seeds (starting at zero), and `--output path.json` writes both
+raw JSON and a companion Markdown table. Each run has a 45-second budget.
+Reported completion times exclude reset and include turns and stop dwell.
+Tracking RMS is distance to the active finite nominal route segment, measured
+at 50 Hz. Contact slip is the tangential speed of loaded drive-wheel material
+points relative to static terrain, computed with MuJoCo point Jacobians.
+It includes lateral turning scrub as well as longitudinal slip. Unweighted
+contact samples contribute to RMS/P95; airborne intervals do not count as
+zero slip. Contact sample counts and control-step coverage accompany the values.
+
+Stopping measurements record the first zero wheel-speed target for each goal,
+entry speed, subsequent XY travel, arrival delay, final goal error, and speed.
+The controller usually slows before issuing zero, so these distances describe
+final settling, not emergency braking from cruising speed. Arrival dwell can
+begin before zero is commanded; the measured delay includes only its remaining
+portion. Missing stop commands and unsuccessful completion times remain null.
+
+Across the three seeds, five-waypoint mean travel times range from 18.49 to
+19.09 seconds, with mean per-run tracking RMS from 24.57 to 26.17 mm. These
+numbers do not establish hardware accuracy or timestep convergence; the
+presets remain estimates, and contact counts affect the unweighted slip metric.
+See the report for the full breakdown and precise metric definitions.
+
+[Watch the side-by-side evaluation](videos/surface-evaluation-showcase.mp4).
+Both panels use the same five goals, seed 0, lugged wheels, 2 ms physics, and
+baseline controller. Live overlays show elapsed time, cumulative tracking/slip
+RMS, and the most recent stop. A panel holds its final frame after completing.
+The video uses the same measurement code as the headless report, and its JSON
+contains the final metrics and sampled positions. Reproduce with the video
+extra, FFmpeg, and graphics access:
+
+```sh
+uv run python -m ubot_sim.surface_evaluation_showcase
+```
+
+Metric tests cover finite-segment tracking, tangential versus normal contact
+motion, ideal rolling cancellation, completed stops, timeouts, and airborne
+intervals with no slip samples.

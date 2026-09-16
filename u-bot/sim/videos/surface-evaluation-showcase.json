@@ -1,0 +1,2149 @@
+{
+  "route": [
+    [
+      0.8,
+      0.0
+    ],
+    [
+      1.0,
+      0.8
+    ],
+    [
+      0.2,
+      1.0
+    ],
+    [
+      -0.5,
+      0.5
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "seed": 0,
+  "wheel_contact": "lugs",
+  "physics_timestep": 0.002,
+  "fps": 25,
+  "resolution": [
+    1280,
+    720
+  ],
+  "video_seconds": 21.72,
+  "panels": {
+    "concrete": {
+      "is_success": true,
+      "failed": false,
+      "truncated": false,
+      "waypoints_reached": 5,
+      "elapsed_seconds": 18.700000000000514,
+      "completion_seconds": 18.700000000000514,
+      "path_length_m": 3.837537081444895,
+      "tracking_rms_m": 0.024928966881157387,
+      "tracking_max_m": 0.07939189026083963,
+      "slip_rms_mps": 0.012834958482801959,
+      "slip_p95_mps": 0.0273642968735555,
+      "slip_contact_samples": 3493,
+      "slip_control_steps": 926,
+      "control_steps": 935,
+      "stops": [
+        {
+          "waypoint": 1,
+          "arrival_seconds": 3.2799999999998604,
+          "goal_error_m": 0.07970507646503652,
+          "arrival_speed_mps": 0.018418982377894844,
+          "command_seconds": 3.1799999999998714,
+          "entry_speed_mps": 0.07147185368734532,
+          "travel_after_command_m": 0.004336098326416238,
+          "settle_seconds": 0.09999999999998899
+        },
+        {
+          "waypoint": 2,
+          "arrival_seconds": 7.179999999999431,
+          "goal_error_m": 0.07936908890161817,
+          "arrival_speed_mps": 0.013070388432003095,
+          "command_seconds": 7.0599999999994445,
+          "entry_speed_mps": 0.06803385177785104,
+          "travel_after_command_m": 0.004948391517285433,
+          "settle_seconds": 0.11999999999998678
+        },
+        {
+          "waypoint": 3,
+          "arrival_seconds": 11.180000000000403,
+          "goal_error_m": 0.07900542721018489,
+          "arrival_speed_mps": 0.014219996475467523,
+          "command_seconds": 11.040000000000356,
+          "entry_speed_mps": 0.06771030742185219,
+          "travel_after_command_m": 0.005426393924312212,
+          "settle_seconds": 0.14000000000004675
+        },
+        {
+          "waypoint": 4,
+          "arrival_seconds": 15.000000000001679,
+          "goal_error_m": 0.0799354206971803,
+          "arrival_speed_mps": 0.010169786621484904,
+          "command_seconds": 14.880000000001639,
+          "entry_speed_mps": 0.07113588834917264,
+          "travel_after_command_m": 0.004878580444722225,
+          "settle_seconds": 0.12000000000004007
+        },
+        {
+          "waypoint": 5,
+          "arrival_seconds": 18.700000000000514,
+          "goal_error_m": 0.07969254880284357,
+          "arrival_speed_mps": 0.020123789845310158,
+          "command_seconds": 18.60000000000057,
+          "entry_speed_mps": 0.06772826887450574,
+          "travel_after_command_m": 0.00440215505466135,
+          "settle_seconds": 0.09999999999994458
+        }
+      ],
+      "warning_count": 0
+    },
+    "rough_concrete": {
+      "is_success": true,
+      "failed": false,
+      "truncated": false,
+      "waypoints_reached": 5,
+      "elapsed_seconds": 18.480000000000636,
+      "completion_seconds": 18.480000000000636,
+      "path_length_m": 3.803927198862365,
+      "tracking_rms_m": 0.025911344987140268,
+      "tracking_max_m": 0.10290919447740042,
+      "slip_rms_mps": 0.010217985050031032,
+      "slip_p95_mps": 0.013369197987059213,
+      "slip_contact_samples": 3088,
+      "slip_control_steps": 924,
+      "control_steps": 924,
+      "stops": [
+        {
+          "waypoint": 1,
+          "arrival_seconds": 3.0799999999998824,
+          "goal_error_m": 0.10318680013361523,
+          "arrival_speed_mps": 0.04562263166103428,
+          "command_seconds": null,
+          "entry_speed_mps": null,
+          "travel_after_command_m": null,
+          "settle_seconds": null
+        },
+        {
+          "waypoint": 2,
+          "arrival_seconds": 6.839999999999469,
+          "goal_error_m": 0.10422647940003339,
+          "arrival_speed_mps": 0.062169997344319376,
+          "command_seconds": null,
+          "entry_speed_mps": null,
+          "travel_after_command_m": null,
+          "settle_seconds": null
+        },
+        {
+          "waypoint": 3,
+          "arrival_seconds": 10.820000000000283,
+          "goal_error_m": 0.08114218468771285,
+          "arrival_speed_mps": 0.010106179955315812,
+          "command_seconds": 10.72000000000025,
+          "entry_speed_mps": 0.0594028777967404,
+          "travel_after_command_m": 0.0031713585573114322,
+          "settle_seconds": 0.1000000000000334
+        },
+        {
+          "waypoint": 4,
+          "arrival_seconds": 14.800000000001612,
+          "goal_error_m": 0.07886389265848918,
+          "arrival_speed_mps": 0.030518642916154103,
+          "command_seconds": 14.700000000001578,
+          "entry_speed_mps": 0.06669989892241632,
+          "travel_after_command_m": 0.004810002914965139,
+          "settle_seconds": 0.1000000000000334
+        },
+        {
+          "waypoint": 5,
+          "arrival_seconds": 18.480000000000636,
+          "goal_error_m": 0.08007643362021721,
+          "arrival_speed_mps": 0.026283913853207982,
+          "command_seconds": 18.40000000000068,
+          "entry_speed_mps": 0.06509182794734286,
+          "travel_after_command_m": 0.003663595053102764,
+          "settle_seconds": 0.07999999999995566
+        }
+      ],
+      "warning_count": 0
+    }
+  },
+  "samples": [
+    {
+      "playback_seconds": 0.2,
+      "panels": [
+        {
+          "xy": [
+            0.030999418211806767,
+            0.00017656440113649616
+          ],
+          "simulation_seconds": 0.20000000000000015,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.03149399880517263,
+            8.086299145735686e-05
+          ],
+          "simulation_seconds": 0.20000000000000015,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 0.4,
+      "panels": [
+        {
+          "xy": [
+            0.09471574540110352,
+            0.0005368583941855581
+          ],
+          "simulation_seconds": 0.4000000000000003,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.09515259691375287,
+            0.00015313617227984334
+          ],
+          "simulation_seconds": 0.4000000000000003,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 0.6,
+      "panels": [
+        {
+          "xy": [
+            0.16248488395699262,
+            0.0005875125144198289
+          ],
+          "simulation_seconds": 0.6000000000000004,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.1626224778030456,
+            -5.688419142837322e-05
+          ],
+          "simulation_seconds": 0.6000000000000004,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 0.8,
+      "panels": [
+        {
+          "xy": [
+            0.23052033569316016,
+            0.0005409144417816093
+          ],
+          "simulation_seconds": 0.8000000000000006,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.23051616983354106,
+            -0.00020299744369684842
+          ],
+          "simulation_seconds": 0.8000000000000006,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 1.0,
+      "panels": [
+        {
+          "xy": [
+            0.2985205838758835,
+            0.0004702245310444797
+          ],
+          "simulation_seconds": 1.0000000000000007,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.29798255367022136,
+            -0.00026137039462280077
+          ],
+          "simulation_seconds": 1.0000000000000007,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 1.2,
+      "panels": [
+        {
+          "xy": [
+            0.36651680442164164,
+            0.00043400596914358684
+          ],
+          "simulation_seconds": 1.2000000000000008,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.36447947279558723,
+            4.275001595197605e-05
+          ],
+          "simulation_seconds": 1.2000000000000008,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 1.4000000000000001,
+      "panels": [
+        {
+          "xy": [
+            0.43182172373686073,
+            0.0004087546466782547
+          ],
+          "simulation_seconds": 1.400000000000001,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.428294727933286,
+            0.0008410296131022567
+          ],
+          "simulation_seconds": 1.400000000000001,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 1.6,
+      "panels": [
+        {
+          "xy": [
+            0.48840932882256555,
+            0.0003876477606281659
+          ],
+          "simulation_seconds": 1.6000000000000012,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.4815664869584187,
+            0.0001795139892922004
+          ],
+          "simulation_seconds": 1.6000000000000012,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 1.8,
+      "panels": [
+        {
+          "xy": [
+            0.5363708724761627,
+            0.00033885749179056804
+          ],
+          "simulation_seconds": 1.8000000000000014,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.5321964098329866,
+            4.028198324891958e-05
+          ],
+          "simulation_seconds": 1.8000000000000014,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 2.0,
+      "panels": [
+        {
+          "xy": [
+            0.5768790245401649,
+            0.0003000977651838417
+          ],
+          "simulation_seconds": 2.0000000000000013,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.569474300947765,
+            0.0002967731949585985
+          ],
+          "simulation_seconds": 2.0000000000000013,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 2.2,
+      "panels": [
+        {
+          "xy": [
+            0.6111233873492707,
+            0.00026848007581820033
+          ],
+          "simulation_seconds": 2.1999999999999793,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.6019724825229595,
+            0.0006770069232095502
+          ],
+          "simulation_seconds": 2.1999999999999793,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 2.4,
+      "panels": [
+        {
+          "xy": [
+            0.64004523920968,
+            0.0002423669547678452
+          ],
+          "simulation_seconds": 2.3999999999999573,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.6312331443845596,
+            0.0008777024568251514
+          ],
+          "simulation_seconds": 2.3999999999999573,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 2.6,
+      "panels": [
+        {
+          "xy": [
+            0.664471032841713,
+            0.000239435237200667
+          ],
+          "simulation_seconds": 2.5999999999999353,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.6616136133323562,
+            0.0007667325690731609
+          ],
+          "simulation_seconds": 2.5999999999999353,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 2.8000000000000003,
+      "panels": [
+        {
+          "xy": [
+            0.6851525730243943,
+            0.0001824166938535896
+          ],
+          "simulation_seconds": 2.7999999999999132,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.6805173617453999,
+            0.00043061769496836866
+          ],
+          "simulation_seconds": 2.7999999999999132,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 3.0,
+      "panels": [
+        {
+          "xy": [
+            0.7025826565719492,
+            0.00017124004569596212
+          ],
+          "simulation_seconds": 2.999999999999891,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.6928053755727487,
+            0.00015809258210769557
+          ],
+          "simulation_seconds": 2.999999999999891,
+          "waypoints_reached": 0
+        }
+      ]
+    },
+    {
+      "playback_seconds": 3.2,
+      "panels": [
+        {
+          "xy": [
+            0.7173420859476947,
+            0.00014741768359035774
+          ],
+          "simulation_seconds": 3.199999999999869,
+          "waypoints_reached": 0
+        },
+        {
+          "xy": [
+            0.7033732519651544,
+            -4.4503224922853384e-05
+          ],
+          "simulation_seconds": 3.199999999999869,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 3.4,
+      "panels": [
+        {
+          "xy": [
+            0.724230587556363,
+            0.0003502510361764059
+          ],
+          "simulation_seconds": 3.399999999999847,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.7233591605279388,
+            0.002687252537198898
+          ],
+          "simulation_seconds": 3.399999999999847,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 3.6,
+      "panels": [
+        {
+          "xy": [
+            0.7479535603472104,
+            0.004435487151260557
+          ],
+          "simulation_seconds": 3.599999999999825,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.7557661535679758,
+            0.015358103419439788
+          ],
+          "simulation_seconds": 3.599999999999825,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 3.8000000000000003,
+      "panels": [
+        {
+          "xy": [
+            0.7783196122671807,
+            0.01850803611101301
+          ],
+          "simulation_seconds": 3.799999999999803,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.7877610066241476,
+            0.044590425261181704
+          ],
+          "simulation_seconds": 3.799999999999803,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 4.0,
+      "panels": [
+        {
+          "xy": [
+            0.8106658047788141,
+            0.04883039943159752
+          ],
+          "simulation_seconds": 3.999999999999781,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8136464799701331,
+            0.08818038206792254
+          ],
+          "simulation_seconds": 3.999999999999781,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 4.2,
+      "panels": [
+        {
+          "xy": [
+            0.8396319546947753,
+            0.09501580095932312
+          ],
+          "simulation_seconds": 4.1999999999997595,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8340215418131072,
+            0.1439751895692596
+          ],
+          "simulation_seconds": 4.1999999999997595,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 4.4,
+      "panels": [
+        {
+          "xy": [
+            0.8628753523435808,
+            0.15209713340938127
+          ],
+          "simulation_seconds": 4.3999999999997375,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8498109205488945,
+            0.2050387790372981
+          ],
+          "simulation_seconds": 4.3999999999997375,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 4.6000000000000005,
+      "panels": [
+        {
+          "xy": [
+            0.8815201122143913,
+            0.21514076011117217
+          ],
+          "simulation_seconds": 4.599999999999715,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8668621607692839,
+            0.27221063518876243
+          ],
+          "simulation_seconds": 4.599999999999715,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 4.8,
+      "panels": [
+        {
+          "xy": [
+            0.8976987752991671,
+            0.28052598794003286
+          ],
+          "simulation_seconds": 4.799999999999693,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8816715490798583,
+            0.3368067441966085
+          ],
+          "simulation_seconds": 4.799999999999693,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 5.0,
+      "panels": [
+        {
+          "xy": [
+            0.9126470964292427,
+            0.3466085827600253
+          ],
+          "simulation_seconds": 4.999999999999671,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.8949854881252944,
+            0.39683784593577537
+          ],
+          "simulation_seconds": 4.999999999999671,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 5.2,
+      "panels": [
+        {
+          "xy": [
+            0.9267866639007964,
+            0.41238561991299233
+          ],
+          "simulation_seconds": 5.199999999999649,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9116554980493591,
+            0.4554473434540594
+          ],
+          "simulation_seconds": 5.199999999999649,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 5.4,
+      "panels": [
+        {
+          "xy": [
+            0.9390945994434915,
+            0.47174544845264493
+          ],
+          "simulation_seconds": 5.399999999999627,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.926538519364177,
+            0.50715473642305
+          ],
+          "simulation_seconds": 5.399999999999627,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 5.6000000000000005,
+      "panels": [
+        {
+          "xy": [
+            0.9492322490042202,
+            0.5220975808749017
+          ],
+          "simulation_seconds": 5.599999999999605,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9396099339616463,
+            0.5447034099551042
+          ],
+          "simulation_seconds": 5.599999999999605,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 5.8,
+      "panels": [
+        {
+          "xy": [
+            0.95765556940702,
+            0.5646443768095649
+          ],
+          "simulation_seconds": 5.799999999999583,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9494016979134875,
+            0.581109946112725
+          ],
+          "simulation_seconds": 5.799999999999583,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 6.0,
+      "panels": [
+        {
+          "xy": [
+            0.964548297731435,
+            0.6006180414953219
+          ],
+          "simulation_seconds": 5.999999999999561,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.95875066050387,
+            0.616270274890324
+          ],
+          "simulation_seconds": 5.999999999999561,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 6.2,
+      "panels": [
+        {
+          "xy": [
+            0.9703198664713358,
+            0.6311068737327334
+          ],
+          "simulation_seconds": 6.199999999999539,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9671630302470166,
+            0.6458008912018639
+          ],
+          "simulation_seconds": 6.199999999999539,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 6.4,
+      "panels": [
+        {
+          "xy": [
+            0.9750707204425861,
+            0.6569258843471985
+          ],
+          "simulation_seconds": 6.399999999999517,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9729509935377477,
+            0.6681151160941003
+          ],
+          "simulation_seconds": 6.399999999999517,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 6.6000000000000005,
+      "panels": [
+        {
+          "xy": [
+            0.9790779261000535,
+            0.678812635333293
+          ],
+          "simulation_seconds": 6.599999999999495,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9765647224086746,
+            0.685144502177015
+          ],
+          "simulation_seconds": 6.599999999999495,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 6.8,
+      "panels": [
+        {
+          "xy": [
+            0.9823689522061695,
+            0.6972399058734801
+          ],
+          "simulation_seconds": 6.799999999999473,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9786178783772205,
+            0.6955884495450986
+          ],
+          "simulation_seconds": 6.799999999999473,
+          "waypoints_reached": 1
+        }
+      ]
+    },
+    {
+      "playback_seconds": 7.0,
+      "panels": [
+        {
+          "xy": [
+            0.985128989535529,
+            0.7128071779383593
+          ],
+          "simulation_seconds": 6.999999999999451,
+          "waypoints_reached": 1
+        },
+        {
+          "xy": [
+            0.9813316576418348,
+            0.7128726118266658
+          ],
+          "simulation_seconds": 6.999999999999451,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 7.2,
+      "panels": [
+        {
+          "xy": [
+            0.9867139646662177,
+            0.7219592571877049
+          ],
+          "simulation_seconds": 7.199999999999429,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.9793929675701919,
+            0.7368791152345634
+          ],
+          "simulation_seconds": 7.199999999999429,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 7.4,
+      "panels": [
+        {
+          "xy": [
+            0.9872258148931958,
+            0.7304106896505881
+          ],
+          "simulation_seconds": 7.399999999999407,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.9662235261049421,
+            0.7658090413833001
+          ],
+          "simulation_seconds": 7.399999999999407,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 7.6000000000000005,
+      "panels": [
+        {
+          "xy": [
+            0.9846542384010939,
+            0.7517998708395689
+          ],
+          "simulation_seconds": 7.599999999999385,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.934633338240721,
+            0.7983604432339811
+          ],
+          "simulation_seconds": 7.599999999999385,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 7.8,
+      "panels": [
+        {
+          "xy": [
+            0.9726206158490022,
+            0.7783988456656651
+          ],
+          "simulation_seconds": 7.799999999999363,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.8863899525748822,
+            0.8271784921497193
+          ],
+          "simulation_seconds": 7.799999999999363,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 8.0,
+      "panels": [
+        {
+          "xy": [
+            0.9440240802962186,
+            0.809330117503149
+          ],
+          "simulation_seconds": 7.999999999999341,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.8305790885859615,
+            0.8486722365314366
+          ],
+          "simulation_seconds": 7.999999999999341,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 8.2,
+      "panels": [
+        {
+          "xy": [
+            0.8984842332076213,
+            0.8377410051124008
+          ],
+          "simulation_seconds": 8.199999999999408,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.7681720839477835,
+            0.8659289421591778
+          ],
+          "simulation_seconds": 8.199999999999408,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 8.4,
+      "panels": [
+        {
+          "xy": [
+            0.8416279672607162,
+            0.8606491049185682
+          ],
+          "simulation_seconds": 8.399999999999475,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.7042553274392324,
+            0.880797603690908
+          ],
+          "simulation_seconds": 8.399999999999475,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 8.6,
+      "panels": [
+        {
+          "xy": [
+            0.7786590164328895,
+            0.8792831512957782
+          ],
+          "simulation_seconds": 8.599999999999541,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.6385418416444597,
+            0.8945570111177946
+          ],
+          "simulation_seconds": 8.599999999999541,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 8.8,
+      "panels": [
+        {
+          "xy": [
+            0.7131953682420694,
+            0.8956033857957204
+          ],
+          "simulation_seconds": 8.799999999999608,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.5750502335045051,
+            0.9107575953066083
+          ],
+          "simulation_seconds": 8.799999999999608,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 9.0,
+      "panels": [
+        {
+          "xy": [
+            0.6471940035662216,
+            0.9107955125571249
+          ],
+          "simulation_seconds": 8.999999999999675,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.518425056684606,
+            0.924532777987415
+          ],
+          "simulation_seconds": 8.999999999999675,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 9.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            0.581671976667112,
+            0.9252303456146037
+          ],
+          "simulation_seconds": 9.199999999999742,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.471313900031608,
+            0.936504334259676
+          ],
+          "simulation_seconds": 9.199999999999742,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 9.4,
+      "panels": [
+        {
+          "xy": [
+            0.523376574014557,
+            0.9376505059321875
+          ],
+          "simulation_seconds": 9.399999999999809,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.4288702822838894,
+            0.9465770478590628
+          ],
+          "simulation_seconds": 9.399999999999809,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 9.6,
+      "panels": [
+        {
+          "xy": [
+            0.4739058739235787,
+            0.9479229479510428
+          ],
+          "simulation_seconds": 9.599999999999875,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.39403569327782273,
+            0.95387380012489
+          ],
+          "simulation_seconds": 9.599999999999875,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 9.8,
+      "panels": [
+        {
+          "xy": [
+            0.43199434981851464,
+            0.9564083585641522
+          ],
+          "simulation_seconds": 9.799999999999942,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.36669539425904724,
+            0.9605197901487906
+          ],
+          "simulation_seconds": 9.799999999999942,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 10.0,
+      "panels": [
+        {
+          "xy": [
+            0.39646652270208793,
+            0.9634653589823076
+          ],
+          "simulation_seconds": 10.000000000000009,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.34391821881929313,
+            0.9659435885325715
+          ],
+          "simulation_seconds": 10.000000000000009,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 10.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            0.3663097896695088,
+            0.9693607563310978
+          ],
+          "simulation_seconds": 10.200000000000076,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.32224477767203275,
+            0.9712041122425319
+          ],
+          "simulation_seconds": 10.200000000000076,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 10.4,
+      "panels": [
+        {
+          "xy": [
+            0.34074960957507205,
+            0.9742740502352747
+          ],
+          "simulation_seconds": 10.400000000000142,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.3051385510059685,
+            0.9752305944202133
+          ],
+          "simulation_seconds": 10.400000000000142,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 10.6,
+      "panels": [
+        {
+          "xy": [
+            0.31928333669428166,
+            0.978357228199649
+          ],
+          "simulation_seconds": 10.60000000000021,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.28988035578631,
+            0.9789448712180477
+          ],
+          "simulation_seconds": 10.60000000000021,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 10.8,
+      "panels": [
+        {
+          "xy": [
+            0.3011461315436529,
+            0.9817553183897703
+          ],
+          "simulation_seconds": 10.800000000000276,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.2792639739497185,
+            0.98162070765573
+          ],
+          "simulation_seconds": 10.800000000000276,
+          "waypoints_reached": 2
+        }
+      ]
+    },
+    {
+      "playback_seconds": 11.0,
+      "panels": [
+        {
+          "xy": [
+            0.28584031652488284,
+            0.9846073051181125
+          ],
+          "simulation_seconds": 11.000000000000343,
+          "waypoints_reached": 2
+        },
+        {
+          "xy": [
+            0.2626242129447418,
+            0.9850694453973788
+          ],
+          "simulation_seconds": 11.000000000000343,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 11.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            0.2774913282646394,
+            0.9861441428585251
+          ],
+          "simulation_seconds": 11.20000000000041,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            0.21404279686437624,
+            0.9871790651764837
+          ],
+          "simulation_seconds": 11.20000000000041,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 11.4,
+      "panels": [
+        {
+          "xy": [
+            0.2517286486517059,
+            0.9894359029305387
+          ],
+          "simulation_seconds": 11.400000000000476,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            0.16323578925147933,
+            0.9759454002366771
+          ],
+          "simulation_seconds": 11.400000000000476,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 11.6,
+      "panels": [
+        {
+          "xy": [
+            0.2010194902445798,
+            0.9864228979864518
+          ],
+          "simulation_seconds": 11.600000000000543,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            0.11002245952332507,
+            0.9513480197296483
+          ],
+          "simulation_seconds": 11.600000000000543,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 11.8,
+      "panels": [
+        {
+          "xy": [
+            0.14670355189852144,
+            0.9705597211453989
+          ],
+          "simulation_seconds": 11.80000000000061,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            0.05584028638111389,
+            0.9161147022859244
+          ],
+          "simulation_seconds": 11.80000000000061,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 12.0,
+      "panels": [
+        {
+          "xy": [
+            0.09105293771561689,
+            0.9430769598683846
+          ],
+          "simulation_seconds": 12.000000000000677,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            0.0011034385429963495,
+            0.8791578002105164
+          ],
+          "simulation_seconds": 12.000000000000677,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 12.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            0.03531635066298568,
+            0.9082299006487153
+          ],
+          "simulation_seconds": 12.200000000000744,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.05219109247354691,
+            0.8397384174223651
+          ],
+          "simulation_seconds": 12.200000000000744,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 12.4,
+      "panels": [
+        {
+          "xy": [
+            -0.019958286375806118,
+            0.8698122185029872
+          ],
+          "simulation_seconds": 12.40000000000081,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.10761280408189931,
+            0.7990610048423515
+          ],
+          "simulation_seconds": 12.40000000000081,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 12.6,
+      "panels": [
+        {
+          "xy": [
+            -0.07496202825913792,
+            0.8299656707799001
+          ],
+          "simulation_seconds": 12.600000000000877,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.16068845805500245,
+            0.7597157774385246
+          ],
+          "simulation_seconds": 12.600000000000877,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 12.8,
+      "panels": [
+        {
+          "xy": [
+            -0.12947656890962872,
+            0.7895067407636125
+          ],
+          "simulation_seconds": 12.800000000000944,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.20791658206670222,
+            0.7199504450139099
+          ],
+          "simulation_seconds": 12.800000000000944,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 13.0,
+      "panels": [
+        {
+          "xy": [
+            -0.18333561310191365,
+            0.7489156271378671
+          ],
+          "simulation_seconds": 13.00000000000101,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.25248756743200224,
+            0.6857829515750704
+          ],
+          "simulation_seconds": 13.00000000000101,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 13.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            -0.23232507638888378,
+            0.7115480234883985
+          ],
+          "simulation_seconds": 13.200000000001078,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.28720493130892855,
+            0.6574174797413462
+          ],
+          "simulation_seconds": 13.200000000001078,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 13.4,
+      "panels": [
+        {
+          "xy": [
+            -0.2740264770478391,
+            0.6794112118019117
+          ],
+          "simulation_seconds": 13.400000000001144,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.3189222093654354,
+            0.6324191967882902
+          ],
+          "simulation_seconds": 13.400000000001144,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 13.6,
+      "panels": [
+        {
+          "xy": [
+            -0.30912535625867665,
+            0.6521775221959423
+          ],
+          "simulation_seconds": 13.600000000001211,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.34543267144601547,
+            0.6118483246026303
+          ],
+          "simulation_seconds": 13.600000000001211,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 13.8,
+      "panels": [
+        {
+          "xy": [
+            -0.3386346028912656,
+            0.6291382918289201
+          ],
+          "simulation_seconds": 13.800000000001278,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.37000642138588813,
+            0.5936507459972901
+          ],
+          "simulation_seconds": 13.800000000001278,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 14.0,
+      "panels": [
+        {
+          "xy": [
+            -0.3634854429361398,
+            0.609595735341688
+          ],
+          "simulation_seconds": 14.000000000001345,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.3882228381656371,
+            0.5806703289378976
+          ],
+          "simulation_seconds": 14.000000000001345,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 14.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            -0.3844872289521532,
+            0.5930316462986683
+          ],
+          "simulation_seconds": 14.200000000001411,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.40213299872914204,
+            0.5705771440215304
+          ],
+          "simulation_seconds": 14.200000000001411,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 14.4,
+      "panels": [
+        {
+          "xy": [
+            -0.4021348658430855,
+            0.5789802584926546
+          ],
+          "simulation_seconds": 14.400000000001478,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.41370117410402907,
+            0.5621713972546283
+          ],
+          "simulation_seconds": 14.400000000001478,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 14.6,
+      "panels": [
+        {
+          "xy": [
+            -0.41707988735346535,
+            0.5670883230858421
+          ],
+          "simulation_seconds": 14.600000000001545,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.4260800917432035,
+            0.5531029861335673
+          ],
+          "simulation_seconds": 14.600000000001545,
+          "waypoints_reached": 3
+        }
+      ]
+    },
+    {
+      "playback_seconds": 14.8,
+      "panels": [
+        {
+          "xy": [
+            -0.42968546205029934,
+            0.5569841186016878
+          ],
+          "simulation_seconds": 14.800000000001612,
+          "waypoints_reached": 3
+        },
+        {
+          "xy": [
+            -0.43607461772019607,
+            0.5461850524047622
+          ],
+          "simulation_seconds": 14.800000000001612,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 15.0,
+      "panels": [
+        {
+          "xy": [
+            -0.43793162301887034,
+            0.5503705078489742
+          ],
+          "simulation_seconds": 15.000000000001679,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.4405541621929506,
+            0.5427294786446294
+          ],
+          "simulation_seconds": 15.000000000001679,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 15.200000000000001,
+      "panels": [
+        {
+          "xy": [
+            -0.4401681302213489,
+            0.5480242331171318
+          ],
+          "simulation_seconds": 15.200000000001745,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.4472223603861374,
+            0.5349227678823736
+          ],
+          "simulation_seconds": 15.200000000001745,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 15.4,
+      "panels": [
+        {
+          "xy": [
+            -0.4470954352314926,
+            0.5383192221460344
+          ],
+          "simulation_seconds": 15.400000000001812,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.45288408523617196,
+            0.5182530490473334
+          ],
+          "simulation_seconds": 15.400000000001812,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 15.6,
+      "panels": [
+        {
+          "xy": [
+            -0.45338385075758075,
+            0.5197173670174454
+          ],
+          "simulation_seconds": 15.600000000001879,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.45365359110426784,
+            0.4811537031424874
+          ],
+          "simulation_seconds": 15.600000000001879,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 15.8,
+      "panels": [
+        {
+          "xy": [
+            -0.45346224771592886,
+            0.4863995486682881
+          ],
+          "simulation_seconds": 15.800000000001946,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.4390361158911056,
+            0.43319766817208527
+          ],
+          "simulation_seconds": 15.800000000001946,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 16.0,
+      "panels": [
+        {
+          "xy": [
+            -0.43970811977502344,
+            0.4428929796060856
+          ],
+          "simulation_seconds": 16.00000000000201,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.40986527323321686,
+            0.38282496439058317
+          ],
+          "simulation_seconds": 16.00000000000201,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 16.2,
+      "panels": [
+        {
+          "xy": [
+            -0.41060462140032433,
+            0.3942340558446394
+          ],
+          "simulation_seconds": 16.2000000000019,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.36985917153488446,
+            0.3357300289840022
+          ],
+          "simulation_seconds": 16.2000000000019,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 16.4,
+      "panels": [
+        {
+          "xy": [
+            -0.3704388022977124,
+            0.3449325687756831
+          ],
+          "simulation_seconds": 16.40000000000179,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.3225751960616642,
+            0.28897056752749234
+          ],
+          "simulation_seconds": 16.40000000000179,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 16.6,
+      "panels": [
+        {
+          "xy": [
+            -0.32463618316560877,
+            0.2966358981210695
+          ],
+          "simulation_seconds": 16.60000000000168,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.2753143714952566,
+            0.24535136883604336
+          ],
+          "simulation_seconds": 16.60000000000168,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 16.8,
+      "panels": [
+        {
+          "xy": [
+            -0.27797344806174373,
+            0.250691771145943
+          ],
+          "simulation_seconds": 16.800000000001567,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.23344843011470806,
+            0.20723036762414024
+          ],
+          "simulation_seconds": 16.800000000001567,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 17.0,
+      "panels": [
+        {
+          "xy": [
+            -0.23643349633261282,
+            0.21104626562932371
+          ],
+          "simulation_seconds": 17.000000000001457,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.19776686242905167,
+            0.1751156504283789
+          ],
+          "simulation_seconds": 17.000000000001457,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 17.2,
+      "panels": [
+        {
+          "xy": [
+            -0.20081321141816263,
+            0.17774617968719844
+          ],
+          "simulation_seconds": 17.200000000001346,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.16773485317949707,
+            0.1485028783502242
+          ],
+          "simulation_seconds": 17.200000000001346,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 17.400000000000002,
+      "panels": [
+        {
+          "xy": [
+            -0.170542097139978,
+            0.14990147072327162
+          ],
+          "simulation_seconds": 17.400000000001235,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.14208233569672568,
+            0.1260642144137289
+          ],
+          "simulation_seconds": 17.400000000001235,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 17.6,
+      "panels": [
+        {
+          "xy": [
+            -0.14481297888069733,
+            0.12648550895642047
+          ],
+          "simulation_seconds": 17.600000000001124,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.12038150868134885,
+            0.10692556930436965
+          ],
+          "simulation_seconds": 17.600000000001124,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 17.8,
+      "panels": [
+        {
+          "xy": [
+            -0.12290243695930059,
+            0.10673505726008183
+          ],
+          "simulation_seconds": 17.800000000001013,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.1022305729534226,
+            0.09087317135881359
+          ],
+          "simulation_seconds": 17.800000000001013,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 18.0,
+      "panels": [
+        {
+          "xy": [
+            -0.10427654865402247,
+            0.09014886072727736
+          ],
+          "simulation_seconds": 18.000000000000902,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.08682032747652663,
+            0.07721158406442218
+          ],
+          "simulation_seconds": 18.000000000000902,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 18.2,
+      "panels": [
+        {
+          "xy": [
+            -0.08853999024773328,
+            0.07619677779890559
+          ],
+          "simulation_seconds": 18.20000000000079,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.07367609828679265,
+            0.06554061198287786
+          ],
+          "simulation_seconds": 18.20000000000079,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 18.400000000000002,
+      "panels": [
+        {
+          "xy": [
+            -0.07522266626797307,
+            0.06452108588190904
+          ],
+          "simulation_seconds": 18.40000000000068,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.06257967831243334,
+            0.055643133168300364
+          ],
+          "simulation_seconds": 18.40000000000068,
+          "waypoints_reached": 4
+        }
+      ]
+    },
+    {
+      "playback_seconds": 18.6,
+      "panels": [
+        {
+          "xy": [
+            -0.0639277830244423,
+            0.054636531811997215
+          ],
+          "simulation_seconds": 18.60000000000057,
+          "waypoints_reached": 4
+        },
+        {
+          "xy": [
+            -0.05982385085565964,
+            0.05322914699798265
+          ],
+          "simulation_seconds": 18.480000000000636,
+          "waypoints_reached": 5
+        }
+      ]
+    },
+    {
+      "playback_seconds": 18.7,
+      "panels": [
+        {
+          "xy": [
+            -0.06058359534020959,
+            0.05177383808785417
+          ],
+          "simulation_seconds": 18.700000000000514,
+          "waypoints_reached": 5
+        },
+        {
+          "xy": [
+            -0.05982385085565964,
+            0.05322914699798265
+          ],
+          "simulation_seconds": 18.480000000000636,
+          "waypoints_reached": 5
+        }
+      ]
+    }
+  ]
+}

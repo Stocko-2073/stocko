@@ -68,8 +68,12 @@ Treat initial preset values as estimates until measured on the robot.
 
 ## Validation and training
 
-- [ ] Run the same waypoint routes across all presets and compare completion,
+- [x] Run the same waypoint routes across all presets and compare completion,
   travel time, tracking error, wheel slip, and stopping behavior.
+  [Surface evaluation](benchmarks/surfaces.md): 48/48 completed across both
+  current presets, two routes, both wheels, 1/2 ms, and three seeds. Metrics
+  include actual contact-point slip and per-waypoint stopping measurements.
+  [Comparison video](videos/surface-evaluation-showcase.mp4).
 - [ ] Exercise caster alignment and reversals, caster hang-ups, uneven wheel
   loading, chassis clearance, and getting stuck at obstacles.
 - [ ] Repeat performance and timestep-sensitivity checks as terrain complexity
