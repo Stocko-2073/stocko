@@ -43,8 +43,54 @@ class TerrainContact:
         geom.set("solimp", "0.9 0.95 0.001 0.5 2")
 
 
+@dataclass(frozen=True)
+class TerrainObstacle:
+    """Static collision proxy at a world-frame centre (metres), with yaw in radians.
+
+    rock: ellipsoid radii (x, y, z); root: (radius, half cylinder length),
+    along local Y; seam/edge: box half-sizes (x, y, z). Positions are absolute,
+    so set Z to account for terrain elevation and any intended embedding.
+    """
+
+    kind: str
+    position: tuple[float, float, float]
+    size: tuple[float, ...]
+    yaw: float = 0.0
+    contact: TerrainContact | None = None
+
+    def __post_init__(self):
+        if self.kind not in ("rock", "root", "seam", "edge"):
+            raise ValueError("obstacle kind must be rock, root, seam, or edge")
+        if np.shape(self.position) != (3,) or not np.isfinite(self.position).all():
+            raise ValueError("obstacle position must contain three finite coordinates")
+        count = 2 if self.kind == "root" else 3
+        if np.shape(self.size) != (count,) or not np.isfinite(self.size).all() or min(self.size) <= 0:
+            raise ValueError(f"{self.kind} size must contain {count} finite positive dimensions")
+        if not np.isfinite(self.yaw):
+            raise ValueError("obstacle yaw must be finite")
+        if self.contact is not None and not isinstance(self.contact, TerrainContact):
+            raise TypeError("obstacle contact must be a TerrainContact instance")
+
+    def add_to(self, world, name, default_contact):
+        shape = {"rock": "ellipsoid", "root": "capsule", "seam": "box", "edge": "box"}[self.kind]
+        colors = {"rock": "0.45 0.43 0.4 1", "root": "0.35 0.22 0.12 1",
+                  "seam": "0.6 0.58 0.52 1", "edge": "0.5 0.5 0.48 1"}
+        geom = ET.SubElement(world, "geom", name=name, type=shape, contype="1",
+                             conaffinity="2", group="0", rgba=colors[self.kind])
+        if self.kind == "root":
+            offset = self.size[1] * np.array([-np.sin(self.yaw), np.cos(self.yaw), 0])
+            endpoints = np.r_[np.asarray(self.position) - offset, np.asarray(self.position) + offset]
+            geom.set("fromto", " ".join(map(str, endpoints)))
+            geom.set("size", str(self.size[0]))
+        else:
+            geom.set("pos", " ".join(map(str, self.position)))
+            geom.set("size", " ".join(map(str, self.size)))
+            geom.set("euler", f"0 0 {self.yaw}")
+        (self.contact or default_contact).apply(geom)
+
+
 def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
-               terrain_contact=None):
+               terrain_contact=None, obstacles=()):
     if wheel_contact not in ("smooth", "lugs"):
         raise ValueError("wheel_contact must be smooth or lugs")
     if terrain not in ("flat", "bumps"):
@@ -59,6 +105,10 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
     if not isinstance(contact, TerrainContact):
         raise TypeError("terrain_contact must be a TerrainContact instance")
     contact.apply(root.find(".//geom[@name='floor']"))
+    for index, obstacle in enumerate(obstacles):
+        if not isinstance(obstacle, TerrainObstacle):
+            raise TypeError("obstacles must contain TerrainObstacle instances")
+        obstacle.add_to(root.find("worldbody"), f"terrain_obstacle_{index}", contact)
     if wheel_contact == "lugs":
         for side in ("left", "right"):
             wheel = root.find(f".//body[@name='{side}_wheel']")

@@ -26,7 +26,10 @@ soil model. See [benchmark results](benchmarks/README.md).
   `TerrainContact` defines friction, contact dimension, and compliance for the
   current flat/bumps surfaces. Terrain priority overrides wheel mixing; tests
   inspect actual drive-wheel and caster contacts. Local patches remain below.
-- [ ] Add separate collision shapes for rocks, roots, seams, and small edges.
+- [x] Add separate collision shapes for rocks, roots, seams, and small edges.
+  `TerrainObstacle` supplies static ellipsoids, capsules, and boxes with world
+  placement, yaw, and optional contact overrides. Tests exercise actual wheel
+  encounters on flat/bumps terrain with smooth and lugged wheels.
 - [ ] Adapt spawn height, goal markers, and failure checks to terrain elevation.
 
 ## Surface presets

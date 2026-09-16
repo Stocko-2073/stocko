@@ -171,7 +171,7 @@ the transparent collision proxies; group 2 contains CAD meshes.
 The initial caster pose follows the CAD's 180° assembly orientation; reset
 randomizes swivel angles so the policy must handle alignment transients.
 The default world is flat, obstacle-free ground; an optional uneven heightfield
-is available for lug benchmarks. Calibrated grass/soil, tool payloads, and
+and static obstacle proxies are available. Calibrated grass/soil, tool payloads, and
 obstacle sensing are future extensions.
 
 ## Rebuild and verify
@@ -196,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-36 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+59 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -312,6 +312,45 @@ sliding friction by 0.7–1.3 from the selected surface on each reset, reproduci
 for a given seed. Other contact settings stay fixed. Selecting `condim=6` enables
 experimentation; its rolling behavior and performance still need evaluation.
 
+### Rocks, roots, seams, and edges
+
+Add static collision proxies using `obstacles` in either environment constructor
+or `gym.make`. They work on flat or bumpy ground with either wheel contact model:
+
+```python
+from ubot_sim.contact_model import TerrainObstacle
+
+obstacles = [
+    TerrainObstacle("rock", position=(0.7, 0.15, 0.02), size=(0.04, 0.03, 0.03)),
+    TerrainObstacle("root", position=(1.0, 0, 0.01), size=(0.015, 0.25)),
+    TerrainObstacle("seam", position=(1.4, 0, 0.005), size=(0.008, 0.3, 0.005)),
+    TerrainObstacle("edge", position=(1.8, 0, 0.01), size=(0.1, 0.3, 0.01)),
+]
+env = UBotNavigationEnv(obstacles=obstacles)
+```
+
+All lengths are metres. `position` is the absolute world centre; `yaw` defaults
+to zero and is in radians. Rock sizes are ellipsoid radii. Root sizes are capsule
+radius and half the cylindrical segment length; its axis is local Y, with a
+hemispherical cap at either end. Seam/edge sizes are box half-extents. Seams
+represent raised joints, and edges represent finite step blocks. These are
+simple rigid proxies, not scanned rocks or deformable roots.
+
+Place Z explicitly to account for terrain height or embed part of an obstacle.
+Keep the initial robot footprint clear: automatic spawn/elevation adjustment is
+still pending. Obstacles inherit the selected `TerrainContact` unless given
+their own `contact=TerrainContact(...)`; episode friction randomization also
+applies to them. They add no robot mass or joints. Collision tests verify drive
+wheel encounters, finite simulation state, and the chosen contact parameters;
+crossing is not guaranteed, and low-grip obstacles can leave the robot stuck.
+
+[Watch the obstacle showcase](videos/obstacle-showcase.mp4): four synchronized
+panels show a rock, root, raised seam, and step block under the same drive and
+brake commands. Each panel reports contact detection and body speed. Reproduce
+the 8-second, 1280×720 video with `uv run python -m ubot_sim.obstacle_showcase`
+(video extra, FFmpeg, and graphics required). The adjacent JSON records obstacle
+geometry, sampled positions, contact detection, and solver warnings.
+
 ### Reproduce the benchmark
 
 ```sh
@@ -334,7 +373,9 @@ route completion on both terrains, and the 50 Hz control rate at a 1 ms
 physics timestep. Ramp tests cover acceleration, braking, reversals, and
 standstill snapping at both 1 ms and 2 ms. Surface tests inspect actual contact
 friction, dimension, and compliance for both wheel models and terrains, plus
-seeded randomization and invalid settings (36 tests total).
+seeded randomization and invalid settings. Obstacle tests cover all four kinds,
+both terrains and wheel models, placement, and preserved robot dynamics
+(59 tests total).
 
 ### Terrain contact showcase
 
