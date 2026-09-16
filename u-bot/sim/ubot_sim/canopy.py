@@ -12,14 +12,31 @@ class GrassCanopy:
     """Estimated bulk resistance, not measured blade stiffness.
 
     Height in metres; resistance in N per metre of wheel width; speed in m/s.
+    With explicit density, resistance is specified at 60,000 blades/m².
     Recovery time affects illustrative blades only, not physical drag.
     """
     height: float = 0.05
     resistance: float = 30.0
     transition_speed: float = 0.05
     recovery_seconds: float = 1.5
+    # None retains the original sparse illustration and density-independent drag.
+    shoot_density: float | None = None  # shoots per square metre
+    blades_per_shoot: int = 3
+
+    @property
+    def density_scale(self):
+        """Estimated linear blade-density scaling; reference is 20k shoots × 3."""
+        return (1.0 if self.shoot_density is None else
+                self.shoot_density * self.blades_per_shoot / 60000.0)
 
     def __post_init__(self):
+        if self.shoot_density is not None and (
+                not np.isfinite(self.shoot_density) or not 0 <= self.shoot_density <= 100000):
+            raise ValueError("shoot_density must be finite and between 0 and 100000 shoots/m²")
+        if (isinstance(self.blades_per_shoot, bool)
+                or not isinstance(self.blades_per_shoot, int)
+                or not 1 <= self.blades_per_shoot <= 8):
+            raise ValueError("blades_per_shoot must be an integer between 1 and 8")
         values = (self.height, self.resistance, self.transition_speed, self.recovery_seconds)
         if not np.isfinite(values).all() or min(values) < 0:
             raise ValueError("canopy parameters must be finite and nonnegative")
@@ -104,7 +121,8 @@ class CanopyModel:
             speed = np.linalg.norm(velocity)
             if speed < 1e-12:
                 continue
-            magnitude = self.settings.resistance * width * fraction * np.tanh(speed / self.settings.transition_speed)
+            magnitude = (self.settings.resistance * self.settings.density_scale * width
+                         * fraction * np.tanh(speed / self.settings.transition_speed))
             force = -magnitude * velocity / speed
             self.force += self.jac.T @ force
             self.power += float(force @ velocity)
@@ -122,7 +140,8 @@ class CanopyModel:
 
     def draw(self, scene, data, center):
         if self.visual is None:
-            self.visual = CanopyVisual(self)
+            self.visual = (CanopyVisual(self) if self.settings.shoot_density is None
+                           else DensityCanopyVisual(self))
         self.visual.draw(scene, data, center)
 
 
@@ -177,3 +196,85 @@ class CanopyVisual:
                                   np.zeros(3), np.zeros(3), np.eye(3).ravel(), self.colors[i])
                 mujoco.mjv_connector(geom, mujoco.mjtGeom.mjGEOM_CAPSULE, radius, a, b)
                 scene.ngeom += 1
+
+
+class DensityCanopyVisual(CanopyVisual):
+    """Explicit shoots and blades, culled by distance and scene capacity.
+
+    The full field stores shoot roots; only displayed shoots are brushed.
+    Display culling never changes physical density or forces.
+    """
+    def __init__(self, canopy):
+        self.canopy = canopy
+        settings = canopy.settings
+        # Round total count through grid dimensions; report realized density.
+        n = round(6 * np.sqrt(settings.shoot_density))
+        self.realized_shoot_density = n * n / 36
+        rng = np.random.default_rng(17)
+        if n:
+            spacing = 6 / n
+            axis = -3 + (np.arange(n) + 0.5) * spacing
+            x, y = np.meshgrid(axis, axis)
+            xy = np.c_[x.ravel(), y.ravel()] + rng.uniform(-0.4, 0.4, (n*n, 2)) * spacing
+        else:
+            xy = np.empty((0, 2))
+        uv = (xy + 3) / 0.025
+        ij = np.minimum(np.floor(uv).astype(int), 239)
+        a, b = (uv - ij).T
+        i, j = ij.T
+        z = canopy.heights
+        soil = ((1-a)*(1-b)*z[j, i] + a*(1-b)*z[j, i+1]
+                + (1-a)*b*z[j+1, i] + a*b*z[j+1, i+1])
+        self.roots = np.c_[xy, soil]
+        self.lean = rng.uniform(-0.012, 0.012, (n*n, 2))
+        self.colors = np.c_[rng.uniform(0.18, 0.32, n*n), rng.uniform(0.35, 0.55, n*n),
+                            rng.uniform(0.07, 0.14, n*n), np.ones(n*n)]
+        self.bend = np.zeros((n*n, 2))
+        self.time = 0.0
+        self.active = np.empty(0, dtype=int)
+        self.drawn_shoots = 0
+
+    def update(self, data):
+        dt = max(0, float(data.time) - self.time)
+        self.time = float(data.time)
+        self.bend *= np.exp(-dt / self.canopy.settings.recovery_seconds)
+        for geom in self.canopy.geoms:
+            engaged = self.canopy.engagement(data, geom)
+            if engaged is None:
+                continue
+            point, fraction, width = engaged
+            delta = self.roots[self.active, :2] - point[:2]
+            nearby = self.active[np.sum(delta**2, axis=1) < (0.06 + width / 2)**2]
+            mujoco.mj_jac(self.canopy.model, data, self.canopy.jac, None, point,
+                          self.canopy.model.geom_bodyid[geom])
+            velocity = (self.canopy.jac @ data.qvel)[:2]
+            speed = np.linalg.norm(velocity)
+            if speed > 0.005:
+                self.bend[nearby] = velocity / speed * self.canopy.settings.height * 0.85 * fraction
+
+    def draw(self, scene, data, center):
+        distance2 = np.sum((self.roots[:, :2] - np.asarray(center)[:2])**2, axis=1)
+        indices = np.flatnonzero(distance2 < 0.7**2)
+        leaves = self.canopy.settings.blades_per_shoot
+        budget = max(0, (scene.maxgeom - scene.ngeom) // leaves)
+        self.active = indices[np.argsort(distance2[indices])][:budget]
+        self.drawn_shoots = len(self.active)
+        height = self.canopy.settings.height
+        roots = np.repeat(self.roots[self.active], leaves, axis=0)
+        angles = np.tile(np.arange(leaves) * 2 * np.pi / leaves, len(self.active))
+        bends = np.repeat(self.bend[self.active] + self.lean[self.active], leaves, axis=0)
+        bends += 0.009 * np.c_[np.cos(angles), np.sin(angles)]
+        # Preserve blade length even when imposed deflection plus lean is large.
+        lengths = np.linalg.norm(bends, axis=1)
+        bends *= np.minimum(1, 0.97 * height / np.maximum(lengths, 1e-12))[:, None]
+        vertical = np.sqrt(height**2 - np.sum(bends**2, axis=1))
+        tips = roots + np.c_[bends, vertical]
+        colors = np.repeat(self.colors[self.active], leaves, axis=0)
+        zero, identity = np.zeros(3), np.eye(3).ravel()
+        geoms = scene.geoms
+        for root, tip, color in zip(roots, tips, colors):
+            geom = geoms[scene.ngeom]
+            mujoco.mjv_initGeom(geom, mujoco.mjtGeom.mjGEOM_CAPSULE,
+                              zero, zero, identity, color)
+            mujoco.mjv_connector(geom, mujoco.mjtGeom.mjGEOM_CAPSULE, 0.0005, root, tip)
+            scene.ngeom += 1

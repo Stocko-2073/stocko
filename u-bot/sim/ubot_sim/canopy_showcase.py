@@ -4,6 +4,9 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 import subprocess
+from time import perf_counter
+
+from ubot_sim.canopy import GrassCanopy
 
 import mujoco
 import numpy as np
@@ -19,7 +22,11 @@ PHASES = [(3, "DRIVE", [0.45, 0.45]), (5, "BRAKE / RECOVER", [0, 0]),
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("videos/grass-canopy-showcase.mp4"))
+    parser.add_argument('--density', action='store_true', help='Compare sparse prototype with representative lawn density')
     args = parser.parse_args()
+    if args.density and args.output == Path('videos/grass-canopy-showcase.mp4'):
+        args.output = Path('videos/canopy-density-showcase.mp4')
+    started = perf_counter()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     envs, renderers, samples = [], [], []
     encoder = None
@@ -28,24 +35,36 @@ def main():
     camera.lookat[:] = [0.35, 0, 0.02]
     camera.distance, camera.azimuth, camera.elevation = 1.65, 100, -30
     try:
-        for canopy in (False, None):
+        configurations = ((GrassCanopy(), GrassCanopy(shoot_density=20000))
+                          if args.density else (False, None))
+        for canopy in configurations:
             env = UBotNavigationEnv(surface="short_grass", grass_canopy=canopy)
             envs.append(env)
             env.reset(seed=0, options={"yaw": 0, "goal": [2.5, 2.5]})
             env.model.vis.global_.offwidth = 640
             env.model.vis.global_.offheight = 440
-            renderers.append(mujoco.Renderer(env.model, height=440, width=640, max_geom=5000))
+            if args.density:
+                # Subpixel blade capsules do not need the default dense sphere mesh.
+                env.model.vis.quality.numslices = 4
+                env.model.vis.quality.numstacks = 2
+                env.model.vis.quality.numquads = 1
+            renderers.append(mujoco.Renderer(env.model, height=440, width=640, max_geom=100000 if args.density else 5000))
 
         def frame(phase):
             canvas = Image.new("RGB", (1280, 720), "#0c151d")
             draw = ImageDraw.Draw(canvas)
-            draw.text((24, 17), "U-BOT / A 5 cm GRASS CANOPY", font=title, fill="#eef4f5")
-            draw.text((24, 60), "Identical soil, grip, rolling friction and commands / experimental resistance / real-time playback",
+            draw.text((24, 17), "U-BOT / LAWN DENSITY EXPERIMENT" if args.density else "U-BOT / A 5 cm GRASS CANOPY", font=title, fill="#eef4f5")
+            draw.text((24, 60), ("5 cm height / same estimated drag at reference density / real-time playback" if args.density else
+                       "Identical soil, grip, rolling friction and commands / experimental resistance / real-time playback"),
                       font=small, fill="#abc0cb")
             for i, (env, renderer) in enumerate(zip(envs, renderers)):
                 x = i * 640
-                draw.text((x + 24, 100), "SOIL CONTACT ONLY" if i == 0 else "5 cm CANOPY + DRAG", font=label, fill="#48ddb1")
+                draw.text((x + 24, 100), (("SPARSE / 178 blades per m²" if i == 0 else "LAWN / 20,000 shoots per m²") if args.density else
+                          ("SOIL CONTACT ONLY" if i == 0 else "5 cm CANOPY + DRAG")), font=label, fill="#48ddb1")
                 renderer.update_scene(env.data, camera=camera)
+                if args.density:
+                    renderer.scene.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = False
+                    renderer.scene.flags[mujoco.mjtRndFlag.mjRND_REFLECTION] = False
                 if env.canopy:
                     env.draw_canopy(renderer.scene, camera.lookat)
                     # A true 5 cm reference beside the robot's path.
@@ -63,8 +82,10 @@ def main():
                 detail = (f"Canopy drag {env.canopy.force_norm:.2f} N / power {env.canopy.power:.3f} W"
                           if env.canopy else "Original 0–8 mm soil bumps / canopy disabled")
                 draw.text((x + 24, 628), detail, font=small, fill="#abc0cb")
+            if args.density:
+                draw.text((664, 656), '3 blades/shoot assumed = 60,000 blades/m²', font=small, fill='#48ddb1')
             draw.line((640, 96, 640, 670), fill="#536774", width=2)
-            draw.text((24, 690), f"{envs[0].data.time:04.1f} s / {phase} / Yellow ruler = 5 cm / Blade bending is illustrative",
+            draw.text((24, 690), f"{envs[0].data.time:04.1f} s / {phase} / " + ("Dense display radius 0.7 m / Bending is illustrative" if args.density else "Yellow ruler = 5 cm / Blade bending is illustrative"),
                       font=small, fill="#abc0cb")
             return canvas
 
@@ -101,7 +122,11 @@ def main():
             raise RuntimeError("FFmpeg failed")
         last.save(args.output.with_name(args.output.stem + "-complete.png"))
         report = {"surface": "short_grass", "seed": 0, "wheel_contact": "lugs", "physics_timestep": 0.002,
-                  "canopy": asdict(envs[1].canopy.settings), "fps": 25, "resolution": [1280, 720],
+                  "canopy": asdict(envs[1].canopy.settings),
+                  "comparison_canopy": asdict(envs[0].canopy.settings) if envs[0].canopy else None,
+                  "render_wall_seconds": perf_counter() - started,
+                  "realized_shoot_density": getattr(envs[1].canopy.visual, 'realized_shoot_density', None),
+                  "drawn_shoots_last_frame": getattr(envs[1].canopy.visual, 'drawn_shoots', None), "fps": 25, "resolution": [1280, 720],
                   "video_seconds": 14, "phases": PHASES, "samples": samples,
                   "warning_counts": [sum(int(w.number) for w in e.data.warning) for e in envs]}
         args.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")

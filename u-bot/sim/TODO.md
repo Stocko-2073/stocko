@@ -57,12 +57,13 @@ soil model. See [benchmark results](benchmarks/README.md).
   rolling friction. Both wheels complete the route at 1 ms and 2 ms.
   A separate 5 cm canopy adds estimated wheel/caster drag and illustrative
   blade bending/recovery. [Canopy video](videos/grass-canopy-showcase.mp4).
-- [ ] Experiment with a 5 cm canopy representative of average lawn density.
-  Source or measure a typical density range, distinguishing shoots/tillers
-  from individual blades. Use it to inform both visual coverage and physical
-  resistance, and compare against the current sparse illustration (about
-  178 blades/m², with density-independent drag). Check travel, stopping,
-  runtime, and timestep sensitivity; document assumptions and calibration gaps.
+- [x] Experiment with a 5 cm canopy representative of average lawn density.
+  An opt-in 20,000-shoot/m² reference with three assumed blades per shoot
+  drives explicit visual coverage and estimated density-dependent drag.
+  Low/high cases span 4,000–36,000 shoots/m²; 16/16 routes completed with
+  both wheels at 1/2 ms. This is a representative scenario, not a measured
+  residential-lawn average. [Evidence and results](benchmarks/canopy-density.md).
+  [Density video](videos/canopy-density-showcase.mp4).
 - [x] Wet/slippery patches: local grip changes, including one drive wheel on
   each of two different surfaces. `TerrainPatch` adds flush rectangles with
   independent sliding grip and inherited rolling/compliance settings. Tests

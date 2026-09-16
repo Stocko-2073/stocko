@@ -113,3 +113,70 @@ def test_canopy_reduces_powered_speed_and_passive_coasting(wheel, timestep):
             assert results[-1]["contact_dimensions"] == [6]
     assert results[1]["entry_speed_mps"] < results[0]["entry_speed_mps"] * 0.95
     assert results[1]["path_length_3s_m"] < results[0]["path_length_3s_m"] * 0.8
+
+
+@pytest.mark.parametrize('density', [0, 4000, 20000, 36000])
+@pytest.mark.parametrize('blades', [1, 3])
+def test_density_scales_drag_without_injecting_energy(density, blades):
+    from dataclasses import replace
+    with UBotNavigationEnv(surface='short_grass') as env:
+        env.reset(seed=0, options={'yaw': 0})
+        env.data.qvel[:] = np.random.default_rng(6).normal(size=env.model.nv)
+        mujoco.mj_forward(env.model, env.data)
+        original = env.canopy.forces(env.data).copy()
+        env.canopy.settings = replace(env.canopy.settings, shoot_density=density, blades_per_shoot=blades)
+        force = env.canopy.forces(env.data)
+        np.testing.assert_allclose(force, original * density * blades / 60000, atol=1e-12)
+        assert force @ env.data.qvel <= 0
+
+
+@pytest.mark.parametrize('kwargs', [{'shoot_density': -1}, {'shoot_density': float('nan')},
+                                   {'shoot_density': 100001}, {'blades_per_shoot': 0},
+                                   {'blades_per_shoot': 2.5}])
+def test_invalid_density_parameters(kwargs):
+    with pytest.raises(ValueError):
+        GrassCanopy(**kwargs)
+
+
+def test_density_visual_counts_budget_and_physics_independence():
+    from ubot_sim.canopy import DensityCanopyVisual
+    settings = GrassCanopy(shoot_density=20000)
+    with UBotNavigationEnv(surface='short_grass', grass_canopy=settings) as visible, \
+         UBotNavigationEnv(surface='short_grass', grass_canopy=settings) as hidden:
+        for env in (visible, hidden):
+            env.reset(seed=0, options={'yaw': 0})
+        visual = DensityCanopyVisual(visible.canopy)
+        visible.canopy.visual = visual
+        assert visual.realized_shoot_density == pytest.approx(20000, rel=0.002)
+        count = np.sum(np.all(np.abs(visual.roots[:, :2]) < 0.25, axis=1))
+        assert count / 0.25 == pytest.approx(20000, rel=0.02)
+        scene = mujoco.MjvScene(visible.model, maxgeom=1000)
+        visual.draw(scene, visible.data, visible.data.geom_xpos[visible.canopy.geoms[0]])
+        assert scene.ngeom == 999
+        assert visual.drawn_shoots == 333
+        for _ in range(10):
+            visible.step([0.5, 0.5])
+            hidden.step([0.5, 0.5])
+        np.testing.assert_array_equal(visible.data.qpos, hidden.data.qpos)
+        maximum = np.max(np.linalg.norm(visual.bend, axis=1))
+        assert maximum > 0
+        scene.ngeom = 0
+        visual.draw(scene, visible.data, visible.data.geom_xpos[visible.canopy.geoms[0]])
+        assert all(2 * g.size[2] == pytest.approx(0.05) for g in scene.geoms[:scene.ngeom])
+        visible.data.qpos[2] += 1
+        mujoco.mj_forward(visible.model, visible.data)
+        visible.data.time += 3
+        visual.update(visible.data)
+        assert np.max(np.linalg.norm(visual.bend, axis=1)) == pytest.approx(maximum * np.exp(-2))
+        visible.reset(seed=0)
+        assert not visual.bend.any()
+
+
+def test_zero_density_has_no_blades():
+    from ubot_sim.canopy import DensityCanopyVisual
+    with UBotNavigationEnv(surface='short_grass', grass_canopy=GrassCanopy(shoot_density=0)) as env:
+        env.reset(seed=0)
+        visual = DensityCanopyVisual(env.canopy)
+        scene = mujoco.MjvScene(env.model, maxgeom=10)
+        visual.draw(scene, env.data, [0, 0])
+        assert scene.ngeom == 0

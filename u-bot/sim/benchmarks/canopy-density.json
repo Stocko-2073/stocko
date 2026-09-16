@@ -1,0 +1,1623 @@
+{
+  "mujoco": "3.13.0",
+  "seed": 0,
+  "render_enabled": false,
+  "runs": [
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": null,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 22.88000000000498,
+        "completion_seconds": 22.88000000000498,
+        "path_length_m": 3.7995960728442983,
+        "tracking_rms_m": 0.036635930187031554,
+        "tracking_max_m": 0.10456572253164229,
+        "slip_rms_mps": 0.015126433141334092,
+        "slip_p95_mps": 0.027202280136104918,
+        "slip_contact_samples": 5442,
+        "slip_control_steps": 1143,
+        "control_steps": 1144,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.139999999999717,
+            "goal_error_m": 0.10318375626105428,
+            "arrival_speed_mps": 0.05378947614930167,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.860000000000529,
+            "goal_error_m": 0.10373086354188324,
+            "arrival_speed_mps": 0.048837018018061555,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 13.699999999997846,
+            "goal_error_m": 0.1055522781599493,
+            "arrival_speed_mps": 0.04910506467042571,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 18.33999999999943,
+            "goal_error_m": 0.10436368457522271,
+            "arrival_speed_mps": 0.048010786446902175,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 22.88000000000498,
+            "goal_error_m": 0.10581196244447648,
+            "arrival_speed_mps": 0.04623801162061626,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.2517803999682217,
+        "path_length_3s_m": 0.05795269878838487,
+        "final_speed_mps": 0.005968360536359202,
+        "settled_below_0.02_mps_seconds": 0.48,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 5.219666999997571,
+      "route_realtime_factor": 4.383421394509578
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": null,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 22.959999999998153,
+        "completion_seconds": 22.959999999998153,
+        "path_length_m": 3.801153856729823,
+        "tracking_rms_m": 0.03720449131421288,
+        "tracking_max_m": 0.10461522210895231,
+        "slip_rms_mps": 0.018825371300694494,
+        "slip_p95_mps": 0.03878258534921847,
+        "slip_contact_samples": 5524,
+        "slip_control_steps": 1147,
+        "control_steps": 1148,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.159999999999764,
+            "goal_error_m": 0.10320855019282968,
+            "arrival_speed_mps": 0.05399090696220215,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.899999999999642,
+            "goal_error_m": 0.1046023877018737,
+            "arrival_speed_mps": 0.05334923667916407,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 13.760000000001265,
+            "goal_error_m": 0.10561449927075883,
+            "arrival_speed_mps": 0.04971683706728186,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 18.40000000000068,
+            "goal_error_m": 0.1051999467202742,
+            "arrival_speed_mps": 0.04833394230225037,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 22.959999999998153,
+            "goal_error_m": 0.10573118162885552,
+            "arrival_speed_mps": 0.046256569354994385,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24806134680780612,
+        "path_length_3s_m": 0.056172169249060905,
+        "final_speed_mps": 0.005573026122680294,
+        "settled_below_0.02_mps_seconds": 0.5,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.8583555420627818,
+      "route_realtime_factor": 8.03259064945737
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": null,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 23.720000000006007,
+        "completion_seconds": 23.720000000006007,
+        "path_length_m": 3.797009177688992,
+        "tracking_rms_m": 0.03778295430827984,
+        "tracking_max_m": 0.10505280019089208,
+        "slip_rms_mps": 0.020952557777992847,
+        "slip_p95_mps": 0.041631745869879284,
+        "slip_contact_samples": 5069,
+        "slip_control_steps": 1186,
+        "control_steps": 1186,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.299999999999771,
+            "goal_error_m": 0.10380292772572412,
+            "arrival_speed_mps": 0.04900617117520795,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 9.240000000000318,
+            "goal_error_m": 0.10513674010041624,
+            "arrival_speed_mps": 0.04422116938592559,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 14.299999999997514,
+            "goal_error_m": 0.10597541706198084,
+            "arrival_speed_mps": 0.044004844080039525,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 19.06000000000031,
+            "goal_error_m": 0.1058615927188675,
+            "arrival_speed_mps": 0.04115144375623446,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 23.720000000006007,
+            "goal_error_m": 0.10599931935142091,
+            "arrival_speed_mps": 0.04499392051400204,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24148760715131404,
+        "path_length_3s_m": 0.04130146659469622,
+        "final_speed_mps": 0.0006386730901877894,
+        "settled_below_0.02_mps_seconds": 0.48,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 5.107438916922547,
+      "route_realtime_factor": 4.64420630101208
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": null,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 23.879999999997644,
+        "completion_seconds": 23.879999999997644,
+        "path_length_m": 3.8012320568911435,
+        "tracking_rms_m": 0.03816540196088773,
+        "tracking_max_m": 0.10536365738643969,
+        "slip_rms_mps": 0.022572645146753244,
+        "slip_p95_mps": 0.04564099712634989,
+        "slip_contact_samples": 5137,
+        "slip_control_steps": 1194,
+        "control_steps": 1194,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.2999999999997485,
+            "goal_error_m": 0.10461633871616023,
+            "arrival_speed_mps": 0.04839902056017823,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 9.319999999999782,
+            "goal_error_m": 0.10444196238559643,
+            "arrival_speed_mps": 0.046450646408340984,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 14.400000000001478,
+            "goal_error_m": 0.10632347744460498,
+            "arrival_speed_mps": 0.04508833278382543,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 19.18000000000025,
+            "goal_error_m": 0.10615687311028589,
+            "arrival_speed_mps": 0.04520565985565833,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 23.879999999997644,
+            "goal_error_m": 0.10584136020430561,
+            "arrival_speed_mps": 0.04036151419488282,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24213070783174465,
+        "path_length_3s_m": 0.0389199888321424,
+        "final_speed_mps": 0.0012049721868046652,
+        "settled_below_0.02_mps_seconds": 0.5,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.7930793330306187,
+      "route_realtime_factor": 8.549703446513549
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 4000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 20.160000000001656,
+        "completion_seconds": 20.160000000001656,
+        "path_length_m": 3.8097856443124942,
+        "tracking_rms_m": 0.03404701667961973,
+        "tracking_max_m": 0.10289872362191421,
+        "slip_rms_mps": 0.010153717963102,
+        "slip_p95_mps": 0.014555303172142679,
+        "slip_contact_samples": 4751,
+        "slip_control_steps": 1008,
+        "control_steps": 1008,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 3.659999999999708,
+            "goal_error_m": 0.0997787039155144,
+            "arrival_speed_mps": 0.06291197972191624,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 7.760000000000926,
+            "goal_error_m": 0.10164015465772763,
+            "arrival_speed_mps": 0.062074518595823046,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 12.099999999998733,
+            "goal_error_m": 0.10393183461478307,
+            "arrival_speed_mps": 0.04972734922864217,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 16.199999999996816,
+            "goal_error_m": 0.10158516346459844,
+            "arrival_speed_mps": 0.050959650055077625,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 20.160000000001656,
+            "goal_error_m": 0.10156222720150372,
+            "arrival_speed_mps": 0.05850276659568451,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.28166710287246677,
+        "path_length_3s_m": 0.07892610355942696,
+        "final_speed_mps": 0.005194073632997967,
+        "settled_below_0.02_mps_seconds": 0.58,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 4.490027541993186,
+      "route_realtime_factor": 4.48995018659782
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 4000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 20.219999999999672,
+        "completion_seconds": 20.219999999999672,
+        "path_length_m": 3.8105336324270107,
+        "tracking_rms_m": 0.03424855039176851,
+        "tracking_max_m": 0.1023585458956519,
+        "slip_rms_mps": 0.012539096872400192,
+        "slip_p95_mps": 0.0230819610905876,
+        "slip_contact_samples": 4763,
+        "slip_control_steps": 1010,
+        "control_steps": 1011,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 3.6599999999998185,
+            "goal_error_m": 0.10066137082478076,
+            "arrival_speed_mps": 0.06310106264624579,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 7.779999999999365,
+            "goal_error_m": 0.10138719041150258,
+            "arrival_speed_mps": 0.062086927849504106,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 12.140000000000724,
+            "goal_error_m": 0.10338089920424788,
+            "arrival_speed_mps": 0.04920450685031293,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 16.240000000001878,
+            "goal_error_m": 0.10187295715202248,
+            "arrival_speed_mps": 0.05232701446361174,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 20.219999999999672,
+            "goal_error_m": 0.10171969639283518,
+            "arrival_speed_mps": 0.059276930696163764,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.28127647268791733,
+        "path_length_3s_m": 0.07810932161365947,
+        "final_speed_mps": 0.00817454959252509,
+        "settled_below_0.02_mps_seconds": 0.58,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.4214420840144157,
+      "route_realtime_factor": 8.35039587916871
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 4000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 20.780000000002413,
+        "completion_seconds": 20.780000000002413,
+        "path_length_m": 3.808275627551414,
+        "tracking_rms_m": 0.03519292073741732,
+        "tracking_max_m": 0.10317988848148506,
+        "slip_rms_mps": 0.014001393687264408,
+        "slip_p95_mps": 0.022877924392200044,
+        "slip_contact_samples": 4384,
+        "slip_control_steps": 1038,
+        "control_steps": 1039,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 3.8199999999996903,
+            "goal_error_m": 0.09672494620069354,
+            "arrival_speed_mps": 0.05074674394986224,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.040000000000983,
+            "goal_error_m": 0.1024606562945346,
+            "arrival_speed_mps": 0.047456671566634835,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 12.53999999999849,
+            "goal_error_m": 0.10395883848811585,
+            "arrival_speed_mps": 0.03798856140364197,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 16.739999999997476,
+            "goal_error_m": 0.10213252711506306,
+            "arrival_speed_mps": 0.05338789621206692,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 20.780000000002413,
+            "goal_error_m": 0.10291086958706057,
+            "arrival_speed_mps": 0.04929738028980204,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.27413601882598754,
+        "path_length_3s_m": 0.05835607984349293,
+        "final_speed_mps": 0.0003493666060619992,
+        "settled_below_0.02_mps_seconds": 0.56,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 4.478776959003881,
+      "route_realtime_factor": 4.639659485214478
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 4000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 20.77999999999936,
+        "completion_seconds": 20.77999999999936,
+        "path_length_m": 3.8023137197289714,
+        "tracking_rms_m": 0.035117235813856486,
+        "tracking_max_m": 0.10448925858698582,
+        "slip_rms_mps": 0.016189268516338996,
+        "slip_p95_mps": 0.028558748498418583,
+        "slip_contact_samples": 4323,
+        "slip_control_steps": 1038,
+        "control_steps": 1039,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 3.7599999999998075,
+            "goal_error_m": 0.10033109606427927,
+            "arrival_speed_mps": 0.05333832146273139,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.039999999999354,
+            "goal_error_m": 0.10357079000245434,
+            "arrival_speed_mps": 0.049701634061843844,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 12.52000000000085,
+            "goal_error_m": 0.1054457823781499,
+            "arrival_speed_mps": 0.044928577324826545,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 16.720000000001612,
+            "goal_error_m": 0.10297550966703438,
+            "arrival_speed_mps": 0.047591682868069224,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 20.77999999999936,
+            "goal_error_m": 0.10286006270962621,
+            "arrival_speed_mps": 0.0542911731440454,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.27244287156469243,
+        "path_length_3s_m": 0.057249785924466064,
+        "final_speed_mps": 0.00021253499001686385,
+        "settled_below_0.02_mps_seconds": 0.58,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.431374958017841,
+      "route_realtime_factor": 8.546604435269865
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 20000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 22.88000000000498,
+        "completion_seconds": 22.88000000000498,
+        "path_length_m": 3.7995960728442983,
+        "tracking_rms_m": 0.036635930187031554,
+        "tracking_max_m": 0.10456572253164229,
+        "slip_rms_mps": 0.015126433141334092,
+        "slip_p95_mps": 0.027202280136104918,
+        "slip_contact_samples": 5442,
+        "slip_control_steps": 1143,
+        "control_steps": 1144,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.139999999999717,
+            "goal_error_m": 0.10318375626105428,
+            "arrival_speed_mps": 0.05378947614930167,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.860000000000529,
+            "goal_error_m": 0.10373086354188324,
+            "arrival_speed_mps": 0.048837018018061555,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 13.699999999997846,
+            "goal_error_m": 0.1055522781599493,
+            "arrival_speed_mps": 0.04910506467042571,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 18.33999999999943,
+            "goal_error_m": 0.10436368457522271,
+            "arrival_speed_mps": 0.048010786446902175,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 22.88000000000498,
+            "goal_error_m": 0.10581196244447648,
+            "arrival_speed_mps": 0.04623801162061626,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.2517803999682217,
+        "path_length_3s_m": 0.05795269878838487,
+        "final_speed_mps": 0.005968360536359202,
+        "settled_below_0.02_mps_seconds": 0.48,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 5.065265499986708,
+      "route_realtime_factor": 4.517038642903323
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 20000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 22.959999999998153,
+        "completion_seconds": 22.959999999998153,
+        "path_length_m": 3.801153856729823,
+        "tracking_rms_m": 0.03720449131421288,
+        "tracking_max_m": 0.10461522210895231,
+        "slip_rms_mps": 0.018825371300694494,
+        "slip_p95_mps": 0.03878258534921847,
+        "slip_contact_samples": 5524,
+        "slip_control_steps": 1147,
+        "control_steps": 1148,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.159999999999764,
+            "goal_error_m": 0.10320855019282968,
+            "arrival_speed_mps": 0.05399090696220215,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 8.899999999999642,
+            "goal_error_m": 0.1046023877018737,
+            "arrival_speed_mps": 0.05334923667916407,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 13.760000000001265,
+            "goal_error_m": 0.10561449927075883,
+            "arrival_speed_mps": 0.04971683706728186,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 18.40000000000068,
+            "goal_error_m": 0.1051999467202742,
+            "arrival_speed_mps": 0.04833394230225037,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 22.959999999998153,
+            "goal_error_m": 0.10573118162885552,
+            "arrival_speed_mps": 0.046256569354994385,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24806134680780612,
+        "path_length_3s_m": 0.056172169249060905,
+        "final_speed_mps": 0.005573026122680294,
+        "settled_below_0.02_mps_seconds": 0.5,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.774480750085786,
+      "route_realtime_factor": 8.27542234678984
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 20000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 23.720000000006007,
+        "completion_seconds": 23.720000000006007,
+        "path_length_m": 3.797009177688992,
+        "tracking_rms_m": 0.03778295430827984,
+        "tracking_max_m": 0.10505280019089208,
+        "slip_rms_mps": 0.020952557777992847,
+        "slip_p95_mps": 0.041631745869879284,
+        "slip_contact_samples": 5069,
+        "slip_control_steps": 1186,
+        "control_steps": 1186,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.299999999999771,
+            "goal_error_m": 0.10380292772572412,
+            "arrival_speed_mps": 0.04900617117520795,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 9.240000000000318,
+            "goal_error_m": 0.10513674010041624,
+            "arrival_speed_mps": 0.04422116938592559,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 14.299999999997514,
+            "goal_error_m": 0.10597541706198084,
+            "arrival_speed_mps": 0.044004844080039525,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 19.06000000000031,
+            "goal_error_m": 0.1058615927188675,
+            "arrival_speed_mps": 0.04115144375623446,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 23.720000000006007,
+            "goal_error_m": 0.10599931935142091,
+            "arrival_speed_mps": 0.04499392051400204,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24148760715131404,
+        "path_length_3s_m": 0.04130146659469622,
+        "final_speed_mps": 0.0006386730901877894,
+        "settled_below_0.02_mps_seconds": 0.48,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.65,
+          0.65,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 5.144638582947664,
+      "route_realtime_factor": 4.6106251425761835
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 20000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 23.879999999997644,
+        "completion_seconds": 23.879999999997644,
+        "path_length_m": 3.8012320568911435,
+        "tracking_rms_m": 0.03816540196088773,
+        "tracking_max_m": 0.10536365738643969,
+        "slip_rms_mps": 0.022572645146753244,
+        "slip_p95_mps": 0.04564099712634989,
+        "slip_contact_samples": 5137,
+        "slip_control_steps": 1194,
+        "control_steps": 1194,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.2999999999997485,
+            "goal_error_m": 0.10461633871616023,
+            "arrival_speed_mps": 0.04839902056017823,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 9.319999999999782,
+            "goal_error_m": 0.10444196238559643,
+            "arrival_speed_mps": 0.046450646408340984,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 14.400000000001478,
+            "goal_error_m": 0.10632347744460498,
+            "arrival_speed_mps": 0.04508833278382543,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 19.18000000000025,
+            "goal_error_m": 0.10615687311028589,
+            "arrival_speed_mps": 0.04520565985565833,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 23.879999999997644,
+            "goal_error_m": 0.10584136020430561,
+            "arrival_speed_mps": 0.04036151419488282,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.24213070783174465,
+        "path_length_3s_m": 0.0389199888321424,
+        "final_speed_mps": 0.0012049721868046652,
+        "settled_below_0.02_mps_seconds": 0.5,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 2.795562249957584,
+      "route_realtime_factor": 8.5421099102193
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 36000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 25.54000000000823,
+        "completion_seconds": 25.54000000000823,
+        "path_length_m": 3.7981332692565166,
+        "tracking_rms_m": 0.039960984602668746,
+        "tracking_max_m": 0.1061478279978148,
+        "slip_rms_mps": 0.022022819409358855,
+        "slip_p95_mps": 0.044694030148813076,
+        "slip_contact_samples": 6131,
+        "slip_control_steps": 1277,
+        "control_steps": 1277,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.6199999999998775,
+            "goal_error_m": 0.10517994440010695,
+            "arrival_speed_mps": 0.04964357832837139,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 9.979999999999908,
+            "goal_error_m": 0.10526807810475225,
+            "arrival_speed_mps": 0.05063766189858797,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 15.29999999999696,
+            "goal_error_m": 0.10706588726442093,
+            "arrival_speed_mps": 0.04438805587899376,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 20.50000000000207,
+            "goal_error_m": 0.10704660386177593,
+            "arrival_speed_mps": 0.04006272301103406,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 25.54000000000823,
+            "goal_error_m": 0.10781399394672236,
+            "arrival_speed_mps": 0.03452470294756221,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.2267796665035871,
+        "path_length_3s_m": 0.040925664344549105,
+        "final_speed_mps": 9.271958123244888e-05,
+        "settled_below_0.02_mps_seconds": 0.6,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 5.727511874982156,
+      "route_realtime_factor": 4.45917888211935
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 36000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "smooth",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 25.699999999996635,
+        "completion_seconds": 25.699999999996635,
+        "path_length_m": 3.7987738405688094,
+        "tracking_rms_m": 0.04057142201829042,
+        "tracking_max_m": 0.10616638889381233,
+        "slip_rms_mps": 0.024486490084722347,
+        "slip_p95_mps": 0.05317621526808686,
+        "slip_contact_samples": 6256,
+        "slip_control_steps": 1285,
+        "control_steps": 1285,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.639999999999711,
+            "goal_error_m": 0.10542731561412068,
+            "arrival_speed_mps": 0.05094564203887457,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 10.060000000000029,
+            "goal_error_m": 0.10537186433207442,
+            "arrival_speed_mps": 0.04727565791835486,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 15.400000000001812,
+            "goal_error_m": 0.10707651033207913,
+            "arrival_speed_mps": 0.04356354672937445,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 20.59999999999946,
+            "goal_error_m": 0.10747279314346014,
+            "arrival_speed_mps": 0.04047220941819376,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 25.699999999996635,
+            "goal_error_m": 0.1080245114742356,
+            "arrival_speed_mps": 0.03476924959698579,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.22658873394595855,
+        "path_length_3s_m": 0.041221037903268296,
+        "final_speed_mps": 0.0005890323678059638,
+        "settled_below_0.02_mps_seconds": 0.56,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 3.1500845421105623,
+      "route_realtime_factor": 8.15851119436229
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 36000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.001,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 26.460000000009355,
+        "completion_seconds": 26.460000000009355,
+        "path_length_m": 3.7979097755306004,
+        "tracking_rms_m": 0.04049820607039156,
+        "tracking_max_m": 0.10728666965264635,
+        "slip_rms_mps": 0.025572255284733857,
+        "slip_p95_mps": 0.05612391538915468,
+        "slip_contact_samples": 5861,
+        "slip_control_steps": 1323,
+        "control_steps": 1323,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.779999999999931,
+            "goal_error_m": 0.10661189854803668,
+            "arrival_speed_mps": 0.04908405340864415,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 10.359999999999697,
+            "goal_error_m": 0.10741734294113779,
+            "arrival_speed_mps": 0.042647174341226196,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 15.899999999996627,
+            "goal_error_m": 0.1082501233515973,
+            "arrival_speed_mps": 0.046585531769072853,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 21.280000000003024,
+            "goal_error_m": 0.10739124060508565,
+            "arrival_speed_mps": 0.034822150999022035,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 26.460000000009355,
+            "goal_error_m": 0.10819271257919465,
+            "arrival_speed_mps": 0.032319932212389484,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.22099504656376362,
+        "path_length_3s_m": 0.03586323995052998,
+        "final_speed_mps": 7.119119215058055e-05,
+        "settled_below_0.02_mps_seconds": 0.52,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 6.135516208014451,
+      "route_realtime_factor": 4.312595567011341
+    },
+    {
+      "canopy": {
+        "height": 0.05,
+        "resistance": 30.0,
+        "transition_speed": 0.05,
+        "recovery_seconds": 1.5,
+        "shoot_density": 36000,
+        "blades_per_shoot": 3
+      },
+      "wheel": "lugs",
+      "timestep": 0.002,
+      "route": {
+        "is_success": true,
+        "failed": false,
+        "truncated": false,
+        "waypoints_reached": 5,
+        "elapsed_seconds": 26.579999999996147,
+        "completion_seconds": 26.579999999996147,
+        "path_length_m": 3.800491304368179,
+        "tracking_rms_m": 0.04106741209836891,
+        "tracking_max_m": 0.10823532251003402,
+        "slip_rms_mps": 0.028945198571839702,
+        "slip_p95_mps": 0.06062732454825373,
+        "slip_contact_samples": 5702,
+        "slip_control_steps": 1327,
+        "control_steps": 1329,
+        "stops": [
+          {
+            "waypoint": 1,
+            "arrival_seconds": 4.819999999999691,
+            "goal_error_m": 0.1067444325009295,
+            "arrival_speed_mps": 0.04985524913245036,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 2,
+            "arrival_seconds": 10.500000000000176,
+            "goal_error_m": 0.10518479376844557,
+            "arrival_speed_mps": 0.038136808400367345,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 3,
+            "arrival_seconds": 16.020000000002,
+            "goal_error_m": 0.10922107094571676,
+            "arrival_speed_mps": 0.0464462502680564,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 4,
+            "arrival_seconds": 21.399999999999018,
+            "goal_error_m": 0.10718776279445043,
+            "arrival_speed_mps": 0.03435099474206975,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          },
+          {
+            "waypoint": 5,
+            "arrival_seconds": 26.579999999996147,
+            "goal_error_m": 0.10932861242046672,
+            "arrival_speed_mps": 0.032238295170445776,
+            "command_seconds": null,
+            "entry_speed_mps": null,
+            "travel_after_command_m": null,
+            "settle_seconds": null
+          }
+        ],
+        "warning_count": 0
+      },
+      "coast": {
+        "entry_speed_mps": 0.2195694781141592,
+        "path_length_3s_m": 0.034726174917505355,
+        "final_speed_mps": 2.512564308961408e-05,
+        "settled_below_0.02_mps_seconds": 0.52,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.55,
+          0.55,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "route_wall_seconds": 3.312583624967374,
+      "route_realtime_factor": 8.023948376626398
+    }
+  ]
+}

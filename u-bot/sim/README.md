@@ -810,3 +810,20 @@ independence, blade recovery/reset, and reduced powered speed and passive
 coasting for both wheel models at both timesteps. Coasting comparisons use
 measured, unequal entry speeds; they are system-response checks, not fits of
 material coefficients.
+
+### Representative lawn-density experiment
+
+Use `GrassCanopy(shoot_density=20000, blades_per_shoot=3)` for a 5 cm canopy
+with a representative 20,000 shoots/m² and 60,000 assumed blades/m².
+Explicit density scales both visual coverage and passive drag. The original
+sparse prototype remains the default; its estimated drag equals the new
+reference case. Density is literature-informed, while blades per shoot and
+the resistance law remain assumptions pending local measurements.
+
+[Evidence, model limits and 16-run evaluation](benchmarks/canopy-density.md) ·
+[Comparison video](videos/canopy-density-showcase.mp4)
+
+```sh
+uv run python -m ubot_sim.canopy_density_experiment
+uv run python -m ubot_sim.canopy_showcase --density
+```
