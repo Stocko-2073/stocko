@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--width", type=int, default=1920)
     parser.add_argument("--height", type=int, default=1080)
     parser.add_argument("--preview-only", action="store_true")
+    parser.add_argument("--no-canopy", action="store_true", help="Disable the experimental grass canopy")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
     parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated surface preset (selects its own terrain geometry)")
@@ -55,7 +56,8 @@ def main():
         parser.error("FFmpeg must be installed and on PATH")
     route = json.loads(args.route.read_text()) if args.route else None
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    env = UBotWaypointsEnv(waypoints=route, wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
+    env = UBotWaypointsEnv(waypoints=route, wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface,
+                           grass_canopy=False if args.no_canopy else None)
     renderer = None
     encoder = None
     fps = 25  # exactly two 50 Hz policy steps per video frame, real-time playback
@@ -112,7 +114,8 @@ def main():
             subtitle = "Estimated geometry • 0–4 mm bumps • 4 mm seams • 8 mm step • Baseline controller"
 
         if args.surface == "short_grass":
-            subtitle = "Estimated grass proxy • 0–8 mm bumps • Local grip 0.55–0.75 • Rolling 0.002 m (dim6)"
+            subtitle = ("Estimated grass • " + ("5 cm canopy • " if env.canopy else "Canopy disabled • ")
+                        + "0–8 mm soil bumps • Grip 0.55–0.75")
 
         def frame():
             renderer.update_scene(env.data, camera=camera)
@@ -140,6 +143,7 @@ def main():
                     continue
                 add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*start, za + 0.014],
                              [0.006, 0, 0], [0.2, 0.85, 0.65, 1], [*end, zb + 0.014])
+            env.draw_canopy(scene, camera.lookat)
             image = Image.fromarray(renderer.render()).convert("RGBA")
             overlay = Image.new("RGBA", image.size)
             draw = ImageDraw.Draw(overlay)
@@ -224,6 +228,7 @@ def main():
                   "simulation_seconds": float(env.data.time), "video_seconds": frames / fps,
                   "fps": fps, "resolution": [args.width, args.height], **info}
         if args.surface == "short_grass":
+            report["canopy"] = asdict(env.canopy.settings) if env.canopy else None
             report["grip_first_contact_seconds"] = grip_times
             report["surface_tiles"] = [
                 {"name": env.model.geom(g).name, "center": env.model.geom_pos[g].tolist(),

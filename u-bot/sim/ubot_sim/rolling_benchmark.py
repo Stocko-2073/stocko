@@ -43,7 +43,11 @@ def coast_run(env):
         env.model.actuator_biasprm[:] = 0
         env.data.ctrl[:] = 0
         for step in range(150):
-            mujoco.mj_step(env.model, env.data, nstep=env.frame_skip)
+            if env.canopy is None:
+                mujoco.mj_step(env.model, env.data, nstep=env.frame_skip)
+            else:
+                for _ in range(env.frame_skip):
+                    env._physics_step()
             mujoco.mj_forward(env.model, env.data)
             assert np.all(env.data.actuator_force == 0), "Coasting must not include servo braking"
             xy = env.data.xpos[env.base, :2].copy()
@@ -53,8 +57,8 @@ def coast_run(env):
             speeds.append(speed)
             if len(speeds) >= 10 and max(speeds[-10:]) < 0.02 and stopped_at is None:
                 stopped_at = (step + 1) * env.dt
-        floor = env.model.geom("floor").id
-        contacts = [c for c in env.data.contact if floor in (c.geom1, c.geom2)]
+        contacts = [c for c in env.data.contact if any(
+            env.model.geom_bodyid[g] == 0 for g in (c.geom1, c.geom2))]
         return {"entry_speed_mps": entry_speed, "path_length_3s_m": path_length,
                 "final_speed_mps": speeds[-1], "settled_below_0.02_mps_seconds": stopped_at,
                 "contact_dimensions": sorted({int(c.dim) for c in contacts}),

@@ -55,7 +55,8 @@ soil model. See [benchmark results](benchmarks/README.md).
   and variable grip. `surface="short_grass"` combines continuous 0–8 mm
   heightfield bumps, nine tiles with grip 0.55/0.65/0.75, and active 0.002 m
   rolling friction. Both wheels complete the route at 1 ms and 2 ms.
-  [Video](videos/short-grass-showcase.mp4).
+  A separate 5 cm canopy adds estimated wheel/caster drag and illustrative
+  blade bending/recovery. [Canopy video](videos/grass-canopy-showcase.mp4).
 - [x] Wet/slippery patches: local grip changes, including one drive wheel on
   each of two different surfaces. `TerrainPatch` adds flush rectangles with
   independent sliding grip and inherited rolling/compliance settings. Tests

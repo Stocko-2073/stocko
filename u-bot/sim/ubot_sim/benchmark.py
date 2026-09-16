@@ -30,11 +30,16 @@ def physics_run(env, diagnostics=False):
     for command in COMMANDS:
         env.data.ctrl[:] = command
         if not diagnostics:
-            # Run the same trajectory in C; exclude Python diagnostics overhead.
-            mujoco.mj_step(env.model, env.data, nstep=step_count)
+            # Batch pure contact models in C; canopy forces require per-tick
+            # Python updates. Diagnostics are excluded in either case.
+            if env.canopy is None:
+                mujoco.mj_step(env.model, env.data, nstep=step_count)
+            else:
+                for _ in range(step_count):
+                    env._physics_step()
         else:
             for _ in range(step_count):
-                mujoco.mj_step(env.model, env.data)
+                env._physics_step()
                 contacts.append(int(env.data.ncon))
                 lug_count = 0
                 for c in env.data.contact:

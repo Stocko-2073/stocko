@@ -196,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-121 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+136 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -508,7 +508,7 @@ standstill snapping at both 1 ms and 2 ms. Surface tests inspect actual contact
 friction, dimension, and compliance for both wheel models and terrains, plus
 seeded randomization and invalid settings. Obstacle tests cover all four kinds,
 both terrains and wheel models, placement, and preserved robot dynamics
-(121 tests total, including rolling-friction activation, passive coasting,
+(136 tests total, including rolling-friction activation, passive coasting,
 elevation, surface transitions, and route-evaluation metrics).
 
 ### Terrain contact showcase
@@ -692,13 +692,14 @@ Select `surface="short_grass"` with either environment, `gym.make`, or
 
 ```sh
 uv run python -m ubot_sim.viewer --waypoints --surface short_grass
-uv run python -m ubot_sim.record --surface short_grass --width 1280 --height 720 --output videos/short-grass-showcase.mp4
+uv run python -m ubot_sim.record --surface short_grass --width 1280 --height 720 --output videos/grass-canopy-waypoints.mp4
 uv run python -m ubot_sim.train --surface short_grass --randomize
 ```
 
-This experimental rigid proxy combines 0–8 mm undulations with spatially
-varying grip and increased rolling resistance. It does not simulate grass
-blades, bending, soil displacement, or sinkage, and its settings are estimates.
+The soil proxy combines 0–8 mm undulations with spatially varying grip and
+increased rolling resistance. A separate 5 cm canopy now adds dissipative
+wheel/caster drag and illustrative blade bending, described below. Soil
+displacement and sinkage remain unmodeled; all settings are estimates.
 The rolling coefficient is 0.002 m with active six-dimensional contacts,
 20 times the concrete preset's coefficient. Sliding grip varies independently
 between 0.55, 0.65, and 0.75. Contact time constant is 0.02 s, damping ratio 1,
@@ -731,11 +732,81 @@ and inherit the preset's nominal contact unless explicitly overridden. Flat
 `TerrainPatch`/`TerrainRegion` rectangles, a non-default `terrain`, and an
 explicit `terrain_contact` conflict with this preset and are rejected.
 
-[Watch the 23-second grass showcase](videos/short-grass-showcase.mp4): the
-baseline controller completes all five stops and encounters all three grip
+[Watch the original 23-second soil-only showcase](videos/short-grass-showcase.mp4),
+recorded before adding the canopy (reproduce with `--no-canopy`): the baseline controller completes all five stops and encounters all three grip
 levels, shown in live left/right wheel-contact readouts. The JSON records
 tile placement/contact settings, first encounters, waypoint arrivals, and
 solver warnings. The [surface evaluation](benchmarks/surfaces.md) now includes
 grass for both routes, wheel models, timesteps, and three seeds. Regression
 tests also inspect actual dim6 contacts, edge-height continuity, seeded grip,
 off-origin spawn/goal elevation, and unchanged robot dynamics.
+
+
+### Five-centimetre grass canopy
+
+`short_grass` now enables a **0.05 m canopy above the soil**, independently of
+the 0–8 mm ground undulations. The existing rigid terrain, grip map, rolling
+friction, spawn height, and robot geometry remain unchanged. Canopy forces
+act on the drive wheels and four caster rollers; they provide no vertical
+support. Blades are non-colliding rendering geometry and do not add joints,
+mass, or rigid obstacles.
+
+```python
+from ubot_sim.canopy import GrassCanopy
+from ubot_sim.env import UBotNavigationEnv
+
+env = UBotNavigationEnv(surface="short_grass")  # Default 5 cm canopy
+bare = UBotNavigationEnv(surface="short_grass", grass_canopy=False)
+custom = UBotNavigationEnv(
+    surface="short_grass",
+    grass_canopy=GrassCanopy(height=0.05, resistance=30, transition_speed=0.05),
+)
+```
+
+The experimental force law is horizontal drag at a representative point in
+each wheel's immersed lower volume. Point velocity includes translation,
+wheel rotation, and caster swivel. Force opposes that horizontal velocity:
+`magnitude = resistance × effective_width × immersed_fraction × tanh(speed / transition_speed)`.
+The default resistance is 30 N per metre of effective wheel width, with a
+0.05 m/s transition speed. Nominal brush widths are 24 mm for each drive wheel
+and 18.3 mm for each caster roller. Applying forces through point Jacobians
+produces both forces and moments. Mechanical power is nonpositive; there is
+no static holding force, upward force, or drag above the canopy or outside
+the grass field. The underlying soil's 0.002 m rolling friction is retained,
+so canopy drag adds another independently adjustable loss.
+
+Canopy overlap uses bilinear interpolation of the existing soil samples;
+MuJoCo retains its original triangular collision surface. Forces update every
+physics tick and preserve caller-applied forces. The normal environment,
+recording, training, and benchmark/coasting paths all include the canopy.
+`grass_canopy=False` restores the preceding soil-only model; resistance zero
+keeps blade illustrations with no canopy force. Settings require short-grass
+terrain. Rendering the canopy is optional and does not affect trajectories.
+
+Sampled blades bend along wheel motion and recover exponentially with a
+1.5-second time constant. Their nominal root-to-tip length is 5 cm. The sparse
+illustration is clipped to a local display region and the renderer's geometry
+budget; it is not a blade-density measurement. These visual deflections do
+not feed back into the force law. This version does **not** solve individual
+stem elasticity, entanglement, permanent flattening, or reduced resistance
+along an already flattened track. It is a tunable bulk-drag approximation,
+not a calibrated prediction for a lawn.
+
+[Watch the 14-second canopy comparison](videos/grass-canopy-showcase.mp4).
+Both panels use identical soil/contact settings, seed 0, lugged wheels, 2 ms
+physics, and drive/brake/reverse commands. Only the right panel enables the
+canopy. A yellow 5 cm ruler shows scale, and overlays report speed, canopy
+drag magnitude (sum over wheels), and dissipated power. The JSON contains
+sampled positions, speeds, forces, blade deflections, and solver warnings.
+
+```sh
+uv run python -m ubot_sim.canopy_showcase
+```
+
+The updated [surface evaluation](benchmarks/surfaces.md) uses the canopy for
+grass. Tests cover passivity, rest/airborne behavior, preservation of external
+forces, unchanged soil and robot geometry, zero-strength equivalence, visual
+independence, blade recovery/reset, and reduced powered speed and passive
+coasting for both wheel models at both timesteps. Coasting comparisons use
+measured, unequal entry speeds; they are system-response checks, not fits of
+material coefficients.

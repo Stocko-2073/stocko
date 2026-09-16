@@ -23,7 +23,8 @@ class UBotNavigationEnv(gym.Env):
 
     def __init__(self, render_mode=None, max_steps=1500, randomize=False,
                  wheel_contact="lugs", terrain="flat", timestep=0.002,
-                 terrain_contact=None, obstacles=(), surface=None, patches=(), regions=()):
+                 terrain_contact=None, obstacles=(), surface=None, patches=(), regions=(),
+                 grass_canopy=None):
         if render_mode not in (None, *self.metadata["render_modes"]):
             raise ValueError(f"Unsupported render mode: {render_mode}")
         self.render_mode = render_mode
@@ -33,6 +34,13 @@ class UBotNavigationEnv(gym.Env):
                                 terrain_contact, obstacles, surface, patches, regions)
         self.data = mujoco.MjData(self.model)
         self.elevation = TerrainElevation(self.model)
+        from ubot_sim.canopy import CanopyModel, GrassCanopy
+        if grass_canopy is not None and grass_canopy is not False and not isinstance(grass_canopy, GrassCanopy):
+            raise TypeError("grass_canopy must be None, False, or GrassCanopy settings")
+        if surface != "short_grass" and isinstance(grass_canopy, GrassCanopy):
+            raise ValueError("grass_canopy requires surface='short_grass'")
+        self.canopy = (CanopyModel(self.model, grass_canopy or GrassCanopy())
+                       if surface == "short_grass" and grass_canopy is not False else None)
         self.frame_skip = round(0.02 / self.model.opt.timestep)
         self.dt = self.model.opt.timestep * self.frame_skip
         self.action_space = spaces.Box(-1, 1, shape=(2,), dtype=np.float32)
@@ -52,6 +60,22 @@ class UBotNavigationEnv(gym.Env):
         self.command = np.zeros(2)
         self.steps = 0
         self.success_steps = 0
+
+    def _physics_step(self):
+        if self.canopy is None:
+            mujoco.mj_step(self.model, self.data)
+            return
+        mujoco.mj_step1(self.model, self.data)
+        force = self.canopy.forces(self.data)
+        self.data.qfrc_applied += force
+        try:
+            mujoco.mj_step2(self.model, self.data)
+        finally:
+            self.data.qfrc_applied -= force
+
+    def draw_canopy(self, scene, center=None):
+        if self.canopy is not None:
+            self.canopy.draw(scene, self.data, self.data.xpos[self.base] if center is None else center)
 
     def terrain_height(self, xy):
         return self.elevation.height(self.data, xy)
@@ -116,8 +140,10 @@ class UBotNavigationEnv(gym.Env):
         # Settle the free body before the episode starts.
         mujoco.mj_forward(self.model, self.data)
         for _ in range(round(0.3 / self.model.opt.timestep)):
-            mujoco.mj_step(self.model, self.data)
+            self._physics_step()
         self.data.time = 0
+        if self.canopy is not None:
+            self.canopy.reset_visual()
         self.steps = 0
         self.success_steps = 0
         self.command[:] = 0
@@ -139,8 +165,10 @@ class UBotNavigationEnv(gym.Env):
             self.command += np.clip(target - self.command, -slew, slew)
             self.command[(target == 0) & (np.abs(self.command) < WHEEL_SETTLE_SPEED)] = 0
             self.data.ctrl[:] = self.command
-            mujoco.mj_step(self.model, self.data)
+            self._physics_step()
         mujoco.mj_forward(self.model, self.data)
+        if self.canopy is not None:
+            self.canopy.update_visual(self.data)
         self.steps += 1
         rotation, velocity, delta, _ = self._state()
         distance = float(np.linalg.norm(delta))
@@ -166,6 +194,7 @@ class UBotNavigationEnv(gym.Env):
             if self._renderer is None:
                 self._renderer = mujoco.Renderer(self.model, height=480, width=640)
             self._renderer.update_scene(self.data, camera="follow")
+            self.draw_canopy(self._renderer.scene)
             return self._renderer.render()
         if self.render_mode == "human":
             from mujoco import viewer
@@ -174,6 +203,10 @@ class UBotNavigationEnv(gym.Env):
                 self._viewer.cam.distance = 2.5
                 self._viewer.cam.elevation = -40
             self._viewer.cam.lookat[:] = self.data.xpos[self.base]
+            if self.canopy is not None:
+                with self._viewer.lock():
+                    self._viewer.user_scn.ngeom = 0
+                    self.draw_canopy(self._viewer.user_scn)
             self._viewer.sync()
 
     def close(self):
