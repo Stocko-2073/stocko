@@ -1,0 +1,46 @@
+{
+  "controller": "geometric baseline (not a trained policy)",
+  "seed": 0,
+  "route_metres": [
+    [
+      0.8,
+      0.0
+    ],
+    [
+      1.0,
+      0.8
+    ],
+    [
+      0.2,
+      1.0
+    ],
+    [
+      -0.5,
+      0.5
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "waypoint_times_seconds": [
+    3.2799999999998604,
+    7.179999999999431,
+    11.160000000000396,
+    14.960000000001665,
+    18.680000000000526
+  ],
+  "simulation_seconds": 18.680000000000526,
+  "video_seconds": 21.68,
+  "fps": 25,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "distance": 0.07909298544513559,
+  "is_success": true,
+  "failed": false,
+  "waypoint_reached": true,
+  "waypoints_reached": 5,
+  "waypoint_count": 5
+}

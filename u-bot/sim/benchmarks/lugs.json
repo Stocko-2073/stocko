@@ -1,0 +1,666 @@
+{
+  "recorded_at": "2026-09-16T00:51:29.050477+00:00",
+  "source_sha256": {
+    "benchmark.py": "a9f40d266819001c03e5be04c7ff122514bea68b6ef1e909fd677778301f16f0",
+    "contact_model.py": "16df8b99e9b904e477ff69e5a09aa526ac5726c3bef26d3c6ae277e11947a6cd",
+    "env.py": "2a1f72ffda11c345a178764208ef975e8252ecf930bad7e3bf1d1fed2c61eb3c",
+    "waypoints.py": "83a2969eda8301d310ec043df522747546dfa61a6976a6d44c4f2cef733f6791",
+    "robot.xml": "5081b358b096d737dc91a2630313a82b075e639ef8f0f0221dd645970f617519"
+  },
+  "machine": {
+    "cpu": "arm64 (CPU model unavailable in sandbox)",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.12.11",
+    "mujoco": "3.13.0",
+    "numpy": "2.5.3"
+  },
+  "method": {
+    "physics_duration_s": 20,
+    "repeats": 7,
+    "route_seeds": 5,
+    "rendering": false,
+    "physics_timing": "C-batched mj_step, no logging, compile/reset excluded",
+    "order": "seeded randomized interleaving of configurations",
+    "commands_rad_s": [
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        -2,
+        2
+      ],
+      [
+        -2,
+        -2
+      ],
+      [
+        -3,
+        -1
+      ],
+      [
+        2,
+        -2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "command_duration_s": 2,
+    "terrain": "129x129 heightfield over 6x6m, up to 12mm undulations, flat launch pad",
+    "route_timing": "Python environment + baseline controller + path capture; excludes rendering, reset and PPO"
+  },
+  "results": {
+    "smooth/flat/0.002": {
+      "physics_seconds_samples": [
+        0.245756582939066,
+        0.24491825001314282,
+        0.2456630829256028,
+        0.24549241608474404,
+        0.24516604095697403,
+        0.24644554196856916,
+        0.24551470903679729
+      ],
+      "physics_seconds_median": 0.24551470903679729,
+      "physics_real_time_factor": 81.46151437713834,
+      "physics_steps_per_second": 40730.75718856917,
+      "route_real_time_factor_median": 57.445048335689904,
+      "policy_steps_per_second_median": 2872.2524167844144,
+      "ngeom": 21,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 7.6899,
+        "max_contacts": 8,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.12718988061976438,
+        "min_upright_cosine": 0.9999996899167609,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.93722740135315,
+          1.0334094180850684
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.32519133295863867,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 57.443105355998064,
+          "policy_steps_per_second": 2872.155267799822,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.32518033392261714,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 57.445048335689904,
+          "policy_steps_per_second": 2872.2524167844144,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.32664654101245105,
+          "steps": 935,
+          "simulated_seconds": 18.700000000000514,
+          "real_time_factor": 57.24842498573316,
+          "policy_steps_per_second": 2862.4212492865795,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.324378167046234,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 57.587106339798886,
+          "policy_steps_per_second": 2879.3553169898632,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.32410237507428974,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 57.63610956482116,
+          "policy_steps_per_second": 2881.8054782409768,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    },
+    "lugs/flat/0.002": {
+      "physics_seconds_samples": [
+        0.30383829202037305,
+        0.30450724996626377,
+        0.318221207940951,
+        0.30332987499423325,
+        0.30356404196936637,
+        0.30466124997474253,
+        0.3045721249654889
+      ],
+      "physics_seconds_median": 0.30450724996626377,
+      "physics_real_time_factor": 65.67988119237158,
+      "physics_steps_per_second": 32839.94059618579,
+      "route_real_time_factor_median": 47.75848578882301,
+      "policy_steps_per_second_median": 2387.9242894410877,
+      "ngeom": 101,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 8.0969,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.146,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.1447076835753812,
+        "min_upright_cosine": 0.9999994211219042,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7031729309808281,
+          1.142707472538153
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.3936748330015689,
+          "steps": 939,
+          "simulated_seconds": 18.78000000000047,
+          "real_time_factor": 47.70434486962906,
+          "policy_steps_per_second": 2385.2172434813933,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.39110875001642853,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 47.8639253128808,
+          "policy_steps_per_second": 2393.196265643976,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.3923910000594333,
+          "steps": 937,
+          "simulated_seconds": 18.740000000000492,
+          "real_time_factor": 47.75848578882301,
+          "policy_steps_per_second": 2387.9242894410877,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.3910705830203369,
+          "steps": 937,
+          "simulated_seconds": 18.740000000000492,
+          "real_time_factor": 47.91973831236995,
+          "policy_steps_per_second": 2395.9869156184345,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.39566116698551923,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 47.313210297147094,
+          "policy_steps_per_second": 2365.6605148572908,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    },
+    "lugs/flat/0.001": {
+      "physics_seconds_samples": [
+        0.5442399169551209,
+        0.5435247080167755,
+        0.5427000829949975,
+        0.5424164170399308,
+        0.5434279169421643,
+        0.5438409160124138,
+        0.5433594170026481
+      ],
+      "physics_seconds_median": 0.5434279169421643,
+      "physics_real_time_factor": 36.80340920381636,
+      "physics_steps_per_second": 36803.40920381636,
+      "route_real_time_factor_median": 28.643685555211132,
+      "policy_steps_per_second_median": 1432.1842777605625,
+      "ngeom": 101,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 8.09595,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.15615,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.14232174995147326,
+        "min_upright_cosine": 0.9999995015203558,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.6621086724929197,
+          1.1761780034226956
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.6741560420487076,
+          "steps": 934,
+          "simulated_seconds": 18.679999999999847,
+          "real_time_factor": 27.708718508600448,
+          "policy_steps_per_second": 1385.4359254300339,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.652562249917537,
+          "steps": 936,
+          "simulated_seconds": 18.719999999999896,
+          "real_time_factor": 28.686918378078882,
+          "policy_steps_per_second": 1434.345918903952,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.6682238329667598,
+          "steps": 934,
+          "simulated_seconds": 18.679999999999847,
+          "real_time_factor": 27.954704813602582,
+          "policy_steps_per_second": 1397.7352406801406,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.6542454169830307,
+          "steps": 937,
+          "simulated_seconds": 18.73999999999992,
+          "real_time_factor": 28.643685555211132,
+          "policy_steps_per_second": 1432.1842777605625,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.6530774580314755,
+          "steps": 938,
+          "simulated_seconds": 18.759999999999945,
+          "real_time_factor": 28.725535951810166,
+          "policy_steps_per_second": 1436.2767975905124,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    },
+    "smooth/bumps/0.002": {
+      "physics_seconds_samples": [
+        0.2973479579668492,
+        0.2985205000732094,
+        0.2972466249484569,
+        0.29820445796940476,
+        0.2974628749070689,
+        0.298123124986887,
+        0.29791283304803073
+      ],
+      "physics_seconds_median": 0.29791283304803073,
+      "physics_real_time_factor": 67.1337310157952,
+      "physics_steps_per_second": 33566.8655078976,
+      "route_real_time_factor_median": 46.65076741930756,
+      "policy_steps_per_second_median": 2332.53837096529,
+      "ngeom": 21,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 4.8854,
+        "max_contacts": 17,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.3796571128283872,
+        "min_upright_cosine": 0.9985612124829399,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.0275571736354625,
+          1.0983328871733757
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.39463341597002,
+          "steps": 919,
+          "simulated_seconds": 18.380000000000692,
+          "real_time_factor": 46.57486988227324,
+          "policy_steps_per_second": 2328.7434941135743,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.39215112500824034,
+          "steps": 919,
+          "simulated_seconds": 18.380000000000692,
+          "real_time_factor": 46.86968576110669,
+          "policy_steps_per_second": 2343.4842880552465,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.3958219999913126,
+          "steps": 920,
+          "simulated_seconds": 18.40000000000068,
+          "real_time_factor": 46.48554148178858,
+          "policy_steps_per_second": 2324.277074089343,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.3928452499676496,
+          "steps": 919,
+          "simulated_seconds": 18.380000000000692,
+          "real_time_factor": 46.78687091549221,
+          "policy_steps_per_second": 2339.3435457745227,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.3939913749927655,
+          "steps": 919,
+          "simulated_seconds": 18.380000000000692,
+          "real_time_factor": 46.65076741930756,
+          "policy_steps_per_second": 2332.53837096529,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    },
+    "lugs/bumps/0.002": {
+      "physics_seconds_samples": [
+        0.31746000004932284,
+        0.31815754203125834,
+        0.3148957500234246,
+        0.31695274997036904,
+        0.3158328749705106,
+        0.3179208330111578,
+        0.31700904201716185
+      ],
+      "physics_seconds_median": 0.31700904201716185,
+      "physics_real_time_factor": 63.0896830978003,
+      "physics_steps_per_second": 31544.84154890015,
+      "route_real_time_factor_median": 45.07572095308854,
+      "policy_steps_per_second_median": 2253.7860476543733,
+      "ngeom": 101,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 4.9312,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.907,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.42181696484192693,
+        "min_upright_cosine": 0.9982470946087347,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.2346878498371845,
+          0.9980721001438128
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.41751966695301235,
+          "steps": 941,
+          "simulated_seconds": 18.820000000000448,
+          "real_time_factor": 45.07572095308854,
+          "policy_steps_per_second": 2253.7860476543733,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.4214554999489337,
+          "steps": 937,
+          "simulated_seconds": 18.740000000000492,
+          "real_time_factor": 44.4649553802742,
+          "policy_steps_per_second": 2223.2477690136516,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.4183029170380905,
+          "steps": 942,
+          "simulated_seconds": 18.840000000000437,
+          "real_time_factor": 45.039131291271566,
+          "policy_steps_per_second": 2251.956564563526,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.4146712500369176,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 45.14419554848301,
+          "policy_steps_per_second": 2257.20977742409,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.41596220899373293,
+          "steps": 939,
+          "simulated_seconds": 18.78000000000047,
+          "real_time_factor": 45.1483322137166,
+          "policy_steps_per_second": 2257.416610685774,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    },
+    "lugs/bumps/0.001": {
+      "physics_seconds_samples": [
+        0.5918464999413118,
+        0.5927158329868689,
+        0.5925956249702722,
+        0.5937529579969123,
+        0.5931178330210969,
+        0.5929091250291094,
+        0.5958014159696177
+      ],
+      "physics_seconds_median": 0.5929091250291094,
+      "physics_real_time_factor": 33.73198211280368,
+      "physics_steps_per_second": 33731.98211280368,
+      "route_real_time_factor_median": 25.73821486607584,
+      "policy_steps_per_second_median": 1286.910743303794,
+      "ngeom": 101,
+      "nbody": 11,
+      "nv": 14,
+      "diagnostics": {
+        "mean_contacts": 5.01305,
+        "max_contacts": 17,
+        "mean_lug_contacts": 3.01805,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.4503097762727666,
+        "min_upright_cosine": 0.9981576264412461,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.2279259735666403,
+          0.9965960986524958
+        ]
+      },
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.7362589580006897,
+          "steps": 946,
+          "simulated_seconds": 18.92000000000014,
+          "real_time_factor": 25.69748020639012,
+          "policy_steps_per_second": 1284.8740103194966,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.7296543329721317,
+          "steps": 939,
+          "simulated_seconds": 18.77999999999997,
+          "real_time_factor": 25.73821486607584,
+          "policy_steps_per_second": 1286.910743303794,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 2,
+          "seconds": 0.7294943340821192,
+          "steps": 942,
+          "simulated_seconds": 18.840000000000042,
+          "real_time_factor": 25.826108743812703,
+          "policy_steps_per_second": 1291.3054371906321,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 3,
+          "seconds": 0.7329150410369039,
+          "steps": 943,
+          "simulated_seconds": 18.860000000000067,
+          "real_time_factor": 25.73285980502947,
+          "policy_steps_per_second": 1286.642990251469,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 4,
+          "seconds": 0.7308615410001948,
+          "steps": 942,
+          "simulated_seconds": 18.840000000000042,
+          "real_time_factor": 25.777796399325137,
+          "policy_steps_per_second": 1288.8898199662538,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ]
+    }
+  },
+  "comparisons": {
+    "flat": {
+      "physics_lug_slowdown": 1.2402810860534828,
+      "route_lug_slowdown": 1.2028239042104167,
+      "lug_2ms_vs_1ms_same_time_path_differences": [
+        {
+          "rms_xy_difference_m": 0.011863499622386243,
+          "max_xy_difference_m": 0.029717829713629813
+        },
+        {
+          "rms_xy_difference_m": 0.005412896395139429,
+          "max_xy_difference_m": 0.013769832022610156
+        },
+        {
+          "rms_xy_difference_m": 0.007929545402207855,
+          "max_xy_difference_m": 0.01898857703672487
+        },
+        {
+          "rms_xy_difference_m": 0.004240161169522297,
+          "max_xy_difference_m": 0.009864444103199138
+        },
+        {
+          "rms_xy_difference_m": 0.003975297970647687,
+          "max_xy_difference_m": 0.011579961144234536
+        }
+      ]
+    },
+    "bumps": {
+      "physics_lug_slowdown": 1.0640999878177533,
+      "route_lug_slowdown": 1.0349422357072795,
+      "lug_2ms_vs_1ms_same_time_path_differences": [
+        {
+          "rms_xy_difference_m": 0.0017306365375392352,
+          "max_xy_difference_m": 0.006752330021038824
+        },
+        {
+          "rms_xy_difference_m": 0.001731683328191236,
+          "max_xy_difference_m": 0.0049345649640019675
+        },
+        {
+          "rms_xy_difference_m": 0.001008286057699122,
+          "max_xy_difference_m": 0.0026193135227388217
+        },
+        {
+          "rms_xy_difference_m": 0.014494842068460247,
+          "max_xy_difference_m": 0.03789605790580318
+        },
+        {
+          "rms_xy_difference_m": 0.0047268426174555895,
+          "max_xy_difference_m": 0.013608393104577517
+        }
+      ]
+    }
+  }
+}

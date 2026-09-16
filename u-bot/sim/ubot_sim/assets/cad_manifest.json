@@ -1,0 +1,20 @@
+{
+  "units": "millimetres; MJCF mesh scale is 0.001",
+  "frame": "sim (x,y,z) = CAD (-y,x,z)",
+  "inputs_sha256": {
+    "u-bot/u-bot.scad": "1388f4b7e9485c2d814ee5b4637c0aaf62344396128f1889d249c9e71df32d7e",
+    "u-bot/modules/caster_as5600_mount/caster_as5600_mount.scad": "38ad1bf95f512049256f0a16e963123fb570094a369a089dbbadd9e83f41a069",
+    "u-bot/modules/caster_as5600_mount/preview.scad": "2eaf298a73176b7a2d47833dc87bbebb79de345f2e41a46cfadffc396edccb42",
+    "u-bot/modules/xiao_mount/preview.scad": "bc67677f92df126598c25abc42d3085c71ff48598d4fae4c6ea06c4a6bc1c22d",
+    "u-bot/modules/xiao_mount/xiao_mount.scad": "aa2cd1169fca66578e934e76d52692230621f3b156a435590dfff9f92bd92fda",
+    "lib/as5600.scad": "2a1874fa34b1d1351a56b63ef073705f278173d9101f52ad56a5c7c08d3d56b8",
+    "lib/globals.scad": "7f2a4bd52e8fd799f053eb0621a55670920b6ea7ec89b511049fb0f67a4e79eb"
+  },
+  "mesh_sha256": {
+    "chassis.stl": "b9f4071394202ba2cfc2333a2bdb1c600777a676bfbdedf965d37b7490113d12",
+    "wheel_right.stl": "61c33fc9e444dde868cc0e80cf0f10d2c239e248101f35ce49b799c8071b55f0",
+    "wheel_left.stl": "cb2b6b9a444eb2e7fd966fba7799e4e890b66bc89735277b903a911e675be06a",
+    "caster_fork.stl": "39d73097f20f1f5e2fb95da241f44dd4d2ee23c3df5289de930f4fc6561699b4",
+    "caster_roller.stl": "3f83ba1fea4429be7b1484bc109daf5bb41b0fc7762f8b73426bab219cd9b4d0"
+  }
+}

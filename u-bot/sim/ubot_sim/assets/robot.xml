@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="U-bot">
+  <compiler angle="radian" meshdir="." />
+  <option timestep="0.002" integrator="implicitfast" cone="elliptic" iterations="50" />
+  <default>
+    <joint damping="0.002" armature="0.00005" />
+    <geom contype="2" conaffinity="1" friction="0.8 0.002 0.0001" condim="4" solref="0.01 1" />
+    <default class="visual">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" />
+    </default>
+  </default>
+  <asset>
+    <mesh name="chassis" file="chassis.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wheel_left" file="wheel_left.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wheel_right" file="wheel_right.stl" scale="0.001 0.001 0.001" />
+    <mesh name="caster_fork" file="caster_fork.stl" scale="0.001 0.001 0.001" />
+    <mesh name="caster_roller" file="caster_roller.stl" scale="0.001 0.001 0.001" />
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.22 0.28 0.22" rgb2="0.3 0.36 0.3" width="512" height="512" />
+    <material name="ground" texture="grid" texrepeat="12 12" reflectance="0.05" />
+  </asset>
+  <worldbody>
+    <light pos="0 -2 4" dir="0 0 -1" directional="true" />
+    <geom name="floor" type="plane" size="0 0 0.1" material="ground" contype="1" conaffinity="2" />
+    <body name="goal" mocap="true" pos="1 0 0.005">
+      <geom type="cylinder" size="0.12 0.004" rgba="0.2 0.9 0.3 0.5" contype="0" conaffinity="0" />
+    </body>
+    <body name="base" pos="0 0 0.1085">
+      <freejoint name="root" />
+      <inertial pos="-0.06567595770763102 0.005077673919705792 0" mass="3.263" diaginertia="0.02595568182 0.03337159091 0.05191136364" />
+      <geom mesh="chassis" rgba="0.78 0.8 0.82 1" class="visual" />
+      <geom name="rear" type="box" pos="-0.149 0 0" size="0.07 0.125 0.035" group="3" rgba="0.5 0.5 0.5 0" />
+      <geom name="left_housing" type="box" pos="-0.002 0.1005 0" size="0.077 0.0275 0.035" group="3" rgba="0.5 0.5 0.5 0" />
+      <geom name="right_housing" type="box" pos="-0.002 -0.1005 0" size="0.077 0.0275 0.035" group="3" rgba="0.5 0.5 0.5 0" />
+      <geom name="battery" type="box" pos="-0.1322 0 -0.0005" size="0.047 0.075 0.0325" rgba="0.15 0.15 0.15 1" contype="0" conaffinity="0" mass="0" />
+      <site name="imu" size="0.004" pos="0 0 0.03" />
+      <camera name="follow" mode="trackcom" pos="0.8 -1 0.65" xyaxes="0.78 0.62 0 -0.3 0.38 0.87" />
+      <body name="left_wheel" pos="0.0002 0.15135 0">
+        <joint name="left_drive" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="0.25" diaginertia="0.00074 0.00144 0.00074" />
+        <geom mesh="wheel_left" rgba="0.18 0.19 0.2 1" class="visual" />
+        <geom name="left_tire" type="cylinder" size="0.1075 0.012" quat="0.707106781 -0.707106781 0 0" group="3" rgba="0.2 0.2 0.2 0" />
+      </body>
+      <body name="left_caster" pos="-0.16125 0.10475 -0.0775">
+        <joint name="left_swivel" axis="0 0 1" damping="0.001" />
+        <inertial pos="0.012 0 0.03" mass="0.08" diaginertia="0.00006 0.00007 0.00002" />
+        <geom mesh="caster_fork" rgba="0.5 0.5 0.52 1" class="visual" />
+        <body name="left_roller_a" pos="0.019 -0.01585 0">
+          <joint name="left_roll_a" axis="0 1 0" damping="0.0001" />
+          <inertial pos="0 0 0" mass="0.03" diaginertia="0.000008 0.0000135 0.000008" />
+          <geom mesh="caster_roller" quat="0 0 0 1" rgba="0.23 0.23 0.24 1" class="visual" />
+          <geom name="left_contact_a" type="ellipsoid" size="0.03 0.00915 0.03" group="3" rgba="0.2 0.2 0.2 0" />
+        </body>
+        <body name="left_roller_b" pos="0.019 0.01585 0">
+          <joint name="left_roll_b" axis="0 1 0" damping="0.0001" />
+          <inertial pos="0 0 0" mass="0.03" diaginertia="0.000008 0.0000135 0.000008" />
+          <geom mesh="caster_roller" quat="1 0 0 0" rgba="0.23 0.23 0.24 1" class="visual" />
+          <geom name="left_contact_b" type="ellipsoid" size="0.03 0.00915 0.03" group="3" rgba="0.2 0.2 0.2 0" />
+        </body>
+      </body>
+      <body name="right_wheel" pos="0.0002 -0.15135 0">
+        <joint name="right_drive" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="0.25" diaginertia="0.00074 0.00144 0.00074" />
+        <geom mesh="wheel_right" rgba="0.18 0.19 0.2 1" class="visual" />
+        <geom name="right_tire" type="cylinder" size="0.1075 0.012" quat="0.707106781 -0.707106781 0 0" group="3" rgba="0.2 0.2 0.2 0" />
+      </body>
+      <body name="right_caster" pos="-0.16125 -0.10475 -0.0775">
+        <joint name="right_swivel" axis="0 0 1" damping="0.001" />
+        <inertial pos="0.012 0 0.03" mass="0.08" diaginertia="0.00006 0.00007 0.00002" />
+        <geom mesh="caster_fork" rgba="0.5 0.5 0.52 1" class="visual" />
+        <body name="right_roller_a" pos="0.019 -0.01585 0">
+          <joint name="right_roll_a" axis="0 1 0" damping="0.0001" />
+          <inertial pos="0 0 0" mass="0.03" diaginertia="0.000008 0.0000135 0.000008" />
+          <geom mesh="caster_roller" quat="0 0 0 1" rgba="0.23 0.23 0.24 1" class="visual" />
+          <geom name="right_contact_a" type="ellipsoid" size="0.03 0.00915 0.03" group="3" rgba="0.2 0.2 0.2 0" />
+        </body>
+        <body name="right_roller_b" pos="0.019 0.01585 0">
+          <joint name="right_roll_b" axis="0 1 0" damping="0.0001" />
+          <inertial pos="0 0 0" mass="0.03" diaginertia="0.000008 0.0000135 0.000008" />
+          <geom mesh="caster_roller" quat="1 0 0 0" rgba="0.23 0.23 0.24 1" class="visual" />
+          <geom name="right_contact_b" type="ellipsoid" size="0.03 0.00915 0.03" group="3" rgba="0.2 0.2 0.2 0" />
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="left_motor" joint="left_drive" kv="0.35" ctrlrange="-6.283185307 6.283185307" forcerange="-0.8 0.8" />
+    <velocity name="right_motor" joint="right_drive" kv="0.35" ctrlrange="-6.283185307 6.283185307" forcerange="-0.8 0.8" />
+  </actuator>
+  <sensor>
+    <jointpos name="left_drive_angle" joint="left_drive" />
+    <jointvel name="left_drive_speed" joint="left_drive" />
+    <jointpos name="right_drive_angle" joint="right_drive" />
+    <jointvel name="right_drive_speed" joint="right_drive" />
+    <jointpos name="left_swivel_angle" joint="left_swivel" />
+    <jointvel name="left_swivel_speed" joint="left_swivel" />
+    <jointpos name="right_swivel_angle" joint="right_swivel" />
+    <jointvel name="right_swivel_speed" joint="right_swivel" />
+    <gyro name="gyro" site="imu" />
+    <accelerometer name="accelerometer" site="imu" />
+  </sensor>
+</mujoco>
