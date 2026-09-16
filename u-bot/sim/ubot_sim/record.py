@@ -10,7 +10,7 @@ import mujoco
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from ubot_sim.contact_model import SURFACE_PRESETS
+from ubot_sim.contact_model import SURFACE_PRESETS, SURFACE_TERRAINS, SURFACE_OBSTACLES
 from ubot_sim.env import baseline_action
 from ubot_sim.waypoints import UBotWaypointsEnv
 
@@ -44,10 +44,10 @@ def main():
     parser.add_argument("--preview-only", action="store_true")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
-    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated material preset (flat terrain only)")
+    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated surface preset (selects its own terrain geometry)")
     args = parser.parse_args()
     if args.surface and args.terrain != "flat":
-        parser.error("--surface requires --terrain flat")
+        parser.error("--surface selects terrain geometry; omit --terrain or leave it at flat")
     if args.width < 640 or args.height < 360 or args.width % 2 or args.height % 2:
         parser.error("Use even dimensions, at least 640 x 360")
     if not shutil.which("ffmpeg") and not args.preview_only:
@@ -80,6 +80,18 @@ def main():
         scale = args.width / 1920
         title_font, text_font, small_font = (font(round(s * scale)) for s in (54, 28, 24))
         reached_times = []
+        surface_obstacles = SURFACE_OBSTACLES.get(args.surface, ())
+        obstacle_ids = {env.model.geom(f"surface_obstacle_{i}").id: i
+                        for i in range(len(surface_obstacles))}
+        obstacle_times = {}
+        surface_title = args.surface.replace("_", " ").upper() if args.surface else None
+        subtitle = "MuJoCo simulation  •  Baseline controller  •  Continuous run"
+        if args.surface:
+            contact = SURFACE_PRESETS[args.surface]
+            subtitle = (f"Estimated surface • Grip {contact.sliding_friction:g} • "
+                        f"Rolling {contact.rolling_friction:g} m (dim{contact.condim}) • Baseline controller")
+        if args.surface == "rough_concrete":
+            subtitle = "Estimated geometry • 0–4 mm bumps • 4 mm seams • 8 mm step • Baseline controller"
 
         def frame():
             renderer.update_scene(env.data, camera=camera)
@@ -106,13 +118,15 @@ def main():
                 draw.text((round(x * scale), round(y * scale)), value, font=selected_font, fill=fill)
             h = args.height / scale
             rect((0, 0, 1920, 150), (12, 21, 29, 235))
-            text(56, 28, "U-BOT  /  " + (f"{args.surface.upper()} SURFACE" if args.surface else "WAYPOINT NAVIGATION"), title_font)
-            text(58, 98, ("Estimated concrete • Grip 0.8 • Rolling 0.0001 m (dim6) • Baseline controller" if args.surface else "MuJoCo simulation  •  Baseline controller  •  Continuous run"), text_font, "#abc0cb")
+            text(56, 28, "U-BOT  /  " + (f"{surface_title} SURFACE" if args.surface else "WAYPOINT NAVIGATION"), title_font)
+            text(58, 98, subtitle, text_font, "#abc0cb")
             rect((0, h - 118, 1920, h), (12, 21, 29, 240))
             done = env.waypoint_index == len(env.waypoints)
             status = "ROUTE COMPLETE" if done else f"TARGET {env.waypoint_index + 1:02d} / {len(env.waypoints):02d}"
             text(56, h - 93, status, text_font, "#48ddb1")
-            text(56, h - 51, f"{env.data.time:05.1f} s   •   Real-time playback   •   4.043 kg model", small_font, "#abc0cb")
+            detail = (f"Features contacted {len(obstacle_times)}/{len(surface_obstacles)}"
+                      if surface_obstacles else "4.043 kg model")
+            text(56, h - 51, f"{env.data.time:05.1f} s   •   Real-time playback   •   {detail}", small_font, "#abc0cb")
             for i in range(len(env.waypoints)):
                 x = 1130 + i * min(130, 680 / max(1, len(env.waypoints) - 1))
                 y = h - 62
@@ -138,6 +152,10 @@ def main():
         info = {}
         for step in range(env.max_steps):
             obs, _, terminated, truncated, info = env.step(baseline_action(obs))
+            for contact in env.data.contact:
+                for geom_id in (contact.geom1, contact.geom2):
+                    if geom_id in obstacle_ids:
+                        obstacle_times.setdefault(obstacle_ids[geom_id], float(env.data.time))
             xy = env.data.xpos[env.base, :2].copy()
             if np.linalg.norm(xy - trail[-1]) > 0.025:
                 trail.append(xy)
@@ -158,7 +176,9 @@ def main():
         if result:
             raise RuntimeError(f"FFmpeg failed with exit code {result}")
         report = {"controller": "geometric baseline (not a trained policy)", "seed": args.seed,
-                  "wheel_contact": args.wheel_contact, "terrain": args.terrain,
+                  "wheel_contact": args.wheel_contact, "terrain": SURFACE_TERRAINS.get(args.surface, args.terrain),
+                  "surface_obstacles": [asdict(o) for o in surface_obstacles],
+                  "obstacle_first_contact_seconds": obstacle_times,
                   "surface": args.surface,
                   "surface_contact": asdict(SURFACE_PRESETS[args.surface]) if args.surface else None,
                   "warning_count": sum(int(w.number) for w in env.data.warning),

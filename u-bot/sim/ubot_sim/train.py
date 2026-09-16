@@ -19,10 +19,10 @@ def main():
     parser.add_argument("--randomize", action="store_true")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
-    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated material preset (flat terrain only)")
+    parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated surface preset (selects its own terrain geometry)")
     args = parser.parse_args()
     if args.surface and args.terrain != "flat":
-        parser.error("--surface requires --terrain flat")
+        parser.error("--surface selects terrain geometry; omit --terrain or leave it at flat")
     if args.steps <= 0 or args.envs <= 0:
         parser.error("steps and envs must be positive")
     args.output.mkdir(parents=True, exist_ok=True)

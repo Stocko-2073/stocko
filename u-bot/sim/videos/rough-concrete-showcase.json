@@ -1,0 +1,110 @@
+{
+  "controller": "geometric baseline (not a trained policy)",
+  "seed": 0,
+  "wheel_contact": "lugs",
+  "terrain": "rough_concrete",
+  "surface_obstacles": [
+    {
+      "kind": "seam",
+      "position": [
+        0.45,
+        0,
+        0.002
+      ],
+      "size": [
+        0.008,
+        0.3,
+        0.002
+      ],
+      "yaw": 0.0,
+      "contact": null
+    },
+    {
+      "kind": "edge",
+      "position": [
+        1.0,
+        0.4,
+        0.004
+      ],
+      "size": [
+        0.2,
+        0.06,
+        0.004
+      ],
+      "yaw": 0.0,
+      "contact": null
+    },
+    {
+      "kind": "seam",
+      "position": [
+        -0.2,
+        0.75,
+        0.002
+      ],
+      "size": [
+        0.008,
+        0.25,
+        0.002
+      ],
+      "yaw": 0.7853981633974483,
+      "contact": null
+    }
+  ],
+  "obstacle_first_contact_seconds": {
+    "0": 1.380000000000001,
+    "1": 4.839999999999689,
+    "2": 12.58000000000087
+  },
+  "surface": "rough_concrete",
+  "surface_contact": {
+    "sliding_friction": 0.8,
+    "torsional_friction": 0.002,
+    "rolling_friction": 0.0001,
+    "condim": 6,
+    "time_constant": 0.01,
+    "damping_ratio": 1.0
+  },
+  "warning_count": 0,
+  "route_metres": [
+    [
+      0.8,
+      0.0
+    ],
+    [
+      1.0,
+      0.8
+    ],
+    [
+      0.2,
+      1.0
+    ],
+    [
+      -0.5,
+      0.5
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "waypoint_times_seconds": [
+    3.0799999999998824,
+    6.839999999999469,
+    10.820000000000283,
+    14.800000000001612,
+    18.480000000000636
+  ],
+  "simulation_seconds": 18.480000000000636,
+  "video_seconds": 21.48,
+  "fps": 25,
+  "resolution": [
+    1280,
+    720
+  ],
+  "distance": 0.08007643362021721,
+  "is_success": true,
+  "failed": false,
+  "waypoint_reached": true,
+  "waypoints_reached": 5,
+  "waypoint_count": 5
+}

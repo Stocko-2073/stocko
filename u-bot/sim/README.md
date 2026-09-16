@@ -305,6 +305,51 @@ arrival times, completion, and solver warning count. Tests verify actual
 six-dimensional contacts, route completion with both wheel models, seeded
 grip randomization, and rejection of conflicting settings.
 
+### Rough concrete surface preset
+
+Select `surface="rough_concrete"` in either environment or `gym.make`, or use
+`--surface rough_concrete` with the demo, viewer, recorder, or training CLI:
+
+```sh
+uv run python -m ubot_sim.viewer --waypoints --surface rough_concrete
+uv run python -m ubot_sim.record --surface rough_concrete --width 1280 --height 720 --output videos/rough-concrete-showcase.mp4
+uv run python -m ubot_sim.train --surface rough_concrete
+```
+
+The preset combines a deterministic 257×257 heightfield across 6×6 m with
+0–4 mm bumps, two raised seam boxes, and one low step block. The heightfield
+uses approximately 14–21 cm wavelengths and a flat 0.3 m launch radius,
+blending to full roughness by 0.5 m. It is separate from the taller `bumps`
+benchmark fixture. The default five-waypoint route crosses all three boxes.
+
+| Feature | Centre XY (m) | Full footprint (m) | Top above Z=0 |
+|---|---|---|---|
+| Seam | (0.45, 0) | 0.016 × 0.6 | 4 mm |
+| Step block | (1.0, 0.4) | 0.4 × 0.12 | 8 mm |
+| Seam, yaw 45° | (-0.2, 0.75) | 0.016 × 0.5 | 4 mm |
+
+The boxes extend from Z=0 to their tops, so their local protrusion depends on
+the underlying bump height. Geometry provides the roughness; contact grip,
+rolling friction, and compliance match `concrete` (grip 0.8, rolling 0.0001 m,
+`condim=6`, time constant 0.01 s, damping ratio 1). These are estimated rigid
+proxies, not scanned or hardware-calibrated concrete. During development,
+6 mm seams stalled smooth wheels at 1 ms; this gentle fixture uses 4 mm seams.
+
+The preset selects its own terrain geometry: leave `terrain`/`--terrain` at
+its default and do not supply `terrain_contact`. Flat-ground `TerrainPatch`
+rectangles are rejected. You can add extra `TerrainObstacle` objects; they
+retain their `terrain_obstacle_*` names, while built-in features use
+`surface_obstacle_*`. `randomize=True` changes seeded grip and robot mass as
+usual, preserving the fixed heightfield and feature layout.
+
+[Watch the rough-concrete showcase](videos/rough-concrete-showcase.mp4): the
+baseline controller completes all five waypoints and contacts all three
+features. The video reports contact progress; its JSON records the effective
+terrain, feature geometry, first-contact times, route arrivals, and solver
+warnings. Tests verify route completion and actual drive-wheel encounters with
+both wheel models at 1 ms and 2 ms using seed 0, plus inherited contact settings,
+unchanged robot dynamics, deterministic geometry, and conflicting options.
+
 ### Terrain contact settings
 
 Python constructors accept a `TerrainContact` for either terrain and wheel model:

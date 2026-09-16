@@ -89,12 +89,22 @@ class TerrainObstacle:
         (self.contact or default_contact).apply(geom)
 
 
-# Initial estimates, not a hardware-calibrated material model. A flat plane
-# represents relatively smooth concrete; dim6 makes low rolling drag active.
+# Initial estimates, not hardware-calibrated material models.
 SURFACE_PRESETS = {
     "concrete": TerrainContact(sliding_friction=0.8, torsional_friction=0.002,
                                rolling_friction=0.0001, condim=6,
                                time_constant=0.01, damping_ratio=1.0),
+    "rough_concrete": TerrainContact(sliding_friction=0.8, torsional_friction=0.002,
+                                     rolling_friction=0.0001, condim=6,
+                                     time_constant=0.01, damping_ratio=1.0),
+}
+SURFACE_TERRAINS = {"concrete": "flat", "rough_concrete": "rough_concrete"}
+SURFACE_OBSTACLES = {
+    "rough_concrete": (
+        TerrainObstacle("seam", (0.45, 0, 0.002), (0.008, 0.3, 0.002)),
+        TerrainObstacle("edge", (1.0, 0.4, 0.004), (0.2, 0.06, 0.004)),
+        TerrainObstacle("seam", (-0.2, 0.75, 0.002), (0.008, 0.25, 0.002), yaw=np.pi / 4),
+    ),
 }
 
 
@@ -179,8 +189,6 @@ def _patch_ground(root, patches, contact):
 def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
                terrain_contact=None, obstacles=(), surface=None, patches=()):
     patches = tuple(patches)
-    if patches and terrain != "flat":
-        raise ValueError("local grip patches require flat terrain")
     if surface is not None:
         if surface not in SURFACE_PRESETS:
             raise ValueError(f"unknown surface preset: {surface!r}")
@@ -191,6 +199,10 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
         raise ValueError("wheel_contact must be smooth or lugs")
     if terrain not in ("flat", "bumps"):
         raise ValueError("terrain must be flat or bumps")
+    if surface is not None:
+        terrain = SURFACE_TERRAINS[surface]
+    if patches and terrain != "flat":
+        raise ValueError("local grip patches require flat terrain")
     if (not np.isfinite(timestep) or not 0 < timestep <= 0.02
             or not np.isclose(0.02 / timestep, round(0.02 / timestep))):
         raise ValueError("timestep must be positive and divide the 20 ms control period")
@@ -203,6 +215,8 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
     contact.apply(root.find(".//geom[@name='floor']"))
     if patches:
         _patch_ground(root, patches, contact)
+    for index, obstacle in enumerate(SURFACE_OBSTACLES.get(surface, ())):
+        obstacle.add_to(root.find("worldbody"), f"surface_obstacle_{index}", contact)
     for index, obstacle in enumerate(obstacles):
         if not isinstance(obstacle, TerrainObstacle):
             raise TypeError("obstacles must contain TerrainObstacle instances")
@@ -228,18 +242,26 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
                                   type="box", size=f"0.0035 0.0085 {height / 2}",
                                   pos=" ".join(map(str, pos)), quat=" ".join(map(str, quat)),
                                   mass="0", group="3", rgba="0.9 0.45 0.15 0")
-    if terrain == "bumps":
-        ET.SubElement(root.find("asset"), "hfield", name="bumps", nrow="129", ncol="129",
-                      size="3 3 0.012 0.1")
+    if terrain in ("bumps", "rough_concrete"):
+        resolution = 257 if terrain == "rough_concrete" else 129
+        amplitude = 0.004 if terrain == "rough_concrete" else 0.012
+        ET.SubElement(root.find("asset"), "hfield", name=terrain,
+                      nrow=str(resolution), ncol=str(resolution), size=f"3 3 {amplitude} 0.1")
         floor = root.find(".//geom[@name='floor']")
         floor.set("type", "hfield")
-        floor.set("hfield", "bumps")
+        floor.set("hfield", terrain)
         floor.attrib.pop("size")
     model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
-    if terrain == "bumps":
-        x, y = np.meshgrid(np.linspace(-3, 3, 129), np.linspace(-3, 3, 129))
-        heights = (0.5 + 0.3 * np.sin(18 * x) * np.cos(15 * y)
-                   + 0.2 * np.sin(9 * x + 13 * y))
+    if terrain in ("bumps", "rough_concrete"):
+        x, y = np.meshgrid(np.linspace(-3, 3, resolution), np.linspace(-3, 3, resolution))
+        if terrain == "rough_concrete":
+            # About 14-21 cm wavelengths sampled at 23 mm; fixed layout for
+            # repeatable runs. Geometry supplies roughness, not extra drag.
+            heights = (0.5 + 0.3 * np.sin(45 * x) * np.cos(38 * y)
+                       + 0.2 * np.sin(30 * x + 25 * y))
+        else:
+            heights = (0.5 + 0.3 * np.sin(18 * x) * np.cos(15 * y)
+                       + 0.2 * np.sin(9 * x + 13 * y))
         # Flat launch pad avoids an initial terrain penetration for either model.
         heights *= np.clip((np.hypot(x, y) - 0.3) / 0.2, 0, 1)
         model.hfield_data[:] = heights.ravel()

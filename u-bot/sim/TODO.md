@@ -39,7 +39,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   `surface="concrete"` selects flat ground with explicit estimated contact
   settings and active low rolling friction (dim6). Both wheel models complete
   the five-waypoint route. [Video](videos/concrete-showcase.mp4).
-- [ ] Rough concrete: small bumps, seams, and occasional edges.
+- [x] Rough concrete: small bumps, seams, and occasional edges.
+  `surface="rough_concrete"` combines a 0–4 mm heightfield, two 4 mm seams,
+  and an 8 mm step. Both wheel models complete the five-waypoint route and
+  contact every feature at 1 ms and 2 ms.
+  [Video](videos/rough-concrete-showcase.mp4).
 - [ ] Short grass approximation: uneven ground, increased rolling resistance,
   and variable grip.
 - [x] Wet/slippery patches: local grip changes, including one drive wheel on
