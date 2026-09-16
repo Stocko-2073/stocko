@@ -91,6 +91,8 @@ class TerrainObstacle:
 
 # Initial estimates, not hardware-calibrated material models.
 SURFACE_PRESETS = {
+    "short_grass": TerrainContact(sliding_friction=0.65, rolling_friction=0.002,
+                                  condim=6, time_constant=0.02, damping_ratio=1.0),
     "concrete": TerrainContact(sliding_friction=0.8, torsional_friction=0.002,
                                rolling_friction=0.0001, condim=6,
                                time_constant=0.01, damping_ratio=1.0),
@@ -98,7 +100,8 @@ SURFACE_PRESETS = {
                                      rolling_friction=0.0001, condim=6,
                                      time_constant=0.01, damping_ratio=1.0),
 }
-SURFACE_TERRAINS = {"concrete": "flat", "rough_concrete": "rough_concrete"}
+SURFACE_TERRAINS = {"concrete": "flat", "rough_concrete": "rough_concrete",
+                    "short_grass": "short_grass"}
 SURFACE_OBSTACLES = {
     "rough_concrete": (
         TerrainObstacle("seam", (0.45, 0, 0.002), (0.008, 0.3, 0.002)),
@@ -285,7 +288,14 @@ def load_model(path: Path, wheel_contact="lugs", terrain="flat", timestep=0.002,
         floor.set("type", "hfield")
         floor.set("hfield", terrain)
         floor.attrib.pop("size")
+    grass_arrays = {}
+    if terrain == "short_grass":
+        from ubot_sim.grass import add_grass
+        grass_arrays = add_grass(root, contact)
     model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
+    for name, values in grass_arrays.items():
+        offset = model.hfield_adr[model.hfield(name).id]
+        model.hfield_data[offset:offset + values.size] = values.ravel()
     if terrain in ("bumps", "rough_concrete"):
         x, y = np.meshgrid(np.linspace(-3, 3, resolution), np.linspace(-3, 3, resolution))
         if terrain == "rough_concrete":

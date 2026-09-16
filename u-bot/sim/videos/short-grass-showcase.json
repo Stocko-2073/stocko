@@ -1,0 +1,283 @@
+{
+  "controller": "geometric baseline (not a trained policy)",
+  "seed": 0,
+  "wheel_contact": "lugs",
+  "terrain": "short_grass",
+  "surface_obstacles": [],
+  "obstacle_first_contact_seconds": {},
+  "surface": "short_grass",
+  "surface_contact": {
+    "sliding_friction": 0.65,
+    "torsional_friction": 0.002,
+    "rolling_friction": 0.002,
+    "condim": 6,
+    "time_constant": 0.02,
+    "damping_ratio": 1.0
+  },
+  "warning_count": 0,
+  "route_metres": [
+    [
+      0.8,
+      0.0
+    ],
+    [
+      1.0,
+      0.8
+    ],
+    [
+      0.2,
+      1.0
+    ],
+    [
+      -0.5,
+      0.5
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "waypoint_times_seconds": [
+    3.719999999999812,
+    7.819999999999361,
+    12.16000000000073,
+    16.22000000000189,
+    20.09999999999974
+  ],
+  "simulation_seconds": 20.09999999999974,
+  "video_seconds": 23.12,
+  "fps": 25,
+  "resolution": [
+    1280,
+    720
+  ],
+  "distance": 0.10136316538499184,
+  "is_success": true,
+  "failed": false,
+  "waypoint_reached": true,
+  "waypoints_reached": 5,
+  "waypoint_count": 5,
+  "grip_first_contact_seconds": {
+    "0.55": 0.020000000000000004,
+    "0.65": 1.8200000000000014,
+    "0.75": 10.180000000000069
+  },
+  "surface_tiles": [
+    {
+      "name": "grass_0_0",
+      "center": [
+        -1.75,
+        -1.75,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.55,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_0_1",
+      "center": [
+        0.0,
+        -1.75,
+        0.0
+      ],
+      "hfield_size": [
+        0.5,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.65,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_0_2",
+      "center": [
+        1.75,
+        -1.75,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.75,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_1_0",
+      "center": [
+        -1.75,
+        0.0,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        0.5,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.75,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "floor",
+      "center": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hfield_size": [
+        0.5,
+        0.5,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.55,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_1_2",
+      "center": [
+        1.75,
+        0.0,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        0.5,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.65,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_2_0",
+      "center": [
+        -1.75,
+        1.75,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.65,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_2_1",
+      "center": [
+        0.0,
+        1.75,
+        0.0
+      ],
+      "hfield_size": [
+        0.5,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.75,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    },
+    {
+      "name": "grass_2_2",
+      "center": [
+        1.75,
+        1.75,
+        0.0
+      ],
+      "hfield_size": [
+        1.25,
+        1.25,
+        0.008,
+        0.1
+      ],
+      "friction": [
+        0.55,
+        0.002,
+        0.002
+      ],
+      "condim": 6,
+      "solref": [
+        0.02,
+        1.0
+      ]
+    }
+  ]
+}

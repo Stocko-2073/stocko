@@ -169,13 +169,14 @@ def main():
                                          "timestep": dt, "seed": seed, **metrics.report()})
                     print(f"Evaluated {surface}/{route}/{wheel}/{dt:g}", flush=True)
     files = [Path(__file__), *[Path(__file__).with_name(n) for n in
-             ("contact_model.py", "env.py", "waypoints.py", "elevation.py")],
+             ("contact_model.py", "env.py", "waypoints.py", "elevation.py", "grass.py")],
              Path(__file__).parent / "assets" / "robot.xml"]
     report = {"presets": {name: asdict(value) for name, value in SURFACE_PRESETS.items()},
               "routes": ROUTES, "seeds": list(range(args.seeds)), "runs": runs,
               "versions": {"python": platform.python_version(), "mujoco": mujoco.__version__, "numpy": np.__version__},
               "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
               "method": {
+                  "Grass": "short_grass uses nine continuous heightfield tiles with grip 0.55/0.65/0.75, 0-8 mm elevation, and rolling friction 0.002 m. Preset contact grip 0.65 is nominal; tile overrides determine actual contacts.",
                   "Sampling": "50 Hz after physics/forward; 45 s episode limit; fixed layout, no domain randomization; reset excluded.",
                   "Completion": "Stop at every waypoint using the existing 12 cm / 0.08 m/s / 0.2 rad/s, 15-control-step arrival test.",
                   "Travel time": "Simulated elapsed time through the final arrival, including turns and required stop dwell; failures have null completion time.",

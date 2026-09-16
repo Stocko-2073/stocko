@@ -1,6 +1,6 @@
 # Surface route evaluation
 
-48/48 routes completed; 0 solver warnings. All current presets use the same baseline controller, routes and seeds.
+72/72 routes completed; 0 solver warnings. All current presets use the same baseline controller, routes and seeds.
 
 Each row aggregates seeds for one route, wheel model and timestep. Time is the mean of successful runs only; errors and slip include all runs. Stop travel averages completed waypoint stops with a recorded zero command.
 
@@ -22,9 +22,18 @@ Each row aggregates seeds for one route, wheel model and timestep. Time is the m
 | rough_concrete | out_and_back | lugs | 2 | 3/3 | 14.21 | 24.01 | 5.84 | 6.00 |
 | rough_concrete | out_and_back | smooth | 1 | 3/3 | 14.17 | 24.76 | 9.58 | 5.58 |
 | rough_concrete | out_and_back | smooth | 2 | 3/3 | 14.25 | 23.83 | 10.04 | 5.30 |
+| short_grass | five_waypoints | lugs | 1 | 3/3 | 20.01 | 34.24 | 13.38 | — |
+| short_grass | five_waypoints | lugs | 2 | 3/3 | 20.05 | 34.77 | 14.74 | — |
+| short_grass | five_waypoints | smooth | 1 | 3/3 | 19.45 | 33.47 | 10.02 | — |
+| short_grass | five_waypoints | smooth | 2 | 3/3 | 19.47 | 33.72 | 11.09 | — |
+| short_grass | out_and_back | lugs | 1 | 3/3 | 15.69 | 58.03 | 18.53 | — |
+| short_grass | out_and_back | lugs | 2 | 3/3 | 15.75 | 62.67 | 19.25 | — |
+| short_grass | out_and_back | smooth | 1 | 3/3 | 15.22 | 48.88 | 15.21 | — |
+| short_grass | out_and_back | smooth | 2 | 3/3 | 15.26 | 48.55 | 18.05 | — |
 
 ## Method and limits
 
+- **Grass**: short_grass uses nine continuous heightfield tiles with grip 0.55/0.65/0.75, 0-8 mm elevation, and rolling friction 0.002 m. Preset contact grip 0.65 is nominal; tile overrides determine actual contacts.
 - **Sampling**: 50 Hz after physics/forward; 45 s episode limit; fixed layout, no domain randomization; reset excluded.
 - **Completion**: Stop at every waypoint using the existing 12 cm / 0.08 m/s / 0.2 rad/s, 15-control-step arrival test.
 - **Travel time**: Simulated elapsed time through the final arrival, including turns and required stop dwell; failures have null completion time.

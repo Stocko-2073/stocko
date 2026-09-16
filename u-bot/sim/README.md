@@ -196,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-112 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+121 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -508,7 +508,7 @@ standstill snapping at both 1 ms and 2 ms. Surface tests inspect actual contact
 friction, dimension, and compliance for both wheel models and terrains, plus
 seeded randomization and invalid settings. Obstacle tests cover all four kinds,
 both terrains and wheel models, placement, and preserved robot dynamics
-(112 tests total, including rolling-friction activation, passive coasting,
+(121 tests total, including rolling-friction activation, passive coasting,
 elevation, surface transitions, and route-evaluation metrics).
 
 ### Terrain contact showcase
@@ -633,9 +633,9 @@ shared edges, and rejection of conflicting geometry.
 ### Evaluate routes across surface presets
 
 [The surface evaluation](benchmarks/surfaces.md) compares every current preset
-(`concrete` and `rough_concrete`) on the five-waypoint route and a 1.8 m
+(`concrete`, `rough_concrete`, and `short_grass`) on the five-waypoint route and a 1.8 m
 out-and-back route. It tests smooth/lugged wheels at 1 ms and 2 ms with seeds
-0, 1, and 2: all 48 runs completed, with zero solver warnings. Geometry and
+0, 1, and 2: all 72 runs completed, with zero solver warnings. Geometry and
 contact settings remain fixed; seeds change the initial caster orientations.
 The JSON retains individual runs and every completed waypoint stop.
 
@@ -661,14 +661,15 @@ final settling, not emergency braking from cruising speed. Arrival dwell can
 begin before zero is commanded; the measured delay includes only its remaining
 portion. Missing stop commands and unsuccessful completion times remain null.
 
-Across the three seeds, five-waypoint mean travel times range from 18.49 to
-19.09 seconds, with mean per-run tracking RMS from 24.57 to 26.17 mm. These
+For the two concrete presets, across the three seeds, five-waypoint mean
+travel times range from 18.49 to 19.09 seconds, with mean per-run tracking RMS
+from 24.57 to 26.17 mm. These
 numbers do not establish hardware accuracy or timestep convergence; the
 presets remain estimates, and contact counts affect the unweighted slip metric.
 See the report for the full breakdown and precise metric definitions.
 
-[Watch the side-by-side evaluation](videos/surface-evaluation-showcase.mp4).
-Both panels use the same five goals, seed 0, lugged wheels, 2 ms physics, and
+[Watch the original concrete comparison](videos/surface-evaluation-showcase.mp4),
+recorded for the initial 48-run evaluation before adding grass. Both panels use the same five goals, seed 0, lugged wheels, 2 ms physics, and
 baseline controller. Live overlays show elapsed time, cumulative tracking/slip
 RMS, and the most recent stop. A panel holds its final frame after completing.
 The video uses the same measurement code as the headless report, and its JSON
@@ -682,3 +683,59 @@ uv run python -m ubot_sim.surface_evaluation_showcase
 Metric tests cover finite-segment tracking, tangential versus normal contact
 motion, ideal rolling cancellation, completed stops, timeouts, and airborne
 intervals with no slip samples.
+
+
+### Short-grass approximation
+
+Select `surface="short_grass"` with either environment, `gym.make`, or
+`--surface short_grass` in the demo, viewer, recorder, and training CLI:
+
+```sh
+uv run python -m ubot_sim.viewer --waypoints --surface short_grass
+uv run python -m ubot_sim.record --surface short_grass --width 1280 --height 720 --output videos/short-grass-showcase.mp4
+uv run python -m ubot_sim.train --surface short_grass --randomize
+```
+
+This experimental rigid proxy combines 0–8 mm undulations with spatially
+varying grip and increased rolling resistance. It does not simulate grass
+blades, bending, soil displacement, or sinkage, and its settings are estimates.
+The rolling coefficient is 0.002 m with active six-dimensional contacts,
+20 times the concrete preset's coefficient. Sliding grip varies independently
+between 0.55, 0.65, and 0.75. Contact time constant is 0.02 s, damping ratio 1,
+and torsional friction 0.002 m; softer contact is only a compliance approximation.
+
+Nine adjoining heightfields cover [-3, 3] m in X and Y. Boundaries lie at
+-3, -0.5, 0.5, and 3 m; a shared 241×241 lattice supplies 25 mm samples to
+all tiles. Adjacent tiles copy identical edge heights, so material boundaries
+introduce no height steps. Each tile retains its own contact material; at a
+boundary a wheel can contact both neighbours. Darker green denotes lower grip.
+The layout is fixed, with the following coefficients (rows run from +Y to -Y):
+
+| Y interval / X interval | [-3, -0.5] | [-0.5, 0.5] | [0.5, 3] |
+|---|---:|---:|---:|
+| [0.5, 3] | 0.65 | 0.75 | 0.55 |
+| [-0.5, 0.5] | 0.75 | 0.55 | 0.65 |
+| [-3, -0.5] | 0.55 | 0.65 | 0.75 |
+
+The height function combines smooth sinusoidal undulations with approximately
+0.37–0.70 m wavelengths. A 0.3 m launch radius is flat, blending to full
+roughness at 0.5 m. The central tile keeps the `floor` geometry name; the other
+tiles are named `grass_<row>_<column>`. The preset's nominal grip 0.65 is
+replaced by each tile's explicit coefficient. No underlying plane adds
+extra friction. Robot mass, inertia, joints, and wheel geometry are unchanged.
+
+`randomize=True` applies the usual seeded sliding-grip multiplier to all tiles,
+preserving their ratios, and randomizes robot mass. Height, material layout,
+rolling friction, and compliance remain fixed. Additional obstacles are allowed
+and inherit the preset's nominal contact unless explicitly overridden. Flat
+`TerrainPatch`/`TerrainRegion` rectangles, a non-default `terrain`, and an
+explicit `terrain_contact` conflict with this preset and are rejected.
+
+[Watch the 23-second grass showcase](videos/short-grass-showcase.mp4): the
+baseline controller completes all five stops and encounters all three grip
+levels, shown in live left/right wheel-contact readouts. The JSON records
+tile placement/contact settings, first encounters, waypoint arrivals, and
+solver warnings. The [surface evaluation](benchmarks/surfaces.md) now includes
+grass for both routes, wheel models, timesteps, and three seeds. Regression
+tests also inspect actual dim6 contacts, edge-height continuity, seeded grip,
+off-origin spawn/goal elevation, and unchanged robot dynamics.

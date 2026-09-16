@@ -51,8 +51,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   and an 8 mm step. Both wheel models complete the five-waypoint route and
   contact every feature at 1 ms and 2 ms.
   [Video](videos/rough-concrete-showcase.mp4).
-- [ ] Short grass approximation: uneven ground, increased rolling resistance,
-  and variable grip.
+- [x] Short grass approximation: uneven ground, increased rolling resistance,
+  and variable grip. `surface="short_grass"` combines continuous 0–8 mm
+  heightfield bumps, nine tiles with grip 0.55/0.65/0.75, and active 0.002 m
+  rolling friction. Both wheels complete the route at 1 ms and 2 ms.
+  [Video](videos/short-grass-showcase.mp4).
 - [x] Wet/slippery patches: local grip changes, including one drive wheel on
   each of two different surfaces. `TerrainPatch` adds flush rectangles with
   independent sliding grip and inherited rolling/compliance settings. Tests
@@ -73,7 +76,7 @@ Treat initial preset values as estimates until measured on the robot.
 
 - [x] Run the same waypoint routes across all presets and compare completion,
   travel time, tracking error, wheel slip, and stopping behavior.
-  [Surface evaluation](benchmarks/surfaces.md): 48/48 completed across both
+  [Surface evaluation](benchmarks/surfaces.md): 72/72 completed across all three
   current presets, two routes, both wheels, 1/2 ms, and three seeds. Metrics
   include actual contact-point slip and per-waypoint stopping measurements.
   [Comparison video](videos/surface-evaluation-showcase.mp4).

@@ -1,6 +1,7 @@
 """Render a continuous waypoint run to an H.264 MP4 using MuJoCo and FFmpeg."""
 import argparse
 from dataclasses import asdict
+from functools import lru_cache
 import json
 from pathlib import Path
 import shutil
@@ -64,8 +65,9 @@ def main():
         env.model.vis.global_.offheight = args.height
         # A neutral presentation floor; this changes appearance only.
         floor = env.model.geom("floor").id
-        env.model.geom_matid[floor] = -1
-        env.model.geom_rgba[floor] = [0.18, 0.23, 0.27, 1]
+        if args.surface != "short_grass":
+            env.model.geom_matid[floor] = -1
+            env.model.geom_rgba[floor] = [0.18, 0.23, 0.27, 1]
         goal_geom = env.model.body_geomadr[env.model.body("goal").id]
         env.model.geom_rgba[goal_geom] = [1, 0.65, 0.2, 0.22]
         renderer = mujoco.Renderer(env.model, height=args.height, width=args.width, max_geom=4000)
@@ -84,6 +86,22 @@ def main():
         obstacle_ids = {env.model.geom(f"surface_obstacle_{i}").id: i
                         for i in range(len(surface_obstacles))}
         obstacle_times = {}
+        grip_times = {}
+
+        def drive_grips():
+            return [sorted({float(c.friction[0]) for c in env.data.contact if any(
+                env.model.geom(g).name.startswith((f"{side}_tire", f"{side}_lug"))
+                for g in (c.geom1, c.geom2))}) for side in ("left", "right")]
+
+        # Terrain is static within a recording. Cache route/trail elevations
+        # instead of repeating all tile-ray queries for every rendered frame.
+        @lru_cache(maxsize=4096)
+        def height_at(x, y):
+            return env.terrain_height([x, y])
+
+        def terrain_height(point):
+            return height_at(float(point[0]), float(point[1]))
+
         surface_title = args.surface.replace("_", " ").upper() if args.surface else None
         subtitle = "MuJoCo simulation  •  Baseline controller  •  Continuous run"
         if args.surface:
@@ -93,6 +111,9 @@ def main():
         if args.surface == "rough_concrete":
             subtitle = "Estimated geometry • 0–4 mm bumps • 4 mm seams • 8 mm step • Baseline controller"
 
+        if args.surface == "short_grass":
+            subtitle = "Estimated grass proxy • 0–8 mm bumps • Local grip 0.55–0.75 • Rolling 0.002 m (dim6)"
+
         def frame():
             renderer.update_scene(env.data, camera=camera)
             scene = renderer.scene
@@ -100,12 +121,12 @@ def main():
             for start, end in zip(points[:-1], points[1:]):
                 samples = np.linspace(start, end, max(2, int(np.linalg.norm(end - start) / 0.025) + 1))
                 for a, b in zip(samples[:-1], samples[1:]):
-                    za, zb = env.terrain_height(a), env.terrain_height(b)
+                    za, zb = terrain_height(a), terrain_height(b)
                     if za is not None and zb is not None:
                         add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*a, za + 0.006],
                                      [0.004, 0, 0], [0.45, 0.55, 0.6, 1], [*b, zb + 0.006])
             for i, point in enumerate(env.waypoints):
-                height = env.terrain_height(point)
+                height = terrain_height(point)
                 if height is None:
                     continue
                 color = [0.2, 0.85, 0.65, 1] if i < env.waypoint_index else [0.55, 0.62, 0.66, 1]
@@ -114,7 +135,7 @@ def main():
                 add_geometry(scene, mujoco.mjtGeom.mjGEOM_CYLINDER, [*point, height + 0.009],
                              [0.045, 0.006, 0], color)
             for start, end in zip(trail[:-1], trail[1:]):
-                za, zb = env.terrain_height(start), env.terrain_height(end)
+                za, zb = terrain_height(start), terrain_height(end)
                 if za is None or zb is None:
                     continue
                 add_geometry(scene, mujoco.mjtGeom.mjGEOM_CAPSULE, [*start, za + 0.014],
@@ -136,6 +157,9 @@ def main():
             text(56, h - 93, status, text_font, "#48ddb1")
             detail = (f"Features contacted {len(obstacle_times)}/{len(surface_obstacles)}"
                       if surface_obstacles else "4.043 kg model")
+            if args.surface == "short_grass":
+                detail = "Grip " + "  ".join(side + ":" + ("/".join(f"{g:.2f}" for g in values) or "air")
+                    for side, values in zip(("L", "R"), drive_grips()))
             text(56, h - 51, f"{env.data.time:05.1f} s   •   Real-time playback   •   {detail}", small_font, "#abc0cb")
             for i in range(len(env.waypoints)):
                 x = 1130 + i * min(130, 680 / max(1, len(env.waypoints) - 1))
@@ -166,6 +190,10 @@ def main():
                 for geom_id in (contact.geom1, contact.geom2):
                     if geom_id in obstacle_ids:
                         obstacle_times.setdefault(obstacle_ids[geom_id], float(env.data.time))
+            if args.surface == "short_grass":
+                for values in drive_grips():
+                    for grip in values:
+                        grip_times.setdefault(str(grip), float(env.data.time))
             xy = env.data.xpos[env.base, :2].copy()
             if np.linalg.norm(xy - trail[-1]) > 0.025:
                 trail.append(xy)
@@ -195,6 +223,14 @@ def main():
                   "route_metres": env.waypoints.tolist(), "waypoint_times_seconds": reached_times,
                   "simulation_seconds": float(env.data.time), "video_seconds": frames / fps,
                   "fps": fps, "resolution": [args.width, args.height], **info}
+        if args.surface == "short_grass":
+            report["grip_first_contact_seconds"] = grip_times
+            report["surface_tiles"] = [
+                {"name": env.model.geom(g).name, "center": env.model.geom_pos[g].tolist(),
+                 "hfield_size": env.model.hfield_size[env.model.geom_dataid[g]].tolist(),
+                 "friction": env.model.geom_friction[g].tolist(),
+                 "condim": int(env.model.geom_condim[g]), "solref": env.model.geom_solref[g].tolist()}
+                for g in range(env.model.ngeom) if env.model.geom_type[g] == mujoco.mjtGeom.mjGEOM_HFIELD]
         args.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
         last.save(args.output.with_name(args.output.stem + "-complete.png"))
         if not info.get("is_success"):
