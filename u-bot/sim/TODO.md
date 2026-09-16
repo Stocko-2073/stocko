@@ -25,7 +25,8 @@ soil model. See [benchmark results](benchmarks/README.md).
   actually produces its intended friction and compliance.
   `TerrainContact` defines friction, contact dimension, and compliance for the
   current flat/bumps surfaces. Terrain priority overrides wheel mixing; tests
-  inspect actual drive-wheel and caster contacts. Local patches remain below.
+  inspect actual drive-wheel and caster contacts. `TerrainPatch` now provides
+  local sliding-grip overrides on flat ground.
 - [x] Add separate collision shapes for rocks, roots, seams, and small edges.
   `TerrainObstacle` supplies static ellipsoids, capsules, and boxes with world
   placement, yaw, and optional contact overrides. Tests exercise actual wheel
@@ -41,8 +42,12 @@ soil model. See [benchmark results](benchmarks/README.md).
 - [ ] Rough concrete: small bumps, seams, and occasional edges.
 - [ ] Short grass approximation: uneven ground, increased rolling resistance,
   and variable grip.
-- [ ] Wet/slippery patches: local grip changes, including one drive wheel on
-  each of two different surfaces.
+- [x] Wet/slippery patches: local grip changes, including one drive wheel on
+  each of two different surfaces. `TerrainPatch` adds flush rectangles with
+  independent sliding grip and inherited rolling/compliance settings. Tests
+  cover actual split wheel/caster contacts, dry–patch–dry crossings at two
+  timesteps, seeded grip, and a continuous route.
+  [Split-grip video](videos/slippery-patch-showcase.mp4).
 - [ ] Sloped lawn: combine grass settings with uphill, downhill, and cross-slope
   routes.
 - [ ] Support transitions between surface types within one continuous route.

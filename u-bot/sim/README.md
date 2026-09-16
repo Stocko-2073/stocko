@@ -319,7 +319,8 @@ env = UBotNavigationEnv(terrain="bumps", terrain_contact=surface)
 
 These settings also work with `UBotWaypointsEnv` and `gym.make`. They apply to
 the entire ground surface, including drive-wheel, caster, and chassis contacts.
-Local patches and calibrated presets remain TODO items.
+Flat ground also supports local sliding-grip patches (below). Calibrated
+preset values remain pending hardware measurements.
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -343,6 +344,57 @@ Defaults retain the existing contact values. `randomize=True` still scales
 sliding friction by 0.7–1.3 from the selected surface on each reset, reproducibly
 for a given seed. Other contact settings stay fixed. Selecting `condim=6` enables
 experimentation; its rolling behavior and performance still need evaluation.
+
+### Local slippery patches
+
+Add `TerrainPatch` rectangles to either environment or `gym.make`. This example
+puts the left drive wheel on low grip and the right on dry ground when spawned
+at the origin facing +X (`reset(options={"yaw": 0})`):
+
+```python
+from ubot_sim.contact_model import TerrainPatch
+from ubot_sim.env import UBotNavigationEnv
+
+patch = TerrainPatch(center=(0, 0.5), half_size=(2, 0.5), sliding_friction=0.08)
+env = UBotNavigationEnv(surface="concrete", patches=[patch])
+env.reset(seed=0, options={"yaw": 0})
+```
+
+Coordinates and half-sizes are metres in world XY; rectangles are axis-aligned.
+Only sliding friction changes inside a patch. Contact dimension, rolling and
+torsional friction, and compliance come from the selected ground settings.
+The default patch grip is 0.08, an estimated slippery-surface approximation;
+this does not model water or predict measured wet-concrete traction. Obstacles
+keep their own explicit or inherited ground contact settings.
+
+Patches require flat terrain and support both smooth and lugged wheels. The
+colliding ground is replaced with disjoint boxes covering [-8, 8] m on each
+axis, beyond the environment's 6 m failure radius. Every top face is at Z=0:
+there is no raised patch and no underlying dry plane contributing duplicate
+friction. At a boundary, a wheel can contact both adjacent materials. Patch
+interiors must not overlap and must lie strictly inside the ground boundary;
+touching edges are allowed. With no patches, the original floor is retained.
+
+`randomize=True` applies the same seeded grip multiplier to ground and patches,
+preserving their ratio without compounding on reset. Geometry is fixed. Tests
+inspect actual wheel and caster contacts on opposite surfaces, complete a
+continuous out-and-back route, and cross dry–slippery–dry ground using both
+wheel models at 1 ms and 2 ms physics timesteps.
+
+[Watch the 13-second split-grip showcase](videos/slippery-patch-showcase.mp4):
+synchronized drive, brake, and reverse commands on identical ground geometry.
+The right panel changes only one rectangle's grip from 0.8 to 0.08. Overlays
+show actual left/right contact coefficients, speed, and lateral position;
+trails show the drift during reversal. The JSON contains commands, contact
+coefficients, paths, surface settings, and solver warning counts. Reproduce with:
+
+```sh
+uv run python -m ubot_sim.patch_showcase
+```
+
+Requires the video extra, FFmpeg, and working graphics. The output is silent
+1280×720 H.264 at 25 fps, with one second of opening hold and two seconds of
+closing hold; simulation playback is real time.
 
 ### Rocks, roots, seams, and edges
 
