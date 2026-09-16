@@ -1,0 +1,1840 @@
+{
+  "recorded_at": "2026-09-16T13:14:30.377224+00:00",
+  "machine": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.12.11",
+    "mujoco": "3.13.0",
+    "numpy": "2.5.3"
+  },
+  "source_sha256": {
+    "rolling_benchmark.py": "3137d0fb59c8d5ed98362334710309a16d3ef917fff2999e0329a9251554c87c",
+    "benchmark.py": "a9f40d266819001c03e5be04c7ff122514bea68b6ef1e909fd677778301f16f0",
+    "contact_model.py": "314e2db8897ad54295f0b959007dbb1b2283e6f2cc909c8f7f1ce7c7a2e52967",
+    "env.py": "0bcf3f0ed4c01b5d8dbb1923e19f9508ac5a004a42ea8f0d688fc79cd2ebfea1",
+    "waypoints.py": "e0e3bf40a57c9e1fef944e8c7739bafb2fbdb1a5cc7967b71f0158b5660ec2db",
+    "elevation.py": "efbd5114658f83abb8bfa67cf715a49014799c3a8344d6824fa7234204d92e81",
+    "robot.xml": "5081b358b096d737dc91a2630313a82b075e639ef8f0f0221dd645970f617519"
+  },
+  "method": {
+    "repeats": 3,
+    "route_seeds": 2,
+    "route_limit_seconds": 50,
+    "physics_seconds": 20,
+    "timing": "Warmed C-batched physics; randomized order; no concurrent task tests/rendering",
+    "coast": "2s drive at 0.5 turns/s then 3s with both servos disabled; bearing damping retained",
+    "diagnostics": "Separate untimed physics and coast runs",
+    "rolling_units": "metres; estimates, not fitted material properties"
+  },
+  "results": {
+    "smooth/flat/0.002/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.24841537501197308,
+        0.24685120803769678,
+        0.24706408299971372
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.4137216249946505,
+          "steps": 935,
+          "simulated_seconds": 18.700000000000514,
+          "real_time_factor": 45.19947440562796,
+          "policy_steps_per_second": 2259.9737202813358,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.3930805829586461,
+          "steps": 933,
+          "simulated_seconds": 18.660000000000537,
+          "real_time_factor": 47.471182268913175,
+          "policy_steps_per_second": 2373.5591134455904,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 80.95065764789119,
+      "coast": {
+        "entry_speed_mps": 0.33328974565158076,
+        "path_length_3s_m": 0.7801933584703087,
+        "final_speed_mps": 0.19851810906457937,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 7.6899,
+        "max_contacts": 8,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.12718988061993786,
+        "min_upright_cosine": 0.999999689916762,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.9372274013531574,
+          1.0334094180850637
+        ]
+      }
+    },
+    "smooth/flat/0.002/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.32172920799348503,
+        0.315565750002861,
+        0.32835108297877014
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.4572497080080211,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 40.852951183673234,
+          "policy_steps_per_second": 2042.647559183604,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.45960012497380376,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 40.644027242301654,
+          "policy_steps_per_second": 2032.2013621150256,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 62.16407930362666,
+      "coast": {
+        "entry_speed_mps": 0.3328357953523377,
+        "path_length_3s_m": 0.7600312764457512,
+        "final_speed_mps": 0.18772579178110346,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 7.6884,
+        "max_contacts": 8,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.12577912606781885,
+        "min_upright_cosine": 0.9999996868222888,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.9437391412920608,
+          1.0229820561991156
+        ]
+      }
+    },
+    "smooth/flat/0.002/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6040297920117155,
+        0.6109953329432756,
+        0.6218310830881819
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.8195527499774471,
+          "steps": 953,
+          "simulated_seconds": 19.060000000000315,
+          "real_time_factor": 23.25658720628394,
+          "policy_steps_per_second": 1162.8293603141776,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.8292473329929635,
+          "steps": 952,
+          "simulated_seconds": 19.040000000000326,
+          "real_time_factor": 22.960580326837047,
+          "policy_steps_per_second": 1148.0290163418326,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 32.7334742536516,
+      "coast": {
+        "entry_speed_mps": 0.3065652881456152,
+        "path_length_3s_m": 0.1406005041026038,
+        "final_speed_mps": 1.2241278225770816e-07,
+        "settled_below_0.02_mps_seconds": 1.08,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 6.911,
+        "max_contacts": 8,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.11573828061327632,
+        "min_upright_cosine": 0.9999998820847611,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.8271561736338224,
+          0.6396574066064397
+        ]
+      }
+    },
+    "smooth/flat/0.002/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6384284170344472,
+        0.6294632079079747,
+        0.6196139169624075
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.7385492089670151,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 28.75961160151652,
+          "policy_steps_per_second": 1437.9805800753907,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.7786477499175817,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 28.11124350076176,
+          "policy_steps_per_second": 1405.5621750376622,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 31.773104049194767,
+      "coast": {
+        "entry_speed_mps": 0.15995315442465283,
+        "path_length_3s_m": 0.009021242085658876,
+        "final_speed_mps": 9.593930642195986e-09,
+        "settled_below_0.02_mps_seconds": 0.28,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 6.3402,
+        "max_contacts": 8,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.11940613298880298,
+        "min_upright_cosine": 0.9999998002817723,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.5241568659722515,
+          -0.10511491444959574
+        ]
+      }
+    },
+    "lugs/flat/0.002/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.30132874997798353,
+        0.302721832995303,
+        0.30393254198133945
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.4605918329907581,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 40.643360691929864,
+          "policy_steps_per_second": 2032.1680345964385,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.4569046249380335,
+          "steps": 934,
+          "simulated_seconds": 18.680000000000526,
+          "real_time_factor": 40.8838058982965,
+          "policy_steps_per_second": 2044.1902949147675,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 66.06725323412772,
+      "coast": {
+        "entry_speed_mps": 0.32973728793533186,
+        "path_length_3s_m": 0.6691433896062522,
+        "final_speed_mps": 0.13704573911254464,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 8.0969,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.146,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.1447076835753812,
+        "min_upright_cosine": 0.9999994211219042,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7031729309808281,
+          1.142707472538153
+        ]
+      }
+    },
+    "lugs/flat/0.002/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.3949627089314163,
+        0.3912487499183044,
+        0.3950928340200335
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.5706933750770986,
+          "steps": 935,
+          "simulated_seconds": 18.700000000000514,
+          "real_time_factor": 32.76715801628889,
+          "policy_steps_per_second": 1638.3579008143995,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.5556794580770656,
+          "steps": 938,
+          "simulated_seconds": 18.76000000000048,
+          "real_time_factor": 33.76047058662137,
+          "policy_steps_per_second": 1688.0235293310254,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 50.637691983910614,
+      "coast": {
+        "entry_speed_mps": 0.3292577607790249,
+        "path_length_3s_m": 0.6546249691737654,
+        "final_speed_mps": 0.13313197885192843,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 8.2337,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.2817,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.14430499328783875,
+        "min_upright_cosine": 0.9999994135986385,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7085575460875104,
+          1.139001806279561
+        ]
+      }
+    },
+    "lugs/flat/0.002/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6330757919931784,
+        0.6334620829438791,
+        0.6252634170232341
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.8519237500149757,
+          "steps": 961,
+          "simulated_seconds": 19.220000000000226,
+          "real_time_factor": 22.560704522749088,
+          "policy_steps_per_second": 1128.0352261374412,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.8575549580855295,
+          "steps": 963,
+          "simulated_seconds": 19.260000000000204,
+          "real_time_factor": 22.459201965315067,
+          "policy_steps_per_second": 1122.9600982657414,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 31.591793988887044,
+      "coast": {
+        "entry_speed_mps": 0.3029795239324137,
+        "path_length_3s_m": 0.1318087720082073,
+        "final_speed_mps": 7.174014080150089e-07,
+        "settled_below_0.02_mps_seconds": 0.98,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 7.1236,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.2017,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.16301297645317064,
+        "min_upright_cosine": 0.9999997790701387,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7166238683183321,
+          0.7535157154669688
+        ]
+      }
+    },
+    "lugs/flat/0.002/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6357959159649909,
+        0.6361282919533551,
+        0.6459160000085831
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.883006167015992,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 26.553285313584688,
+          "policy_steps_per_second": 1327.6642656788324,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.877205834025517,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 26.635331668874137,
+          "policy_steps_per_second": 1331.7665834433035,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 31.440198860808607,
+      "coast": {
+        "entry_speed_mps": 0.15204350885919615,
+        "path_length_3s_m": 0.009028257608487033,
+        "final_speed_mps": 0.00017136499451332566,
+        "settled_below_0.02_mps_seconds": 0.28,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 6.3554,
+        "max_contacts": 12,
+        "mean_lug_contacts": 3.6642,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.16249347651628443,
+        "min_upright_cosine": 0.9999996720855506,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.507534423079581,
+          -0.12418394820158554
+        ]
+      }
+    },
+    "lugs/flat/0.001/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.5542954159900546,
+        0.5429342909483239,
+        0.5426934999413788
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.7781541659496725,
+          "steps": 932,
+          "simulated_seconds": 18.639999999999798,
+          "real_time_factor": 23.95412222364861,
+          "policy_steps_per_second": 1197.7061111824435,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.8013064579572529,
+          "steps": 937,
+          "simulated_seconds": 18.73999999999992,
+          "real_time_factor": 23.38680764881548,
+          "policy_steps_per_second": 1169.340382440779,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 36.83687019485676,
+      "coast": {
+        "entry_speed_mps": 0.3289022951056364,
+        "path_length_3s_m": 0.6701448408970977,
+        "final_speed_mps": 0.14259326778035836,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 8.09595,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.15615,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.14232174995147326,
+        "min_upright_cosine": 0.9999995015203558,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.6621086724929197,
+          1.1761780034226956
+        ]
+      }
+    },
+    "lugs/flat/0.001/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6974818750750273,
+        0.715207582921721,
+        0.7318133329972625
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.9216091249836609,
+          "steps": 933,
+          "simulated_seconds": 18.659999999999823,
+          "real_time_factor": 20.24719536097328,
+          "policy_steps_per_second": 1012.3597680486737,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.9261066250037402,
+          "steps": 936,
+          "simulated_seconds": 18.719999999999896,
+          "real_time_factor": 20.213655204036893,
+          "policy_steps_per_second": 1010.6827602018502,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 27.96390932866967,
+      "coast": {
+        "entry_speed_mps": 0.32912512038169434,
+        "path_length_3s_m": 0.6524827143132622,
+        "final_speed_mps": 0.13123302377615775,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 7.9751,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.03235,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.14341073990953648,
+        "min_upright_cosine": 0.9999994829911042,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.6692874489193104,
+          1.1677997644667537
+        ]
+      }
+    },
+    "lugs/flat/0.001/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        1.092881958000362,
+        1.0942910420708358,
+        1.082523375051096
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.4470222078962252,
+          "steps": 960,
+          "simulated_seconds": 19.200000000000482,
+          "real_time_factor": 13.26862842548539,
+          "policy_steps_per_second": 663.4314212742528,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.5128917500842363,
+          "steps": 959,
+          "simulated_seconds": 19.180000000000458,
+          "real_time_factor": 12.677708103658134,
+          "policy_steps_per_second": 633.8854051828915,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 18.300238057359692,
+      "coast": {
+        "entry_speed_mps": 0.3046931266132919,
+        "path_length_3s_m": 0.13479451471031015,
+        "final_speed_mps": 1.5157240979792518e-06,
+        "settled_below_0.02_mps_seconds": 1.04,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 6.78835,
+        "max_contacts": 12,
+        "mean_lug_contacts": 4.0422,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.12180389730346783,
+        "min_upright_cosine": 0.9999997842073033,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7485606469879562,
+          0.7545500305588342
+        ]
+      }
+    },
+    "lugs/flat/0.001/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        1.1062288749963045,
+        1.089857874903828,
+        1.1004839580273256
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 3.1426040419610217,
+          "steps": 2500,
+          "simulated_seconds": 49.99999999997417,
+          "real_time_factor": 15.91037220482081,
+          "policy_steps_per_second": 795.5186102414515,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 3.1940382089233026,
+          "steps": 2500,
+          "simulated_seconds": 49.99999999997417,
+          "real_time_factor": 15.654164643455838,
+          "policy_steps_per_second": 782.7082321731962,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 18.173822393423194,
+      "coast": {
+        "entry_speed_mps": 0.15329148386665176,
+        "path_length_3s_m": 0.00938091054618885,
+        "final_speed_mps": 0.00023367384383308581,
+        "settled_below_0.02_mps_seconds": 0.28,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 6.3068,
+        "max_contacts": 12,
+        "mean_lug_contacts": 3.8479,
+        "max_lug_contacts": 8,
+        "max_penetration_mm": 0.1201184594846489,
+        "min_upright_cosine": 0.999999738767005,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.515424095512804,
+          -0.14156915781571816
+        ]
+      }
+    },
+    "smooth/bumps/0.002/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.2972822500159964,
+        0.29353537503629923,
+        0.2989785830723122
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.46062800008803606,
+          "steps": 921,
+          "simulated_seconds": 18.42000000000067,
+          "real_time_factor": 39.988884732322404,
+          "policy_steps_per_second": 1999.4442366160476,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.4619756250176579,
+          "steps": 921,
+          "simulated_seconds": 18.42000000000067,
+          "real_time_factor": 39.87223351729133,
+          "policy_steps_per_second": 1993.6116758644941,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 67.27613235880656,
+      "coast": {
+        "entry_speed_mps": 0.3148358503699874,
+        "path_length_3s_m": 0.5878422079260817,
+        "final_speed_mps": 0.05926015466565147,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.7328,
+        "max_contacts": 17,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.3748155469239999,
+        "min_upright_cosine": 0.9985033394879861,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.0196102559061926,
+          1.093701201135452
+        ]
+      }
+    },
+    "smooth/bumps/0.002/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.3457093749893829,
+        0.3352442500181496,
+        0.3361465830821544
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.49909808300435543,
+          "steps": 921,
+          "simulated_seconds": 18.42000000000067,
+          "real_time_factor": 36.90657333147867,
+          "policy_steps_per_second": 1845.3286665738663,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.5021532089449465,
+          "steps": 921,
+          "simulated_seconds": 18.42000000000067,
+          "real_time_factor": 36.682031841840015,
+          "policy_steps_per_second": 1834.101592091934,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 59.4978530396425,
+      "coast": {
+        "entry_speed_mps": 0.31523272854822043,
+        "path_length_3s_m": 0.577783944632651,
+        "final_speed_mps": 0.07768780688850609,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.8678,
+        "max_contacts": 17,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.3761379444186993,
+        "min_upright_cosine": 0.9985275471954328,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.0247071410312674,
+          1.0993299191436727
+        ]
+      }
+    },
+    "smooth/bumps/0.002/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.4864214579574764,
+        0.4869309169007465,
+        0.4971755420556292
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.693065790925175,
+          "steps": 968,
+          "simulated_seconds": 19.36000000000015,
+          "real_time_factor": 27.933855996782707,
+          "policy_steps_per_second": 1396.6927998391247,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.703463250072673,
+          "steps": 967,
+          "simulated_seconds": 19.34000000000016,
+          "real_time_factor": 27.492552024575833,
+          "policy_steps_per_second": 1374.6276012287803,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 41.07358827674665,
+      "coast": {
+        "entry_speed_mps": 0.2730320072887533,
+        "path_length_3s_m": 0.09182244714593674,
+        "final_speed_mps": 0.0003767587148847028,
+        "settled_below_0.02_mps_seconds": 1.16,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.4008,
+        "max_contacts": 17,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.44095498070047345,
+        "min_upright_cosine": 0.9980316559833468,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.3972621262622766,
+          0.5617048495010168
+        ]
+      }
+    },
+    "smooth/bumps/0.002/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6360229579731822,
+        0.6172271660761908,
+        0.6232273339992389
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.950482957996428,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 25.634676680987802,
+          "policy_steps_per_second": 1281.7338340490019,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.9382002080092207,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 25.7971285904316,
+          "policy_steps_per_second": 1289.8564295211895,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 32.09101865231159,
+      "coast": {
+        "entry_speed_mps": 0.1402030350405846,
+        "path_length_3s_m": 0.00900886404355681,
+        "final_speed_mps": 0.000694819896356858,
+        "settled_below_0.02_mps_seconds": 0.28,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.4151,
+        "max_contacts": 17,
+        "mean_lug_contacts": 0.0,
+        "max_lug_contacts": 0,
+        "max_penetration_mm": 0.3732017617279032,
+        "min_upright_cosine": 0.999547429092039,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.48122479164808313,
+          -0.20763095029938042
+        ]
+      }
+    },
+    "lugs/bumps/0.002/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.3161523339804262,
+        0.3163336659781635,
+        0.318903791019693
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.4915274999802932,
+          "steps": 937,
+          "simulated_seconds": 18.740000000000492,
+          "real_time_factor": 38.12604584840489,
+          "policy_steps_per_second": 1906.3022924201944,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.48664533300325274,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 38.46743969468085,
+          "policy_steps_per_second": 1923.3719847339905,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 63.224380301591424,
+      "coast": {
+        "entry_speed_mps": 0.3119484598893176,
+        "path_length_3s_m": 0.3575108875447771,
+        "final_speed_mps": 0.0025023494125780946,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.9312,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.907,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.42181696484192693,
+        "min_upright_cosine": 0.9982470946087347,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.2346878498371845,
+          0.9980721001438128
+        ]
+      }
+    },
+    "lugs/bumps/0.002/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.3560970419785008,
+        0.3591368340421468,
+        0.3631437080912292
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.5415312090190127,
+          "steps": 937,
+          "simulated_seconds": 18.740000000000492,
+          "real_time_factor": 34.605577089357645,
+          "policy_steps_per_second": 1730.2788544678367,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.539750583935529,
+          "steps": 936,
+          "simulated_seconds": 18.720000000000503,
+          "real_time_factor": 34.682685961181896,
+          "policy_steps_per_second": 1734.1342980590482,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 55.68908032878878,
+      "coast": {
+        "entry_speed_mps": 0.3101326227808021,
+        "path_length_3s_m": 0.3584492522059063,
+        "final_speed_mps": 0.04702711471309844,
+        "settled_below_0.02_mps_seconds": 1.68,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.8396,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.7977,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.4600836419399859,
+        "min_upright_cosine": 0.9981811903497844,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.260015151459622,
+          1.0369612324716393
+        ]
+      }
+    },
+    "lugs/bumps/0.002/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.496412624954246,
+        0.4920849580084905,
+        0.4977087080478668
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.6988674589665607,
+          "steps": 978,
+          "simulated_seconds": 19.560000000000038,
+          "real_time_factor": 27.988139595058673,
+          "policy_steps_per_second": 1399.406979752931,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.7045246670022607,
+          "steps": 977,
+          "simulated_seconds": 19.54000000000005,
+          "real_time_factor": 27.735011867139278,
+          "policy_steps_per_second": 1386.7505933569605,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 40.28906396537233,
+      "coast": {
+        "entry_speed_mps": 0.2766993165544945,
+        "path_length_3s_m": 0.07940315559539501,
+        "final_speed_mps": 0.0002408158618509341,
+        "settled_below_0.02_mps_seconds": 0.62,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.5733,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.8517,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.5586183225984753,
+        "min_upright_cosine": 0.9986287027135394,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7242862741914684,
+          0.5110738565642434
+        ]
+      }
+    },
+    "lugs/bumps/0.002/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.537252000067383,
+        0.5334673329489306,
+        0.5388932500500232
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.808640458039008,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 27.6450743859987,
+          "policy_steps_per_second": 1382.2537192995164,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.831114208092913,
+          "steps": 2500,
+          "simulated_seconds": 50.00000000001514,
+          "real_time_factor": 27.305779060110968,
+          "policy_steps_per_second": 1365.288953005135,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 37.22647844492262,
+      "coast": {
+        "entry_speed_mps": 0.13916477297419147,
+        "path_length_3s_m": 0.00923265398454651,
+        "final_speed_mps": 0.0007454812685441945,
+        "settled_below_0.02_mps_seconds": 0.26,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.0765,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.438,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.39054321551238197,
+        "min_upright_cosine": 0.9983497615072021,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.46182769388762124,
+          0.07443022626020976
+        ]
+      }
+    },
+    "lugs/bumps/0.001/dim4": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 4,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6029835829976946,
+        0.5987157500348985,
+        0.5997317499713972
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.8776594159426168,
+          "steps": 938,
+          "simulated_seconds": 18.759999999999945,
+          "real_time_factor": 21.375034163852135,
+          "policy_steps_per_second": 1068.7517081926098,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.9236945840530097,
+          "steps": 939,
+          "simulated_seconds": 18.77999999999997,
+          "real_time_factor": 20.331395597878927,
+          "policy_steps_per_second": 1016.5697798939481,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 33.34824277846529,
+      "coast": {
+        "entry_speed_mps": 0.31292292071921707,
+        "path_length_3s_m": 0.344505882212068,
+        "final_speed_mps": 4.025546707508499e-05,
+        "settled_below_0.02_mps_seconds": 1.68,
+        "contact_dimensions": [
+          4
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 5.01305,
+        "max_contacts": 17,
+        "mean_lug_contacts": 3.01805,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.4503097762727666,
+        "min_upright_cosine": 0.9981576264412461,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.2279259735666403,
+          0.9965960986524958
+        ]
+      }
+    },
+    "lugs/bumps/0.001/dim6-default": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.0001,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.6694627919932827,
+        0.6560522500658408,
+        0.6622171669732779
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 0.9503322090022266,
+          "steps": 937,
+          "simulated_seconds": 18.73999999999992,
+          "real_time_factor": 19.719420032785624,
+          "policy_steps_per_second": 985.9710016392853,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 0.9269060840597376,
+          "steps": 936,
+          "simulated_seconds": 18.719999999999896,
+          "real_time_factor": 20.196220870628594,
+          "policy_steps_per_second": 1009.8110435314354,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 30.201572833594405,
+      "coast": {
+        "entry_speed_mps": 0.3120372413445834,
+        "path_length_3s_m": 0.45706996696596564,
+        "final_speed_mps": 0.0050994136887831006,
+        "settled_below_0.02_mps_seconds": null,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.0001,
+          0.0001
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.8529,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.8892,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.45854778286894565,
+        "min_upright_cosine": 0.9981391769395555,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.2440003355603948,
+          1.021509681265521
+        ]
+      }
+    },
+    "lugs/bumps/0.001/dim6-0.002": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.002,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.8798892500344664,
+        0.8815527079859748,
+        0.8951130829518661
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 1.2352007920853794,
+          "steps": 973,
+          "simulated_seconds": 19.4600000000008,
+          "real_time_factor": 15.754523575998233,
+          "policy_steps_per_second": 787.7261787998792,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 1.284576915903017,
+          "steps": 975,
+          "simulated_seconds": 19.50000000000085,
+          "real_time_factor": 15.180095297207615,
+          "policy_steps_per_second": 759.0047648603477,
+          "is_success": true,
+          "reached": 5,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 22.687242428978156,
+      "coast": {
+        "entry_speed_mps": 0.27707265917892404,
+        "path_length_3s_m": 0.08298249570724756,
+        "final_speed_mps": 0.003895183137350644,
+        "settled_below_0.02_mps_seconds": 0.96,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.002,
+          0.002
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 4.1487,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.6475,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.5634922508365038,
+        "min_upright_cosine": 0.9986279056223712,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          1.7461557934781566,
+          0.5062023914716045
+        ]
+      }
+    },
+    "lugs/bumps/0.001/dim6-0.01": {
+      "surface": {
+        "sliding_friction": 0.8,
+        "torsional_friction": 0.002,
+        "rolling_friction": 0.01,
+        "condim": 6,
+        "time_constant": 0.01,
+        "damping_ratio": 1.0
+      },
+      "physics_seconds": [
+        0.9594977080123499,
+        0.9562664170516655,
+        0.9697248749434948
+      ],
+      "routes": [
+        {
+          "seed": 0,
+          "seconds": 3.175019041984342,
+          "steps": 2500,
+          "simulated_seconds": 49.99999999997417,
+          "real_time_factor": 15.747937048190073,
+          "policy_steps_per_second": 787.3968524099104,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        },
+        {
+          "seed": 1,
+          "seconds": 3.1797632080269977,
+          "steps": 2500,
+          "simulated_seconds": 49.99999999997417,
+          "real_time_factor": 15.724441327503293,
+          "policy_steps_per_second": 786.2220663755708,
+          "is_success": false,
+          "reached": 3,
+          "warning_count": 0
+        }
+      ],
+      "physics_real_time_factor": 20.84423947341266,
+      "coast": {
+        "entry_speed_mps": 0.13775450936219408,
+        "path_length_3s_m": 0.013094835486275668,
+        "final_speed_mps": 0.0024326850823680446,
+        "settled_below_0.02_mps_seconds": 0.26,
+        "contact_dimensions": [
+          6
+        ],
+        "contact_friction": [
+          0.8,
+          0.8,
+          0.002,
+          0.01,
+          0.01
+        ],
+        "finite": true,
+        "warning_count": 0
+      },
+      "diagnostics": {
+        "mean_contacts": 3.89865,
+        "max_contacts": 17,
+        "mean_lug_contacts": 2.41375,
+        "max_lug_contacts": 12,
+        "max_penetration_mm": 0.436211311183612,
+        "min_upright_cosine": 0.9983635168653202,
+        "finite": true,
+        "warning_count": 0,
+        "final_xy_m": [
+          0.46286246007010967,
+          0.06754084962866887
+        ]
+      }
+    }
+  },
+  "lug_timestep_path_differences": {
+    "flat/dim4": [
+      {
+        "rms_xy_m": 0.009411395812448023,
+        "max_xy_m": 0.0210839442632936
+      },
+      {
+        "rms_xy_m": 0.008546558616611818,
+        "max_xy_m": 0.027240800359317297
+      }
+    ],
+    "flat/dim6-default": [
+      {
+        "rms_xy_m": 0.006271848020036073,
+        "max_xy_m": 0.016401283128502364
+      },
+      {
+        "rms_xy_m": 0.006076296572160487,
+        "max_xy_m": 0.01816837318458231
+      }
+    ],
+    "flat/dim6-0.002": [
+      {
+        "rms_xy_m": 0.0017771418393961599,
+        "max_xy_m": 0.0035584274036685524
+      },
+      {
+        "rms_xy_m": 0.010243985333403236,
+        "max_xy_m": 0.022450232202604396
+      }
+    ],
+    "flat/dim6-0.01": [
+      {
+        "rms_xy_m": 0.04106809306828629,
+        "max_xy_m": 0.13273796052627634
+      },
+      {
+        "rms_xy_m": 0.015807199787283455,
+        "max_xy_m": 0.05089150525838027
+      }
+    ],
+    "bumps/dim4": [
+      {
+        "rms_xy_m": 0.0029291145115732295,
+        "max_xy_m": 0.008571510410799423
+      },
+      {
+        "rms_xy_m": 0.006045064684664072,
+        "max_xy_m": 0.015643595726195867
+      }
+    ],
+    "bumps/dim6-default": [
+      {
+        "rms_xy_m": 0.0017691082038241844,
+        "max_xy_m": 0.005741622336435239
+      },
+      {
+        "rms_xy_m": 0.0025165025889119356,
+        "max_xy_m": 0.0077502471680491215
+      }
+    ],
+    "bumps/dim6-0.002": [
+      {
+        "rms_xy_m": 0.019927731344162137,
+        "max_xy_m": 0.0484030187873855
+      },
+      {
+        "rms_xy_m": 0.01646249252771452,
+        "max_xy_m": 0.03810310705812995
+      }
+    ],
+    "bumps/dim6-0.01": [
+      {
+        "rms_xy_m": 0.10809655293143808,
+        "max_xy_m": 0.4458310679849616
+      },
+      {
+        "rms_xy_m": 0.1004324137748456,
+        "max_xy_m": 0.2431291581735096
+      }
+    ]
+  }
+}

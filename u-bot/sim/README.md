@@ -196,7 +196,7 @@ mechanism changes. Geometry dimensions are explicitly transcribed, not parsed
 automatically from OpenSCAD.
 
 Validated here with Python 3.12, MuJoCo 3.13.0, Gymnasium 1.3.0 and SB3 2.9.0:
-59 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
+112 tests pass, including Gymnasium API/seeding, drive direction, stable contact,
 action ramp/time limits, randomized goal-reaching, waypoint continuity, and
 lug contacts on flat and uneven terrain. A 1,024-step
 PPO run saved a reloadable checkpoint. RGB rendering was checked on macOS.
@@ -387,8 +387,12 @@ not measured soil properties; soft contact does not model ground deformation.
 
 Defaults retain the existing contact values. `randomize=True` still scales
 sliding friction by 0.7–1.3 from the selected surface on each reset, reproducibly
-for a given seed. Other contact settings stay fixed. Selecting `condim=6` enables
-experimentation; its rolling behavior and performance still need evaluation.
+for a given seed. Other contact settings stay fixed. The
+[rolling-friction evaluation](benchmarks/rolling.md) compares 24 configurations
+for navigation, passive coasting, physics cost, and timestep sensitivity.
+`condim=6, rolling_friction=0.002` shortened coasting and completed all tested
+routes; 0.01 m timed out on every route. Values remain experimental. The default
+stays at `condim=4` pending hardware calibration.
 
 ### Local slippery patches
 
@@ -504,7 +508,8 @@ standstill snapping at both 1 ms and 2 ms. Surface tests inspect actual contact
 friction, dimension, and compliance for both wheel models and terrains, plus
 seeded randomization and invalid settings. Obstacle tests cover all four kinds,
 both terrains and wheel models, placement, and preserved robot dynamics
-(59 tests total).
+(112 tests total, including rolling-friction activation, passive coasting,
+elevation, surface transitions, and route-evaluation metrics).
 
 ### Terrain contact showcase
 

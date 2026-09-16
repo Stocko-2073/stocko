@@ -17,8 +17,11 @@ soil model. See [benchmark results](benchmarks/README.md).
   - Slope: uphill, downhill, and cross-slope travel.
   - Roughness: bump height, spacing, and ruts using heightfields.
   - Compliance: approximate yielding/cushioning through contact settings.
-- [ ] Evaluate `condim=6` to activate contact rolling friction; the current
+- [x] Evaluate `condim=6` to activate contact rolling friction; the current
   `condim=4` does not use the configured rolling-friction coefficient.
+  [Rolling evaluation](benchmarks/rolling.md): 24 configurations, navigation,
+  passive coasting, timing, and timestep checks. Keep dim4 as the default;
+  dim6 with 0.002 m rolling friction is an experimental option, not a preset.
 - [ ] Compare contact rolling friction with a ground-dependent resistance model.
   Grass should be able to resist rolling without necessarily having low grip.
 - [x] Make effective wheel–terrain contact parameters explicit so each patch
