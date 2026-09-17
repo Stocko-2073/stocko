@@ -797,3 +797,12 @@ lifts at least 1 mm before crossing, clears the mesh when present, then lowers
 to the saved A1 height. The job stays busy and shows “Returning to A1” until
 arrival; STOP also cancels this final return. Completion is reported only after
 returning successfully.
+
+While a list is running, **Cancel Cut All** requests a graceful cancellation.
+An in-progress cut finishes its plunge, full-depth turns, retract, and spin-down;
+then the controller skips the remaining holes and returns to saved A1. If
+cancellation arrives during travel, that move finishes and the controller returns
+without starting another cut. The UI reports the pending cancellation and the
+number of cuts completed. The controlling page owns cancellation, and the
+request remains effective if its connection drops. **STOP** still cancels all
+motion immediately, including a pending cancellation or return to A1.

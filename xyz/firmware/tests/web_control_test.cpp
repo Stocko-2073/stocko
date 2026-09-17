@@ -305,6 +305,52 @@ void testCutSettings() {
   prefs.blob.resize(3); CutSettings::begin(); assert(!CutSettings::stored);
   prefs.blob.clear(); CutSettings::begin();
 }
+void testBatchCancel() {
+  action("stop"); assert(action("cancel-cut-all")==409);
+  // Travel, all four cut phases, and the gap after the cut finishes.
+  for (int phase=0;phase<=5;++phase) {
+    action("home"); action("arm"); assert(batchAction("B2,C3")==200);
+    assert(!WebControl::batchCancelRequested);
+    if (phase) {
+      for (int i=0;cutPhase!=(phase==5?1:phase) && i<20000;++i) loop();
+      assert(cutPhase==(phase==5?1:phase));
+      if (phase==5) { delay(10000); finishMotion(); assert(!cutPhase && !presetRunning); }
+    } else { loop(); delay(50); assert(activeMotor>=0); }
+    WebControl::server.args={{"op","cancel-cut-all"},{"client","another-browser"}};
+    WebControl::action(); assert(WebControl::server.code==409 && !WebControl::batchCancelRequested);
+    const int motor=activeMotor; const long steps=remaining;
+    assert(action("cancel-cut-all")==200 && WebControl::batchCancelRequested);
+    assert(activeMotor==motor && remaining==steps && armed && batchRunning);
+    assert(action("cancel-cut-all")==200); // Idempotent; never stops the timer.
+    assert(batchAction("A1")==409);
+    const int wifiState=WiFi.state; WiFi.state=0;
+    clockUs+=Config::webIdleMs*1000+1000;
+    bool returning=false;
+    int64_t spindleAtReturn=0;
+    for (int i=0;batchRunning && i<20000;++i) {
+      loop();
+      if (WebControl::batchReturning) {
+        assert(!cutPhase && WebControl::batchIndex==size_t(phase?1:0));
+        if (!returning) { spindleAtReturn=emitted[2]; returning=true; }
+        assert(emitted[2]==spindleAtReturn); // No second cut or spin during return.
+        assert(action("cancel-cut-all")==200); // Cancelling again preserves the return.
+      }
+    }
+    assert(returning && !batchRunning && WebControl::batchReturned && Positions::known);
+    for (int m : {0,1,3}) assert(emitted[m]==Positions::saved.home[m]);
+    assert(WebControl::batchIndex==size_t(phase?1:0));
+    WiFi.state=wifiState;
+    action("stop");
+  }
+  // STOP overrides a pending graceful cancellation immediately.
+  action("home"); action("arm"); assert(batchAction("B2,C3")==200);
+  while (!cutPhase) loop();
+  assert(action("cancel-cut-all")==200 && action("stop")==200);
+  int64_t stopped[4]; Positions::snapshot(stopped);
+  for (int i=0;i<1000;++i) loop();
+  for (int m=0;m<4;++m) assert(emitted[m]==stopped[m]);
+  assert(!batchRunning && !WebControl::batchReturned);
+}
 void testCut() {
   action("stop"); assert(cutAction()==409);
   action("home"); action("arm");
@@ -697,6 +743,7 @@ int main() {
   testCutSettings();
   testCut();
   testBatch();
+  testBatchCancel();
   // Compare compressed and full profiles, including short triangular moves
   // and odd lengths. Mirrored floating-point rounding differs by at most 1 us.
   for (int count : {1,2,3,49,50,51,99,100,101,1000,6000}) {

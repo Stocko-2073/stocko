@@ -39,6 +39,7 @@ struct BatchHole { uint8_t col, row; };
 BatchHole batchHoles[maxBatchHoles];
 size_t batchCount=0, batchIndex=0; // Index is the number of completed cuts.
 bool batchCutting=false, batchReturning=false, batchReturned=false;
+bool batchCancelRequested=false;
 CutSettings::Record batchSettings;
 // Saving Z34 more than this far from its nominal place is treated as a
 // mistake (wrong hole, or the drill never moved), not as calibration.
@@ -176,6 +177,10 @@ void planBatchHole() {
   planHole(current,x,y);
   batchCutting=false;
 }
+void planBatchReturn() {
+  batchReturning=true; batchCutting=false;
+  planSaved(Positions::saved.home,true);
+}
 
 void reply(int code, const char *message) { server.send(code, "text/plain", message); }
 bool idle() { return activeMotor < 0 && !presetRunning && !batchRunning; }
@@ -201,9 +206,9 @@ void state() {
   size_t used=strlen(body);
   char batchHole[5]={};
   if (batchIndex<batchCount) snprintf(batchHole,sizeof(batchHole),"%c%u",'A'+batchHoles[batchIndex].row,unsigned(batchHoles[batchIndex].col));
-  used+=snprintf(body+used,sizeof(body)-used,"\"batch\":{\"active\":%s,\"completed\":%u,\"total\":%u,\"hole\":\"%s\",\"returning\":%s,\"returned\":%s},",
+  used+=snprintf(body+used,sizeof(body)-used,"\"batch\":{\"active\":%s,\"completed\":%u,\"total\":%u,\"hole\":\"%s\",\"returning\":%s,\"returned\":%s,\"cancelRequested\":%s},",
     batchRunning?"true":"false",unsigned(batchIndex),unsigned(batchCount),batchHole,
-    batchRunning&&batchReturning?"true":"false",batchReturned?"true":"false");
+    batchRunning&&batchReturning?"true":"false",batchReturned?"true":"false",batchCancelRequested?"true":"false");
   const auto &c=CutSettings::saved;
   used+=snprintf(body+used,sizeof(body)-used,"\"cutSettings\":{\"depth\":%u.%u,\"rpm\":%u,\"feed\":%u.%u,\"accel\":%u},",
     unsigned(c.depth/100),unsigned(c.depth%100/10),unsigned(c.rpm),unsigned(c.feed/100),unsigned(c.feed%100/10),unsigned(c.accel));
@@ -231,6 +236,12 @@ void action() {
     webHeartbeat = millis(); reply(200, "OK"); return;
   }
   if (webArmed && !ownsControl()) { reply(409, "Another page controls the motors; press STOP first."); return; }
+  if (op=="cancel-cut-all") {
+    if (!batchRunning || !ownsControl()) { reply(409, "No cut list controlled by this page is running."); return; }
+    if (batchReturning) { reply(200, "Already returning to A1."); return; }
+    batchCancelRequested=true;
+    reply(200, batchCutting ? "Finishing the current cut, then returning to A1." : "Finishing travel, then returning to A1 without another cut."); return;
+  }
   if (WifiProvisioning::prompt) { reply(409, "Finish USB Wi-Fi setup first."); return; }
   if (!Positions::commissioned()) { reply(409, "Restore the commissioned motor mapping and directions first."); return; }
   if (!idle()) { reply(409, "Still moving; stop or wait."); return; }
@@ -353,6 +364,7 @@ void action() {
     if (op=="cut-all") {
       memcpy(batchHoles,parsed,count*sizeof(BatchHole));
       batchSettings=settings; batchCount=count; batchIndex=0; batchRunning=true; batchReturning=batchReturned=false;
+      batchCancelRequested=false;
       planBatchHole();
       reply(200, "List validated. Cutting holes in order."); return;
     }
@@ -461,12 +473,12 @@ void service() {
         batchReturned=true; batchReturning=false; batchRunning=false; return;
       }
       if (batchCutting) {
-        if (++batchIndex==batchCount) {
-          batchReturning=true; batchCutting=false;
-          planSaved(Positions::saved.home,true); return;
+        if (++batchIndex==batchCount || batchCancelRequested) {
+          planBatchReturn(); return;
         }
         planBatchHole();
       } else {
+        if (batchCancelRequested) { planBatchReturn(); return; }
         const auto &c=batchSettings;
         if (!startCut(c.depth,(c.rpm*800+30)/60,c.feed,(c.accel*800+30)/60)) {
           disableMotors(); disableReason="Unable to start next cut"; return;

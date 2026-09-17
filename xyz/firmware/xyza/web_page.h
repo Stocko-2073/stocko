@@ -98,8 +98,8 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <section class="card" style="margin-top:20px"><h2>Cut a list</h2>
 <label for="cutList">Coordinates, separated by commas</label>
 <textarea id="cutList" rows="4" maxlength="8192" placeholder="A1, N15, Z34" spellcheck="false" aria-describedby="batchHint"></textarea>
-<p class="hint">Uses the current cut settings. Travels with clearance, then cuts each hole in order and returns to A1. Runs on the controller; STOP cancels the whole list.</p>
-<div class="actions"><button id="cutAll" class="primary">Cut All</button></div>
+<p class="hint">Uses the current cut settings. Travels with clearance, then cuts each hole in order and returns to A1. Runs on the controller. Cancel Cut All finishes the current cut and returns to A1; STOP stops immediately.</p>
+<div class="actions"><button id="cutAll" class="primary">Cut All</button><button id="cancelCutAll" hidden title="Finish the current cut, skip the remaining holes, and return to A1">Cancel Cut All</button></div>
 <p class="hint" id="batchHint" role="status">Enter up to 884 coordinates, A1–Z34.</p>
 </section>
 <details><summary><span class="warn">No limit switches.</span> Check travel & clearance before moving.</summary>
@@ -141,7 +141,7 @@ for(let i=0;i<9;i++)$('xy').append(i===4?hub('hub','drill'):xy[i]?jog(...xy[i]):
 $('z').append(jog('Z',1,'▲','Up'));$('z').append(hub('zhub','height'));$('z').append(jog('Z',-1,'▼','Down'));
 for(const i of [2,1,0,5,4,3,8,7,6]){const b=document.createElement('button');b.onclick=()=>{meshPoint=i;render();};b.title='Select '+meshNames[i];$('meshGrid').append(b);meshButtons[i]=b;}
 document.addEventListener('change',e=>{if(e.target.name==='xy')xyStep=/h$/.test(e.target.value)?{holes:parseInt(e.target.value)}:{pulses:+e.target.value};if(e.target.name==='z')zStep=+e.target.value;render();});
-function render(){const s=state,blocked=!online||pending||!s||s.busy||!s.commissioned;document.querySelectorAll('[data-op],.jog').forEach(b=>b.disabled=blocked);$('go').disabled=true;$('cut').disabled=true;$('saveCut').disabled=true;$('cutAll').disabled=true;$('cutList').disabled=blocked;$('cutDepth').disabled=blocked;$('cutRpm').disabled=blocked;$('cutFeed').disabled=blocked;$('cutAccel').disabled=blocked;
+function render(){const s=state,blocked=!online||pending||!s||s.busy||!s.commissioned;document.querySelectorAll('[data-op],.jog').forEach(b=>b.disabled=blocked);$('go').disabled=true;$('cut').disabled=true;$('saveCut').disabled=true;$('cutAll').disabled=true;$('cancelCutAll').disabled=true;$('cutList').disabled=blocked;$('cutDepth').disabled=blocked;$('cutRpm').disabled=blocked;$('cutFeed').disabled=blocked;$('cutAccel').disabled=blocked;
 const st=$('status');if(!online){st.textContent='Disconnected';st.dataset.tone='bad';}if(!s)return;
 if(online){st.textContent=s.batch?.returning?'Returning to A1':s.batch?.active?'Cut list '+(s.batch.completed+1)+'/'+s.batch.total:s.cutPhase?'Cutting':s.busy?'Moving':s.armed?'Motors on':'Motors off · '+(s.disableReason||'Stopped');st.dataset.tone=s.busy?'busy':s.armed?'ok':'off';}
 const g=s.known?grid(s.position):null,z=Math.round(s.position[2]-bedHeight(s.position));
@@ -160,7 +160,9 @@ const travel=blocked||!s.known||!s.homeSet||!s.webArmed;
 $('cut').disabled=travel||!!s.calibrating||!cutOptions();
 $('cutAll').disabled=$('cut').disabled||!$('cutList').value.trim();
 const batch=s.batch;
-$('batchHint').textContent=batch?.returning?'Cuts complete · returning to A1':batch?.active?(s.cutPhase?'Cutting ':'Going to ')+batch.hole+' · '+(batch.completed+1)+' of '+batch.total:batch?.returned?'Completed '+batch.total+' cuts · returned to A1.':batch?.total?'Stopped after '+batch.completed+' of '+batch.total+' cuts.':'Enter up to 884 coordinates, A1–Z34.';
+$('cancelCutAll').hidden=!batch?.active;$('cancelCutAll').disabled=!online||pending||!s.webArmed||!batch?.active||!!batch.cancelRequested||!!batch.returning;
+$('cancelCutAll').textContent=batch?.cancelRequested?'Cancel requested':'Cancel Cut All';
+$('batchHint').textContent=batch?.returning?(batch.cancelRequested?'Cancelled · returning to A1':'Cuts complete · returning to A1'):batch?.active&&batch.cancelRequested?(s.cutPhase?'Finishing current cut':'Finishing travel')+' · then returning to A1':batch?.active?(s.cutPhase?'Cutting ':'Going to ')+batch.hole+' · '+(batch.completed+1)+' of '+batch.total:batch?.returned?(batch.cancelRequested?'Cancelled after '+batch.completed+' of '+batch.total+' cuts':'Completed '+batch.total+' cuts')+' · returned to A1.':batch?.total?'Stopped after '+batch.completed+' of '+batch.total+' cuts.':'Enter up to 884 coordinates, A1–Z34.';
 $('saveCut').disabled=blocked||(s.armed&&!s.webArmed)||!cutOptions();
 $('cutHint').textContent=s.cutPhase?['','Cutting · spinning and lowering','Cutting · two turns at full depth','Cutting · spinning and returning','Cutting · stopping the drill'][s.cutPhase]:s.calibrating?'Finish calibration before cutting.':'Position the bit before cutting. Runs on the controller; STOP cancels.';
 $('go').disabled=travel;$('go-home').disabled=travel;$('go-span').disabled=travel;$('go-replace').disabled=travel||!s.replaceSet;$('replace').disabled=blocked||!s.known||!s.homeSet;$('span').disabled=blocked||!s.known||!s.homeSet;
@@ -191,7 +193,7 @@ function cut(){const options=cutOptions();if(!options){say('Use depth 0.1–10 m
 $('saveCut').onclick=()=>{const options=cutOptions();if(options)return act('cut-settings',options);};
 $('cut').onclick=cut;$('cutDepth').oninput=()=>render();$('cutRpm').oninput=()=>render();$('cutFeed').oninput=()=>render();$('cutAccel').oninput=()=>render();
 function cutAll(){const options=cutOptions();if(!options){say('Enter valid cut settings first.',true);return;}const text=$('cutList').value;if(text.length>8192){say('Use at most 8192 characters.',true);return;}const entries=text.split(',');if(entries.length>884){say('Use at most 884 coordinates.',true);return;}const holes=[];for(let i=0;i<entries.length;i++){const token=entries[i].trim();if(!/^[A-Za-z][0-9]{1,2}$/.test(token)||!parseHole(token)){say('Invalid coordinate '+(i+1)+': '+(token||'(empty)')+'. Use A1–Z34.',true);return;}const h=parseHole(token);holes.push(rowName(h.row)+h.col);}return act('cut-all',{...options,holes:holes.join(',')});}
-$('cutAll').onclick=cutAll;$('cutList').oninput=()=>render();
+$('cancelCutAll').onclick=()=>act('cancel-cut-all');$('cutAll').onclick=cutAll;$('cutList').oninput=()=>render();
 function goHole(){const h=parseHole($('hole').value);if(!h){say('Enter A1–Z34 (e.g. D12).',true);return;}return act('goto',{hole:rowName(h.row)+h.col});}
 $('go').onclick=goHole;$('go-span').onclick=()=>act('goto',{hole:'Z34'});$('hole').onkeydown=e=>{if(e.key==='Enter'&&!$('go').disabled)goHole();};
 $('hole').oninput=()=>render();
