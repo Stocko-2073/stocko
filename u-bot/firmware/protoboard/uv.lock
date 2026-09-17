@@ -11,13 +11,13 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "stripboard", specifier = ">=0.1.1" }]
+requires-dist = [{ name = "stripboard", specifier = ">=0.5.0" }]
 
 [[package]]
 name = "stripboard"
-version = "0.1.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4a/5e/4b4790aa042a356413ebadaed16000a1f16bfa51b43dee4bf579086894ec/stripboard-0.1.1.tar.gz", hash = "sha256:ab5479205c362cc06ac1d4dca8adc4941aa78d064f9e8529e2aafa26859f00cf", size = 160645 }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/b0/96e13e69e4fda6a461459f5fe85186ad2feda2e4f014aa53c62f562da879/stripboard-0.5.0.tar.gz", hash = "sha256:97f281b917b3cc6459d1d8ecfae0f9de9126383342e22526455e033428b3a155", size = 190138 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/ce/5f8696e6e04c25852e2b7bb3d3f97420b498ee4ecf5b9fb8bcb94524c048/stripboard-0.1.1-py3-none-any.whl", hash = "sha256:79ea295f194b6b4281e8fce16f18dca265a53e28d862faad396adb17debdc855", size = 94245 },
+    { url = "https://files.pythonhosted.org/packages/9c/85/e581d7dc9c0a6ca7c3e675dea7f802f6e3310e865d33bbedc02e6e4a828b/stripboard-0.5.0-py3-none-any.whl", hash = "sha256:2b5adc6d309d9a94018ee3b74abfd258af192b9c8e48279da196925416c4d7a1", size = 109226 },
 ]
