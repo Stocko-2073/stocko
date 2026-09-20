@@ -88,6 +88,13 @@ void SoftI2c::recoverBus() {
     stop();
 }
 
+// Read the wires without touching them. begin() has already put both pins in
+// open-drain with the output latch released, so this is whatever the 4.7k
+// pull-ups and anything on the far end have settled to.
+int SoftI2c::idleLevels() const {
+    return (readPin(sda_) ? 2 : 0) | (readPin(scl_) ? 1 : 0);
+}
+
 bool SoftI2c::probe(uint8_t addr) {
     if (!start()) return false;
     bool ack = writeByte((uint8_t)(addr << 1));

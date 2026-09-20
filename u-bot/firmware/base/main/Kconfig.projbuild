@@ -1,21 +1,21 @@
 menu "U-BOT base"
 
-    comment "Pins are GPIO numbers on the XIAO ESP32-C6. Dn labels in DRIVE_MECHANISM.md."
+    comment "Pins are GPIO numbers on the XIAO ESP32-S3. Dn labels in DRIVE_MECHANISM.md."
 
     config UBOT_PIN_EN
-        int "TMC2209 EN (both drivers, active low) -- D0"
-        default 0
+        int "TMC2209 EN (both drivers, active low) -- D9"
+        default 8
         help
             One pin for both drivers, on purpose: it is the hardware killswitch
             and it floats high (4.7k pull-up) so an MCU reset disables both.
 
     config UBOT_PIN_TMC_TX
         int "TMC2209 UART TX, through 1k to the shared node -- D6"
-        default 16
+        default 43
 
     config UBOT_PIN_TMC_RX
         int "TMC2209 UART RX, on the node -- D7"
-        default 17
+        default 44
 
     config UBOT_TMC_BAUD
         int "TMC2209 UART baud"
@@ -35,28 +35,28 @@ menu "U-BOT base"
 
     config UBOT_PIN_ENC_A_SDA
         int "Wheel A AS5600 SDA (hardware I2C) -- D4"
-        default 22
+        default 5
 
     config UBOT_PIN_ENC_A_SCL
         int "Wheel A AS5600 SCL (hardware I2C) -- D5"
-        default 23
+        default 6
 
     config UBOT_PIN_ENC_B_SDA
-        int "Wheel B AS5600 SDA (bit-banged) -- D9"
-        default 20
+        int "Wheel B AS5600 SDA (bit-banged) -- D2"
+        default 3
 
     config UBOT_PIN_ENC_B_SCL
-        int "Wheel B AS5600 SCL (bit-banged) -- D8"
-        default 19
+        int "Wheel B AS5600 SCL (bit-banged) -- D3"
+        default 4
 
     config UBOT_PIN_BATT_ADC
         int "Battery sense ADC GPIO (ADC1) -- D1"
-        default 1
+        default 2
         help
-            Battery voltage through a divider. GPIO1 is ADC1 channel 1 on the
-            C6 and is free now that STEP/DIR are gone. The divider ratio is a
-            runtime setting (batt_div); the percentage curve is the 4S LiFePO4
-            table in components/battery/battery.c.
+            Battery voltage through a divider. D1 is GPIO2 on the S3, which is
+            ADC1 channel 1. The divider ratio is a runtime setting (batt_div);
+            the percentage curve is the 4S LiFePO4 table in
+            components/battery/battery.c.
 
     config UBOT_CONTROL_HZ
         int "Servo control rate, Hz"
@@ -77,5 +77,13 @@ menu "U-BOT base"
             A single HTML page that speaks the same WebSocket protocol the phone
             app will. Handy for driving from a laptop or a phone browser; costs
             ~14 KB of flash.
+
+    config UBOT_BLE_ENABLE
+        bool "Start BLE at boot"
+        default y
+        help
+            Disable temporarily for Wi-Fi-only coexistence diagnostics. This
+            skips Bluetooth controller and host initialization, including
+            advertising; USB console and Wi-Fi remain available.
 
 endmenu

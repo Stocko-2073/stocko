@@ -79,11 +79,19 @@ esp_err_t battery_init(void) {
     adc_oneshot_chan_cfg_t ccfg = { .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_DEFAULT };
     err = adc_oneshot_config_channel(s_adc, s_chan, &ccfg);
     if (err != ESP_OK) return err;
-    // Weak internal pull-down (~45k) so a pin with nothing on it reads zero
-    // and says "no sense", instead of floating at whatever it picks up. It
-    // sits in parallel with the divider's lower leg, which is one more reason
-    // batt_div is calibrated against a meter rather than computed.
-    gpio_set_pull_mode((gpio_num_t)CONFIG_UBOT_PIN_BATT_ADC, GPIO_PULLDOWN_ONLY);
+    // No internal pull-down. An earlier version enabled one so a pin with
+    // nothing on it would read zero rather than float, on the assumption it was
+    // the ~45k the ESP32 docs quote. Measured on this S3 it is nearer 19k,
+    // which put it in parallel with the divider's 10k lower leg, made the
+    // effective leg 6.5k, and turned a nominal 11.0 ratio into 16.3 -- the pack
+    // read 8.9 V against a meter's 13.24 V, a 33% under-read that looked like a
+    // flat battery.
+    //
+    // The divider does that job anyway: with no pack connected, R8 ties the pin
+    // to ground through 10k, so it reads zero and `battery_present()` says no
+    // sense. The pull-down only bought protection for a board built without the
+    // divider fitted, and it cost accuracy on every board that has one.
+    gpio_set_pull_mode((gpio_num_t)CONFIG_UBOT_PIN_BATT_ADC, GPIO_FLOATING);
 
     adc_cali_curve_fitting_config_t cal = {
         .unit_id = s_unit, .chan = s_chan, .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_DEFAULT,

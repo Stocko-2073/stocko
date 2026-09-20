@@ -16,7 +16,7 @@ the bench and are worth more than the nominal ones.
 
 | | value | source |
 |---|---|---|
-| motor | NEMA 17, 1.8 deg | 200 full steps/rev |
+| motor | STEPPerOnline 17HS15-1504S-X1, 1.8 deg | 200 full steps/rev; 1.50 A/phase, 0.45 N·m holding torque |
 | microstep | 1/8 | MS1=MS2=0; MRES=5 read back over UART |
 | interpolation | to 256 | `intpol=1`, TMC2209 reset default |
 | bevel pair | 12:40, module 5 | `drive_teeth`/`wheel_teeth`, u-bot.scad |
@@ -136,42 +136,28 @@ temperature. `c` measures it and prints the number to paste in.
 One tick at full speed is 3.4 mm, comparable to the encoder's 3.3 mm nonlinearity.
 
 
-## Current and chopper (2026-09-07)
+## Current and chopper (2026-09-20)
 
-`VelGen::begin()` applies the current and chopper settings on startup and
-when motor power returns. `IHOLD_IRUN` and `TPWMTHRS` are **write-only** and
-must be reapplied after the driver loses VMOT. SpreadCycle is the default
-for torque at speed; StealthChop is the quiet alternative.
+Motor: [STEPPerOnline 17HS15-1504S-X1 datasheet](https://omc-stepperonline.com/download/17HS15-1504S-X1.pdf),
+1.50 A/phase, 0.45 N·m holding torque, 2.3 Ω and 4.4 mH per phase.
+The owner confirmed BTT TMC2209 V1.3 modules, using R110 sense resistors.
 
-| setting | default | what it is |
-|---|---|---|
-| `irun` | 31 | run current, 0..31 of the VREF ceiling |
-| `ihold` | 16 | standstill current, same scale |
-| `iholddly` | 8 | how gradually it decays to `ihold` |
-| `spread` | 1 | 1 SpreadCycle, 0 StealthChop |
-| `pwmthrs` | 0 | steps/s above which StealthChop hands over; 0 disables |
+The base firmware uses the internal current reference, external sense resistors,
+and vsense=0. VREF pots are ignored. `run_ma` and `hold_ma` request RMS current,
+default 1200/600 mA, rounded down to representable current (about 1160/552 mA).
+The motor profile caps requests at 1500 mA and requires hold <= run.
+Raw `irun`/`ihold` and analog `iscale`/`rsense` settings are retired and old NVS
+values for them are ignored. SpreadCycle remains the default.
 
-All five are `set` keys persisted in NVS, applied to both wheels -- same motors
-and same drivers, so unlike clock gain and shaft polarity this is not a
-per-chip property. `pwmthrs` only bites with `spread 0`.
+Change current and chopper settings while disabled. Each enable reapplies and
+verifies configuration and zero velocity before energizing. Periodic driver
+status polling detects reset, communications failure and electrical/thermal
+faults. OTPW is only a chip warning; firmware responds by disabling both motors.
+See [base firmware current controls and validation](base/README.md#motor-current-and-torque).
 
-**Amps are not knowable from the firmware.** `GCONF.I_scale_analog` is set, so
-the `VREF` pot sets the ceiling and `IRUN` picks a fraction of it: turn the pot
-to choose amps, set `irun` to choose how much of that to use. The only readback
-is `DRV_STATUS` (0x6F). `wheel A reg 6F` prints it decoded:
-
-    bits 16..20   CS_ACTUAL    current scale actually in use, 0..31
-                               (reports the HOLD current standing still)
-    bit 30        stealth      1 = StealthChop is what is running right now
-    bit 0         otpw         overtemperature prewarning -- the driver is
-                               derating, a third way to lose torque
-
-Read it while a wheel is driving. `stealth` clear and `CS_ACTUAL` at 31 is the
-configured run current and chopper mode confirmed on the hardware.
-
-**Raising `irun` raises heat**, in the motors and in the driver. 31 was chosen
-to stop leaving torque on the table, not because it is thermally safe on any
-particular pot setting -- watch `otpw` and back `irun` off if it trips.
+The 3⅓:1 reduction gives an ideal 1.50 N·m holding torque at each wheel at
+rated motor holding torque, before gear losses. This is not a running-torque
+measurement. Free-spin rack tests cannot establish loaded performance on grass.
 
 
 ## Velocity mode, measured 2026-08-30

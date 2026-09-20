@@ -136,11 +136,18 @@ static int status_json(char *buf, size_t n) {
         const drive_wheel_status_t *w = &s.wheel[i];
         len += snprintf(buf + len, n - len,
             "%s{\"name\":\"%s\",\"driver\":%s,\"pos\":%.4f,\"vel\":%.3f,\"slip\":%ld,"
-            "\"enc\":%s,\"agc\":%u,\"magnet\":\"%s\",\"fault\":%u,\"gain\":%.4f,\"loop\":%s}",
+            "\"enc\":%s,\"agc\":%u,\"magnet\":\"%s\",\"fault\":%u,\"gain\":%.4f,\"loop\":%s,"
+            "\"run_ma\":%.0f,\"hold_ma\":%.0f,\"driver_status_ok\":%s,"
+            "\"drv_status\":%lu,\"gstat\":%lu,\"driver_age_ms\":%lu,"
+            "\"fault_driver_status_ok\":%s,\"fault_drv_status\":%lu,\"fault_gstat\":%lu,\"fault_driver_age_ms\":%lu}",
             i ? "," : "", i == 0 ? "A" : "B", w->driver_ok ? "true" : "false",
             w->pos_turns, w->vel_tps, (long)w->slip_steps,
             w->encoder_ok ? "true" : "false", w->agc, magnet_text(w->magnet_status),
-            w->fault, w->clock_gain, w->loop_closed ? "true" : "false");
+            w->fault, w->clock_gain, w->loop_closed ? "true" : "false",
+            w->run_ma, w->hold_ma, w->driver_status_ok ? "true" : "false",
+            (unsigned long)w->drv_status, (unsigned long)w->gstat, (unsigned long)w->driver_age_ms,
+            w->fault_driver_status_ok ? "true" : "false", (unsigned long)w->fault_drv_status,
+            (unsigned long)w->fault_gstat, (unsigned long)w->fault_driver_age_ms);
     }
     if (len < (int)n) len += snprintf(buf + len, n - len, "]}");
     return len;
@@ -199,7 +206,7 @@ static void ack(httpd_req_t *req, const char *cmd, esp_err_t err) {
 // Runs on the httpd task at 5 Hz: a status frame to every client, and the
 // mirrored log to those that asked for it.
 static void broadcast_work(void *arg) {
-    static char status[900];
+    static char status[2048];
     status_json(status, sizeof status);
     int fds[MAX_CLIENTS];
     int n = 0;
@@ -262,7 +269,7 @@ static void handle_message(httpd_req_t *req, const char *text) {
     else if (!strcmp(t, "ota_check")) ack(req, t, net_ota_check(false));   // compare only; status.ota says
     else if (!strcmp(t, "ota_update")) ack(req, t, net_ota_start(NULL));   // install <bucket>/firmware.bin
     else if (!strcmp(t, "status")) {
-        static char buf[900];
+        static char buf[2048];
         status_json(buf, sizeof buf);
         send_text(req, buf);
     } else if (!strcmp(t, "log")) {
@@ -285,7 +292,7 @@ static esp_err_t ws_open(httpd_req_t *req) {
     int fd = httpd_req_to_sockfd(req);
     client_add(fd);
     ESP_LOGI(TAG, "client fd %d connected (%d total)", fd, ws_client_count());
-    static char buf[900];
+    static char buf[2048];
     status_json(buf, sizeof buf);
     return send_text(req, buf);
 }

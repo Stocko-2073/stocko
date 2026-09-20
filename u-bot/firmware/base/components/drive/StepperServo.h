@@ -39,13 +39,13 @@ class StepperServo {
     // FAULT_PEER is raised by the drive layer on the healthy wheel when the
     // other one faults: on a differential drive, one wheel holding while the
     // other drives pivots the robot rather than stopping it.
-    enum Fault : uint8_t { FAULT_NONE = 0, FAULT_SLIP, FAULT_ENCODER, FAULT_MAGNET, FAULT_PEER };
+    enum Fault : uint8_t { FAULT_NONE = 0, FAULT_SLIP, FAULT_ENCODER, FAULT_MAGNET, FAULT_PEER, FAULT_DRIVER };
 
     StepperServo(AS5600 &enc, VelGen &gen) : _enc(enc), _gen(gen) {}
 
     // --- tuning (output-shaft units unless noted) ---
     //
-    // Defaults are the fastest setting measured clean on this axis:
+    // Class defaults reflect the bench envelope; drive.cpp applies gentler robot defaults:
     //
     //   vmax  accel  kp | peak rate   worst |slip|
     //   0.5     4    12 |  2667 sps        25   clean
@@ -181,6 +181,7 @@ class StepperServo {
                        "stalled, pushed, current too low, or shaft polarity backwards)";
             case FAULT_ENCODER: return "encoder stopped answering";
             case FAULT_MAGNET:  return "encoder reports no magnet";
+            case FAULT_DRIVER: return "driver reset, communication, electrical or temperature fault";
             case FAULT_PEER:    return "stopped because the other wheel faulted";
             default: return "none";
         }

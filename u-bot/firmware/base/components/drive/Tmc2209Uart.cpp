@@ -67,7 +67,7 @@ int Tmc2209Uart::readBytes(uint8_t *dst, int want, uint32_t timeoutMs) {
     return n;
 }
 
-Tmc2209Uart::Result Tmc2209Uart::read(uint8_t addr, uint8_t reg) {
+Tmc2209Uart::Result Tmc2209Uart::read(uint8_t addr, uint8_t reg, uint32_t timeoutMs) {
     Result r;
     r.st = NO_ECHO;
     r.value = 0;
@@ -82,7 +82,7 @@ Tmc2209Uart::Result Tmc2209Uart::read(uint8_t addr, uint8_t reg) {
     uart_wait_tx_done(port_, pdMS_TO_TICKS(20));
 
     // 4 bytes of echo, then an 8 byte reply if the driver is listening.
-    r.n = (uint8_t)readBytes(r.buf, 12, 40);
+    r.n = (uint8_t)readBytes(r.buf, 12, timeoutMs);
     unlock();
 
     if (r.n == 0)                               { r.st = NO_ECHO;     return r; }

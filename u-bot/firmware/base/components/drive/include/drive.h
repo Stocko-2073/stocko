@@ -29,10 +29,16 @@ typedef enum {
     DRIVE_FAULT_ENCODER,   // encoder stopped answering on the bus
     DRIVE_FAULT_MAGNET,    // encoder says there is no magnet
     DRIVE_FAULT_PEER,      // stopped because the other wheel faulted
+    DRIVE_FAULT_DRIVER,    // reset, UART, temperature warning/shutdown, short or undervoltage
 } drive_fault_t;
 
 typedef struct {
-    bool driver_ok;        // TMC2209 answered on the bus
+    bool driver_ok;        // configuration verified; invalidated by driver faults/settings
+    bool driver_status_ok;
+    uint32_t drv_status, gstat, driver_age_ms;
+    bool fault_driver_status_ok;
+    uint32_t fault_drv_status, fault_gstat, fault_driver_age_ms;
+    float run_ma, hold_ma; // nominal quantized RMS current, not a measurement
     bool enabled;          // power stage on (shared EN low)
     bool loop_closed;      // servo armed (position or velocity mode)
     bool velocity_mode;
@@ -159,7 +165,8 @@ esp_err_t drive_param_get(drive_wheel_t w, const char *name, float *value);
 const char *const *drive_param_names(size_t *n);
 
 // Robot-frame settings, persisted: sign_a sign_b (+1/-1), a_left (0/1),
-// track_m, vmax_tps, accel_tps2. Applied immediately.
+// track_m, vmax_tps, accel_tps2. Current/chopper settings run_ma, hold_ma,
+// iholddly, spread, pwmthrs require disabled drivers and apply at next enable.
 esp_err_t drive_setting_set(const char *name, float value);
 esp_err_t drive_setting_get(const char *name, float *value);
 const char *const *drive_setting_names(size_t *n);

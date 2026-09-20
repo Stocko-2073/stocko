@@ -1,6 +1,7 @@
 #include "console_cmds.h"
 
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -29,7 +30,7 @@ static bool parse_f(const char *s, float *out) {
     if (!s || !*s) return false;
     char *end;
     float v = strtof(s, &end);
-    if (end == s || *end) return false;
+    if (end == s || *end || !isfinite(v)) return false;
     *out = v;
     return true;
 }
@@ -64,13 +65,19 @@ static const char *magnet_text(uint8_t st) {
 static void print_wheel(const drive_status_t *s, int i) {
     const drive_wheel_status_t *w = &s->wheel[i];
     printf("  wheel %s: driver %s, %s, loop %s%s, fault %s\n", wheel_name(i),
-           w->driver_ok ? "ok" : "NOT ANSWERING",
+           w->driver_ok ? "configured" : "NEEDS VERIFICATION",
            w->enabled ? "enabled" : "disabled",
            w->loop_closed ? "closed" : "open",
            w->velocity_mode ? " (velocity)" : w->loop_closed ? " (position)" : "",
            drive_fault_name(w->fault));
     printf("    pos %.4f turns  target %.4f  err %ld counts  slip %ld steps  vel %.3f turns/s  rate %.0f sps\n",
            w->pos_turns, w->target_turns, (long)w->err_counts, (long)w->slip_steps, w->vel_tps, w->rate_sps);
+    printf("    current %.0f/%.0f mA RMS run/hold (nominal); driver sample %s age %lu ms, GSTAT 0x%02lX DRV_STATUS 0x%08lX\n",
+           w->run_ma, w->hold_ma, w->driver_status_ok ? "ok" : "unavailable",
+           (unsigned long)w->driver_age_ms, (unsigned long)w->gstat, (unsigned long)w->drv_status);
+    if (s->faulted) printf("    at fault: driver sample %s age %lu ms, GSTAT 0x%02lX DRV_STATUS 0x%08lX\n",
+           w->fault_driver_status_ok ? "ok" : "unavailable", (unsigned long)w->fault_driver_age_ms,
+           (unsigned long)w->fault_gstat, (unsigned long)w->fault_drv_status);
     printf("    encoder %s, raw %u, magnet %s, agc %u (aim ~64), worst read %lu us\n",
            w->encoder_ok ? "ok" : "NOT RESPONDING", w->raw_angle, magnet_text(w->magnet_status),
            w->agc, (unsigned long)w->worst_read_us);
@@ -213,6 +220,20 @@ static int cmd_wheel(int argc, char **argv) {
         uint32_t val;
         if (!drive_wheel_read_reg(w, reg, &val)) { printf("driver did not answer\n"); return 1; }
         printf("wheel %s reg 0x%02X = 0x%08lX\n", wheel_name(w), reg, (unsigned long)val);
+        // DRV_STATUS is the one register worth reading by hand often enough to
+        // spell out: it is the only place the driver says what current and
+        // which chopper it is ACTUALLY using. Read it with the wheel driving --
+        // standing still, CS_ACTUAL has decayed to the hold current.
+        if (reg == 0x6F) {
+            printf("  CS_ACTUAL %lu/31 (current in use, hold current at a standstill)\n",
+                   (unsigned long)((val >> 16) & 0x1F));
+            printf("  chopper   %s\n", (val & (1UL << 30)) ? "StealthChop" : "SpreadCycle");
+            printf("  standstill %s\n", (val & (1UL << 31)) ? "yes" : "no");
+            if (val & 0x01) printf("  OTPW: overtemperature prewarning -- temperature warning (firmware stops both drivers)\n");
+            if (val & 0x02) printf("  OT: overtemperature SHUTDOWN -- the power stage is off\n");
+            if (val & 0x3C) printf("  short to ground or supply flagged (bits 2..5)\n");
+            if (val & 0xC0) printf("  open load flagged (bits 6..7) -- normal at a standstill or very low speed\n");
+        }
         return 0;
     }
     // Tuning parameter: show or set.
@@ -383,6 +404,13 @@ static void scan_emit(const char *ssid, int rssi, const char *auth, void *arg) {
 
 static int cmd_wifi(int argc, char **argv) {
     if (argc == 1) { print_net(); return 0; }
+    if (!strcmp(argv[1], "ps")) {
+        if (argc != 3 || (strcmp(argv[2], "on") && strcmp(argv[2], "off"))) {
+            printf("usage: wifi ps on|off (runtime only; boot defaults off)\n");
+            return 1;
+        }
+        return report(net_wifi_power_save(!strcmp(argv[2], "on")));
+    }
     if (!strcmp(argv[1], "set")) {
         if (argc < 3) { printf("usage: wifi set <ssid> [password]\n"); return 1; }
         int rc = report(net_wifi_set(argv[2], argc > 3 ? argv[3] : ""));
@@ -395,7 +423,7 @@ static int cmd_wifi(int argc, char **argv) {
         printf("scanning...\n");
         return report(net_wifi_scan(scan_emit, NULL));
     }
-    printf("usage: wifi | wifi set <ssid> [password] | wifi clear | wifi scan | wifi reconnect\n");
+    printf("usage: wifi | wifi set <ssid> [password] | wifi clear | wifi scan | wifi reconnect | wifi ps on|off\n");
     return 1;
 }
 

@@ -18,6 +18,13 @@ class I2cBus {
     virtual bool write(uint8_t addr, const uint8_t *w, size_t wn) = 0;
     virtual bool probe(uint8_t addr) = 0;
     virtual const char *kind() const = 0;
+
+    // What the two wires are sitting at with nobody driving them, as
+    // (SDA << 1) | SCL, or -1 where the bus cannot say. Both high is a healthy
+    // idle bus: the pull-ups are doing their job and a failed probe then means
+    // nothing answered -- an unpowered or absent device. Either line low is a
+    // wiring fault, not a missing device, and no amount of retrying fixes it.
+    virtual int idleLevels() const { return -1; }
 };
 
 // The ESP-IDF i2c_master driver. One device handle per address, created on
@@ -71,6 +78,7 @@ class SoftI2c : public I2cBus {
     bool write(uint8_t addr, const uint8_t *w, size_t wn) override;
     bool probe(uint8_t addr) override;
     const char *kind() const override { return "bit-banged"; }
+    int idleLevels() const override;
 
     // If we reset partway through a read, the slave can be left driving SDA low
     // waiting for the rest of its byte. Nine clocks walk it to the end of that

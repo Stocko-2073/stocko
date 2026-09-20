@@ -17,6 +17,8 @@ esp_err_t net_init(void);
 esp_err_t net_wifi_set(const char *ssid, const char *pass);
 esp_err_t net_wifi_clear(void);
 esp_err_t net_wifi_reconnect(void);
+// Runtime diagnostic; boot defaults to no modem sleep for responsive control.
+esp_err_t net_wifi_power_save(bool enabled);
 
 typedef void (*net_scan_fn)(const char *ssid, int rssi, const char *auth, void *arg);
 // Blocking, a few seconds. Emits the strongest 20.

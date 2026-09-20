@@ -24,6 +24,7 @@ class AS5600 {
     bool isConnected();
     uint8_t address() const { return addr_; }
     const char *busKind() const { return bus_.kind(); }
+    int busIdleLevels() const { return bus_.idleLevels(); }
 
     // ANGLE (0x0E): the scaled/filtered 12-bit angle. On a read error the
     // previous value is returned and lastError() says so -- the servo relies on

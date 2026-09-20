@@ -56,8 +56,11 @@ constexpr float ACCEL_LIMIT = 20.0f;   // output turns/s^2
 constexpr int   CAL_OUT_REVS = 3;      // whole output turns, so encoder INL cancels
 constexpr float CAL_SPS      = 1500.0f;
 
+// Digital current profile: STEPPerOnline 17HS15-1504S-X1, BTT TMC2209 V1.3.
+constexpr int32_t IHOLD_DELAY_DEFAULT = 8;
+
 constexpr uint32_t CONTROL_US       = 1000000UL / CONFIG_UBOT_CONTROL_HZ;
-constexpr uint32_t HEALTH_MS        = 250;   // alternating wheels: each every 500 ms
+constexpr uint32_t HEALTH_MS        = 125;   // A encoder, A driver, B encoder, B driver: each 500 ms
 constexpr uint32_t ENCODER_FAULT_MS = 250;   // encoder silent this long with the loop closed
 constexpr uint32_t LOCK_MS          = 200;   // how long an API call waits for the servo mutex
 constexpr gpio_num_t PIN_EN         = (gpio_num_t)CONFIG_UBOT_PIN_EN;
@@ -89,6 +92,11 @@ struct Wheel {
     uint8_t status = 0;
     bool statusOk = false;
     uint32_t encDownSince = 0;
+    bool driverStatusOk = false;
+    uint32_t drvStatus = 0, gstat = 0, driverSampleMs = 0;
+    bool faultDriverStatusOk = false;
+    uint32_t faultDrvStatus = 0, faultGstat = 0, faultDriverAgeMs = 0;
+
 
     Wheel(const char *n, const char *gk, const char *ik, uint8_t addr, AS5600 &e)
         : name(n), gainKey(gk), invKey(ik), gen(tmc, addr), servo(e, gen), enc(e) {}
@@ -135,6 +143,8 @@ struct State {
     int8_t signB = -1;
     bool aIsLeft = false;   // on this build wheel A is on the right
     float trackM = 0.263f;   // wheel centre to wheel centre, from u-bot.scad; measure it
+    int runMa = MotorCurrent::DEFAULT_RUN_MA;
+    int holdMa = MotorCurrent::DEFAULT_HOLD_MA;
 
     uint32_t tickWorst = 0;
     uint32_t tickCount = 0;
@@ -171,9 +181,15 @@ void cancelCommands() {
 // an MCU reset even though the power stage was off, and one live velocity would
 // lurch the whole robot the instant it is energised. Disabling runs the other
 // way round -- cut the power stage first, tidy up after.
-void enableDrivers(bool on) {
+bool enableDrivers(bool on) {
     if (on) {
         for (Wheel *w : wheels) w->gen.setEnabled(true);
+        for (Wheel *w : wheels) {
+            if (!w->gen.enabled() || !w->gen.ok() || S.pendingEstop) {
+                enableDrivers(false);
+                return false;
+            }
+        }
         gpio_set_level(PIN_EN, 0);
         S.driversOn = true;
         delayMs(20);   // let the TMC2209s come out of standby
@@ -184,6 +200,7 @@ void enableDrivers(bool on) {
         S.driversOn = false;
         cancelCommands();
     }
+    return true;
 }
 
 void setWheelVelocity(Wheel &w, float tps) {
@@ -230,6 +247,34 @@ void limitRobotVelocity(float &v, float &w) {
 float vmaxMps() { return wheelA.servo.vmaxTps * WHEEL_CIRC_M; }
 float wmaxRadps() { return 2.0f * vmaxMps() / fmaxf(S.trackM, 0.05f); }
 
+void pollDriver(Wheel &w) {
+    // Short timeout keeps an absent driver from blocking the 200 Hz loop for 40 ms.
+    auto dr = tmc.read(w.gen.address(), Tmc2209Uart::DRVSTATUS, 3);
+    auto gs = dr.st == Tmc2209Uart::OK
+        ? tmc.read(w.gen.address(), Tmc2209Uart::GSTAT, 3) : dr;
+    w.driverStatusOk = dr.st == Tmc2209Uart::OK && gs.st == Tmc2209Uart::OK;
+    if (w.driverStatusOk) {
+        w.drvStatus = dr.value;
+        w.gstat = gs.value;
+        w.driverSampleMs = millis();
+    }
+    // OTPW is a warning, not automatic derating. Stop at the warning instead
+    // of waiting for shutdown. Open-load flags are diagnostic only.
+    if (!w.driverStatusOk || (w.gstat & 7) || (w.drvStatus & 0x3F)) {
+        w.gen.invalidate();
+        if (S.driversOn) {
+            ESP_LOGE(TAG, "driver %s: UART %s GSTAT 0x%02lX DRV_STATUS 0x%08lX -- disabling both",
+                     w.name, w.driverStatusOk ? "ok" : "failed",
+                     (unsigned long)w.gstat, (unsigned long)w.drvStatus);
+            // Cut EN before any further UART I/O; a bus failure cannot stop VACTUAL.
+            gpio_set_level(PIN_EN, 1);
+            w.servo.raiseFault(StepperServo::FAULT_DRIVER);
+            demo.stop();
+            enableDrivers(false);
+        }
+    }
+}
+
 void pollHealth(Wheel &w) {
     uint8_t st = w.enc.readStatus();
     if (w.enc.lastError() != AS5600::OK) {
@@ -246,10 +291,25 @@ void pollHealth(Wheel &w) {
     }
 }
 
+// Separate UART and encoder health transactions so they do not accumulate in
+// one 5 ms servo tick. Each sensor/driver still gets checked every 500 ms.
+void pollHealthStep() {
+    Wheel &w = *wheels[S.healthIdx / 2];
+    if (S.healthIdx & 1) pollDriver(w);
+    else pollHealth(w);
+    S.healthIdx = (S.healthIdx + 1) % 4;
+}
+
 void latchFault(uint8_t idx) {
     Wheel &w = *wheels[idx];
     S.faultLatched = true;
     S.faultWheel = idx;
+    for (Wheel *o : wheels) {
+        o->faultDriverStatusOk = o->driverStatusOk;
+        o->faultDrvStatus = o->drvStatus;
+        o->faultGstat = o->gstat;
+        o->faultDriverAgeMs = millis() - o->driverSampleMs;
+    }
     ESP_LOGE(TAG, "FAULT wheel %s: %s (slip %ld steps) -- both wheels stopped, 'faults clear' to resume",
              w.name, w.servo.faultName(), (long)w.servo.slipSteps());
     // One wheel holding while the other drives pivots a differential drive
@@ -266,6 +326,12 @@ void latchFault(uint8_t idx) {
 void checkFaults() {
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
         Wheel &w = *wheels[i];
+        if (S.driversOn && !w.gen.ok()) {
+            gpio_set_level(PIN_EN, 1);
+            w.servo.raiseFault(StepperServo::FAULT_DRIVER);
+            demo.stop();
+            enableDrivers(false);
+        }
         if (S.driversOn && w.servo.servoOn() && !w.servo.encoderOk()) {
             if (!w.encDownSince) w.encDownSince = millis();
             else if (millis() - w.encDownSince > ENCODER_FAULT_MS) {
@@ -311,6 +377,16 @@ void updateSnapshot() {
         Wheel &w = *wheels[i];
         drive_wheel_status_t &d = s.wheel[i];
         d.driver_ok = w.gen.ok();
+        d.driver_status_ok = w.driverStatusOk;
+        d.drv_status = w.drvStatus;
+        d.gstat = w.gstat;
+        d.driver_age_ms = millis() - w.driverSampleMs;
+        d.fault_driver_status_ok = w.faultDriverStatusOk;
+        d.fault_drv_status = w.faultDrvStatus;
+        d.fault_gstat = w.faultGstat;
+        d.fault_driver_age_ms = w.faultDriverAgeMs;
+        d.run_ma = w.gen.runMilliamps();
+        d.hold_ma = w.gen.holdMilliamps();
         d.enabled = w.gen.enabled();
         d.loop_closed = w.servo.servoOn();
         d.velocity_mode = w.servo.velocityMode();
@@ -348,8 +424,15 @@ void updateSnapshot() {
 // refresher while the tick loop is suspended.
 bool calAbortFn() {
     static uint32_t n = 0;
-    if ((++n % 50) == 0) updateSnapshot();
-    return S.calAbort || S.pendingEstop;
+    if ((++n % 50) == 0) {
+        if (millis() - S.lastHealth >= HEALTH_MS) {
+            S.lastHealth = millis();
+            pollHealthStep();
+            checkFaults();
+        }
+        updateSnapshot();
+    }
+    return S.calAbort || S.pendingEstop || S.faultLatched;
 }
 
 void runCalibration() {
@@ -458,8 +541,8 @@ void controlTask(void *) {
 
         if (millis() - S.lastHealth >= HEALTH_MS) {
             S.lastHealth = millis();
-            pollHealth(*wheels[S.healthIdx]);
-            S.healthIdx ^= 1;
+            pollHealthStep();
+            checkFaults();
         }
 
         updateSnapshot();
@@ -475,13 +558,21 @@ void tickerCb(void *) {
     if (S.task) xTaskNotifyGive(S.task);
 }
 
+void logCurrent() {
+    ESP_LOGI(TAG, "digital current requested %d/%d mA run/hold; programmed %.0f/%.0f mA RMS "
+                  "(IRUN %u IHOLD %u, R110, vsense=0), motor limit %d mA; %s",
+             S.runMa, S.holdMa, wheelA.gen.runMilliamps(), wheelA.gen.holdMilliamps(),
+             wheelA.gen.runCurrent(), wheelA.gen.holdCurrent(), MotorCurrent::MAX_MA,
+             wheelA.gen.spreadCycle() ? "SpreadCycle" : "StealthChop with optional handover");
+}
+
 void loadSettings() {
     S.signA = settings_get_i32("sign_a", +1) < 0 ? -1 : +1;
     S.signB = settings_get_i32("sign_b", -1) < 0 ? -1 : +1;
     S.aIsLeft = settings_get_i32("a_left", 0) != 0;
     S.trackM = settings_get_f32("track_m", 0.263f);
-    float vmax = constrain(settings_get_f32("vmax_tps", 1.0f), 0.05f, VMAX_LIMIT);
-    float accel = constrain(settings_get_f32("accel_tps2", 8.0f), 0.5f, ACCEL_LIMIT);
+    float vmax = constrain(settings_get_f32("vmax_tps", 0.3f), 0.05f, VMAX_LIMIT);
+    float accel = constrain(settings_get_f32("accel_tps2", 1.0f), 0.5f, ACCEL_LIMIT);
     float decel = constrain(settings_get_f32("decel_tps2", 2.0f), 0.2f, ACCEL_LIMIT);
     // Measured 2026-08-30/31 on the two drivers this robot was built with.
     // Calibration overwrites these per chip; they are only the starting point.
@@ -489,10 +580,26 @@ void loadSettings() {
     float gainB = settings_get_f32(wheelB.gainKey, 1.0091f);
     bool invA = settings_get_i32(wheelA.invKey, 0) != 0;
     bool invB = settings_get_i32(wheelB.invKey, 1) != 0;
+    // New keys deliberately supersede legacy irun/ihold/iscale/rsense. Those
+    // raw settings cannot safely migrate to mA without knowing the old VREF.
+    S.runMa = settings_get_i32("run_ma", MotorCurrent::DEFAULT_RUN_MA);
+    S.holdMa = settings_get_i32("hold_ma", MotorCurrent::DEFAULT_HOLD_MA);
+    if (!MotorCurrent::valid(S.runMa, S.holdMa)) {
+        ESP_LOGW(TAG, "invalid stored current profile; using 1200/600 mA");
+        S.runMa = MotorCurrent::DEFAULT_RUN_MA;
+        S.holdMa = MotorCurrent::DEFAULT_HOLD_MA;
+    }
+    int32_t idelay = constrain(settings_get_i32("iholddly", IHOLD_DELAY_DEFAULT), (int32_t)0, (int32_t)15);
+    bool spread = settings_get_i32("spread", 1) != 0;
+    float pwmthrs = settings_get_f32("pwmthrs", 0.0f);
+    if (!isfinite(pwmthrs) || pwmthrs < 0) pwmthrs = 0;
     for (Wheel *w : wheels) {
         w->servo.vmaxTps = vmax;
         w->servo.accelTps2 = accel;
         w->servo.decelTps2 = decel;
+        w->gen.setCurrentMa(S.runMa, S.holdMa, idelay);
+        w->gen.setSpreadCycle(spread);
+        w->gen.setSpreadAboveRate(pwmthrs);
     }
     wheelA.gen.setInvert(invA);
     wheelB.gen.setInvert(invB);
@@ -505,7 +612,8 @@ Wheel *wheelArg(drive_wheel_t w) {
 }
 
 const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "decel", "vmin", "tol", "maxslip", "ratio", "gain", "micro"};
-const char *const SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2", "decel_tps2"};
+const char *const SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2", "decel_tps2",
+                                     "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs"};
 
 }  // namespace
 
@@ -547,7 +655,7 @@ esp_err_t drive_init(void) {
                      w->name, w->gen.address(), w->gen.version(),
                      w->gen.inverted() ? "inverted" : "normal", w->gen.clockGain());
         } else {
-            ESP_LOGE(TAG, "wheel %s: TMC2209 at address %u did not answer (%s)", w->name,
+            ESP_LOGE(TAG, "wheel %s: TMC2209 at address %u configuration/health verification failed (initial probe: %s)", w->name,
                      w->gen.address(), Tmc2209Uart::statusName(w->gen.lastStatus()));
         }
     }
@@ -555,6 +663,7 @@ esp_err_t drive_init(void) {
         ESP_LOGW(TAG, "check: wire on module pin 4 (RX), 1k between TX and RX, motor power on "
                       "(the TMC2209 is deaf on UART without VMOT), VIO to 3V3");
     }
+    logCurrent();
 
     for (Wheel *w : wheels) {
         bool ok = w->enc.begin();
@@ -563,10 +672,25 @@ esp_err_t drive_init(void) {
             ESP_LOGI(TAG, "wheel %s: AS5600 on %s I2C, magnet %s, agc %u (0..128, aim ~64)",
                      w->name, w->enc.busKind(), AS5600::magnetText(st), w->enc.readAGC());
         } else {
-            ESP_LOGE(TAG, "wheel %s: no AS5600 answering on the %s bus", w->name, w->enc.busKind());
+            // Say which half is at fault where the bus can tell us. Idle high on
+            // both wires means the pull-ups are fine and simply nothing answered,
+            // so look at the device end -- power, connector, a broken wire. Either
+            // line stuck low is a fault on the wire itself and retrying never
+            // fixes it.
+            int idle = w->enc.busIdleLevels();
+            if (idle < 0) {
+                ESP_LOGE(TAG, "wheel %s: no AS5600 answering on the %s bus", w->name,
+                         w->enc.busKind());
+            } else {
+                ESP_LOGE(TAG, "wheel %s: no AS5600 answering on the %s bus -- idle SDA=%d SCL=%d (%s)",
+                         w->name, w->enc.busKind(), (idle >> 1) & 1, idle & 1,
+                         idle == 3 ? "wires are up, nothing answered: check the encoder's power and connector"
+                                   : "a wire is held low: check for a short or a swapped connector");
+            }
         }
         w->servo.stepsPerCount = nominalStepsPerCount(w->microsteps);
         w->servo.begin();
+        pollDriver(*w);
         pollHealth(*w);
     }
 
@@ -596,18 +720,26 @@ esp_err_t drive_init(void) {
 esp_err_t drive_enable(bool on) {
     if (!lock()) return refuse("drive is busy (calibrating)");
     if (on) {
+        if (S.driversOn) { unlock(); return ESP_OK; }
+        gpio_set_level(PIN_EN, 1);
         bool allOk = true;
         for (Wheel *w : wheels) {
-            if (!w->gen.ok()) w->gen.begin(w->microsteps);   // maybe motor power arrived since boot
+            // Always reapply, even if the MCU missed a motor-power cycle.
+            if (!w->gen.begin(w->microsteps)) allOk = false;
+            pollDriver(*w);
             if (!w->gen.ok()) allOk = false;
         }
         if (!allOk) {
             unlock();
-            return refuse("a driver is not answering on the UART bus -- not energising");
+            return refuse("driver configuration or health could not be verified -- not energising");
         }
         for (Wheel *w : wheels) w->servo.clearFault();
         S.faultLatched = false;
-        enableDrivers(true);
+        if (!enableDrivers(true)) {
+            unlock();
+            return refuse("could not verify zero velocity before enabling");
+        }
+        logCurrent();
         ESP_LOGI(TAG, "both drivers ENABLED (EN is one shared pin)");
     } else {
         demo.stop();
@@ -869,6 +1001,8 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
     else if (!strcmp(name, "ratio")) { w.servo.stepsPerCount = v; w.servo.resyncSlip(); }
     else if (!strcmp(name, "gain")) { w.gen.setClockGain(v); w.servo.resyncSlip(); }
     else if (!strcmp(name, "micro")) {
+        if (S.driversOn) return refuse("disable drivers before changing microsteps");
+        if (v < 1 || v > 256 || truncf(v) != v) return ESP_ERR_INVALID_ARG;
         if (!w.gen.setMicrosteps((uint16_t)v)) return ESP_ERR_INVALID_ARG;
         w.microsteps = (uint16_t)v;
         w.servo.stepsPerCount = nominalStepsPerCount(w.microsteps);
@@ -879,7 +1013,7 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
 }
 
 esp_err_t drive_param_set(drive_wheel_t wi, const char *name, float value) {
-    if (!name) return ESP_ERR_INVALID_ARG;
+    if (!name || !isfinite(value)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
     esp_err_t err = ESP_OK;
     for (int i = 0; i < DRIVE_NWHEELS && err == ESP_OK; i++) {
@@ -913,7 +1047,7 @@ const char *const *drive_setting_names(size_t *n) {
 }
 
 esp_err_t drive_setting_set(const char *name, float value) {
-    if (!name) return ESP_ERR_INVALID_ARG;
+    if (!name || !isfinite(value)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
     esp_err_t err = ESP_OK;
     if (!strcmp(name, "sign_a") || !strcmp(name, "sign_b")) {
@@ -941,6 +1075,50 @@ esp_err_t drive_setting_set(const char *name, float value) {
         float v = constrain(value, 0.2f, ACCEL_LIMIT);
         for (Wheel *w : wheels) w->servo.decelTps2 = v;
         err = settings_set_f32(name, v);
+    } else if (!strcmp(name, "run_ma") || !strcmp(name, "hold_ma") ||
+               !strcmp(name, "iholddly") || !strcmp(name, "spread") || !strcmp(name, "pwmthrs")) {
+        if (S.driversOn) {
+            unlock();
+            return refuse("disable drivers before changing current or chopper settings");
+        }
+        int run = S.runMa, hold = S.holdMa, delay = wheelA.gen.holdDelay();
+        bool spread = wheelA.gen.spreadCycle();
+        float threshold = wheelA.gen.spreadAboveRate();
+        if (!strcmp(name, "run_ma") || !strcmp(name, "hold_ma")) {
+            if (value < MotorCurrent::MIN_MA || value > MotorCurrent::MAX_MA || truncf(value) != value)
+                err = ESP_ERR_INVALID_ARG;
+            else if (!strcmp(name, "run_ma")) run = (int)value;
+            else hold = (int)value;
+        } else if (!strcmp(name, "iholddly")) {
+            if (value < 0 || value > 15 || truncf(value) != value) err = ESP_ERR_INVALID_ARG;
+            else delay = (int)value;
+        } else if (!strcmp(name, "spread")) {
+            if (value != 0 && value != 1) err = ESP_ERR_INVALID_ARG;
+            else spread = value != 0;
+        } else {
+            if (value < 0 || value > VelGen::DEFAULT_MAX_RATE) err = ESP_ERR_INVALID_ARG;
+            else threshold = value;
+        }
+        if (!MotorCurrent::valid(run, hold)) err = ESP_ERR_INVALID_ARG;
+        if (err == ESP_OK) {
+            err = !strcmp(name, "pwmthrs") ? settings_set_f32(name, value)
+                                          : settings_set_i32(name, (int32_t)value);
+            if (err == ESP_OK) {
+                S.runMa = run;
+                S.holdMa = hold;
+                for (Wheel *w : wheels) {
+                    w->gen.setCurrentMa(run, hold, delay);
+                    w->gen.setSpreadCycle(spread);
+                    w->gen.setSpreadAboveRate(threshold);
+                }
+                logCurrent();
+                ESP_LOGI(TAG, "stored; configuration will be verified at next enable");
+            }
+        }
+    } else if (!strcmp(name, "irun") || !strcmp(name, "ihold") ||
+               !strcmp(name, "iscale") || !strcmp(name, "rsense")) {
+        unlock();
+        return refuse("legacy current settings are retired; use run_ma and hold_ma (100..1500, hold <= run)");
     } else {
         err = ESP_ERR_NOT_FOUND;
     }
@@ -958,6 +1136,11 @@ esp_err_t drive_setting_get(const char *name, float *value) {
     else if (!strcmp(name, "vmax_tps")) *value = wheelA.servo.vmaxTps;
     else if (!strcmp(name, "accel_tps2")) *value = wheelA.servo.accelTps2;
     else if (!strcmp(name, "decel_tps2")) *value = wheelA.servo.decelTps2;
+    else if (!strcmp(name, "run_ma")) *value = S.runMa;
+    else if (!strcmp(name, "hold_ma")) *value = S.holdMa;
+    else if (!strcmp(name, "iholddly")) *value = wheelA.gen.holdDelay();
+    else if (!strcmp(name, "spread")) *value = wheelA.gen.spreadCycle() ? 1 : 0;
+    else if (!strcmp(name, "pwmthrs")) *value = wheelA.gen.spreadAboveRate();
     else return ESP_ERR_NOT_FOUND;
     return ESP_OK;
 }

@@ -117,6 +117,7 @@ faults / faults clear
 stream on [hz] / stream off   CSV telemetry, same columns as test_servo streamed
 set / set <key> <value>       settings (below)
 wifi set <ssid> <password>    provisioning; wifi scan / wifi / wifi clear
+wifi ps on|off               runtime modem-sleep diagnostic; boot defaults off
 ota <https://...>/firmware.bin   or: ota url <...> once, then ota start
 log drive debug               per-tag level: none error warn info debug verbose
 hw set B                      hardware revision
@@ -130,13 +131,13 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `sign_a`, `sign_b` | +1, -1 | robot-forward to wheel-encoder-positive. A is +1 by fiat; B is the mirror. See below. |
 | `a_left` | 0 | 1 if wheel A is the left wheel, 0 if the right (decides the sign of a turn). On this build A is on the right |
 | `track_m` | 0.263 | wheel centre to wheel centre, m. From the CAD; **measure it** |
-| `vmax_tps`, `accel_tps2` | 1.0, 8.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
+| `vmax_tps`, `accel_tps2` | 0.3, 1.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
 | `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
 | `gain_a`, `gain_b`, `inv_a`, `inv_b` | measured | written by `cal`, not by hand |
-| `irun`, `ihold` | 31, 16 | driver run and standstill current, 0..31 of whatever the `VREF` trimpot allows. Both wheels. Raising `irun` raises heat -- see below |
-| `iholddly` | 8 | how gradually current decays to `ihold` at a standstill |
-| `spread` | 1 | 1 SpreadCycle, 0 StealthChop. StealthChop is quieter and gives up torque with speed; this axis spends most of its range where that shows |
-| `pwmthrs` | 0 | steps/s above which StealthChop hands over to SpreadCycle. Only bites with `spread 0`; 0 disables the handover |
+| `run_ma`, `hold_ma` | 1200, 600 | requested RMS mA per phase, both wheels; 100..1500 with hold <= run. Rounded down to the driver's discrete scale. Change with drivers disabled |
+| `iholddly` | 8 | how gradually current decays to hold current; 0..15, change disabled |
+| `spread` | 1 | 1 SpreadCycle, 0 StealthChop; change disabled |
+| `pwmthrs` | 0 | selected-microstep steps/s above which StealthChop hands over to SpreadCycle; only applies with `spread 0`, change disabled |
 | `name` | `ubot` | mDNS host and BLE name (reboot to apply) |
 | `hw_rev` | `A` | hardware revision string |
 | `ota_url` | -- | default image URL for `ota start` |
@@ -145,24 +146,67 @@ stats / stats reset           control timing, bus health, dropped log lines
 
 ### Motor current and torque
 
-The firmware cannot know the current in amps. `GCONF.I_scale_analog` is set, so
-the `VREF` trimpot on each TMC2209 module sets the ceiling and `irun` picks a
-fraction of it: **turn the pot to choose amps, set `irun` to choose how much of
-that to use.**
+The motors are **STEPPerOnline 17HS15-1504S-X1**: 1.50 A/phase,
+0.45 N·m holding torque, 2.3 Ω/phase, 4.4 mH/phase, 1.8° full steps.
+Sources: [motor datasheet](https://omc-stepperonline.com/download/17HS15-1504S-X1.pdf),
+[manufacturer RMS/peak guidance](https://help.omc-stepperonline.com/hc/s/articles/how-to-set-the-current-on-stepper-driver-rms-or-peak).
+Holding torque is not the running torque available on grass.
 
-To confirm what the drivers are actually doing, read `DRV_STATUS` with a wheel
-*driving* -- `wheel A reg 6F`, which prints the fields decoded:
+Current is entirely digital: `I_scale_analog=0`, `internal_Rsense=0`,
+`vsense=0`, with the BTT TMC2209 V1.3's external 0.11 Ω sense resistors.
+The VREF pots are ignored. These board constants live in `MotorCurrent.h`;
+a replacement module with different resistors requires updating that profile.
+The 1500 mA ceiling is nominal; component tolerances and cooling still matter.
 
-| field | bits | reading |
-|---|---|---|
-| `CS_ACTUAL` | 16..20 | current scale in use, 0..31. Standing still this shows the *hold* current, not `irun` |
-| `stealth` | 30 | 1 means StealthChop is running right now |
-| `otpw` | 0 | overtemperature prewarning: the driver is derating itself, which is its own way to lose torque |
+```
+disable
+set run_ma 1200
+set hold_ma 600
+set spread 1
+enable
+```
 
-`stealth` clear with `CS_ACTUAL` at 31 is full torque confirmed on the chip
-rather than assumed. If `otpw` trips, back `irun` off -- 31 is chosen to stop
-leaving torque unused, not because it is thermally safe at every pot setting.
+Changes are persisted, staged while disabled, and verified on the next enable.
+The default requests program approximately **1160 mA run / 552 mA hold**
+(IRUN=20, IHOLD=9). A 1500 mA request programs approximately 1492 mA (IRUN=26).
+`status` reports the programmed nominal current, not a current measurement.
+`CS_ACTUAL` is the driver's scale, also not a measurement of coil current.
 
+Legacy NVS `irun`, `ihold`, `iscale`, and `rsense` values are ignored; attempts
+to set them are refused. Old motion settings remain effective if saved in NVS.
+Fresh defaults are 0.3 wheel turns/s (~0.20 m/s) and 1 turn/s² acceleration.
+
+Before each enable, EN stays high while both drivers receive zero velocity and
+configuration. IFCNT checks accepted writes, GCONF/CHOPCONF are read back,
+and GSTAT/DRV_STATUS are checked. Initialization compensates for the SPREAD pin.
+A failed check refuses enable. A driver reset or lost VMOT requires explicit
+re-enabling; the firmware never resumes motion automatically.
+
+Both drivers are polled for health, each approximately every 500 ms, including
+during calibration. A communication failure, reset, undervoltage, short,
+overtemperature shutdown, or **OTPW warning** disables both drivers and latches
+a driver fault. OTPW does not automatically reduce current in the chip.
+Open-load bits are reported but do not fault: they can appear at standstill.
+The console and WebSocket status include raw driver status, its age/validity,
+and a frozen copy of the most recent sample when a motion fault latches.
+An older or unavailable sample must not be treated as the exact fault-time state.
+
+`wheel A reg 6F` / `wheel B reg 6F` decode live driver status; read while moving
+to inspect run current and active chopper. GCONF (00) and CHOPCONF (6C) are also
+readable. See the [TMC2209 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf).
+
+Host fault-injection tests (no hardware):
+
+```sh
+python3 components/drive/tests/run_host_tests.py
+```
+
+Rack checks: use short timed velocity commands in each direction, confirm
+SpreadCycle and CS_ACTUAL=20 while running at the default current, confirm the
+deadman stops motion, and finish with `disable`. Free spin checks configuration,
+tracking and communications; it does not establish available grass torque or
+long-duration thermal performance. Do not use fingers near the wheel/gear mesh
+as a load fixture. A later controlled outdoor test is still required.
 
 ### Which way is forward
 
@@ -286,8 +330,21 @@ request round-trips in ~80 ms, status arrives at 5 Hz, the log mirror works, a
 normalised drive of 0.3 became 0.203 m/s and moved both wheels 0.55 turns in
 opposite encoder senses, the deadman stopped it 0.6 s after the client went
 quiet, and a drive while disabled came back as a refused `ack`. Ping averages
-~60 ms with WiFi modem power-save on (the default); `esp_wifi_set_ps(WIFI_PS_NONE)`
-in `wifi.c` is the knob if that ever matters.
+~60 ms with WiFi modem power-save on in that test. Since 0.1.6, modem sleep
+defaults off to prioritize command latency; `wifi ps on|off` changes it until
+reboot for diagnosis. BLE coexistence still shares radio time.
+
+Since 0.1.7, the Wi-Fi task runs on core 1 and the Bluetooth controller and
+NimBLE host stay on core 0. Software radio coexistence remains enabled. For a
+Wi-Fi-only diagnostic build, disable `U-BOT base -> Start BLE at boot`
+(`CONFIG_UBOT_BLE_ENABLE`) in `idf.py menuconfig`, then build and flash. This
+skips Bluetooth initialization and advertising entirely. Restore the option
+after the comparison; it defaults on. Existing build configurations must also
+select Wi-Fi task core 1 in menuconfig, since `sdkconfig.defaults` does not
+override an existing `sdkconfig`.
+The replacement board's [Wi-Fi comparison](components/net/WIFI_DIAGNOSTICS.md)
+still showed unreliable connectivity with both configurations; core separation
+is not a confirmed fix.
 
 OTA, end to end: `ota_provisioning.sh` made the bucket, `push_firmware.sh`
 published 0.1.1 (1.77 MB), and on the robot `set ota_url <bucket>` then

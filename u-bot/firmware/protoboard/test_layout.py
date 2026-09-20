@@ -127,15 +127,33 @@ class LayoutTests(unittest.TestCase):
             self.assertEqual(self.net('XIAO', pin), {'XIAO.%s' % pin})
 
     def test_firmware_pin_defaults(self):
+        """Firmware GPIO numbers must match the Dn pads this board is wired to.
+
+        The protoboard is routed by Dn label, so a module swap changes every
+        GPIO number while the copper stays put. Rather than hardcode numbers,
+        read the Dn label out of each Kconfig prompt and check it against the
+        module's pinout -- that way a chip change fails here loudly instead of
+        silently pointing a signal at the wrong pad.
+        """
+        xiao_esp32s3 = {'D0': 1, 'D1': 2, 'D2': 3, 'D3': 4, 'D4': 5, 'D5': 6,
+                        'D6': 43, 'D7': 44, 'D8': 7, 'D9': 8, 'D10': 9}
+        wired = {'EN': 'D9', 'BATT_ADC': 'D1', 'TMC_TX': 'D6', 'TMC_RX': 'D7',
+                 'ENC_A_SDA': 'D4', 'ENC_A_SCL': 'D5',
+                 'ENC_B_SDA': 'D2', 'ENC_B_SCL': 'D3'}
         config = (Path(__file__).parent / '../base/main/Kconfig.projbuild').read_text()
-        expected = {'EN': 20, 'BATT_ADC': 1, 'TMC_TX': 16, 'TMC_RX': 17,
-                    'ENC_A_SDA': 22, 'ENC_A_SCL': 23, 'ENC_B_SDA': 2, 'ENC_B_SCL': 21}
-        for name, gpio in expected.items():
+        for name, pad in wired.items():
             match = re.search(rf'config UBOT_PIN_{name}\b(.*?)(?=\n    config|\nendmenu)',
                               config, re.S)
             self.assertIsNotNone(match, name)
-            default = re.search(r'\bdefault (\d+)', match.group(1))
-            self.assertEqual(int(default.group(1)), gpio, name)
+            body = match.group(1)
+            prompt_pad = re.search(r'--\s*(D\d+)"', body)
+            self.assertIsNotNone(prompt_pad, '%s prompt names no Dn pad' % name)
+            self.assertEqual(prompt_pad.group(1), pad,
+                             '%s is wired to %s on this board' % (name, pad))
+            default = re.search(r'\bdefault (\d+)', body)
+            self.assertEqual(int(default.group(1)), xiao_esp32s3[pad],
+                             '%s (%s) should be GPIO%d on the XIAO ESP32-S3'
+                             % (name, pad, xiao_esp32s3[pad]))
 
 
 if __name__ == '__main__':

@@ -259,6 +259,9 @@ def main():
         width=BOARD_WIDTH,
         height=BOARD_HEIGHT,
         designing=args.preview,
+        # Print each jumper's hole-to-hole length on the FRONT view, so wires can
+        # be cut to length straight off the build sheet.
+        front_numbers=True,
         # ubot_base_cuts.txt: every track cut as a comma-separated list in
         # component-side coordinates, for working down the BACK view.
         cuts=True,

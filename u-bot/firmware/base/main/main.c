@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "net.h"
+#include "sdkconfig.h"
 #include "settings.h"
 #include "sysinfo.h"
 #include "ulog.h"
@@ -53,7 +54,11 @@ void app_main(void) {
     // refuses to start must never lock us out of the serial port.
     if (console_start() != ESP_OK) ESP_LOGE(TAG, "console did not start");
 
+#if CONFIG_UBOT_BLE_ENABLE
     if (ble_init() != ESP_OK) ESP_LOGE(TAG, "BLE did not start");
+#else
+    ESP_LOGW(TAG, "BLE disabled for Wi-Fi-only diagnostics");
+#endif
     if (net_init() != ESP_OK) ESP_LOGE(TAG, "network did not start");
 
     confirm_image();

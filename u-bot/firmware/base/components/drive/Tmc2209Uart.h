@@ -44,6 +44,7 @@ class Tmc2209Uart {
     static const uint8_t IHOLD_IRUN = 0x10;
     static const uint8_t TPOWERDOWN = 0x11;
     static const uint8_t TSTEP      = 0x12;
+    static const uint8_t TPWMTHRS   = 0x13;
     static const uint8_t VACTUAL    = 0x22;
     static const uint8_t MSCNT      = 0x6A;
     static const uint8_t CHOPCONF   = 0x6C;
@@ -59,7 +60,7 @@ class Tmc2209Uart {
     void end();
     bool ready() const { return installed_; }
 
-    Result read(uint8_t addr, uint8_t reg);
+    Result read(uint8_t addr, uint8_t reg, uint32_t timeoutMs = 40);
 
     // Writes are unacknowledged; IFCNT is how you find out one landed. The echo
     // is still worth keeping -- it says whether the line carried the datagram,

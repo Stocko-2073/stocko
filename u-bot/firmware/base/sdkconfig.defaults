@@ -1,10 +1,15 @@
 # U-BOT base firmware -- build defaults. Anything not listed here is the
-# ESP-IDF v6.1 default for the esp32c6.
+# ESP-IDF v6.1 default for the esp32s3.
 
-CONFIG_IDF_TARGET="esp32c6"
+CONFIG_IDF_TARGET="esp32s3"
 
 # --- flash and partitions --------------------------------------------------
-CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# The XIAO ESP32-S3 carries 8 MB flash and 8 MB quad PSRAM (confirmed by
+# `esptool flash-id` on the module: device c8:4017, eFuse quad @ 3.3 V).
+# partitions.csv is still the 4 MB layout, which fits and simply leaves the
+# upper half unused -- enlarge the OTA slots there if an image ever outgrows
+# 0x1E0000. PSRAM is left disabled; the Sense's camera would need it on.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_OFFSET=0x8000
@@ -14,7 +19,8 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
 # whole boot sequence has run.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 
-# --- console: the XIAO's USB port is the C6's native USB Serial/JTAG --------
+# --- console: the XIAO's USB port is the S3's native USB Serial/JTAG --------
+# On the S3 that is GPIO19/20, so neither is available as a general-purpose pin.
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED=y
@@ -45,13 +51,19 @@ CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y
 CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
 CONFIG_LWIP_LOCAL_HOSTNAME="ubot"
 CONFIG_ESP_WIFI_NVS_ENABLED=y
+# Keep Wi-Fi on core 1, separate from the Bluetooth controller and NimBLE.
+CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_1=y
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y
 CONFIG_ESP_HTTPS_OTA_ALLOW_HTTP=n
 
 # --- BLE (NimBLE, peripheral only) ----------------------------------------------
+CONFIG_UBOT_BLE_ENABLE=y
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_CTRL_PINNED_TO_CORE_0=y
+CONFIG_BT_NIMBLE_PINNED_TO_CORE_0=y
 CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y
 CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y
 CONFIG_BT_NIMBLE_ROLE_CENTRAL=n

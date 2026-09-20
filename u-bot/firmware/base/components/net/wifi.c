@@ -123,6 +123,10 @@ esp_err_t net_init(void) {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);
     if (err != ESP_OK) return err;
+    // A teleoperated robot prioritizes command latency over radio power saving.
+    // Keep this switchable at runtime for access-point compatibility diagnosis.
+    err = net_wifi_power_save(false);
+    if (err != ESP_OK) return err;
     esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_wifi, NULL, NULL);
     esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_ip, NULL, NULL);
 
@@ -136,6 +140,12 @@ esp_err_t net_init(void) {
     load_creds();
     if (s_configured) apply_config();
     return esp_wifi_start();
+}
+
+esp_err_t net_wifi_power_save(bool enabled) {
+    esp_err_t err = esp_wifi_set_ps(enabled ? WIFI_PS_MIN_MODEM : WIFI_PS_NONE);
+    if (err == ESP_OK) ESP_LOGI(TAG, "Wi-Fi modem power save %s", enabled ? "on" : "off");
+    return err;
 }
 
 esp_err_t net_wifi_set(const char *ssid, const char *pass) {
