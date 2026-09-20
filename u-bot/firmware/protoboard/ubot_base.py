@@ -1,4 +1,4 @@
-"""U-BOT stripboard: XIAO ESP32-C6, two TMC2209s and an onboard 5 V buck.
+"""U-BOT stripboard: XIAO ESP32-S3, two TMC2209s and an onboard 5 V buck.
 
 Coordinates are 1-based holes, viewed from the component side. Copper strips
 run horizontally; the generated BACK view is mirrored for cutting.
@@ -75,7 +75,7 @@ def buck_converter(sb, x, row):
 def draw(sb):
     sb.text(1, 1, "U-BOT")
 
-    # XIAO ESP32-C6
+    # XIAO ESP32-S3
     xiao = sb.xiao(14, "A")
     sb.jumper(17, "B", 17, "M")
     sb.cut(16, "A", "G")

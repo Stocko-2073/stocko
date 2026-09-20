@@ -3,20 +3,11 @@
 
 #include "Tmc2209Uart.h"
 
-// Velocity actuator for a TMC2209 over its single-wire UART. Stands where
-// StepGen used to, and the swap is not just a change of transport.
+// Velocity actuator for a TMC2209 over its single-wire UART.
 //
-// StepGen counted every pulse it emitted, so position() was ground truth about
-// what the driver had been handed. Here the driver runs its own step generator
-// from the VACTUAL register and its own oscillator, and nothing comes back. So:
-//
-//   position()   the integral of what we ASKED for, not a tally of what
-//                happened. Compare it against the encoder and the difference
-//                is real, but it now includes clock error as well as slip.
-//   clockGain    the TMC2209's internal 12 MHz oscillator is only good to
-//                about +/-10%, which lands as a straight velocity gain error.
-//                calibrate() measures it; until then this is 1.0 and commanded
-//                speed is off by however far the chip's clock is.
+// position() integrates the commanded rate; its difference from the encoder
+// includes oscillator error as well as slip. The internal 12 MHz oscillator
+// is accurate to about +/-10%; calibrate() measures clockGain to correct it.
 //
 // Writes are only issued when the register value actually changes, so holding
 // a steady rate -- or standing still -- costs nothing on the bus. One write is
@@ -93,10 +84,7 @@ class VelGen {
 
     // --- direction polarity ---
 
-    // Which way is positive, held in the driver's own GCONF.shaft bit rather
-    // than by negating on our side. It reads back, which makes it answerable:
-    // shaftBit() asks the driver what it thinks, the way dirPinLevel() used to
-    // read the DIR pin back.
+    // Positive direction is set by GCONF.shaft and read back by shaftBit().
     void setInvert(bool inv) {
         stop();
         _invert = inv;

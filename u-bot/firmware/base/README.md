@@ -1,15 +1,11 @@
 # U-BOT base firmware
 
-Firmware for the base of the U-BOT outdoor utility robot: a XIAO ESP32-C6
+Firmware for the base of the U-BOT outdoor utility robot: a XIAO ESP32-S3
 driving two NEMA 17 wheels through TMC2209s in UART velocity mode, with an
 AS5600 encoder on each output shaft. Built on ESP-IDF v6.1, not Arduino.
 
-It is the `test_servo` bench work made permanent: the same servo loop, the same
-calibration, the same two-wheel demo, moved under a control task and given a
-robot frame, a deadman, a console, WiFi, BLE and OTA. The mechanism, its
-measured numbers and the reasons behind the design are in
-[`../DRIVE_MECHANISM.md`](../DRIVE_MECHANISM.md); this file is about the
-firmware.
+The mechanism, bench measurements and design rationale are in
+[`../DRIVE_MECHANISM.md`](../DRIVE_MECHANISM.md).
 
 ## What it does
 
@@ -45,7 +41,7 @@ component registry on the first build (needs network once).
 ```sh
 . ~/esp/esp-idf/export.sh
 cd u-bot/firmware/base
-idf.py set-target esp32c6        # first time only
+idf.py set-target esp32s3        # first time only
 idf.py build
 idf.py -p /dev/cu.usbmodem2101 flash monitor
 ```
@@ -84,7 +80,7 @@ base/
 
 ## Safety model
 
-- **EN is the killswitch** (GPIO0, active low, shared by both drivers, 4.7k
+- **EN is the killswitch** (GPIO20 / D9, active low, shared by both drivers, 4.7k
   pull-up). It is driven high before any other line of `app_main` runs, and it
   floats high through an MCU reset, a watchdog reset or a broken wire. `estop`
   writes it directly from any task without taking a lock.
@@ -137,11 +133,36 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `vmax_tps`, `accel_tps2` | 1.0, 8.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
 | `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
 | `gain_a`, `gain_b`, `inv_a`, `inv_b` | measured | written by `cal`, not by hand |
+| `irun`, `ihold` | 31, 16 | driver run and standstill current, 0..31 of whatever the `VREF` trimpot allows. Both wheels. Raising `irun` raises heat -- see below |
+| `iholddly` | 8 | how gradually current decays to `ihold` at a standstill |
+| `spread` | 1 | 1 SpreadCycle, 0 StealthChop. StealthChop is quieter and gives up torque with speed; this axis spends most of its range where that shows |
+| `pwmthrs` | 0 | steps/s above which StealthChop hands over to SpreadCycle. Only bites with `spread 0`; 0 disables the handover |
 | `name` | `ubot` | mDNS host and BLE name (reboot to apply) |
 | `hw_rev` | `A` | hardware revision string |
 | `ota_url` | -- | default image URL for `ota start` |
 | `batt_div` | 11.0 | battery divider ratio, Vpack / Vpin; calibrate against a meter |
 | `wifi_ssid`, `wifi_pass` | -- | via `wifi set` |
+
+### Motor current and torque
+
+The firmware cannot know the current in amps. `GCONF.I_scale_analog` is set, so
+the `VREF` trimpot on each TMC2209 module sets the ceiling and `irun` picks a
+fraction of it: **turn the pot to choose amps, set `irun` to choose how much of
+that to use.**
+
+To confirm what the drivers are actually doing, read `DRV_STATUS` with a wheel
+*driving* -- `wheel A reg 6F`, which prints the fields decoded:
+
+| field | bits | reading |
+|---|---|---|
+| `CS_ACTUAL` | 16..20 | current scale in use, 0..31. Standing still this shows the *hold* current, not `irun` |
+| `stealth` | 30 | 1 means StealthChop is running right now |
+| `otpw` | 0 | overtemperature prewarning: the driver is derating itself, which is its own way to lose torque |
+
+`stealth` clear with `CS_ACTUAL` at 31 is full torque confirmed on the chip
+rather than assumed. If `otpw` trips, back `irun` off -- 31 is chosen to stop
+leaving torque unused, not because it is thermally safe at every pot setting.
+
 
 ### Which way is forward
 
@@ -152,8 +173,7 @@ mechanism predicts and has not been confirmed by watching the robot. Run
 counter-rotate instead of rolling the same way, `set sign_b 1`. If the robot
 drives backwards on `drive 0.2 0`, flip **both** signs. If forward is right but
 a turn goes the wrong way (stick left, robot turns right), the wheels sit on
-the opposite sides from what `a_left` says: flip `a_left`. That was the case
-on this build once it came off the test rack, hence the default of 0. Never
+the opposite sides from what `a_left` says: flip `a_left` (default 0). Never
 fix a frame problem with `wheel X invert` -- that bit was measured together
 with the clock gain and the loop depends on it.
 
@@ -253,12 +273,12 @@ the bootloader boots the previous slot next time. Only `https://` is accepted.
 
 Both drivers answer, both encoders read, console, BLE (all three services read
 from a Mac, status notifications at 5 Hz) and WiFi scan all work. `cal A` gave
-1.0159 (was 1.0158), `cal B` 1.0096 (was 1.0091), both with residuals within 2
+1.0159, `cal B` 1.0096, both with residuals within 2
 counts and both stored. `demo short` ran 9.1 s against 9.1 planned, wheels back
 within 1 and 3 counts. `drive 0.2 0 2` moved each wheel 0.59 turns with
 mirrored encoder signs, as the frame predicts. A forced slip on A stopped B and
 latched. Worst control tick 3.0 ms of 5 ms over 6700 ticks with logging
-asynchronous (it was 20 ms with logging synchronous, which is why it is not).
+asynchronous.
 
 On the network (after `wifi set`): `ubot.local` resolves, the joystick page
 serves in ~0.1 s, a WebSocket client gets its status frame on connect, a status
@@ -278,22 +298,21 @@ the prompt coming back on the new image. Then from the page: it showed
 "firmware 0.1.2 -- 0.1.3 available" with the button, two taps installed 0.1.3
 (~45 s, progress in the status line and the log pane), the page noticed the
 robot go silent at the reboot and reconnected on its own to the new image.
-(The first attempt exposed why that watchdog exists: a browser can sit on a
-WebSocket whose peer has rebooted for minutes without noticing, so the page
-now treats 3 s without a status frame as a dead connection.)
+The page treats 3 s without a status frame as a dead connection so it can
+reconnect promptly after a reboot.
 
 ## Known items and assumptions
 
 - **`track_m` 0.263** is read off `u-bot.scad` (body 250 wide, wheel plane
   3.35 mm outboard of the leg), not measured. It only scales the turn rate.
-- **Battery sense** is on GPIO1 (D1) with a weak internal pull-down so an unwired
+- **Battery sense** is on GPIO2 (D1) with a weak internal pull-down so an unwired
   pin reads "no sense", which is what the robot reports today: nothing is wired
   yet. The pack is a 12 V 8 Ah LiFePO4, so the percentage uses a 4S
   resting-voltage table (10.0 V empty, 12.9 V is 20%, 13.2 V is 70%, 13.6 V
   full) rather than a linear window. `batt_div` is still the nominal 11.0 for a
   100k over 10k divider; calibrate it against a meter once the divider is
   wired, because the pin's pull-down loads the lower leg.
-- **Wheel B's magnet** still reads weak at AGC 128, as before. The firmware
+- **Wheel B's magnet** still reads weak at AGC 128. The firmware
   warns before `cal` and `demo short`; the fix is mechanical.
 - **Flash is tight**: 1.76 MB image in a 1.92 MB slot (10% free). mbedTLS,
   WiFi and NimBLE are most of it. If it bites: drop IPv6 in lwIP, or trim the

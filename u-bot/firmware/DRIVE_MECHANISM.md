@@ -81,14 +81,22 @@ a few millimetres is chasing the sensor rather than the robot.
 
 ## UART control (2026-08-30)
 
-Replaces STEP/DIR. The driver runs its own step generator from the `VACTUAL`
+The driver runs its own step generator from the `VACTUAL`
 velocity register and the MCU only updates a setpoint.
 
-**Wiring.** `D6/GPIO16` (TX) --[1k]-- `D7/GPIO17` (RX), and one wire from the
+**Wiring.** `D6` (TX) --[1k]-- `D7` (RX), and one wire from the
 D7 side to **module pin 4, silkscreened `RX`**. On the BTT TMC2209 V1.3, pin 5
 (`TX`) is an unpopulated alternate — the selection resistor has to be moved to
 use it. Both header pins are marked `PDN` on the card that ships with the
 module, which is how an afternoon gets lost.
+
+The 1k is not a critical value. It only limits contention current when a driver
+pulls the shared node low against the MCU's push-pull idle-high TX: 3.3 mA at
+1k, and anything from about 470R to 4.7k is comfortably inside what the C6 pad
+and the driver output handle. The other end of the range is edge rate, and even
+4.7k into the node's few tens of pF settles in well under 200 ns against a 2 us
+bit time at 500k baud. Build with whatever is in the bin; 1.1k was used on the
+first board.
 
 **Wheel A is address 0** (MS1=MS2=0), **wheel B is address 1** (MS1 jumpered to
 3V3). Both drivers share the one bus. MS1 high would also mean 1/2 microstep in
@@ -96,17 +104,10 @@ pin mode, which is why `mstep_reg_select=1` is set and MRES lives in `CHOPCONF`
 so the pins carry nothing but the address. The driver confirms its own jumper:
 `IOIN` reads MS1=1 at address 1.
 
-Two things changed when the second driver joined the bus. Address 1 answers at
-250k and 500k but **not at 115200**, where address 0 still does, which is another
-reason to stay high. And **open-drain TX stopped working entirely**: two drivers
-pulling on the node beat the ~22k internal pull-up, so push-pull is now the only
-option rather than merely the preferred one.
-
-**Baud: 250000 or 500000. Never below 115200.** At 57600 reads work but writes
-fail outright, 0/20. The discriminator is datagram duration against the driver's
-receive window: an 8-byte write is 1.39 ms at 57600 and dies, 0.69 ms at 115200
-and lives; a 4-byte read is 0.69 ms at 57600 and lives. Anything under about
-700 us gets through.
+**Use push-pull TX at 250000 or 500000 baud.** With both drivers connected,
+open-drain TX cannot pull the shared node high reliably through the ~22k
+internal pull-up. Address 1 does not answer at 115200. At 57600, reads work
+but writes fail (0/20): the 1.39 ms write exceeds the driver's receive window.
 
 **The first datagram after `Serial1.begin()` is always lost** — reconfiguring
 the pad glitches the line and desyncs the driver's receiver. Send a throwaway
@@ -131,21 +132,56 @@ allowance. It is baked into `test_servo.ino` as `CLOCK_GAIN`, but it belongs to
 that individual chip -- wheel B's driver will need its own, and it drifts with
 temperature. `c` measures it and prints the number to paste in.
 
-**Control rate: 200 Hz.** 1 kHz was inherited from STEP/DIR and is not needed
-now the driver generates its own steps. 200 Hz gives 20 updates across the
-acceleration ramp, and one tick at full speed is 3.4 mm — already level with the
-encoder's own 3.3 mm nonlinearity.
+**Control rate: 200 Hz.** This gives 20 updates across the acceleration ramp.
+One tick at full speed is 3.4 mm, comparable to the encoder's 3.3 mm nonlinearity.
+
+
+## Current and chopper (2026-09-07)
+
+`VelGen::begin()` applies the current and chopper settings on startup and
+when motor power returns. `IHOLD_IRUN` and `TPWMTHRS` are **write-only** and
+must be reapplied after the driver loses VMOT. SpreadCycle is the default
+for torque at speed; StealthChop is the quiet alternative.
+
+| setting | default | what it is |
+|---|---|---|
+| `irun` | 31 | run current, 0..31 of the VREF ceiling |
+| `ihold` | 16 | standstill current, same scale |
+| `iholddly` | 8 | how gradually it decays to `ihold` |
+| `spread` | 1 | 1 SpreadCycle, 0 StealthChop |
+| `pwmthrs` | 0 | steps/s above which StealthChop hands over; 0 disables |
+
+All five are `set` keys persisted in NVS, applied to both wheels -- same motors
+and same drivers, so unlike clock gain and shaft polarity this is not a
+per-chip property. `pwmthrs` only bites with `spread 0`.
+
+**Amps are not knowable from the firmware.** `GCONF.I_scale_analog` is set, so
+the `VREF` pot sets the ceiling and `IRUN` picks a fraction of it: turn the pot
+to choose amps, set `irun` to choose how much of that to use. The only readback
+is `DRV_STATUS` (0x6F). `wheel A reg 6F` prints it decoded:
+
+    bits 16..20   CS_ACTUAL    current scale actually in use, 0..31
+                               (reports the HOLD current standing still)
+    bit 30        stealth      1 = StealthChop is what is running right now
+    bit 0         otpw         overtemperature prewarning -- the driver is
+                               derating, a third way to lose torque
+
+Read it while a wheel is driving. `stealth` clear and `CS_ACTUAL` at 31 is the
+configured run current and chopper mode confirmed on the hardware.
+
+**Raising `irun` raises heat**, in the motors and in the driver. 31 was chosen
+to stop leaving torque on the table, not because it is thermally safe on any
+particular pot setting -- watch `otpw` and back `irun` off if it trips.
 
 
 ## Velocity mode, measured 2026-08-30
 
-The port off STEP/DIR, checked on the bench against the 2026-08-21 numbers.
 Calibration, 3 output turns out and back at 1500 steps/s commanded:
 
     +12288 counts in 10.501 s          exactly 3.000 output turns
     clock gain 1.0158                  asked 1500 steps/s, got 1524
     return leg -12288 vs +12288        residual +0 counts, no steps lost
-    shaft polarity normal              agrees with the old DIR_PLUS_LEVEL=LOW
+    shaft polarity normal
 
 Closed-loop step response at the default tuning (kp 16, vmax 1.0, accel 8):
 
@@ -154,13 +190,9 @@ Closed-loop step response at the default tuning (kp 16, vmax 1.0, accel 8):
 | goto 0.5 turns | 26 steps | 1.021 turns/s | 5333 sps | 740 ms | -3 counts |
 | back to 0 | 37 steps | 1.023 turns/s | 5333 sps | 760 ms | +3 counts |
 
-Peak rate matches 1.0 turns/s exactly. Slip against the 29 measured under
-STEP/DIR: 26 out, 37 back. The return leg reads higher because slip now carries
-clock error as well as real divergence, and both sit far below the 200 limit.
-
-The +0 round-trip residual is the number that matters. It is the one figure
-velocity mode can still produce that open-loop step counting used to give, and
-it says the motor did exactly what it was told in both directions.
+Peak rate matches 1.0 turns/s exactly. Slip includes clock error as well as
+real divergence; both peaks are well below the 200-step limit. The +0-count
+round-trip residual confirms the wheel returned to its starting position.
 
 
 ## Wheel B, measured 2026-08-31
@@ -196,8 +228,7 @@ break the loop it was measured for.
 
 ## The robot frame, and the two-wheel short (2026-08-31)
 
-That layer above the servo now exists, and it is one constant. `DRIVE_SIGN_B` in
-`test_servo.ino` maps robot-frame turns onto wheel B; wheel A defines forward by
+`DRIVE_SIGN_B` in `test_servo.ino` maps robot-frame turns onto wheel B; wheel A defines forward by
 fiat and needs no sign of its own. `-1` is in there as the mirror's prediction,
 **not** as a measurement -- it is the one number here that has not been
 confirmed against the machine.
@@ -215,9 +246,8 @@ measured together against a closed loop.
 
 The script itself is three phases, chosen so a ten-second clip reads without
 captions: in phase (the robot driving), anti phase (turning on the spot), then a
-canon, the same half-turn on one wheel and then the other. The canon is the only
-one of the three that says anything new -- it needs two independent drivers, and
-until today there was only one.
+canon, the same half-turn on one wheel and then the other, demonstrating
+independent control.
 
 Both wheels finish where they started, so the closing report is a round-trip
 check as well as an outro. Expect wheel A to land within a couple of counts and
@@ -254,12 +284,8 @@ Two things worth writing down. **Wheel B's residual beat wheel A's**, +2 against
 -3, which is the opposite of what the weak magnet predicted -- one take is not a
 trend, but the warning `S` prints about B's residual is not yet earned.
 
-And **the settle allowance was wrong**: 9.8 s planned against 9.1 s actual, an
-0.08 s overestimate on each of nine moves. It had been inferred from the 740 ms
-half-turn step response against 625 ms of ideal profile, but that figure counts
-settling to a standstill and a beat does not wait for that -- only for the
-tolerance band. Measured directly it is **0.04 s**, now baked into `Demo.h` as
-`SETTLE_S`, and the plan then reads 9.1 s against the 9.1 s it ran.
+`Demo.h::SETTLE_S` is **0.04 s** per move, measured to entry into the tolerance
+band. With this allowance the planned duration is 9.1 s, matching the run.
 
 Running the bit-banged bus while both wheels moved cost 390 us mean, 399 us
 worst, of the 5000 us control tick.
@@ -271,12 +297,11 @@ worst, of the 5000 us control tick.
 through the UART and does not depend on any register, so it still works when the
 bus is down, the firmware is wedged, or the MCU is held in reset.
 
-Measured on 2026-08-30 by reading `IOIN` back over UART while driving D0:
-
-    D0 driven HIGH  -> ENN=1, disabled
-    D0 driven LOW   -> ENN=0, enabled
-    D0 released     -> ENN=1, disabled
-    with D0 low     -> address 0 ENN=0, address 1 ENN=0, both follow
+EN is **D9/GPIO8** on the XIAO ESP32-S3, with a 4.7k pull-up to 3V3.
+The 2026-08-30 test on the breadboard confirmed both drivers followed EN and
+disabled when it was released. **Repeat this check on the current board:** drive EN high,
+low, then release it, and read both drivers' `IOIN`. Meter EN from power-on
+through the boot log to confirm it never dips low.
 
 It floats high, and one pin covers both drivers. So MCU reset, watchdog reset, and a broken EN wire all fail to
 the safe state on their own. Keep this pin hardwired; do not be tempted to save
@@ -290,17 +315,13 @@ wedged loop or a watchdog reset or a dead bus, is a case where both wheels
 should stop. On a differential drive, disabling one wheel while the other drives
 pivots the robot rather than stopping it.
 
-A 4.7k pull-up to 3V3 went on D0 on 2026-08-31. It makes the released state
-stiffer than the module's internal pull-up alone, costs 0.7 mA while enabled,
-and GPIO0 is not a strapping pin on the C6 so it cannot affect boot. When a
-physical E-stop arrives, the clean topology is a normally-closed contact in
-series between D0 and the drivers with **the pull-up on the driver side**:
-breaking the loop then leaves the pull-up holding EN high.
+The pull-up (`R6`, 3V3 to D9) holds EN high between power-on and
+`drive_park_en()` and costs 0.7 mA while enabled. For a physical E-stop, use a
+normally-closed contact between D9 and the drivers, with **the pull-up on the
+driver side** so breaking the loop disables both drivers.
 
-**This matters more under UART than it did under STEP/DIR.** Before, a hung MCU
-stopped the robot for free: no pulses, no motion. Now the driver keeps stepping
-from `VACTUAL` whether or not anyone is talking to it, so EN is the only thing
-that stops a runaway.
+The driver keeps stepping from `VACTUAL` even if the MCU hangs, so a runaway
+must be stopped through EN.
 
 Two rules that follow:
 
@@ -337,10 +358,9 @@ that is only a proxy for it.
 
 ### What the loop catches if a magnet moves in the field
 
-The slip detector does double duty here. It was built to catch pulses sent with
-no shaft following, but the divergence is symmetric, so a shaft that appears to
-move without being commanded -- a magnet slipping on its mount -- trips it just
-as readily. At `slipLimit` 200 steps and 1.302083 steps/count:
+The slip detector catches both a stalled shaft and apparent motion without a
+command, such as a magnet slipping on its mount. At `slipLimit` 200 steps and
+1.302083 steps/count:
 
     sudden encoder jump    154 counts    25 mm of apparent travel, 13.5 deg
     sustained drift rate   154 counts/s  25 mm/s of apparent error
@@ -353,14 +373,12 @@ failure on a slope. A magnet lost entirely is caught either way: garbage
 readings blow through the threshold immediately, and a dead-constant reading
 looks exactly like a stall.
 
-### What it does not catch
+### Bench sketch limitations (`test_servo`)
 
 - **`STATUS` is read but never acted on.** `pollHealth()` samples
   `MAGNET_DETECT`/`LOW`/`HIGH` into each Wheel at 2 Hz and they reach the CSV,
   `i`, and the pre-calibration warning, but `StepperServo::update()` never looks
-  at them. Note this is a different layer from the `lastError()` check added
-  with the two-wheel port: that catches an I2C failure, where a maladjusted
-  magnet is a healthy bus reporting an unhappy sensor.
+  at them. `lastError()` catches I2C failures, not magnet alignment problems.
 - **Anything degrading slower than 25 mm/s of apparent error** is absorbed by
   the 1 s leak. An off-axis magnet growing 100 counts of nonlinearity across a
   revolution drifts at ~130 steps/s at full speed, under the threshold: silently
@@ -408,29 +426,34 @@ parking brake on a slope needs a mechanical brake or a self-locking drive, which
 a 12:40 bevel pair is not.
 
 
-## Pins, XIAO ESP32-C6
+## Pins, XIAO ESP32-S3
 
 | pin | use |
 |---|---|
-| D0 / GPIO0 | EN, both drivers, active low, 4.7k pull-up to 3V3 |
-| D1 / GPIO1 | free (was STEP) |
-| D2 / GPIO2 | free (was DIR) |
-| D3 / GPIO21 | free |
-| D4 / GPIO22 | wheel A encoder SDA |
-| D5 / GPIO23 | wheel A encoder SCL |
-| D6 / GPIO16 | UART TX, through 1k to the shared node |
-| D7 / GPIO17 | UART RX, on the node |
-| D8 / GPIO19 | wheel B encoder SCL |
-| D9 / GPIO20 | wheel B encoder SDA |
-| D10 / GPIO18 | free |
+| D0 / GPIO1 | free |
+| D1 / GPIO2 | battery sense, 100k from VM / 10k to GND (ADC1 ch1) |
+| D2 / GPIO3 | wheel B encoder SDA (bit-banged) |
+| D3 / GPIO4 | wheel B encoder SCL (bit-banged) |
+| D4 / GPIO5 | wheel A encoder SDA |
+| D5 / GPIO6 | wheel A encoder SCL |
+| D6 / GPIO43 | UART TX, through 1k to the shared node (470R-4.7k all fine) |
+| D7 / GPIO44 | UART RX, on the node |
+| D8 / GPIO7 | free |
+| D9 / GPIO8 | EN, both drivers, active low, 4.7k pull-up to 3V3 |
+| D10 / GPIO9 | free |
 
-Four pins spare with both wheels driven. On STEP/DIR the same robot would have
-needed six driver pins and left one.
+Three pins are spare with both wheels driven and the battery sensed. The board
+is wired by Dn pad; GPIO numbers in firmware must match the S3 pinout.
 
-Wheel B's encoder is on a bit-banged bus because the AS5600's address is fixed
-at 0x36 and the C6's second I2C controller is LP_I2C, which only lives on
-GPIO6/7 — pins the XIAO does not break out. See `AS5600Soft.h`.
+- **GPIO19/20 are the native USB Serial/JTAG** and are not broken out.
+- **D2/GPIO3 is a strapping pin** (the S3's are GPIO0, GPIO3, GPIO45, GPIO46).
+  It carries wheel B's SDA, which idles high through its 4.7k pull-up. GPIO3
+  only selects the JTAG signal source when the `JTAG_SEL_ENABLE` eFuse is
+  burned, which it is not on a stock module, so it is inert here -- but it is
+  the one pin in this map with any boot-time role. If boot ever turns strange,
+  suspect it first; D8/D10 (GPIO7/GPIO9) are plain and free if it has to move.
 
-Pin economy is the real argument for UART here. Two drivers on STEP/DIR would
-need six pins and leave exactly one spare for lights, IMU and bumpers. Sharing
-one bus needs two, and gives D1/D2 back.
+The AS5600's fixed address (0x36) requires separate buses for the two encoders.
+Wheel A uses hardware I2C and wheel B uses a bit-banged bus. The S3 has two
+hardware I2C controllers, so wheel B could use `HwI2c busB(1, ...)` on its
+existing pads to reduce CPU cost.

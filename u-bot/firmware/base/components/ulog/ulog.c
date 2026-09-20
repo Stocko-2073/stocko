@@ -10,14 +10,8 @@
 #include "freertos/ringbuf.h"
 #include "freertos/task.h"
 
-// Logging is asynchronous. The hook below runs on whatever task called
-// ESP_LOGx, formats the line, and drops it into a ring buffer; a low-priority
-// printer task is the only thing that ever writes to the console. The reason
-// is the USB console: when the host is slow to read, a write blocks until it
-// does, and a control task blocked on a log line is a control task not
-// controlling. Measured before this change: a 20 ms tick where 5 ms was due.
-//
-// A full buffer drops the line and counts it rather than waiting.
+// ESP_LOGx formats into a ring buffer; a low-priority task writes to USB so a
+// slow host cannot block the control task. A full buffer drops and counts lines.
 
 static vprintf_like_t s_orig = NULL;
 static RingbufHandle_t s_out = NULL;      // to the console

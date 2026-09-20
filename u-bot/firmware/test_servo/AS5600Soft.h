@@ -22,8 +22,7 @@
 // angle read is ~40 bit periods either way, and arduino-esp32's Wire blocks for
 // the whole transaction anyway -- so the hardware encoder is already costing
 // ~135 us of stalled CPU per read. At halfUs=2 this costs ~200 us. Both fit
-// inside the 5 ms control tick with room to spare -- and with the STEP/DIR
-// pulse generator gone there is no longer a 40 kHz ISR competing for the gaps.
+// inside the 5 ms control tick.
 //
 // Interrupts are harmless here regardless. Anything that stretches bit periods
 // mid-transaction is fine: I2C is a fully static protocol with no slave-side

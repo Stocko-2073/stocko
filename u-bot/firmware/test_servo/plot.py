@@ -316,10 +316,7 @@ class Scope:
         gs = GridSpec(4, 2, width_ratios=[1.2, 2.2], hspace=0.40, wspace=0.16,
                       left=0.035, right=0.97, top=0.905, bottom=0.195)
 
-        # The two dials share the cell the single one used to have. They are the
-        # per-wheel readout now: magnet health belongs under the dial it
-        # describes, because with two encoders one shared line could only ever
-        # be ambiguous about which of them is complaining.
+        # Each wheel's magnet health appears under its dial.
         from matplotlib.gridspec import GridSpecFromSubplotSpec
         dials = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0:2, 0], wspace=0.30)
         self.ax_dial_a = self.fig.add_subplot(dials[0], polar=True)

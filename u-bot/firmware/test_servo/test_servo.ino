@@ -2,19 +2,10 @@
 // (UART velocity mode, 1/8 microstep) -> 12:40 bevel pair -> output shaft, with
 // an AS5600 magnetic encoder on the output shaft.
 //
-// Ported off STEP/DIR on 2026-08-30. The driver now runs its own step generator
-// from the VACTUAL register and the MCU only updates a setpoint, which changes
-// three things worth knowing before reading the rest:
-//
-//   no pulse count   nothing counts steps any more. The `steps` column is the
-//                    integral of what was COMMANDED, and `slip` is its gap from
-//                    the encoder -- which now carries clock error as well as
-//                    real slip. Run 'c' before trusting either at speed.
-//   clock gain       the TMC2209's internal oscillator is only good to ~+/-10%,
-//                    so commanded velocity is off by that much until measured.
-//                    calibrate() pins it down; see DRIVE_MECHANISM.md.
-//   200 Hz loop      1 kHz was needed to feed a pulse generator. It is not
-//                    needed to update a velocity, and one UART write is ~118 us.
+// The driver generates steps from VACTUAL; the MCU updates velocity at 200 Hz.
+// `steps` integrates the commanded rate, and `slip` compares it to the encoder.
+// This includes oscillator error as well as real slip: run 'c' to calibrate
+// the driver's clock gain before trusting these values at speed.
 //
 // Measured in velocity mode, 2026-08-30:
 //
@@ -316,9 +307,7 @@ static void printInfo() {
 // attaches to an already-running board never saw the banner, and it indexes the
 // stream by name, so this line is how it finds out what it is reading.
 static void printColumns() {
-  // Wheel B grew the same servo columns A has. Every name that was here before
-  // is still here, so a scope indexing by name keeps working and simply does
-  // not plot what it does not know about yet.
+  // Clients index columns by name and can ignore fields they do not plot.
   Serial.println(F("# t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
                    "bpos,btarget,berr,bvel,bsteps,brate,bslip,benc,bagc,bstatus,busus"));
 }

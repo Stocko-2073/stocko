@@ -163,11 +163,9 @@ class StepperServo {
         // clock, a few tenths of a percent in stepsPerCount -- drifts off
         // harmlessly, while a real stall still trips.
         //
-        // The leak is faster than it was under STEP/DIR (1 s, was 3 s) because
-        // the systematic term is bigger now. A gain error e at rate R settles at
-        // e*R*TAU steps of offset; a stall diverges at the full R. Two orders of
-        // magnitude apart, so a shorter TAU costs nothing in detection and buys
-        // back the headroom the clock error eats.
+        // A gain error e at rate R settles at e*R*SLIP_TAU steps of offset;
+        // a stall diverges at the full R. The 1 s leak leaves room for clock
+        // error while retaining stall detection.
         _slipRaw = (float)(_gen.position() - (double)_encPos * (double)stepsPerCount);
         if (_fault == FAULT_NONE) _slipRef += (_slipRaw - _slipRef) * (dt / SLIP_TAU);
 

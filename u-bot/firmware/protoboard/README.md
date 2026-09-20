@@ -1,6 +1,6 @@
 # U-BOT base protoboard
 
-XIAO ESP32-C6, two BTT TMC2209 V1.3 drivers, two AS5600 encoder connectors,
+XIAO ESP32-S3, two BTT TMC2209 V1.3 drivers, two AS5600 encoder connectors,
 battery sensing, and an onboard 5 V buck converter. Designed with
 [stripboard](https://github.com/Stocko-2073/stripboard-py).
 
@@ -52,10 +52,8 @@ Previously generated files remain on disk after a failed run; use only outputs
 from a successful run. `POSTMORTEM_FEEDBACK.md` describes the original layout
 and library limitations, not the current build counts.
 
-Note: stripboard 0.5.0 does not emit an assembly-coordinate markdown file. Any
-`ubot_base-build.md` on disk is left over from an earlier toolchain and is not
-regenerated -- read coordinates off the PDF, or off `test_layout.py`'s part
-table, rather than trusting that file.
+Use the PDF or `test_layout.py`'s part table for assembly coordinates.
+`ubot_base-build.md` is not a generated output and should not be used.
 
 ## Power and buck mounting
 
@@ -91,20 +89,12 @@ and its enable requirements before strapping EN; the image supplies no EN
 voltage limits. Likewise, verify the module's input rating covers the pack's
 full charge voltage (the firmware uses a 4S LiFePO4 table).
 
-### No reverse-blocking diode on this revision
+### USB and pack power
 
-Earlier revisions put a 1N5819 Schottky between BUCK VO+ and XIAO 5V, following
-[Seeed's external-power guidance for the XIAO ESP32-C6](https://wiki.seeedstudio.com/xiao_pin_multiplexing_esp32c6/),
-to stop USB power feeding back into the buck output. **The protoboard omits it
-deliberately** -- the part is not on hand, and firmware updates move to OTA, so
-the case it guards against (USB and pack live at the same time) stops being part
-of the normal workflow. The production board reinstates it.
-
-Until then the rule is procedural, not electrical: **do not connect USB and the
-pack at the same time.** VO+ ties straight to the XIAO 5V pin, so with both live
-the buck output and the USB rail are tied together with nothing between them.
-The 5 V rail also sits at the full buck output rather than a diode drop below
-it, so set the buck accurately.
+BUCK VO+ connects directly to XIAO 5V without a reverse-blocking diode.
+**Do not connect USB and the pack at the same time:** this ties the buck output
+to the USB rail. Use OTA for firmware updates on pack power. The production
+board is planned to include a blocking diode.
 
 ## Wiring and parts
 
@@ -112,20 +102,22 @@ The firmware source of truth is `../base/main/Kconfig.projbuild`, and
 `test_layout.py` asserts the two agree. The original breadboard photo is a
 reference, not a complete netlist.
 
-This revision moved EN off D0 and wheel B's encoder off D8/D9. D0 is `ADC1_CH0`
-and `LP_GPIO0` -- the last broken-out pin that is both analog-capable and able to
-wake the chip from deep sleep -- and EN needs neither, so it moved to the plain
-digital D9. None of D2, D3 or D9 is a strapping pin on the C6.
+The board is wired by Dn pad. `test_layout.py` checks the firmware GPIO numbers
+against the XIAO ESP32-S3 pinout.
+
+On the S3, note that D2/GPIO3 is a strapping pin (GPIO0, GPIO3, GPIO45, GPIO46
+are), carrying wheel B's SDA. It is inert unless the `JTAG_SEL_ENABLE` eFuse is
+burned, but it is the only pad here with a boot-time role.
 
 | XIAO | Connection |
 |---|---|
-| D0 | free (was EN) |
+| D0 | free |
 | D1 | battery divider midpoint, 100k from VM / 10k to GND |
 | D2 / D3 | encoder B SDA / SCL (bit-banged) |
 | D4 / D5 | encoder A SDA / SCL |
-| D6 (TX) | 1k series resistor to shared UART |
+| D6 (TX) | 1k series resistor to shared UART (470R-4.7k all fine) |
 | D7 (RX) | shared UART, both driver PDN/RX pins |
-| D8 | free (was encoder B SCL) |
+| D8 | free |
 | D9 | both driver EN pins, 4.7k pull-up to 3V3 |
 | D10 | free |
 | 3V3 | driver VIO, encoder supplies, pull-ups, driver B MS1 |
@@ -133,10 +125,10 @@ digital D9. None of D2, D3 or D9 is a strapping pin on the C6.
 
 | Reference | Part / assembly note |
 |---|---|
-| XIAO | XIAO ESP32-C6 on two 1×7 sockets, USB facing the top edge |
+| XIAO | XIAO ESP32-S3 on two 1×7 sockets, USB facing the top edge |
 | TMC2209 A / B | BTT V1.3 on two 1×8 sockets each; A rotated 180°, B upright |
 | BUCK | 20 × 10 mm module, 1×4 socket at 2.54 mm pitch |
-| R1 | 1k, UART series resistor |
+| R1 | 1k, UART series resistor; anything 470R-4.7k works |
 | R2 / R3 | 4.7k, encoder A SDA / SCL pull-ups |
 | R4 / R5 | 4.7k, encoder B SDA / SCL pull-ups |
 | R6 | 4.7k, motor EN pull-up |
@@ -148,10 +140,9 @@ digital D9. None of D2, D3 or D9 is a strapping pin on the C6.
 | ENC A (EA) | 1×4: GND, 3V3, SDA, SCL from top to bottom |
 | ENC B (EB) | 1×4: GND, 3V3, SDA, SCL from top to bottom |
 
-Both encoder connectors now use the **same** pin order (GND, 3V3, SDA, SCL);
-earlier revisions did not, so check any cable made for the old board before
-reusing it. The short-pitch resistors mount upright. Use the generated
-coordinate list to identify them: not all resistor values fit on the
+Both encoder connectors use **GND, 3V3, SDA, SCL**. Check this order before
+reusing cables from earlier boards. The short-pitch resistors mount upright.
+Use the PDF to identify them: not all resistor values fit on the
 silkscreen -- and R2 through R6 are all 4.7k, so only their positions
 distinguish them.
 

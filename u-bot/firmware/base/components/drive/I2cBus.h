@@ -6,11 +6,9 @@
 
 // Two ways to reach an AS5600, behind one interface.
 //
-// The AS5600's address is fixed at 0x36 with no address pins, so two of them
-// cannot share a bus. The C6 has two I2C controllers but the second is LP_I2C,
-// which is IO-MUX only on GPIO6/7 -- pins the XIAO does not break out. So wheel
-// A rides the hardware controller and wheel B a bit-banged bus. Both cost about
-// the same per read (~135 us vs ~200 us), well inside the 5 ms control tick.
+// The AS5600's fixed address (0x36) requires separate buses for the encoders.
+// Wheel A uses hardware I2C and wheel B a bit-banged bus. Both fit within the
+// 5 ms control tick. The S3 also supports a second hardware I2C bus.
 class I2cBus {
   public:
     virtual ~I2cBus() {}
