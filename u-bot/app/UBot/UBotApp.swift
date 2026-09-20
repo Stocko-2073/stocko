@@ -40,12 +40,15 @@ struct UBotApp: App {
                 .environment(recorder)
                 .environment(camera)
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .active:
                 // The phone must not auto-lock mid-drive: locking drops the BLE
                 // link and kills any ReplayKit recording at the same moment.
                 UIApplication.shared.isIdleTimerDisabled = true
+                // RootView remains mounted across background/foreground, so
+                // its one-time task cannot restart a stopped camera.
+                Task { await camera.start() }
 
             case .inactive:
                 // A system alert -- including ReplayKit's own permission prompt

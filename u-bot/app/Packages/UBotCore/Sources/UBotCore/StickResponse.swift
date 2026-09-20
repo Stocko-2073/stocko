@@ -7,10 +7,9 @@ import Foundation
 /// mapping stays something `ubotctl` can assert against and this stays
 /// something you can tune in a yard without touching the protocol.
 ///
-/// Two independent knobs, because the robot's two axes are not alike. With the
-/// default limits full deflection is about 0.675 m/s forward but 5.14 rad/s of
-/// turn -- roughly 295 deg/s, which is why the pad feels twitchier sideways
-/// than it does forwards.
+/// The standard response is linear with full authority on both axes. Robot
+/// speed limits live in the firmware's saved settings; the app does not reduce
+/// them again. Custom responses can still opt into curvature or turn scaling.
 public struct StickResponse: Sendable, Equatable {
 
     /// Curvature, 0...1. At 0 the stick is linear. At 1 it is a pure cube, so
@@ -20,14 +19,12 @@ public struct StickResponse: Sendable, Equatable {
     public var expo: Double
 
     /// Fraction of the robot's turn authority at full deflection. Forward is
-    /// never scaled: 0.675 m/s is already a walking pace, and losing top speed
-    /// there would be felt as sluggishness rather than control.
+    /// never scaled. The standard response uses the full range on both axes.
     public var turnScale: Double
 
-    /// What the pad uses. 0.6 expo puts half-stick at about 28% of rate, and
-    /// half turn authority still leaves ~147 deg/s, which is faster than the
-    /// robot can be walked alongside.
-    public static let standard = StickResponse(expo: 0.6, turnScale: 0.5)
+    /// What the pad uses: half travel commands half rate, and full travel
+    /// reaches the robot's configured limit in every cardinal direction.
+    public static let standard = StickResponse(expo: 0, turnScale: 1)
 
     /// Linear and unscaled -- the old behaviour, and what a bench script wants
     /// when it means the number it wrote.

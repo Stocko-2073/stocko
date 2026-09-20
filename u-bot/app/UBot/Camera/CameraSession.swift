@@ -26,39 +26,47 @@ final class CameraSession {
     private let queue = DispatchQueue(label: "com.stocko.ubot.camera")
     private let log = Logger(subsystem: "com.stocko.ubot", category: "camera")
     private var isConfigured = false
+    // A background transition invalidates pending permission/start work.
+    private var startRequest = UUID()
 
     init() { observeInterruptions() }
 
     @discardableResult
     func start() async -> Bool {
+        let request = UUID()
+        startRequest = request
         let granted: Bool
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:    granted = true
         case .notDetermined: granted = await AVCaptureDevice.requestAccess(for: .video)
         default:             granted = false
         }
+        guard startRequest == request, !Task.isCancelled else { return false }
         isAuthorized = granted
         guard granted else { return false }
 
-        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+        let running = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
             queue.async { [self] in
-                if !isConfigured { configure(); isConfigured = true }
-                if !session.isRunning { session.startRunning() }
-                c.resume()
+                if !isConfigured { isConfigured = configure() }
+                if isConfigured && !session.isRunning { session.startRunning() }
+                c.resume(returning: session.isRunning)
             }
         }
-        isRunning = session.isRunning
-        return true
+        guard startRequest == request else { return false }
+        isRunning = running
+        interruption = running ? nil : "The camera could not start. Reopen the app to retry."
+        return running
     }
 
     func stop() {
+        startRequest = UUID()
         queue.async { [self] in
             if session.isRunning { session.stopRunning() }
         }
         isRunning = false
     }
 
-    private func configure() {
+    private func configure() -> Bool {
         session.beginConfiguration()
         defer { session.commitConfiguration() }
 
@@ -73,7 +81,7 @@ final class CameraSession {
               session.canAddInput(input)
         else {
             log.error("no back camera available")
-            return
+            return false
         }
         session.addInput(input)
 
@@ -93,6 +101,7 @@ final class CameraSession {
         } catch {
             log.error("camera configuration: \(error.localizedDescription, privacy: .public)")
         }
+        return true
     }
 
     private func observeInterruptions() {

@@ -41,7 +41,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .persistentSystemOverlays(.hidden)
         .statusBarHidden()
-        .task { await bootstrap() }
+        .task { bootstrap() }
         .onChange(of: controller.lock) { old, new in
             // joystick.html does `if (why && timer) release(false)`. A fault or
             // a disable must not leave the last non-zero command on the wire.
@@ -70,6 +70,17 @@ struct RootView: View {
     private var cameraBackground: some View {
         if camera.isAuthorized {
             CameraPreview(session: camera.session)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Live camera")
+                .accessibilityValue(camera.isRunning && camera.interruption == nil ? "Running" : "Paused")
+                .overlay(alignment: .top) {
+                    if let interruption = camera.interruption {
+                        Text(interruption)
+                            .font(.system(size: 13))
+                            .foregroundStyle(UBotPalette.mute)
+                            .padding(.top, 140)
+                    }
+                }
         } else {
             // No camera in the Simulator, and the operator may have declined.
             // Either way the app still has to drive a robot.
@@ -142,7 +153,7 @@ struct RootView: View {
 
     // MARK: Wiring
 
-    private func bootstrap() async {
+    private func bootstrap() {
         surface.lock = controller.lock
         surface.onEngage  = { controller.engage($0) }
         surface.onUpdate  = { controller.update($0) }
@@ -151,7 +162,6 @@ struct RootView: View {
 
         recorder.microphoneEnabled = settings.microphoneEnabled
         controller.start()
-        await camera.start()
     }
 
     private func toggleRecording() {

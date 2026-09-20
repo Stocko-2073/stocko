@@ -22,3 +22,43 @@ final class ConnectionUITests: XCTestCase {
         add(shot)
     }
 }
+
+
+final class CameraUITests: XCTestCase {
+    func testCameraStartsAndResumesAfterBackground() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Camera capture requires a physical iPhone.")
+        #else
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Camera permission") { alert in
+            let allow = alert.buttons["Allow"]
+            if allow.exists { allow.tap(); return true }
+            let ok = alert.buttons["OK"]
+            if ok.exists { ok.tap(); return true }
+            return false
+        }
+        app.launch()
+        let camera = app.descendants(matching: .any)["Live camera"].firstMatch
+        XCTAssertTrue(camera.waitForExistence(timeout: 10))
+        let running = NSPredicate(format: "value == %@", "Running")
+        expectation(for: running, evaluatedWith: camera)
+        waitForExpectations(timeout: 10)
+        attachCamera(app, name: "Camera on launch")
+
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        app.activate()
+        XCTAssertTrue(camera.waitForExistence(timeout: 10))
+        expectation(for: running, evaluatedWith: camera)
+        waitForExpectations(timeout: 10)
+        attachCamera(app, name: "Camera after reopening")
+        #endif
+    }
+
+    private func attachCamera(_ app: XCUIApplication, name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+}

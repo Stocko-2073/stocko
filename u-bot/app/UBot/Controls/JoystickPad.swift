@@ -3,9 +3,9 @@ import UBotCore
 
 /// The circular pad, ported from `#pad` in joystick.html.
 ///
-/// Geometry matches the web page so the two feel identical: the knob is 26% of
-/// the pad and travels 37% of the pad's width, which puts its edge exactly on
-/// the rim at full deflection.
+/// The knob is 26% of the pad and travels 37% of its width, placing its edge
+/// on the rim at full deflection. Input uses that same travel distance so the
+/// knob follows the finger until it reaches the rim.
 struct JoystickPad: View {
 
     let model: ControlSurfaceModel
@@ -13,8 +13,8 @@ struct JoystickPad: View {
     private let knobFraction: CGFloat = 0.26
     private let travelFraction: CGFloat = 0.37
 
-    /// Tuning lives here. The knob follows the shaped command rather than the
-    /// finger, so what you see on the pad is what the robot was told.
+    /// Linear, full-range input keeps the knob and drive command in step
+    /// with the finger.
     private let response = StickResponse.standard
 
     var body: some View {
@@ -24,8 +24,7 @@ struct JoystickPad: View {
             let knob = size * knobFraction
             let travel = size * travelFraction
 
-            // The knob shows the clamped command, not the raw finger position,
-            // so it can never leave the rim.
+            // The linear command follows the finger, clamped to knob travel.
             let offset = CGSize(width: -model.command.w * travel,
                                 height: -model.command.v * travel)
 
@@ -65,14 +64,12 @@ struct JoystickPad: View {
             .gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .local)
                     .onChanged { value in
-                        // Normalise to the unit disc: +y is down, matching both
-                        // a browser pointer event and DragGesture. The curve
-                        // that makes the centre usable lives in StickResponse,
-                        // and the negation to (v, w) in DriveCommand -- each in
-                        // one place.
+                        // Normalise by knob travel so full output is reached
+                        // where the knob touches the rim. +y points down;
+                        // DriveCommand maps the signs to forward and turn.
                         let s = response.shape(
-                            x: (value.location.x - radius) / radius,
-                            y: (value.location.y - radius) / radius)
+                            x: (value.location.x - radius) / travel,
+                            y: (value.location.y - radius) / travel)
                         let c = DriveCommand(stickX: s.x, stickY: s.y)
                         model.isEngaged ? model.update(c) : model.engage(c)
                     }

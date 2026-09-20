@@ -118,6 +118,27 @@ E-STOP is always in the same place and is only greyed out when there is no link
 to carry it.
 
 
+## Camera lifecycle
+
+Camera capture starts when the app becomes active, including first launch and
+returning from the background. Backgrounding stops capture. A pending permission
+request cannot restart it after backgrounding, and failed camera setup is retried
+on the next activation. Camera interruptions are shown over the preview.
+
+
+## Stick response
+
+The stick follows your finger up to the rim of its travel. Input is linear:
+half travel requests half rate, and full travel requests the full configured
+forward, reverse, or turn rate. There is no additional app turn cap or response
+curve. Diagonal input is clamped to the unit circle; the firmware scales mixed
+forward/turn commands together when needed to respect wheel speed limits.
+
+Actual speed and acceleration are saved robot settings (`vmax_tps` and
+`accel_tps2`), adjustable through `ubotctl exec set` without reflashing. For
+reference, 1.0 wheel turns/s is approximately 0.675 m/s straight ahead.
+
+
 ## BLE
 
 A mirror of the table in `firmware/base/README.md`, so the two can be diffed.

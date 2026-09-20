@@ -139,23 +139,37 @@ struct StickResponseTests {
 
     private let r = StickResponse.standard
 
-    @Test("expo keeps full deflection at full output")
+    @Test("full travel reaches full command in all four directions")
     func endpointsFixed() {
-        let up = r.shape(x: 0, y: -1)
-        #expect(abs(up.y + 1) < 1e-9)
-        #expect(DriveCommand(stickX: up.x, stickY: up.y).v == 1)
+        for (x, y, v, w) in [(0.0, -1.0, 1.0, 0.0),
+                              (0.0, 1.0, -1.0, 0.0),
+                              (-1.0, 0.0, 0.0, 1.0),
+                              (1.0, 0.0, 0.0, -1.0)] {
+            let s = r.shape(x: x, y: y)
+            let command = DriveCommand(stickX: s.x, stickY: s.y)
+            #expect(command.v == v)
+            #expect(command.w == w)
+        }
     }
 
-    @Test("half a thumb commands well under half rate")
-    func centreIsFiner() {
-        // 0.6 * 0.125 + 0.4 * 0.5 -- the whole point of the curve.
-        #expect(abs(r.shape(x: 0, y: -0.5).y + 0.275) < 1e-9)
+    @Test("standard response is proportional throughout both axes")
+    func proportionalTravel() {
+        for t in [-1.0, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1.0] {
+            #expect(r.shape(x: t, y: 0).x == t)
+            #expect(r.shape(x: 0, y: t).y == t)
+        }
+        let s = r.shape(x: 0.3, y: -0.4)
+        let command = DriveCommand(stickX: s.x, stickY: s.y)
+        #expect(command.v == 0.4)
+        #expect(command.w == -0.3)
     }
 
-    @Test("turn authority is scaled but forward is not")
-    func turnScaled() {
-        #expect(abs(r.shape(x: -1, y: 0).x + 0.5) < 1e-9)
-        #expect(abs(r.shape(x: 0, y: -1).y + 1) < 1e-9)
+    @Test("custom responses can still opt into expo and turn scaling")
+    func customResponse() {
+        let custom = StickResponse(expo: 0.6, turnScale: 0.5)
+        #expect(abs(custom.shape(x: 0, y: -0.5).y + 0.275) < 1e-9)
+        #expect(custom.shape(x: -1, y: 0).x == -0.5)
+        #expect(custom.shape(x: 0, y: -1).y == -1)
     }
 
     @Test("the curve is odd, so it never flips a direction")
@@ -166,7 +180,7 @@ struct StickResponseTests {
         #expect(r.shape(x: 0, y: 0) == (x: 0, y: 0))
     }
 
-    @Test("a corner drag is clamped before it is curved")
+    @Test("a corner drag is clamped to the reachable rim")
     func clampsFirst() {
         // Off the far corner: onto the rim first, so it can never come back
         // with more authority than the edge of the pad.
