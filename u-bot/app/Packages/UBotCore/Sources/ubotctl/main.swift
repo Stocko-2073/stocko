@@ -26,7 +26,7 @@ let command = args.first ?? "status"
 
 func usage() -> Never {
     FileHandle.standardError.write(Data("""
-    usage: ubotctl <command>
+    usage: ubotctl <command> [--wifi <hostname-or-IP>]
 
       selftest              decode/encode vectors, no radio
       scan                  find robots and print what they advertise
@@ -84,8 +84,8 @@ func selftest() -> Never {
     print("fault enum")
     check(DriveFault(rawValue: 1) == .slip, "1 is slip")
     check(DriveFault(rawValue: 4) == .peer, "4 is peer")
-    check(UBotStatus(Data([0, 99] + frame.dropFirst(2)))?.fault == DriveFault.none,
-          "unknown fault byte degrades to none")
+    check(UBotStatus(Data([0, 99] + frame.dropFirst(2)))?.fault == DriveFault.unknown,
+          "unknown fault byte remains visible")
 
     print("drive encode")
     check(DriveCommand(v: 0, w: 0).frame == Data([0, 0, 0, 0]), "zero is four zero bytes")
@@ -147,7 +147,13 @@ if command == "help" || command == "-h" || command == "--help" { usage() }
 // MARK: - Live commands
 
 final class Runner: @unchecked Sendable {
-    let link = BLERobotLink()
+    let link: RobotLink = {
+        if let i = CommandLine.arguments.firstIndex(of: "--wifi"),
+           CommandLine.arguments.indices.contains(i + 1) {
+            return WiFiRobotLink(address: CommandLine.arguments[i + 1])
+        }
+        return BLERobotLink()
+    }()
     var lastStatus: UBotStatus?
     var firmware = "?"
     var rowCount = 0
@@ -167,6 +173,8 @@ final class Runner: @unchecked Sendable {
                 FileHandle.standardError.write(Data("[model \(m)]\n".utf8))
             case .controlAccepted(let op):
                 print("accepted: \(op.title)")
+            case .message(let message):
+                print(message)
             case .controlRefused(let op, let why):
                 print("REFUSED: \(op.title) -- \(why)")
             case .linkQuality(let w, let d, let e):

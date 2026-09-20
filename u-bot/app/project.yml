@@ -66,6 +66,9 @@ targets:
 
         # Every one of these strings is shown verbatim in the system alert, so
         # they are written as sentences that say why.
+        NSLocalNetworkUsageDescription: U-BOT connects to your robot over Wi-Fi to drive it and read its status.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSCameraUsageDescription:
           U-BOT shows the camera behind the controls so the video you record
           includes what the robot is doing.
@@ -102,3 +105,33 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stocko.ubot
         TARGETED_DEVICE_FAMILY: "1"     # iPhone only
+
+  UBotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [UBotTests]
+    dependencies:
+      - target: UBot
+      - package: UBotCore
+        product: UBotCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  UBotUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UBotUITests]
+    dependencies:
+      - target: UBot
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  UBot:
+    build:
+      targets:
+        UBot: all
+    test:
+      targets:
+        - UBotTests
+        - UBotUITests

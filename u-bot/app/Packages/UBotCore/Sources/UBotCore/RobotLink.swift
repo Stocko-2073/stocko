@@ -4,6 +4,7 @@ import Foundation
 /// derived from this one value.
 public enum LinkState: Equatable, Sendable {
     case idle
+    case failed(reason: String)
     case unsupported
     case unauthorized
     case bluetoothOff
@@ -31,6 +32,7 @@ public enum LinkState: Equatable, Sendable {
     /// What the connection pill says.
     public var summary: String {
         switch self {
+        case .failed:       return "Connection failed"
         case .idle:         return "Not connected"
         case .unsupported:  return "No Bluetooth LE"
         case .unauthorized: return "Bluetooth not allowed"
@@ -54,6 +56,7 @@ public enum LinkEvent: Sendable {
     case model(String)
     case controlAccepted(ControlOp)
     case controlRefused(ControlOp, String)
+    case message(String)
     /// Emitted once a second while driving: written, dropped for backpressure,
     /// escalated to an acknowledged write. The early warning that the
     /// connection interval has gone bad.

@@ -61,16 +61,16 @@ struct StatusDecodeTests {
         #expect(s.wheelATurnsPerSec == 1.0)
     }
 
-    @Test("an unknown fault byte degrades to none instead of failing the frame")
+    @Test("an unknown fault byte remains visible instead of failing the frame")
     func unknownFault() throws {
         var bytes = [UInt8](sampleFrame)
         bytes[1] = 99
         let s = try #require(UBotStatus(Data(bytes)))
-        #expect(s.fault == .none)
+        #expect(s.fault == .unknown)
     }
 
     @Test(arguments: [(UInt8(0), DriveFault.none), (1, .slip), (2, .encoder),
-                      (3, .magnet), (4, .peer)])
+                      (3, .magnet), (4, .peer), (5, .driver)])
     func faultEnumMatchesDriveH(raw: UInt8, expected: DriveFault) {
         #expect(DriveFault(rawValue: raw) == expected)
     }

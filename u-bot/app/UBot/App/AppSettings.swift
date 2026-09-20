@@ -18,6 +18,13 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(microphoneEnabled, forKey: Keys.mic) }
     }
 
+    var transport: ConnectionTransport {
+        didSet { UserDefaults.standard.set(transport.rawValue, forKey: "connectionTransport") }
+    }
+    var wifiAddress: String {
+        didSet { UserDefaults.standard.set(wifiAddress, forKey: "wifiAddress") }
+    }
+
     private enum Keys {
         static let robotName = "com.stocko.ubot.robotName"
         static let mic = "com.stocko.ubot.micEnabled"
@@ -25,6 +32,8 @@ final class AppSettings {
 
     init() {
         let d = UserDefaults.standard
+        transport = ConnectionTransport(rawValue: d.string(forKey: "connectionTransport") ?? "ble") ?? .ble
+        wifiAddress = d.string(forKey: "wifiAddress") ?? "ubot.local"
         robotName = d.string(forKey: Keys.robotName) ?? UBotGATT.defaultName
         microphoneEnabled = d.bool(forKey: Keys.mic)
     }

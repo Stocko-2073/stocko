@@ -34,6 +34,8 @@ public struct DriveLock: Equatable, Sendable {
     /// refusal is surfaced reactively.
     public static func derive(linkState: LinkState, status: UBotStatus?) -> DriveLock? {
         switch linkState {
+        case .failed(let reason):
+            return .init(reason: reason, remedy: .openSettings)
         case .bluetoothOff:
             return .init(reason: "Bluetooth is off", remedy: .openSettings)
         case .unauthorized:
@@ -57,6 +59,8 @@ public struct DriveLock: Equatable, Sendable {
         guard let s = status else {
             return .init(reason: "Waiting for status")
         }
+
+        if let reason = s.busyReason { return .init(reason: reason) }
 
         // A latched fault. `drive_enable` also clears faults, so when the
         // motors are off the single remedy is Enable -- same branch the web

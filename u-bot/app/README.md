@@ -1,8 +1,8 @@
 # U-BOT phone app
 
-An iPhone app that drives the U-BOT over Bluetooth Low Energy and films it with
-the phone's own camera at the same time. It exists because the robot's built-in
-web joystick needs Wi-Fi, and the robot works in a yard where there isn't any.
+An iPhone app that drives U-BOT over Bluetooth Low Energy or Wi-Fi and films
+it with the phone's own camera. BLE works without a Wi-Fi network; Wi-Fi uses
+the robot's existing WebSocket interface.
 
 The app is portrait-locked and records its whole screen, so the clip you get out
 of it has the camera view of the robot on top and a live joystick underneath, in
@@ -16,14 +16,14 @@ since 0.1.4; this is the phone app its header comment was written for.
 
     project.yml            XcodeGen spec. The source of truth for the project.
     UBot/                  The app: SwiftUI, iOS 17, no entitlements.
-    Packages/UBotCore/     The BLE stack, as a plain SPM package.
+    Packages/UBotCore/     BLE and Wi-Fi transports, as a plain SPM package.
       Sources/UBotCore/    Protocol, transport, drive ticker, lock model, stick feel.
       Sources/ubotctl/     A macOS bench harness that speaks the same protocol.
-      Tests/               Codec and lock-model tests (Swift Testing).
+      Tests/               Protocol, connection lifecycle, and lock-model tests (Swift Testing).
 
 `UBotCore` builds for macOS as well as iOS, and that is deliberate rather than
 incidental. `ubotctl` drives a real robot from a Mac terminal using the exact
-`BLERobotLink` and `DriveTicker` the phone uses, so the wire protocol can be
+`BLERobotLink` / `WiFiRobotLink` the phone uses, so the wire protocol can be
 verified against hardware with no Xcode involved, and so there is a known-good
 reference on the desk when the phone misbehaves in a field.
 
@@ -36,7 +36,7 @@ The app needs Xcode. The core does not.
     cd Packages/UBotCore
     swift build
     swift run ubotctl selftest      # 39 checks, no radio, no robot
-    swift test                      # 29 tests
+    swift test                      # 43 tests
 
     # The app, once Xcode is installed:
     brew install xcodegen
@@ -54,10 +54,42 @@ the same way under a free personal team as under a paid one. Under a free team
 the signature expires after seven days and you rebuild.
 
 Neither Bluetooth nor the camera exists in the Simulator. The Simulator build
-runs against `MockRobotLink`, which emits synthetic status at the same 5 Hz the
+uses `MockRobotLink` for BLE and the real Wi-Fi transport when Wi-Fi is selected.
+The mock emits synthetic status at the same 5 Hz the
 firmware does and honours the control ops, so every screen state can be reached
 and screenshotted without hardware.
 
+
+## Wi-Fi and connection selection
+
+Use the **BLE / Wi-Fi** selector at the top right. The selection is saved; an
+existing installation starts in BLE mode. The gear opens connection settings.
+Wi-Fi defaults to `ubot.local`; enter an IP address or hostname, optionally
+with a port, if name resolution is unavailable. The endpoint is always
+`ws://<address>/ws`. Allow **Local Network** access when iOS prompts.
+
+The robot must already be provisioned onto a network reachable from the phone.
+This app does not provision Wi-Fi or create a hotspot. There is no automatic
+fallback between transports. Changing transport or the active Wi-Fi address
+releases the joystick, attempts a stop on the old link, clears old telemetry,
+and connects again. A fresh touch is required to drive after reconnection.
+Motors are never automatically enabled by connecting.
+
+Wi-Fi supports normalized joystick commands at 10 Hz, a 500 ms command hold,
+all five control operations, and status at 5 Hz. Commands are acknowledged;
+refusals are displayed. Motion updates are coalesced rather than queued. Status
+silence for 1.5 seconds locks driving and reconnects with 1/2/4/8-second backoff.
+Connection loss never replays a held joystick or queued control command.
+Calibration, demos, and OTA activity reported over Wi-Fi lock the joystick.
+Motor-driver fault code 5 and unknown faults are visible on both transports.
+
+The bench harness selects Wi-Fi with an optional argument:
+
+    swift run ubotctl status --wifi ubot.local
+    swift run ubotctl status --wifi 192.168.1.47
+
+Without `--wifi`, the harness uses BLE. The iPhone controller and UI tests are
+included in the generated `UBot` Xcode scheme, alongside the package tests.
 
 ## Safety model
 
@@ -157,8 +189,8 @@ accepts both.
   rather than confirmed on the bench. If the robot drives backwards or turns the
   wrong way, fix it with `set sign_b` / `set a_left` on the console. Do not
   "fix" it in Swift.
-- **No OTA, no log mirror, no Wi-Fi provisioning.** Those are WebSocket-only in
-  the firmware. If the phone is ever meant to replace the browser entirely,
+- **No OTA controls, log viewer, or Wi-Fi provisioning in the app.** Use
+  the browser for OTA/logs and the serial console for Wi-Fi provisioning. If the phone is ever meant to replace the browser entirely,
   provisioning-over-BLE is the notable gap.
 
 
@@ -235,3 +267,29 @@ state is about 16 written, 4 dropped, 1 escalated per second.
   `swift test` (23 tests), both green on the Command Line Tools toolchain
   without Xcode. That is byte-layout and lock-model coverage only -- it proves
   the codec agrees with `ble.c`, not that the robot answers.
+
+
+**On the bench, 2026-09-20 (firmware 0.1.5).** The native app uses BLE,
+independently of Wi-Fi provisioning. The remembered BLE peripheral on the Mac
+stayed at Connecting, while fresh discovery connected and streamed status.
+`BLERobotLink` now abandons an unavailable remembered peripheral after eight
+seconds and scans again, ignoring callbacks from the abandoned connection.
+Replaying the actual stale identifier with the rebuilt `ubotctl status`
+confirmed Connecting -> Looking -> Connected and live telemetry. Motors stayed
+disabled throughout. `swift build` and `ubotctl selftest` passed. The updated
+iPhone app still needs to be rebuilt, installed, and verified on the phone.
+
+
+**Wi-Fi app implementation, 2026-09-20.** Added the main-screen transport
+selector, editable address, WebSocket transport, switching lifecycle guards,
+and local-network permission configuration. The 43 package tests cover codec,
+backpressure, acknowledgements/refusals, stale telemetry, and reconnect behavior.
+Two iPhone controller tests cover retired callbacks and rapid transport changes;
+a UI test checks selector reachability and address settings on an iPhone 16e
+simulator. Simulator and physical-device builds succeeded. The signed update
+was installed on the connected iPhone 16 Pro. Live Wi-Fi/rack verification and
+physical-phone permission/recording checks are pending robot connectivity.
+The actual URLSession WebSocket adapter also passed a localhost integration
+check against a synthetic server: connection, telemetry, acknowledged control,
+10 Hz drive frames with a 500 ms hold, and zero frames on release. This is not
+a substitute for the outstanding live robot test.

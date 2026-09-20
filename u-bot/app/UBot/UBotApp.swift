@@ -19,13 +19,17 @@ struct UBotApp: App {
         // what makes the whole interface -- every lock reason, every fault
         // state -- buildable and screenshottable without carrying hardware to
         // the desk.
-        #if targetEnvironment(simulator)
-        let link: RobotLink = MockRobotLink()
-        #else
-        let link: RobotLink = BLERobotLink(nameFilter: settings.robotName)
-        #endif
+        let factory: (ConnectionTransport, String) -> RobotLink = { transport, address in
+            if transport == .wifi { return WiFiRobotLink(address: address) }
+            #if targetEnvironment(simulator)
+            return MockRobotLink()
+            #else
+            return BLERobotLink(nameFilter: settings.robotName)
+            #endif
+        }
+        let link = factory(settings.transport, settings.wifiAddress)
         _settings = State(initialValue: settings)
-        _controller = State(initialValue: RobotController(link: link))
+        _controller = State(initialValue: RobotController(link: link, transport: settings.transport, factory: factory))
     }
 
     var body: some Scene {

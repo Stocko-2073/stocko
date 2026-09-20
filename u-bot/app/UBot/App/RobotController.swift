@@ -29,7 +29,10 @@ final class RobotController {
     /// link can carry. The early warning that the connection interval went bad.
     private(set) var linkCongested = false
 
-    private let link: RobotLink
+    private var link: RobotLink
+    private var generation = 0
+    private(set) var transport: ConnectionTransport = .ble
+    private var linkFactory: ((ConnectionTransport, String) -> RobotLink)?
     private var toastTask: Task<Void, Never>?
 
     struct Toast: Equatable, Identifiable {
@@ -39,12 +42,46 @@ final class RobotController {
         let kind: Kind
     }
 
-    init(link: RobotLink) {
+    init(link: RobotLink, transport: ConnectionTransport = .ble,
+         factory: ((ConnectionTransport, String) -> RobotLink)? = nil) {
         self.link = link
+        self.transport = transport
+        self.linkFactory = factory
+        attach()
+    }
+
+    private func attach() {
+        let id = generation
         link.onEvent = { [weak self] event in
-            // The link calls back on its own serial queue. This is the single
-            // hop to the main actor, and the only one.
-            Task { @MainActor [weak self] in self?.handle(event) }
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == id else { return }
+                self.handle(event)
+            }
+        }
+    }
+
+    func selectTransport(_ transport: ConnectionTransport, address: String) {
+        guard let factory = linkFactory else { return }
+        emergencyRelease(alsoStop: true)
+        let old = link
+        old.onEvent = nil
+        generation += 1
+        // Give the explicit stop a bounded opportunity to leave the old link.
+        // The firmware deadman remains the backstop if that link is broken.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            old.stop()
+        }
+        self.transport = transport
+        linkState = .connecting(name: transport == .wifi ? address : "ubot")
+        status = nil; firmware = nil; model = nil; linkCongested = false
+        link = factory(transport, address)
+        attach()
+        let id = generation
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let self, self.generation == id else { return }
+            self.link.start()
         }
     }
 
@@ -86,12 +123,15 @@ final class RobotController {
                 tone: .warn,
                 title: "No data from the robot",
                 detail: "Connected, but the status stream has gone quiet. Another "
-                      + "Bluetooth client may have turned notifications off.",
+                      + "client may have interrupted telemetry.",
                 action: nil)
         }
         guard let s = status else {
             return StateCard(tone: .neutral, title: "Connected",
                              detail: "Waiting for the first status frame.", action: nil)
+        }
+        if let reason = s.busyReason {
+            return StateCard(tone: .warn, title: reason, detail: "Driving is unavailable until it finishes.", action: nil)
         }
         if s.isFaulted {
             return StateCard(
@@ -127,12 +167,15 @@ final class RobotController {
 
     private var connectionDetail: String {
         switch linkState {
+        case .failed(let reason): return reason
         case .bluetoothOff:  return "Turn Bluetooth on to reach the robot."
         case .unauthorized:  return "Allow Bluetooth for U-BOT in Settings."
         case .unsupported:   return "This device has no Bluetooth LE."
         case .scanning:      return "Looking for the robot."
         case .reconnecting:  return "The robot stops itself after half a second. Reconnecting\u{2026}"
-        default:             return "Connecting to the robot."
+        default:             return transport == .wifi
+            ? "Connecting over Wi-Fi. Check the address and allow Local Network access in Settings."
+            : "Connecting to the robot."
         }
     }
 
@@ -153,8 +196,8 @@ final class RobotController {
 
     // MARK: Commands
 
-    func engage(_ c: DriveCommand) { isDriving = true; link.engage(c) }
-    func update(_ c: DriveCommand) { link.update(c) }
+    func engage(_ c: DriveCommand) { guard lock == nil else { return }; isDriving = true; link.engage(c) }
+    func update(_ c: DriveCommand) { guard isDriving, lock == nil else { return }; link.update(c) }
 
     func releaseStick() {
         isDriving = false
@@ -215,6 +258,9 @@ final class RobotController {
 
         case .controlAccepted(let op):
             if op == .estop { show("Emergency stop sent. Motors are cut.", kind: .bad) }
+
+        case .message(let message):
+            show(message, kind: .warning)
 
         case .controlRefused(let op, let why):
             show("\(op.title) refused. \(why)", kind: .bad)

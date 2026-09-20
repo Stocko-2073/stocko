@@ -19,6 +19,7 @@ public final class BLERobotLink: NSObject, RobotLink {
     private let log = Logger(subsystem: "com.stocko.ubot", category: "ble")
 
     private var central: CBCentralManager!
+    private var running = false
 
     /// Held strongly. CoreBluetooth does not retain peripherals you connect to,
     /// and a deallocated `CBPeripheral` silently stops delivering callbacks.
@@ -60,7 +61,12 @@ public final class BLERobotLink: NSObject, RobotLink {
 
     public func start() {
         queue.async { [self] in
-            guard central == nil else { return }
+            guard !running else { return }
+            running = true
+            if let central {
+                if central.state == .poweredOn { reconnectOrScan() }
+                return
+            }
             central = CBCentralManager(
                 delegate: self,
                 queue: queue,
@@ -74,17 +80,19 @@ public final class BLERobotLink: NSObject, RobotLink {
 
     public func stop() {
         queue.async { [self] in
-            ticker.abandon()
-            stopWatchdog()
-            stopQualityTimer()
+            running = false
+            teardownLink()
+            peripheral?.delegate = nil
             if let p = peripheral, p.state != .disconnected { central?.cancelPeripheralConnection(p) }
             if central?.isScanning == true { central?.stopScan() }
+            peripheral = nil
             state = .idle
         }
     }
 
     public func engage(_ c: DriveCommand) {
         queue.async { [self] in
+            guard running, state.isReady else { return }
             ticker.engage(c)
             if qualityTimer == nil { startQualityTimer() }
         }
@@ -100,7 +108,7 @@ public final class BLERobotLink: NSObject, RobotLink {
 
     public func send(_ op: ControlOp) {
         queue.async { [self] in
-            guard let p = peripheral, let ch = controlChr, p.state == .connected else {
+            guard running, let p = peripheral, let ch = controlChr, p.state == .connected else {
                 emit(.controlRefused(op, "Not connected to the robot."))
                 return
             }
@@ -121,14 +129,14 @@ public final class BLERobotLink: NSObject, RobotLink {
            let id = UUID(uuidString: s),
            let p = central.retrievePeripherals(withIdentifiers: [id]).first {
             log.notice("reconnecting to known peripheral \(id.uuidString, privacy: .public)")
-            connect(p)
+            connect(p, rediscoverAfterTimeout: true)
             return
         }
         beginScan()
     }
 
     private func beginScan() {
-        guard central.state == .poweredOn, !central.isScanning else { return }
+        guard running, central.state == .poweredOn, !central.isScanning else { return }
         state = .scanning
         // Scan UNFILTERED and match ourselves.
         //
@@ -143,7 +151,7 @@ public final class BLERobotLink: NSObject, RobotLink {
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
     }
 
-    private func connect(_ p: CBPeripheral) {
+    private func connect(_ p: CBPeripheral, rediscoverAfterTimeout: Bool = false) {
         peripheral = p
         p.delegate = self                       // before any discovery call
         state = .connecting(name: p.name ?? nameFilter)
@@ -152,6 +160,26 @@ public final class BLERobotLink: NSObject, RobotLink {
         // it advertises again -- exactly right when the robot is power-cycled
         // in a field.
         central.connect(p, options: [CBConnectPeripheralOptionEnableAutoReconnect: true])
+        if rediscoverAfterTimeout {
+            // A cached identifier can outlive the robot's BLE identity. Give
+            // it a short chance, then discover the currently advertising robot.
+            queue.asyncAfter(deadline: .now() + 8) { [weak self, weak p] in
+                guard let self, let p, self.running, self.peripheral === p,
+                      self.central.state == .poweredOn,
+                      p.state != .connected else { return }
+                switch self.state {
+                case .connecting, .reconnecting: break
+                default: return
+                }
+                self.log.notice("remembered peripheral unavailable; scanning again")
+                UserDefaults.standard.removeObject(forKey: Self.lastPeripheralKey)
+                self.peripheral = nil
+                p.delegate = nil
+                self.central.cancelPeripheralConnection(p)
+                self.teardownLink()
+                self.beginScan()
+            }
+        }
     }
 
     // MARK: - Watchdogs
@@ -221,6 +249,7 @@ public final class BLERobotLink: NSObject, RobotLink {
 extension BLERobotLink: CBCentralManagerDelegate {
 
     public func centralManagerDidUpdateState(_ c: CBCentralManager) {
+        guard running else { return }
         switch c.state {
         case .poweredOn:
             reconnectOrScan()
@@ -241,6 +270,7 @@ extension BLERobotLink: CBCentralManagerDelegate {
                                didDiscover p: CBPeripheral,
                                advertisementData ad: [String: Any],
                                rssi: NSNumber) {
+        guard running else { return }
         let advertised = ad[CBAdvertisementDataServiceUUIDsKey]         as? [CBUUID] ?? []
         let overflow   = ad[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? []
         let name       = ad[CBAdvertisementDataLocalNameKey] as? String ?? p.name ?? ""
@@ -256,6 +286,7 @@ extension BLERobotLink: CBCentralManagerDelegate {
     }
 
     public func centralManager(_ c: CBCentralManager, didConnect p: CBPeripheral) {
+        guard running, peripheral === p else { return }
         UserDefaults.standard.set(p.identifier.uuidString, forKey: Self.lastPeripheralKey)
         state = .discovering(name: p.name ?? nameFilter)
         p.discoverServices([UBotGATT.service, UBotGATT.batteryService, UBotGATT.deviceInfo])
@@ -264,6 +295,7 @@ extension BLERobotLink: CBCentralManagerDelegate {
     public func centralManager(_ c: CBCentralManager,
                                didFailToConnect p: CBPeripheral,
                                error: Error?) {
+        guard running, peripheral === p else { return }
         log.error("connect failed: \(error?.localizedDescription ?? "unknown", privacy: .public)")
         state = .reconnecting(name: p.name ?? nameFilter)
         c.connect(p, options: [CBConnectPeripheralOptionEnableAutoReconnect: true])
@@ -277,6 +309,7 @@ extension BLERobotLink: CBCentralManagerDelegate {
                                timestamp: CFAbsoluteTime,
                                isReconnecting: Bool,
                                error: Error?) {
+        guard running, peripheral === p else { return }
         log.notice("disconnected, isReconnecting \(isReconnecting)")
         // Nothing left to write. The robot's 500 ms deadman ramps it to a stop
         // on its own -- that is precisely what the deadman is for.
@@ -293,6 +326,7 @@ extension BLERobotLink: CBCentralManagerDelegate {
 extension BLERobotLink: CBPeripheralDelegate {
 
     public func peripheral(_ p: CBPeripheral, didDiscoverServices error: Error?) {
+        guard running, peripheral === p else { return }
         if let error {
             log.error("service discovery: \(error.localizedDescription, privacy: .public)")
             return
@@ -316,6 +350,7 @@ extension BLERobotLink: CBPeripheralDelegate {
     public func peripheral(_ p: CBPeripheral,
                            didDiscoverCharacteristicsFor s: CBService,
                            error: Error?) {
+        guard running, peripheral === p else { return }
         for ch in s.characteristics ?? [] {
             switch ch.uuid {
             case UBotGATT.drive:
@@ -347,7 +382,7 @@ extension BLERobotLink: CBPeripheralDelegate {
     public func peripheral(_ p: CBPeripheral,
                            didUpdateValueFor ch: CBCharacteristic,
                            error: Error?) {
-        guard error == nil, let data = ch.value else { return }
+        guard running, peripheral === p, error == nil, let data = ch.value else { return }
         switch ch.uuid {
         case UBotGATT.status:
             guard let s = UBotStatus(data) else {

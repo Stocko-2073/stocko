@@ -8,9 +8,13 @@ public enum DriveFault: UInt8, Sendable, CaseIterable {
     case encoder = 2
     case magnet = 3
     case peer = 4
+    case driver = 5
+    case unknown = 255
 
     public var title: String {
         switch self {
+        case .driver:  return "Motor driver"
+        case .unknown: return "Unknown fault"
         case .none:    return "No fault"
         case .slip:    return "Slip"
         case .encoder: return "Encoder"
@@ -21,6 +25,10 @@ public enum DriveFault: UInt8, Sendable, CaseIterable {
 
     public var detail: String {
         switch self {
+        case .driver:
+            return "A motor driver reported a power, communication, or temperature fault."
+        case .unknown:
+            return "The robot reported a fault this app does not recognize."
         case .none:
             return ""
         case .slip:
@@ -75,6 +83,8 @@ public struct UBotStatus: Equatable, Sendable {
         public static let batteryPresent = Flags(rawValue: 1 << 5)
     }
 
+    public var busyReason: String? = nil
+
     public let flags: Flags
     public let fault: DriveFault
     public let batteryMillivolts: UInt16
@@ -113,7 +123,7 @@ public struct UBotStatus: Equatable, Sendable {
         func i16(_ i: Int) -> Int16 { Int16(bitPattern: u16(i)) }
 
         flags                  = Flags(rawValue: b[0])
-        fault                  = DriveFault(rawValue: b[1]) ?? .none
+        fault                  = DriveFault(rawValue: b[1]) ?? .unknown
         batteryMillivolts      = u16(2)
         batteryPercent         = b[4]
         wheelATurnsPerSec      = Double(i16(5))  / 1000
