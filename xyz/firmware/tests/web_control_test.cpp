@@ -114,7 +114,7 @@ void testMesh() {
     assert(emitted[3]-Positions::saved.home[3]-WebControl::bedHeight(
       emitted[0]-Positions::saved.home[0],emitted[1]-Positions::saved.home[1])==-20);
   }
-  // Whole-hole arrows use both XY corrections plus bed Z; fine jogs remain raw.
+  // Whole-hole arrows follow bed Z; fine jogs restore the same raw Z.
   WebControl::server.args={{"op","jog"},{"axis","X"},{"holes","1"},{"client","test-browser-0001"}};
   WebControl::action(); assert(WebControl::server.code==200 && WebControl::travelRate==1000); run();
   int64_t x,y; WebControl::holeOffset(18,12,x,y);
@@ -483,6 +483,64 @@ void testCut() {
   delay(30000); loop(); assert(WebControl::idle() && !cutPhase);
   action("stop"); Serial.connected=connected;
 }
+// Observe actual emitted motion, including the take-up leg, rather than just
+// the final coordinates. No commanded point may cross the A1 travel limits.
+void runApproach(unsigned axes=3) {
+  int lastDirection[2]={};
+  int64_t previous[4]; Positions::snapshot(previous);
+  const int64_t z=WebControl::clearance;
+  bool atTakeup=false;
+  int iterations=0;
+  while (!WebControl::idle() && iterations++<30000) {
+    webHeartbeat=millis(); loop();
+    int64_t now[4]; Positions::snapshot(now);
+    for (int a=0;a<2;++a) {
+      if (now[a]!=previous[a]) {
+        lastDirection[a]=now[a]>previous[a] ? 1 : -1;
+        assert(now[3]==z); // All XY motion, including take-up, stays raised.
+      }
+      previous[a]=now[a];
+    }
+    assert(now[0]>=Positions::saved.home[0]);
+    assert(now[1]<=Positions::saved.home[1]);
+    if (now[0]==WebControl::approach[0] && now[1]==WebControl::approach[1]) atTakeup=true;
+  }
+  assert(WebControl::idle() && atTakeup);
+  assert(lastDirection[0]==((axes&1) ? -1 : 0));
+  assert(lastDirection[1]==((axes&2) ? 1 : 0));
+  for (int a : {0,1,3}) assert(emitted[a]==WebControl::target[a]);
+}
+void testApproach() {
+  action("stop"); action("mesh-clear"); action("home"); action("arm");
+  for (const char *hole : {"Z34","A1","M17","M17","A34","Z1","A1"}) {
+    WebControl::server.args={{"op","goto"},{"hole",hole},{"client","test-browser-0001"}};
+    WebControl::action(); assert(WebControl::server.code==200);
+    runApproach();
+  }
+  assert(action("mesh-start")==200);
+  assert(meshAction("mesh-go",4)==200); runApproach();
+  const int64_t z=emitted[3];
+  for (const char *axis : {"X","Y"}) for (const char *steps : {"10","-10"}) {
+    assert(action("jog",axis,steps)==200);
+    runApproach(axis[0]=='X' ? 1 : 2);
+    assert(emitted[3]==z);
+  }
+  assert(meshAction("mesh-save",4)==200);
+  // STOP in either XY leg must cancel the remaining approach/lower stages.
+  for (int stopStage : {1,2}) {
+    assert(meshAction("mesh-go",8)==200);
+    int ticks=0;
+    while (!(WebControl::stage==stopStage && lineRunning) && ticks++<30000) loop();
+    assert(ticks<30000);
+    action("stop"); int64_t stopped[4]; Positions::snapshot(stopped);
+    delay(1000); WebControl::service();
+    for (int m : {0,1,3}) assert(emitted[m]==stopped[m]);
+    assert(!presetRunning && !Positions::known);
+    action("reference"); action("arm");
+  }
+  action("mesh-cancel");
+}
+
 int main() {
   setup(); WiFi.state=WL_CONNECTED; Serial.connected=false;
   // A connected client that sends nothing is dropped after 400 ms, not the
@@ -550,7 +608,7 @@ int main() {
   assert(action("replace")==200);
   const int spindle=rises[D5];
   assert(action("go-home")==200);
-  WebControl::service(); assert(lineRunning && activeMotor>=0); // Already at higher Z: cross first.
+  WebControl::service(); assert(activeMotor==3); // Lift before taking up XY backlash.
   run(); assert(emitted[0]==100 && emitted[1]==0 && emitted[3]==0);
   assert(rises[D5]==spindle);
   assert(action("go-replace")==200);
@@ -586,10 +644,10 @@ int main() {
   WebControl::server.args={{"op","goto"},{"hole","Z2"},{"client","test-browser-0001"}};
   { const size_t y0=riseTimes[D3].size(); const int xPulses=rises[D1];
     WebControl::action(); assert(WebControl::server.code==200); run();
-    assert(rises[D1]==xPulses && emitted[1]==Positions::saved.home[1]-6350);
+    assert(rises[D1]==xPulses+200 && emitted[1]==Positions::saved.home[1]-6350);
     const uint32_t gap=riseTimes[D3][y0+2001]-riseTimes[D3][y0+2000];
-    assert(gap>=249 && gap<=251); }
-  { const int64_t z=emitted[3]; WebControl::action(); assert(WebControl::server.code==200 && WebControl::idle()); // Already there: no lift either.
+    assert(gap>=249 && gap<=252); }
+  { const int64_t z=emitted[3]; WebControl::action(); assert(WebControl::server.code==200 && !WebControl::idle()); // Re-establish the approach even at the same hole.
     run(); assert(emitted[3]==z); }
   WebControl::server.args={{"op","goto"},{"hole","B1"},{"client","test-browser-0001"}};
   WebControl::action(); assert(WebControl::server.code==200); run();
@@ -661,6 +719,7 @@ int main() {
   Positions::preferences.failWrite=false;
   // No dead-man's handle: a move completes with no polls at all and through
   // network loss. Idle motors are released after a minute without the page.
+  action("arm");
   WebControl::runCommand("JOG Y 2000 200");
   assert(activeMotor==1);
   const int64_t yBefore=emitted[1];
@@ -676,7 +735,7 @@ int main() {
     const int m=axisMotor[axisIndex(axis)];
     const int64_t start=emitted[m];
     assert(action("jog",axis,"1000")==200);
-    assert(stepIntervals[499]>=1000 && stepIntervals[499]<=1001); // 1,000 pulses/sec cruise.
+    if (m==3) assert(stepIntervals[499]>=1000 && stepIntervals[499]<=1001); // Raw Z jog cruise.
     run(); assert(emitted[m]==start+1000);
     assert(action("jog",axis,"-1000")==200);
     run(); assert(emitted[m]==start);
@@ -704,9 +763,8 @@ int main() {
   }
   WebControl::state(); assert(WebControl::server.body.find("\"known\":false")!=std::string::npos);
   // Preset distances exceed both manual jog caps and the 6,000-entry jog
-  // buffer. Verify every cruise gap across former chunk boundaries, XYZ in
-  // both directions, with only one start/stop per leg. X and Y share one
-  // diagonal line at 4,000 pulses/sec along the path: 4000/sqrt(2) per axis.
+  // buffer. Verify full XYZ distances in both directions, including take-up
+  // and the extra Z clearance on the return.
   assert(action("confirm")==200);
   auto preset = Positions::saved;
   constexpr int travel=7001;
@@ -723,13 +781,17 @@ int main() {
     assert(rises[D5]==spindleBefore);
     for (int m : {0,1,3}) {
       const auto &times=riseTimes[Config::stepPins[m]];
-      assert(times.size()-starts[m]==travel);
-      const int margin = m==3 ? 51 : 600; // Diagonal ramp: 800 path pulses.
-      for (int i=margin;i<travel-margin;++i) {
+      const bool returning=std::string(op)=="go-home";
+      const int extra=m==3 ? (returning ? 200 : 0) : ((m==0)!=returning ? 200 : 0);
+      assert(times.size()-starts[m]==size_t(travel+extra));
+      // The long crossing must still cruise continuously across the old
+      // 6,000-pulse chunk boundary. Unequal XY legs use Bresenham: the minor
+      // axis occasionally waits two major-axis ticks (about 349 us each).
+      for (int i=800;i<travel-800;++i) {
         const uint32_t gap=times[starts[m]+i]-times[starts[m]+i-1];
-        if (m==3) assert(gap>=1000 && gap<=1001); else assert(gap>=353 && gap<=355);
+        if (m==3) assert(gap>=1000 && gap<=1001);
+        else assert((gap>=348 && gap<=350) || (gap>=696 && gap<=700));
       }
-      if (m==0) assert(riseTimes[D1][starts[0]]==riseTimes[D3][starts[1]]); // Same tick.
       const int64_t expected=std::string(op)=="go-home" ? preset.home[m] : preset.replace[m];
       assert(emitted[m]==expected);
     }
@@ -739,6 +801,7 @@ int main() {
   assert(action("stop")==200);
   const int stoppedZ=rises[D9]; delay(1000);
   assert(rises[D9]==stoppedZ && !presetRunning && !Positions::known);
+  testApproach();
   testMesh();
   testCutSettings();
   testCut();

@@ -24,9 +24,15 @@ LeaseSafeServer server(80);
 char owner[65] = {};
 bool ownsControl() { return server.arg("client") == owner && owner[0]; }
 int stage = 0;
-int64_t target[4] = {}, clearance = 0;
+int64_t target[4] = {}, approach[2] = {}, clearance = 0;
 long travelRate = 4000;
-constexpr int order[] = {3, -1, 3}; // Z to clearance, one straight XY line, Z to target.
+constexpr int order[] = {3, -1, -1, 3}; // Lift, take-up point, approach toward A1, lower.
+constexpr int64_t approachDistance = 100; // 1 mm; requires clearance beyond Z34.
+void serviceTravel();
+void planApproach(unsigned axes=3) {
+  approach[0]=target[0]+((axes&1) ? approachDistance : 0);
+  approach[1]=target[1]-((axes&2) ? approachDistance : 0);
+}
 // Boards run A1 to Z34: 34 columns along +X and 26 rows along -Y at a nominal
 // 2.54 mm pitch, 254 pulses at the provisional 100 pulses/mm.
 constexpr long holePitch = 254, boardColumns = 34, boardRows = 26;
@@ -107,9 +113,10 @@ void planHole(const int64_t current[4], int64_t x, int64_t y, bool calibration=f
     }
     target[3]=clearance; // Approach an unmeasured point from above.
   }
+  planApproach();
   travelRate=rate; stage=0; presetRunning=true;
 }
-void planSaved(const int64_t *p, bool lift=false) {
+void planSaved(const int64_t *p, bool lift=true) {
   for (int i = 0; i < 4; ++i) target[i] = p[i];
   int64_t current[4]; Positions::snapshot(current);
   clearance = current[3] > target[3] ? current[3] : target[3];
@@ -119,6 +126,7 @@ void planSaved(const int64_t *p, bool lift=false) {
       if (safe>clearance) clearance=safe;
     }
   }
+  planApproach();
   travelRate=holeRate; stage = 0; presetRunning = true;
   // After a cut, lift before crossing even without a mesh.
   if (lift && current[3]+travelLift>clearance) clearance=current[3]+travelLift;
@@ -415,13 +423,23 @@ void action() {
     } else if (!number(pulses.c_str(), -Config::maxJogSteps[axisMotor[a]], Config::maxJogSteps[axisMotor[a]], steps) || !steps) {
       reply(400, "Invalid XYZ jog or pulse count."); return;
     }
+    if (a<2 && Positions::known && Positions::saved.homeSet) {
+      int64_t destination[4]; Positions::snapshot(destination);
+      destination[a]+=steps;
+      // Fine alignment keeps raw Z and the other XY coordinate. Lift during
+      // take-up so a calibration touch does not drag the tip across the bed.
+      planSaved(destination);
+      planApproach(1u<<a); travelRate=1000;
+      serviceTravel(); // Start now so storage failures are reported by this request.
+      reply(presetRunning ? 200:503, presetRunning ? "Moving with approach toward A1.":"Unable to start the move; check position storage."); return;
+    }
     char text[64]; snprintf(text, sizeof(text), "JOG %s %ld 1000", axis.c_str(), steps);
     runCommand(text);
     reply(activeMotor >= 0 ? 200:503, activeMotor >= 0 ? "Moving.":"Unable to start the move; check position storage."); return;
   }
   if (op == "goto") {
-    // A named hole on the calibrated grid: lift, cross in a straight XY
-    // line, then restore the starting bed-relative height (raw Z without mesh).
+    // A named hole on the calibrated grid: lift, take up toward A1,
+    // then restore the starting bed-relative height (raw Z without mesh).
     long col, row;
     if (!parseHole(server.arg("hole").c_str(), col, row)) {
       reply(400, "That hole is off the board. Holes run A1 to Z34."); return;
@@ -429,7 +447,6 @@ void action() {
     if (!Positions::known || !Positions::saved.homeSet) { reply(409, "Set A1 and confirm the position first."); return; }
     int64_t x, y; holeOffset(col, row, x, y);
     int64_t current[4]; Positions::snapshot(current);
-    if (Positions::saved.home[0] + x == current[0] && Positions::saved.home[1] + y == current[1]) { reply(200, "Already at that hole."); return; }
     planHole(current,x,y);
     reply(200, "Moving to hole with travel clearance."); return;
   }
@@ -461,6 +478,31 @@ void checkConnection() {
     disableMotors(); disableReason = "Control page away for 60 s";
   }
 }
+void serviceTravel() {
+  if (!presetRunning || activeMotor >= 0) return;
+  if (!armed || !Positions::known || !Positions::commissioned()) { disableMotors(); return; }
+  int64_t current[4]; Positions::snapshot(current);
+  while (stage < 4) {
+    const int m = order[stage];
+    if (m < 0) {
+      // Both axes together at the hole-travel rate, like Go to hole.
+      const int64_t *xy = stage==1 ? approach : target;
+      const int64_t dx = xy[0]-current[0], dy = xy[1]-current[1];
+      if (!dx && !dy) { ++stage; continue; }
+      if (!startXYLine(dx, dy, travelRate)) { disableMotors(); disableReason = "Unable to start saved move"; }
+      return;
+    }
+    const int64_t destination = stage == 0 ? clearance : target[m];
+    const int64_t delta = destination-current[m];
+    if (!delta) { ++stage; continue; }
+    // One profile covers the entire Z leg, independent of manual jog caps.
+    if (!startPresetAxis(m, delta)) {
+      disableMotors(); disableReason = "Unable to start saved move";
+    }
+    return;
+  }
+  presetRunning = false;
+}
 void service() {
   server.service();
   checkConnection();
@@ -488,27 +530,6 @@ void service() {
       return;
     }
   }
-  if (!presetRunning || activeMotor >= 0) return;
-  if (!armed || !Positions::known || !Positions::commissioned()) { disableMotors(); return; }
-  int64_t current[4]; Positions::snapshot(current);
-  while (stage < 3) {
-    const int m = order[stage];
-    if (m < 0) {
-      // Both axes together at the hole-travel rate, like Go to hole.
-      const int64_t dx = target[0]-current[0], dy = target[1]-current[1];
-      if (!dx && !dy) { ++stage; continue; }
-      if (!startXYLine(dx, dy, travelRate)) { disableMotors(); disableReason = "Unable to start saved move"; }
-      return;
-    }
-    const int64_t destination = stage == 0 ? clearance : target[m];
-    const int64_t delta = destination-current[m];
-    if (!delta) { ++stage; continue; }
-    // One profile covers the entire Z leg, independent of manual jog caps.
-    if (!startPresetAxis(m, delta)) {
-      disableMotors(); disableReason = "Unable to start saved move";
-    }
-    return;
-  }
-  presetRunning = false;
+  serviceTravel();
 }
 }

@@ -50,7 +50,7 @@ mesh is active; without a mesh, it shows height relative to A1.
 Before crossing, the tip lifts to at least the highest mesh point plus its
 current bed-relative offset plus 1 mm. This covers interior humps as well as
 the endpoints. If the tip is more than 1 mm deep, raise it before travelling.
-The straight XY crossing does not cut along the surface; Z compensation sets
+The raised XY crossing and final approach do not cut along the surface; Z compensation sets
 the destination height after travel. Only the explicit **Cut** and **Cut All** actions turn
 the spindle; jogs and travel leave it stationary.
 
@@ -58,9 +58,21 @@ Whole-hole arrows move from the nearest hole to the selected neighbour and
 retain any fine XY offset. With a mesh, they can move both X and Y and follow
 the bed in Z, using the same lift/cross/lower sequence at the slower arrow
 speed. Whole-hole steps beyond A1–Z34 are refused while a mesh is active.
-**1 mm / 0.1 mm XY jogs and all Z jogs remain direct, single-axis movements**,
-so they can be used to measure and fine-align points. Fine XY jogs keep raw Z
-unchanged. Away from the board, bed height is held at the nearest edge in
+**Referenced XY moves finish toward A1** (raw −X, +Y). The planner lifts Z,
+moves to a point 1 mm beyond the target away from A1, approaches the target,
+and lowers. Named holes, saved positions, Cut All, its return/cancellation,
+and calibration Go all use this sequence. Fine XY jogs take up only the
+selected axis and restore the starting raw Z; this keeps calibration fine
+adjustments consistent. All Z jogs remain direct.
+
+A1 is at the travel limit, so take-up is on the opposite side: at least 1 mm
+of travel beyond row Z and column 34 is required (confirmed on this machine).
+The take-up distance is 100 pulses at the provisional 100 pulses/mm, not a
+measured backlash value. Recalibrate after installing this change: clear the
+old mesh, align A1 moving toward its stops, then measure the nine points.
+Unknown-position web jogs and USB commissioning jogs remain direct; finish
+manual homing by moving right/back toward A1 before saving its reference.
+Away from the board, bed height is held at the nearest edge in
 board coordinates; it is never extrapolated in Z.
 
 The mesh uses bilinear interpolation in four cells with columns **1, 17, 34**
@@ -79,14 +91,15 @@ active mesh. To recapture the draft's A1, use **Restart at A1**.
 its XY offset from A1; intermediate holes interpolate per axis between those
 two corners. This legacy control is disabled while a mesh or draft exists.
 Without a mesh, hole travel lifts 1 mm and returns to its starting raw Z;
-whole-hole arrows remain single-axis moves. The nominal full-board span is
+whole-hole arrows also lift and take up their selected axis once referenced. The nominal full-board span is
 8,382 pulses along +X and −6,350 along Y at the provisional 100 pulses/mm.
 
 Hole crossings run at 4,000 pulses/sec along the XY path, whole-hole arrow
 crossings at 1,000 pulses/sec, and Z legs at 1,000 pulses/sec, with existing
 acceleration and motor rate caps. Raw millimetre jogs retain the per-move jog
-caps. The two XY motors share one straight-line profile. A request for the
-hole already under the drill does nothing, including no lift.
+caps. The two XY motors share a straight-line profile for each XY leg.
+Requesting the current hole repeats the lift and approach to establish the
+same final loading direction, even if its coordinates have not changed.
 
 A1, the active mesh, draft measurements, legacy Z34 span, swap position and
 last completed position are stored in NVS separately from Wi-Fi credentials.

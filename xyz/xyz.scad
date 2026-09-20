@@ -130,7 +130,7 @@ module y_carriage(anchor=BOT,spin=0,orient=UP) {
                     xx=53.5;
                     right(xx) xflip_copy() left(xx) down(54) {
                         cuboid([4+1.5,y-4,9.5],anchor=LEFT+TOP);
-                        tag("remove") right(4-$slop) down(1) cuboid([4+1.5,y-4,9],chamfer=2,edges="Y",anchor=LEFT+TOP);
+                        tag("remove") right(4) down(1) cuboid([4+1.5,y-4,9],chamfer=2,edges="Y",anchor=LEFT+TOP);
                     }
                     right(101.5) {
                         cuboid([5.5,y-4,54],anchor=LEFT+TOP,chamfer=1,edges=[TOP+FWD,TOP+BACK]);
@@ -143,7 +143,7 @@ module y_carriage(anchor=BOT,spin=0,orient=UP) {
                     // ycyl(d=d,h=7,anchor=LEFT+BACK);
                     cuboid([d,7,54-1],rounding=8,edges=[BOT+RIGHT],anchor=LEFT+BACK+BOT);
                 }
-                tag("remove") right(5.5) cuboid([93.5,40,60-ep*2],anchor=LEFT);
+                tag("remove") right(5.5) cuboid([96,40,60-ep*2],anchor=LEFT);
             }
         }
         children();

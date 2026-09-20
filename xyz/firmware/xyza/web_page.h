@@ -61,7 +61,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div class="ref"><span id="referenceNote"></span><span class="badge" id="refBadge">Position unknown</span></div>
 <div class="actions" id="refActions"><button id="confirm" data-op="confirm">Nothing moved since power-off</button><button id="reference" data-op="reference">Drill is above A1</button></div>
 <div class="gate" id="gate"><span id="gateText"></span><button class="primary" id="arm" data-op="arm">Motors on</button><button id="disarm" data-op="stop" title="Turn the motors off; the drill may settle under gravity">Motors off</button></div>
-<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Lift 1 mm → travel straight → lower 1 mm.</p></div>
+<div class="goto"><label for="hole"><b>Go to hole</b></label><input id="hole" placeholder="D12" autocomplete="off" spellcheck="false" maxlength="4"><button id="go" class="primary">Go</button><p class="hint" id="goHint">Lift → approach toward A1 → lower.</p></div>
 <h2 style="margin-top:26px">Move</h2>
 <div class="move">
 <div class="seg xy" role="radiogroup" aria-label="Move across the board by"><label><input type="radio" name="xy" value="1h" checked>1 hole<small>2.54 mm</small></label><label><input type="radio" name="xy" value="3h">3 holes<small>7.62 mm</small></label><label><input type="radio" name="xy" value="100">1 mm<small>fine</small></label><label><input type="radio" name="xy" value="10">0.1 mm<small>fine</small></label></div>
@@ -92,7 +92,7 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <div id="meshEditor" hidden>
 <div class="mesh-grid" id="meshGrid" role="group" aria-label="Calibration points, columns increase left"></div>
 <div class="actions"><button id="mesh-go">Go to A17</button><button id="mesh-save">Save A17</button></div>
-<p class="hint">Go stays raised. Fine-jog to the hole and touch the surface; Save.</p>
+<p class="hint">Go stays raised. XY adjustments finish toward A1 with 1 mm take-up. Fine-align, touch the surface, then Save.</p>
 <div class="actions"><button class="primary" id="mesh-apply" data-op="mesh-apply">Apply mesh</button><button id="mesh-cancel" data-op="mesh-cancel">Cancel</button></div>
 </div></section>
 <section class="card" style="margin-top:20px"><h2>Cut a list</h2>
@@ -103,10 +103,10 @@ details{margin-top:20px;padding:0 4px;color:var(--muted);font-size:14px}summary{
 <p class="hint" id="batchHint" role="status">Enter up to 884 coordinates, A1–Z34.</p>
 </section>
 <details><summary><span class="warn">No limit switches.</span> Check travel & clearance before moving.</summary>
-<p><b>Travel:</b> A1 and Swap board use the higher endpoint height. Hole moves (A1–Z34) lift 1 mm and return to the starting height. Travel is straight, at 4× arrow speed. XY arrows keep the current height. Only Cut and Cut All run the spindle.</p>
+<p><b>Travel:</b> After referencing, XY travel lifts at least 1 mm and finishes toward A1 with 1 mm of take-up from the opposite side. Hole travel runs at 4× arrow speed. Fine XY arrows restore the starting height. Only Cut and Cut All run the spindle.</p>
 <p><b>Position:</b> Estimated from steps at a provisional 100 steps/mm. Default pitch is 2.54 mm; setting Z34 calibrates the grid between A1 and Z34. A1, Z34 and swap are saved on the controller.</p>
-<p><b>Mesh:</b> Touch the A1 surface, then Start at A1. Measure all nine XYZ points at the same tip contact height and Apply mesh. Hole travel and whole-hole steps interpolate XYZ and preserve height above the bed, lifting over the highest mesh point first. Millimetre jogs stay manual. Outside the board, bed height holds at the nearest mesh edge. A1 and swap travel to their saved heights.</p>
-<p><b>Re-home:</b> Align XYZ with A1 at the original tip height, then confirm or set A1. The mesh is kept; setting A1 cancels any unfinished calibration.</p>
+<p><b>Mesh:</b> Touch the A1 surface, then Start at A1. Measure all nine XYZ points at the same tip contact height and Apply mesh. Hole travel and whole-hole steps interpolate XYZ and preserve height above the bed, lifting over the highest mesh point first. Fine XY jogs also take up backlash, then restore raw Z. Z jogs stay direct. Outside the board, bed height holds at the nearest mesh edge. A1 and swap travel to their saved heights.</p>
+<p><b>Re-home:</b> With position unknown, jogs are direct: finish XY alignment moving right/back toward A1, at the original tip height, then confirm or set A1. The mesh is kept; setting A1 cancels any unfinished calibration.</p>
 <p><b>Recovery:</b> After reboot, confirm nothing moved or return above A1 and confirm there. After interrupted motion, return to A1 and confirm again.</p>
 <p><b>Stopping:</b> STOP / Esc cancels motion and disables motors; use the machine’s emergency stop for safety. Losing connection does not stop a move. Idle motors switch off after 60 s without this page.</p></details>
 </aside>
@@ -174,13 +174,13 @@ $('mesh-go').textContent='Go to '+meshNames[meshPoint];$('mesh-save').textConten
 $('mesh-go').disabled=travel||!s.calibrating;$('mesh-save').disabled=blocked||!s.known||!s.calibrating||meshPoint===0;
 $('mesh-apply').disabled=blocked||!s.known||!s.calibrating||s.draftMask!==511;
 meshButtons.forEach((b,i)=>{b.textContent=((s.draftMask||0)&(1<<i)?'✓ ':'')+meshNames[i];b.setAttribute('aria-pressed',String(i===meshPoint));});
-$('goHint').textContent=s.meshSet?'Lift → travel → follow bed height.':parseHole($('hole').value)?'Lift 1 mm → '+$('hole').value.toUpperCase()+' → lower 1 mm.':'Lift 1 mm → travel straight → lower 1 mm.';
+$('goHint').textContent=s.meshSet?'Lift → approach toward A1 → follow bed height.':'Lift → approach toward A1 → lower.';
 $('a1Info').textContent=s.homeSet?'Top-right hole · corner stops':'Not set · align with A1, then set here.';
 const pitch=(p,n)=>(Math.abs(p)/n/PPM).toFixed(3)+' mm';
 $('spanInfo').textContent=s.meshSet?'Position from 3×3 mesh':s.spanSet?'Pitch: '+pitch(s.span[0],COLS-1)+' across · '+pitch(s.span[1],ROWS-1)+' forward':'Default pitch: 2.54 mm. Go to Z34, fine-align, then set here.';
 const r=s.replaceSet?grid(s.replace):null,rz=s.replace[2];
 $('swapInfo').textContent=r?'Park: '+(r.on&&r.name?r.name:mm(s.replace[0])+' left, '+mm(-s.replace[1])+' forward of A1')+', '+mm(Math.abs(rz))+(rz<0?' below':' above')+' A1.':'Not set · raise drill, move board clear, then set here.';
-$('savedHint').textContent=!s.homeSet?'':!s.known?'Confirm position to save or travel.':!s.webArmed?'Enable motors to travel.':s.meshSet?'Travel lifts over the mesh. Fine mm jogs stay manual.':'Travel clearance: A1 / swap = higher endpoint · Z34 = +1 mm.';
+$('savedHint').textContent=!s.homeSet?'':!s.known?'Confirm position to save or travel.':!s.webArmed?'Enable motors to travel.':'XY lifts and takes up 1 mm toward A1 before lowering.';
 }
 function say(text,error){const m=$('message');m.textContent=text;m.className='show'+(error?' err':'');clearTimeout(hideTimer);if(!error)hideTimer=setTimeout(()=>{m.className='';},3500);}
 async function post(op,extra={}){const response=await fetch('/api/action',{method:'POST',headers:{'X-XYZ-Control':'1','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({op,client,...extra}),signal:AbortSignal.timeout(1200)});const text=await response.text();if(!response.ok)throw Error(text);return text;}
