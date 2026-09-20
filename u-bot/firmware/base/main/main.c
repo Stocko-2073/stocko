@@ -19,23 +19,6 @@
 
 static const char *TAG = "main";
 
-static void confirm_image(void) {
-    // With rollback enabled the bootloader boots a fresh OTA image exactly
-    // once as "pending verify". Getting this far -- drivers probed, console
-    // up, radios started -- is the self-test; anything that crashes before
-    // here leaves the previous image to boot next time.
-    const esp_partition_t *running = esp_ota_get_running_partition();
-    esp_ota_img_states_t state;
-    if (running && esp_ota_get_state_partition(running, &state) == ESP_OK &&
-        state == ESP_OTA_IMG_PENDING_VERIFY) {
-        if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) {
-            ESP_LOGI(TAG, "new firmware %s confirmed valid on %s", sysinfo_fw_version(), running->label);
-        } else {
-            ESP_LOGE(TAG, "could not mark this image valid -- it will roll back on reboot");
-        }
-    }
-}
-
 void app_main(void) {
     drive_park_en();
 
@@ -48,18 +31,20 @@ void app_main(void) {
              sysinfo_serial(), sysinfo_reset_reason());
 
     if (drive_init() != ESP_OK) ESP_LOGE(TAG, "drive did not start -- nothing will move");
+    net_ota_health_prepare();
     if (battery_init() != ESP_OK) ESP_LOGE(TAG, "battery sense did not start");
 
     // The console before the radios: a bad WiFi config or a BLE stack that
     // refuses to start must never lock us out of the serial port.
+    bool services_ready = true;
     if (console_start() != ESP_OK) ESP_LOGE(TAG, "console did not start");
 
 #if CONFIG_UBOT_BLE_ENABLE
-    if (ble_init() != ESP_OK) ESP_LOGE(TAG, "BLE did not start");
+    if (ble_init() != ESP_OK) { services_ready=false; ESP_LOGE(TAG, "BLE did not start"); }
 #else
     ESP_LOGW(TAG, "BLE disabled for Wi-Fi-only diagnostics");
 #endif
-    if (net_init() != ESP_OK) ESP_LOGE(TAG, "network did not start");
+    if (net_init() != ESP_OK) { services_ready=false; ESP_LOGE(TAG, "network did not start"); }
 
-    confirm_image();
+    net_ota_health_start(services_ready);
 }

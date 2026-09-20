@@ -1,0 +1,26 @@
+[
+  {
+    "test": "concurrent-upload",
+    "status": 409,
+    "passed": true
+  },
+  {
+    "test": "ota-motion-refusal",
+    "transport": "--wifi",
+    "code": 1,
+    "passed": true,
+    "output": "refused: motion or update already active\naccepted job 5\ncommand failed (exit 1)\n"
+  },
+  {
+    "test": "ota-motion-refusal",
+    "transport": "--ble",
+    "code": 1,
+    "passed": true,
+    "output": "refused: motion or update already active\naccepted job 6\ncommand failed (exit 1)\n"
+  },
+  {
+    "test": "corrupt-upload",
+    "status": 409,
+    "passed": true
+  }
+]

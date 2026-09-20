@@ -16,7 +16,7 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
 
 # OTA: a new image boots once as "pending verify" and is rolled back by the
 # bootloader unless the app marks itself valid. main.c does that once the
-# whole boot sequence has run.
+# management health check confirms the expected candidate.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 
 # --- console: the XIAO's USB port is the S3's native USB Serial/JTAG --------
@@ -83,3 +83,9 @@ CONFIG_BT_NIMBLE_SVC_DIS_SERIAL_NUMBER=y
 # The drive stack is C++ without exceptions or RTTI.
 CONFIG_COMPILER_CXX_EXCEPTIONS=n
 CONFIG_COMPILER_CXX_RTTI=n
+
+# OTA sends small HTTPS GET requests; retain full-size incoming TLS records.
+CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=1024
+
+# Management request parsing and acknowledged indications share the host stack.
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192

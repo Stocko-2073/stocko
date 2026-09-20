@@ -98,3 +98,10 @@ const char *sysinfo_ota_state(void) {
 }
 
 uint32_t sysinfo_uptime_s(void) { return (uint32_t)(esp_timer_get_time() / 1000000); }
+
+void sysinfo_image_id(char out[65]) {
+    const volatile uint8_t *bytes=esp_app_get_description()->app_elf_sha256;
+    const char *digits="0123456789abcdef";
+    for(int i=0;i<32;i++){out[2*i]=digits[bytes[i]>>4];out[2*i+1]=digits[bytes[i]&15];}
+    out[64]=0;
+}

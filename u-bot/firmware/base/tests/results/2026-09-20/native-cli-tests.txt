@@ -1,0 +1,13 @@
+test_acceptance_is_not_completion (__main__.CLIContract.test_acceptance_is_not_completion) ... ok
+test_explicit_ota_timeout (__main__.CLIContract.test_explicit_ota_timeout) ... ok
+test_json_and_credential_arguments (__main__.CLIContract.test_json_and_credential_arguments) ... ok
+test_lost_connection (__main__.CLIContract.test_lost_connection) ... ok
+test_paginated_retained_result (__main__.CLIContract.test_paginated_retained_result) ... ok
+test_refusal_exit (__main__.CLIContract.test_refusal_exit) ... ok
+test_timeout (__main__.CLIContract.test_timeout) ... ok
+test_unsupported (__main__.CLIContract.test_unsupported) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.617s
+
+OK

@@ -31,6 +31,14 @@ unsigned ulog_dropped(void);
 esp_err_t ulog_set_level(const char *tag, const char *level);
 const char *ulog_level_name(int level);
 
+// Cursor is the last sequence consumed; records exist independently of subscribers.
+#include <stdint.h>
+void ulog_set_boot(const char *boot);
+const char *ulog_previous_boot(void);
+const char *ulog_previous_panic(void);
+bool ulog_read(uint32_t *cursor, char *out, size_t len, uint32_t *lost);
+bool ulog_previous_read(uint32_t *cursor, char *out, size_t len, uint32_t *lost);
+
 #ifdef __cplusplus
 }
 #endif

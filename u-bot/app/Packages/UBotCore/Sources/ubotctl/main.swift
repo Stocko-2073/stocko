@@ -23,11 +23,21 @@ setvbuf(stdout, nil, _IOLBF, 0)
 
 let args = Array(CommandLine.arguments.dropFirst())
 let command = args.first ?? "status"
+if ManagementCLI.commands.contains(command) { ManagementCLI(arguments: args).run() }
 
 func usage() -> Never {
     FileHandle.standardError.write(Data("""
     usage: ubotctl <command> [--wifi <hostname-or-IP>]
 
+      exec <command...>     execute firmware command (physical units)
+      shell                 interactive management shell
+      diagnostics           status, heap, timing, boot and retained logs
+      logs [sequence]       follow retained logs
+      stream [hz]           CSV telemetry subscription
+      jobs [result|cancel ID] list or inspect jobs
+      wifi [scan|set|reconnect|clear] network management
+      ota [source URL|check|install [URL]|upload FILE.bin]
+        management options: --wifi HOST | --ble NAME, --json, --timeout SEC, --deadline MS
       selftest              decode/encode vectors, no radio
       scan                  find robots and print what they advertise
       status                stream status at 5 Hz until interrupted
@@ -158,25 +168,45 @@ final class Runner: @unchecked Sendable {
     var firmware = "?"
     var rowCount = 0
     var announced = false
+    let finite = !["scan", "status"].contains(command)
 
     func begin(_ onReady: @escaping () -> Void) {
+        if finite {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [self] in
+                if !announced { exit(124) }
+            }
+        }
         link.onEvent = { [self] event in
             switch event {
             case .state(let s):
                 FileHandle.standardError.write(Data("[\(s.summary)]\n".utf8))
+                if finite {
+                    switch s {
+                    case .unsupported, .unauthorized: exit(3)
+                    case .failed: exit(4)
+                    default: if announced && !s.isReady { exit(4) }
+                    }
+                }
                 if s.isReady, !announced { announced = true; onReady() }
             case .status(let s):
                 lastStatus = s
+                if command == "drive" && (!s.isEnabled || s.isFaulted) {
+                    FileHandle.standardError.write(Data("drive refused: drivers disabled or faulted\n".utf8))
+                    exit(1)
+                }
             case .firmware(let f):
                 firmware = f
             case .model(let m):
                 FileHandle.standardError.write(Data("[model \(m)]\n".utf8))
             case .controlAccepted(let op):
                 print("accepted: \(op.title)")
+                if finite && command != "drive" { exit(0) }
             case .message(let message):
                 print(message)
+                if command == "drive" && message.hasPrefix("Drive refused:") { exit(1) }
             case .controlRefused(let op, let why):
                 print("REFUSED: \(op.title) -- \(why)")
+                if finite { exit(1) }
             case .linkQuality(let w, let d, let e):
                 if d > 0 || e > 0 {
                     FileHandle.standardError.write(
@@ -249,13 +279,14 @@ case "enable", "disable", "stop", "estop", "clear":
         runner.link.send(op)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             runner.printStatusLine()
-            exit(0)
+            exit(124)
         }
     }
 
 case "drive":
     guard args.count >= 4,
-          let v = Double(args[1]), let w = Double(args[2]), let secs = Double(args[3])
+          let v = Double(args[1]), let w = Double(args[2]), let secs = Double(args[3]),
+          v.isFinite, w.isFinite, secs.isFinite, secs > 0, secs <= 3600
     else { usage() }
     print("driving v=\(v) w=\(w) for \(secs)s -- ^C releases")
     runner.begin {

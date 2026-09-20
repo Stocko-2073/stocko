@@ -32,6 +32,9 @@ esp_err_t settings_set_f32(const char *key, float v);
 int32_t settings_get_i32(const char *key, int32_t def);
 esp_err_t settings_set_i32(const char *key, int32_t v);
 
+bool settings_get_blob(const char *key, void *out, size_t len);
+esp_err_t settings_set_blob(const char *key, const void *value, size_t len);
+
 bool settings_exists(const char *key);
 esp_err_t settings_erase(const char *key);
 esp_err_t settings_erase_all(void);

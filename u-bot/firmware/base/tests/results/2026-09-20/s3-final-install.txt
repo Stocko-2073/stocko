@@ -1,0 +1,107 @@
+accepted job 3
+ota: rollback: confirmation timeout
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+accepted job 4
+ota: checking manifest
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: checking manifest
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: checking manifest
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 1%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 7%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 13%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 17%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 23%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 31%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 37%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 43%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 48%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 55%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 61%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 66%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 70%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 73%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 76%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 80%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 81%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 84%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 88%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 92%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: writing 97%
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback unavailable
+ota: written; rebooting for verification
+available: 0.2.7 (running 0.2.7)
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_0 (valid); verified fallback available
+reconnecting to verify candidate
+accepted job 1
+verified and confirmed 0.2.7

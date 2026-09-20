@@ -1,0 +1,60 @@
+accepted job 3
+boot 1bee842de4b34ed8; reset panic; firmware 0.2.5; OTA confirmed version=0.2.5 image=bd1da7b2e3343f927b4a58e18c2dc039c0dbc5a35a070c6d49b20c25c12a8b9a; previous boot 3920b79ad1ba14c8
+previous panic: core 0 exception 4 address 0x403838fc ***ERROR*** A stack overflow in task nimble_host has been detected.
+ubot_base 0.2.5, built Sep 20 2026 16:17:54, IDF v6.1
+hardware rev A, serial 64E833512A70, mac 64:e8:33:51:2a:70, name ubot
+running ota_1 (valid), reset: panic, up 26 s
+drive: drivers disabled, faults none, control worst 11703 us of 5000 us, bus writes 16, echo faults 0
+  command: idle v 0.000 m/s w 0.000 rad/s; limits 0.203 m/s, 1.54 rad/s
+  frame: sign_a +1 sign_b -1, wheel A is right, track 0.263 m, wheel 0.6754 m/turn
+  wheel A: driver configured, disabled, loop open, fault none
+    pos 0.0002 turns  target 0.0000  err -1 counts  slip -1 steps  vel 0.007 turns/s  rate 0 sps
+    current 1160/552 mA RMS run/hold (nominal); driver sample ok age 143 ms, GSTAT 0x00 DRV_STATUS 0x80090000
+    encoder ok, raw 959, magnet ok, agc 128 (aim ~64), worst read 3900 us
+    shaft normal, clock gain 1.0163 (stored), kp 16.0 vmax 0.30 turns/s accel 1.0 decel 2.0 turns/s^2
+  wheel B: driver configured, disabled, loop open, fault none
+    pos 0.0000 turns  target 0.0000  err 0 counts  slip 0 steps  vel 0.000 turns/s  rate 0 sps
+    current 1160/552 mA RMS run/hold (nominal); driver sample ok age 393 ms, GSTAT 0x00 DRV_STATUS 0x80090000
+    encoder ok, raw 3722, magnet WEAK, agc 128 (aim ~64), worst read 7666 us
+    shaft INVERTED, clock gain 1.0097 (stored), kp 16.0 vmax 0.30 turns/s accel 1.0 decel 2.0 turns/s^2
+battery: 13.11 V, 43% (pin 1179 mV)
+wifi: connected, ip 192.168.1.157, rssi -48 dBm, credential trial idle
+websocket: serving, 0 clients
+ota: confirmed
+ble: advertising as "ubot", addr 64:e8:33:51:2a:72, 0 connections
+heap free 76932, min ever 72824, largest block 34816
+control: worst tick 11703 us of 5000 us over 5192 ticks; bus writes 16, echo faults 0
+wheel A: worst encoder read 3900 us
+wheel B: worst encoder read 7666 us
+log lines dropped (host not reading): 0
+previous log: I (1168) wifi_init: WiFi RX IRAM OP enabled
+
+previous log: I (1177) ws: serving http://ubot.local/ and ws://ubot.local/ws
+
+previous log: I (1186) main_task: Returned from app_main()
+
+previous log: I (4920) esp_netif_handlers: sta ip: 192.168.1.157, mask: 255.255.255.0, gw: 192.168.1.1
+
+previous log: W (7719) httpd_txrx: httpd_sock_err: error in recv : 104
+
+previous log: W (7720) httpd_ws: httpd_ws_get_frame_type: Failed to read header byte (socket FD invalid), closing socket now
+
+previous log: I (44517) ble: connected (handle 1), 1 total
+
+previous log: I (46651) ota: manifest request: heap 65876, stack reserve 12744
+
+previous log: I (47125) esp-x509-crt-bundle: Certificate validated
+
+previous log: I (48061) ota: manifest validated: heap 64664, stack reserve 7992
+
+previous log: I (48062) ota: motor interlock acquired: heap 64664, stack reserve 7992
+
+previous log: I (48064) ota: image request: heap 64536, stack reserve 7992
+
+previous log: I (48356) esp-x509-crt-bundle: Certificate validated
+
+previous log: I (49309) ota: image connected: heap 31376, stack reserve 7992
+
+previous log: I (49703) ota: image header validated: heap 30612, stack reserve 7992
+
+previous log: I (53121) ota: OTA slot ready: heap 27572, stack reserve 7992

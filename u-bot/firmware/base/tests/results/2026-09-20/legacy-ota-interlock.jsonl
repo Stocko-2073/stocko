@@ -1,0 +1,2 @@
+{"test": "legacy-enable-refused-during-ota", "transport": "wifi", "code": 1, "output": "REFUSED: Enable motors -- firmware update in progress\n[Connecting\u2026]\n[Connected]\n"}
+{"test": "legacy-enable-refused-during-ota", "transport": "ble", "code": 1, "output": "REFUSED: Enable motors -- The robot would not enable the motors. A driver may not be answering on the bus, or a calibration is running. Check motor power.\n[Connecting\u2026]\n[Connecting\u2026]\n[Connected]\n"}

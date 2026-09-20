@@ -124,3 +124,13 @@ void settings_dump(settings_visit_fn visit, void *arg) {
     }
     nvs_release_iterator(it);
 }
+
+bool settings_get_blob(const char *key,void *out,size_t len) {
+    size_t actual=len;
+    return s_nvs && nvs_get_blob(s_nvs,key,out,&actual)==ESP_OK && actual==len;
+}
+esp_err_t settings_set_blob(const char *key,const void *value,size_t len) {
+    if(!s_nvs)return ESP_ERR_INVALID_STATE;
+    esp_err_t err=nvs_set_blob(s_nvs,key,value,len);
+    return err==ESP_OK?nvs_commit(s_nvs):err;
+}

@@ -5,3 +5,9 @@ sdkconfig.old
 .clangd
 compile_commands.json
 .ota_config
+
+# Private pre-bootstrap flash/NVS backups
+.recovery/
+
+__pycache__/
+.venv-publish/

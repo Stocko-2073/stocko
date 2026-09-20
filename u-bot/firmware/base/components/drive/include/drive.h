@@ -94,6 +94,11 @@ void drive_park_en(void);
 // bench. Fails only if the control task cannot be created.
 esp_err_t drive_init(void);
 
+// Claim under the motor mutex; only the command worker may mutate while owned.
+esp_err_t drive_maintenance_claim(bool ota);
+bool drive_maintenance_release(bool ota);
+void drive_maintenance_cancel(void);
+
 // --- power -------------------------------------------------------------------
 
 // Energise both drivers (VACTUAL zeroed on each BEFORE the shared EN drops) or

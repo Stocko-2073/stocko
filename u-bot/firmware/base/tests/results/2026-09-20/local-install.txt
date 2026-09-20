@@ -1,0 +1,38 @@
+uploading 1445712 bytes
+ota: failed: interrupted upload or invalid image
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 9%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 19%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 30%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 40%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 50%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 60%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 71%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 84%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+ota: writing 95%
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback unavailable
+image written; awaiting reboot and confirmation
+ota: written; rebooting for verification
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback available
+reconnecting to verify candidate
+accepted job 1
+verified and confirmed 0.2.7

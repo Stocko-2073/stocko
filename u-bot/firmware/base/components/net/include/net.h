@@ -15,6 +15,9 @@ extern "C" {
 esp_err_t net_init(void);
 
 esp_err_t net_wifi_set(const char *ssid, const char *pass);
+bool net_wifi_trial_busy(void);
+int net_wifi_trial_result(void);
+void net_wifi_trial_cancel(void);
 esp_err_t net_wifi_clear(void);
 esp_err_t net_wifi_reconnect(void);
 // Runtime diagnostic; boot defaults to no modem sleep for responsive control.
@@ -36,18 +39,12 @@ typedef struct {
 void net_get_status(net_status_t *out);
 bool net_connected(void);
 
-// OTA over HTTPS with the built-in certificate bundle (covers Amazon's roots,
-// so an S3 URL works as-is). The stored `ota_url` is the bucket base that
-// ota_provisioning.sh prints; firmware.bin and version.txt live under it.
-//
-// net_ota_start(NULL) installs <base>/firmware.bin unconditionally (a full
-// .bin URL is also accepted). net_ota_check(install) reads <base>/version.txt
-// and compares it with the running version; with install=true it goes on to
-// install a newer one, with install=false it only records it, readable via
-// net_ota_available(). Installing disables the drivers before writing flash
-// and reboots on success; a bad image rolls back on its own. With the
-// `ota_auto` setting non-zero, a check-and-install runs every time WiFi
-// connects. All of these return at once; the work is on its own task.
+// HTTPS release manifests and local /ota uploads share one streaming writer.
+// start(NULL) loads <ota_url>/manifest.json; an explicit URL must name a
+// manifest, never an unverified bare .bin. check(false) only discovers.
+// Installation locks out motion, verifies metadata/hash and boots pending.
+// The updater must confirm the expected identity within 120 seconds.
+// All transfers are asynchronous. Automatic installation is disabled.
 esp_err_t net_ota_start(const char *url);
 esp_err_t net_ota_check(bool install);
 const char *net_ota_available(void);   // newer version seen in the bucket, or ""
@@ -55,8 +52,13 @@ bool net_ota_auto(void);
 esp_err_t net_ota_set_url(const char *url);
 bool net_ota_get_url(char *buf, size_t len);
 bool net_ota_busy(void);
+bool net_ota_can_rollback(void);
+void net_ota_cancel(void);
 const char *net_ota_status(void);
 esp_err_t net_ota_confirm(void);
+void net_ota_health_prepare(void);
+void net_ota_health_start(bool services_ready);
+void net_ota_outcome(char *out, size_t len);
 
 #ifdef __cplusplus
 }

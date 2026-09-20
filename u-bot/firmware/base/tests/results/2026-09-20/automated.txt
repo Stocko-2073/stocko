@@ -1,0 +1,38 @@
+ubot-drive-tests.log
+PASS: current limits/quantization, register verification, lost writes, reset recovery, thresholds, fault refusal
+
+ubot-management-tests.log
+PASS: real command service: malformed/replay refusal, motion ownership, disconnected completion, lease expiry/replay, position deadline, slow subscriber isolation, urgent stop bypass
+
+ubot-fragment-tests.log
+PASS: production BLE reassembly: all MTUs 23..517, independent peers, stale/duplicate/out-of-order/oversize/NUL rejection
+
+ubot-release-tests.log
+test_content_hash_changes (__main__.ReleaseTests.test_content_hash_changes) ... ok
+test_identity (__main__.ReleaseTests.test_identity) ... ok
+test_wrong_target_project_and_truncation (__main__.ReleaseTests.test_wrong_target_project_and_truncation) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+
+ubot-cli-tests.log
+test_acceptance_is_not_completion (__main__.CLIContract.test_acceptance_is_not_completion) ... ok
+test_json_and_credential_arguments (__main__.CLIContract.test_json_and_credential_arguments) ... ok
+test_lost_connection (__main__.CLIContract.test_lost_connection) ... ok
+test_paginated_retained_result (__main__.CLIContract.test_paginated_retained_result) ... ok
+test_refusal_exit (__main__.CLIContract.test_refusal_exit) ... ok
+test_timeout (__main__.CLIContract.test_timeout) ... ok
+test_unsupported (__main__.CLIContract.test_unsupported) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.178s
+
+OK
+
+Swift package:
+􁁛  Test stopCancelsReconnect() passed after 1.186 seconds.
+􁁛  Test automaticReconnectDoesNotResumeDrive() passed after 1.186 seconds.
+􁁛  Suite "Wi-Fi connection lifecycle" passed after 1.187 seconds.
+􁁛  Test run with 43 tests in 8 suites passed after 1.187 seconds.

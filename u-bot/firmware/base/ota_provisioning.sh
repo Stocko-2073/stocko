@@ -6,7 +6,8 @@
 #   firmware.bin   the image, uploaded by push_firmware.sh
 #   version.txt    its version, one line, e.g. 0.1.3
 #
-# Only those two objects are public-read; everything else stays private.
+# manifest.json and immutable releases/ images are public-read too.
+# Unrelated objects remain private.
 # Versioning is on so an earlier image can be restored from the console.
 #
 # Writes .ota_config (gitignored) with the bucket name and URL, which
@@ -63,7 +64,9 @@ POLICY=$(cat <<JSON
     "Action": "s3:GetObject",
     "Resource": [
       "arn:aws:s3:::${BUCKET_NAME}/firmware.bin",
-      "arn:aws:s3:::${BUCKET_NAME}/version.txt"
+      "arn:aws:s3:::${BUCKET_NAME}/version.txt",
+      "arn:aws:s3:::${BUCKET_NAME}/manifest.json",
+      "arn:aws:s3:::${BUCKET_NAME}/releases/*"
     ]
   }]
 }
@@ -96,11 +99,11 @@ OTA bucket ready.
   bucket   $BUCKET_NAME
   url      $BUCKET_URL
 
-Point the robot at it once, on its console:
-  set ota_url $BUCKET_URL
+Point the robot at it wirelessly:
+  ubotctl ota source $BUCKET_URL --wifi ubot.local
 
 Then, after each ./push_firmware.sh:
-  ota check          update if version.txt is newer than what is running
-  ota start          update regardless
-Or 'set ota_auto 1' to check every time WiFi comes up.
+  ubotctl ota check --wifi ubot.local
+  ubotctl ota install --wifi ubot.local
+Automatic installation is disabled.
 DONE

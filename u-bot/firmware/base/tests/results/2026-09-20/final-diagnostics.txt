@@ -1,0 +1,62 @@
+boot 592bee84b57609a7; reset software; firmware 0.2.7; OTA confirmed version=0.2.7 image=aee7ffbe7f2ccea12fd3839948516d82044338f49b416ac673baf27407042d9e; previous boot bbecb66f9695356a
+ubot_base 0.2.7, built Sep 20 2026 16:25:48, IDF v6.1
+hardware rev A, serial 64E833512A70, mac 64:e8:33:51:2a:70, name ubot
+running ota_1 (valid), reset: software, up 128 s
+drive: drivers disabled, faults none, control worst 107060 us of 5000 us, bus writes 115, echo faults 0
+  command: idle v 0.000 m/s w 0.000 rad/s; limits 0.203 m/s, 1.54 rad/s
+  frame: sign_a +1 sign_b -1, wheel A is right, track 0.263 m, wheel 0.6754 m/turn
+  wheel A: driver configured, disabled, loop open, fault none
+    pos 0.5588 turns  target 0.5591  err 1 counts  slip 0 steps  vel -0.000 turns/s  rate 0 sps
+    current 1160/552 mA RMS run/hold (nominal); driver sample ok age 19 ms, GSTAT 0x00 DRV_STATUS 0x80090000
+    encoder ok, raw 3250, magnet ok, agc 128 (aim ~64), worst read 3035 us
+    shaft normal, clock gain 1.0163 (stored), kp 16.0 vmax 0.30 turns/s accel 1.0 decel 2.0 turns/s^2
+  wheel B: driver configured, disabled, loop open, fault none
+    pos -0.5522 turns  target -0.5522  err 0 counts  slip 0 steps  vel 0.000 turns/s  rate 0 sps
+    current 1160/552 mA RMS run/hold (nominal); driver sample ok age 269 ms, GSTAT 0x00 DRV_STATUS 0x80090000
+    encoder ok, raw 1455, magnet WEAK, agc 128 (aim ~64), worst read 4201 us
+    shaft INVERTED, clock gain 1.0097 (stored), kp 16.0 vmax 0.30 turns/s accel 1.0 decel 2.0 turns/s^2
+battery: 13.12 V, 45% (pin 1179 mV)
+wifi: connected, ip 192.168.1.157, rssi -47 dBm, credential trial idle
+websocket: serving, 1 client
+ota: confirmed
+ble: advertising as "ubot", addr 64:e8:33:51:2a:72, 0 connections
+heap free 73728, min ever 62116, largest block 32768
+control: worst tick 107060 us of 5000 us over 25669 ticks; bus writes 115, echo faults 0
+wheel A: worst encoder read 3035 us
+wheel B: worst encoder read 4201 us
+log lines dropped (host not reading): 0
+previous log: I (97184) esp_image: segment 2: paddr=00249238 vaddr=40374000 size=06de0h ( 28128)
+
+previous log: I (97189) esp_image: segment 3: paddr=00250020 vaddr=42000020 size=fd830h (1038384) map
+
+previous log: I (97377) esp_image: segment 4: paddr=0034d858 vaddr=4037ade0 size=1369ch ( 79516)
+
+previous log: I (97391) esp_image: segment 5: paddr=00360efc vaddr=500008ec size=00024h (    36)
+
+previous log: I (97398) esp_image: segment 0: paddr=00200020 vaddr=3c100020 size=43910h (276752) map
+
+previous log: I (97456) esp_image: segment 1: paddr=00243938 vaddr=3fc9e500 size=058f8h ( 22776)
+
+previous log: I (97462) esp_image: segment 2: paddr=00249238 vaddr=40374000 size=06de0h ( 28128)
+
+previous log: I (97468) esp_image: segment 3: paddr=00250020 vaddr=42000020 size=fd830h (1038384) map
+
+previous log: I (97650) esp_image: segment 4: paddr=0034d858 vaddr=4037ade0 size=1369ch ( 79516)
+
+previous log: I (97665) esp_image: segment 5: paddr=00360efc vaddr=500008ec size=00024h (    36)
+
+previous log: W (98910) wifi: network disconnected (reason 8)
+
+previous log: W (98913) httpd_txrx: httpd_sock_err: error in recv : 113
+
+previous log: W (98913) httpd_ws: httpd_ws_get_frame_type: Failed to read header byte (socket FD invalid), closing socket now
+
+previous log: W (98916) httpd_txrx: httpd_sock_err: error in recv : 113
+
+previous log: W (98916) httpd_ws: httpd_ws_get_frame_type: Failed to read header byte (socket FD invalid), closing socket now
+
+previous log: I (98921) ws: client fd 57 gone
+
+ota: confirmed
+stored url: https://ubot-ota-634436930302.s3.us-east-1.amazonaws.com
+running ota_1 (valid); verified fallback available

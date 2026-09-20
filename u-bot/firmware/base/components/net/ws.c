@@ -28,6 +28,10 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "net.h"
+#include "management.h"
+void manage_ws_close(int fd);
+esp_err_t manage_ws_start(httpd_handle_t s);
+esp_err_t ota_upload_register(httpd_handle_t s);
 #include "net_internal.h"
 #include "sdkconfig.h"
 #include "sysinfo.h"
@@ -89,6 +93,7 @@ bool ws_server_up(void) { return s_httpd != NULL; }
 
 static void on_close(httpd_handle_t hd, int fd) {
     if (client_find(fd)) ESP_LOGI(TAG, "client fd %d gone", fd);
+    manage_ws_close(fd);
     client_remove(fd);
     close(fd);
 }
@@ -261,10 +266,10 @@ static void handle_message(httpd_req_t *req, const char *text) {
                                        cJSON_IsNumber(w) ? (float)w->valuedouble : 0, hold_ms);
         }
         if (err != ESP_OK) ack(req, "drive", err);   // silence on success keeps the joystick chatter one-way
-    } else if (!strcmp(t, "stop")) { drive_stop(); ack(req, t, ESP_OK); }
+    } else if (!strcmp(t, "stop")) { management_stop(false); ack(req, t, ESP_OK); }
     else if (!strcmp(t, "enable")) ack(req, t, drive_enable(true));
     else if (!strcmp(t, "disable")) ack(req, t, drive_enable(false));
-    else if (!strcmp(t, "estop")) { drive_estop(); ack(req, t, ESP_OK); }
+    else if (!strcmp(t, "estop")) { management_stop(true); ack(req, t, ESP_OK); }
     else if (!strcmp(t, "clear")) ack(req, t, drive_clear_faults());
     else if (!strcmp(t, "ota_check")) ack(req, t, net_ota_check(false));   // compare only; status.ota says
     else if (!strcmp(t, "ota_update")) ack(req, t, net_ota_start(NULL));   // install <bucket>/firmware.bin
@@ -339,6 +344,9 @@ esp_err_t ws_server_start(void) {
     cfg.lru_purge_enable = true;
     cfg.close_fn = on_close;
     cfg.stack_size = 6144;
+    cfg.send_wait_timeout = 1;
+    cfg.recv_wait_timeout = 5;
+    cfg.max_uri_handlers = 10;
     esp_err_t err = httpd_start(&s_httpd, &cfg);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "httpd_start: %s", esp_err_to_name(err));
@@ -353,6 +361,8 @@ esp_err_t ws_server_start(void) {
     const httpd_uri_t root = { .uri = "/", .method = HTTP_GET, .handler = root_handler };
     httpd_register_uri_handler(s_httpd, &ws);
     httpd_register_uri_handler(s_httpd, &root);
+    ESP_ERROR_CHECK(manage_ws_start(s_httpd));
+    ESP_ERROR_CHECK(ota_upload_register(s_httpd));
 
     const esp_timer_create_args_t targs = { .callback = timer_cb, .name = "ws_status" };
     if (!s_timer) esp_timer_create(&targs, &s_timer);

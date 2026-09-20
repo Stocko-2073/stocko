@@ -717,8 +717,31 @@ esp_err_t drive_init(void) {
 
 // --- power ---
 
+static TaskHandle_t maintenanceOwner;
+static bool updating;
+static volatile bool maintenanceCancelled;
+static bool interlocked() { return updating || (maintenanceOwner && (maintenanceCancelled || maintenanceOwner != xTaskGetCurrentTaskHandle())); }
+static esp_err_t interlockRefusal() { return refuse(updating ? "firmware update in progress" : "maintenance motion owns the robot"); }
+esp_err_t drive_maintenance_claim(bool ota) {
+    if (!lock()) return ESP_ERR_INVALID_STATE;
+    bool moving = S.cmdActive || S.calBusy || S.calReq >= 0 || demo.running();
+    drive_status_t status; drive_get_status(&status);
+    for (auto &w : status.wheel) moving |= fabsf(w.rate_sps) > 0.5f || (w.loop_closed && !w.velocity_mode && !w.at_target);
+    if (maintenanceOwner || updating || moving) { unlock(); return ESP_ERR_INVALID_STATE; }
+    if (ota) { updating = true; enableDrivers(false); }
+    else { maintenanceOwner = xTaskGetCurrentTaskHandle(); maintenanceCancelled = false; }
+    unlock(); return ESP_OK;
+}
+bool drive_maintenance_release(bool ota) {
+    if (!lock()) return false;
+    if (ota) updating = false; else maintenanceOwner = NULL;
+    unlock(); return true;
+}
+void drive_maintenance_cancel(void) { maintenanceCancelled = true; }
+
 esp_err_t drive_enable(bool on) {
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (on && interlocked()) { unlock(); return interlockRefusal(); }
     if (on) {
         if (S.driversOn) { unlock(); return ESP_OK; }
         gpio_set_level(PIN_EN, 1);
@@ -786,6 +809,7 @@ static esp_err_t motionPrecheck() {
 esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms) {
     if (!(fabsf(v_mps) < 100.0f) || !(fabsf(w_radps) < 100.0f)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = motionPrecheck();
     if (err != ESP_OK) { unlock(); return err; }
     limitRobotVelocity(v_mps, w_radps);
@@ -810,6 +834,7 @@ esp_err_t drive_wheel_velocity(drive_wheel_t wi, float tps, uint32_t hold_ms) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = motionPrecheck();
     if (err != ESP_OK) { unlock(); return err; }
     tps = constrain(tps, -w->servo.vmaxTps, w->servo.vmaxTps);
@@ -825,6 +850,7 @@ esp_err_t drive_wheel_goto(drive_wheel_t wi, float turns) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = motionPrecheck();
     if (err != ESP_OK) { unlock(); return err; }
     if (!w->servo.servoOn()) w->servo.servoOn(true);
@@ -838,6 +864,7 @@ esp_err_t drive_wheel_move(drive_wheel_t wi, float dturns) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = motionPrecheck();
     if (err != ESP_OK) { unlock(); return err; }
     if (!w->servo.servoOn()) w->servo.servoOn(true);
@@ -851,6 +878,7 @@ esp_err_t drive_wheel_spin(drive_wheel_t wi, float sps) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     if (!S.driversOn) { unlock(); return refuse("drivers are disabled -- 'enable' first"); }
     if (demo.running()) { unlock(); return refuse("a demo is running -- 'demo stop' first"); }
     w->servo.spin(sps);
@@ -863,6 +891,7 @@ esp_err_t drive_wheel_loop(drive_wheel_t wi, bool closed) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     if (closed && !w->gen.enabled()) { unlock(); return refuse("drivers are disabled -- 'enable' first"); }
     w->servo.servoOn(closed);
     unlock();
@@ -871,6 +900,7 @@ esp_err_t drive_wheel_loop(drive_wheel_t wi, bool closed) {
 
 esp_err_t drive_wheel_zero(drive_wheel_t wi) {
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
         if (wi == DRIVE_WHEEL_BOTH || wi == i) wheels[i]->servo.zeroHere();
     }
@@ -884,6 +914,7 @@ const char *drive_refusal(void) { return S.refusal; }
 
 esp_err_t drive_clear_faults(void) {
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     for (Wheel *w : wheels) {
         w->servo.clearFault();
         w->servo.resyncSlip();
@@ -905,6 +936,7 @@ esp_err_t drive_calibrate(drive_wheel_t wi) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     if (S.calBusy || S.calReq >= 0) { unlock(); return refuse("a calibration is already running"); }
     if (!S.driversOn) { unlock(); return refuse("drivers are disabled -- 'enable' first"); }
     if (!w->gen.ok()) { unlock(); return refuse("that wheel's driver is not answering"); }
@@ -937,6 +969,7 @@ bool drive_calibrate_last(drive_cal_result_t *out) {
 esp_err_t drive_demo_start(const char *name, drive_wheel_t solo) {
     if (!name) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = motionPrecheck();
     if (err != ESP_OK) { unlock(); return err; }
     cancelCommands();
@@ -1015,6 +1048,7 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
 esp_err_t drive_param_set(drive_wheel_t wi, const char *name, float value) {
     if (!name || !isfinite(value)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = ESP_OK;
     for (int i = 0; i < DRIVE_NWHEELS && err == ESP_OK; i++) {
         if (wi == DRIVE_WHEEL_BOTH || wi == i) err = paramSetOne(*wheels[i], name, value);
@@ -1049,6 +1083,7 @@ const char *const *drive_setting_names(size_t *n) {
 esp_err_t drive_setting_set(const char *name, float value) {
     if (!name || !isfinite(value)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     esp_err_t err = ESP_OK;
     if (!strcmp(name, "sign_a") || !strcmp(name, "sign_b")) {
         if (value != 1.0f && value != -1.0f) err = ESP_ERR_INVALID_ARG;
@@ -1149,6 +1184,7 @@ esp_err_t drive_wheel_set_invert(drive_wheel_t wi, bool inv) {
     Wheel *w = wheelArg(wi);
     if (!w) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
     w->servo.servoOn(false);
     w->gen.setInvert(inv);
     w->servo.resyncSlip();

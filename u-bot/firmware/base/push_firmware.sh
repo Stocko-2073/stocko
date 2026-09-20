@@ -69,15 +69,21 @@ idf.py build
 SIZE=$(stat -f%z "$BIN" 2>/dev/null || stat -c%s "$BIN")
 info "image $SIZE bytes"
 
-# Sanity check: the image must carry the version we are about to publish, or a
-# robot would update to it and then report the wrong number.
-if ! grep -q "$NEW" "$BIN"; then
-    fail "image does not contain version string $NEW -- was version.txt picked up by the build?"
-fi
+MANIFEST="$(mktemp)"
+trap 'rm -f "$MANIFEST"' EXIT
+python3 "$SCRIPT_DIR/tools/release_manifest.py" "$BIN" --base "$BUCKET_URL" --version "$NEW" > "$MANIFEST"
+SHA="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$MANIFEST")"
+KEY="releases/$NEW/$SHA.bin"
 
-step "upload"
+step "upload immutable release"
+# Conditional writes prevent accidental replacement, including concurrent publishers.
+"${UBOT_PUBLISH_PYTHON:-python3}" "$SCRIPT_DIR/tools/publish_immutable.py" \
+    --bucket "$BUCKET_NAME" --region "${REGION:-us-east-1}" --image "$BIN" --manifest "$MANIFEST"
+# Keep legacy readers working during the bootstrap transition.
 aws s3 cp "$BIN" "s3://${BUCKET_NAME}/firmware.bin" --content-type application/octet-stream
 echo "$NEW" | aws s3 cp - "s3://${BUCKET_NAME}/version.txt" --content-type text/plain
+# Publish the discovery pointer last, after every referenced object exists.
+aws s3 cp "$MANIFEST" "s3://${BUCKET_NAME}/manifest.json" --content-type application/json --cache-control no-cache
 
 cat <<DONE
 
@@ -85,5 +91,5 @@ Published $NEW
   $BUCKET_URL/firmware.bin   ($SIZE bytes)
   $BUCKET_URL/version.txt
 
-On the robot: 'ota check' (or it happens on the next WiFi connect if ota_auto is set).
+Use ubotctl ota check, then ubotctl ota install. Automatic installation is disabled.
 DONE

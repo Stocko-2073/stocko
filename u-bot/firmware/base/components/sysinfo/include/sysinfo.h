@@ -14,7 +14,8 @@ extern "C" {
 
 void sysinfo_init(void);
 
-const char *sysinfo_fw_version(void);     // e.g. "0.1.0"
+const char *sysinfo_fw_version(void);
+void sysinfo_image_id(char out[65]);     // e.g. "0.1.0"
 const char *sysinfo_project(void);        // "ubot_base"
 const char *sysinfo_build(void);          // "Sep  2 2026 10:15:00"
 const char *sysinfo_idf(void);            // "v6.1"

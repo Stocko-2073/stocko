@@ -7,6 +7,9 @@ AS5600 encoder on each output shaft. Built on ESP-IDF v6.1, not Arduino.
 The mechanism, bench measurements and design rationale are in
 [`../DRIVE_MECHANISM.md`](../DRIVE_MECHANISM.md).
 
+See [serial-free maintenance](MAINTENANCE.md) for the native Mac CLI, management
+protocol, Wi-Fi recovery, OTA confirmation, and acceptance results.
+
 ## What it does
 
 - **Drive.** Robot-frame velocity (m/s, rad/s) mapped onto two wheels, each a
@@ -266,8 +269,8 @@ the log mirror.
 
 On connect the page sends `ota_check`; if the bucket holds a newer version an
 "Update to x.y.z" chip appears (two taps within 4 s to install, so a stray touch
-cannot start it), then the state card follows the download and the page
-reconnects to the new image after the reboot.
+cannot start it), then the state card follows the download. Use the Mac updater for installation
+and confirmation; the browser cannot confirm a pending candidate.
 
 ## BLE
 
@@ -284,34 +287,26 @@ the advertisement, the drive service UUID in the scan response.
 
 ## OTA
 
-Two OTA slots, no factory app, rollback on. Images come from an S3 bucket
-with the layout corvid used: `firmware.bin` and `version.txt` at the top,
-both public-read, everything else private, versioning on.
+The existing two-slot layout is unchanged. Updates use an immutable release
+image and a manifest containing version, project, target, size, full binary
+SHA-256, and ELF identity. `push_firmware.sh` publishes the manifest last and
+also maintains `firmware.bin` / `version.txt` for older firmware.
 
 ```sh
-./ota_provisioning.sh        # once: creates ubot-ota-<account>, writes .ota_config
-./push_firmware.sh           # bump patch version, build, upload both objects
-./push_firmware.sh --bump-minor | --bump-major | --no-bump | --clean
+./ota_provisioning.sh             # creates/updates the firmware bucket policy
+./push_firmware.sh                # bump, build, publish
+ubotctl ota source https://BUCKET.s3.REGION.amazonaws.com --wifi ubot.local
+ubotctl ota check --wifi ubot.local
+ubotctl ota install --wifi ubot.local
+ubotctl ota upload build/ubot_base.bin --wifi ubot.local
 ```
 
-On the robot, once: `set ota_url https://ubot-ota-<account>.s3.us-east-1.amazonaws.com`
-(the URL the provisioning script prints). Then:
-
-| command | does |
-|---|---|
-| `ota check` | reads `version.txt`; installs `firmware.bin` only if it is newer than the running version |
-| `ota start` | installs `firmware.bin` regardless |
-| `ota https://.../x.bin` | installs a specific image |
-| `set ota_auto 1` | run `ota check` every time WiFi connects |
-| `ota` | state, stored URL, a newer version seen in the bucket, which slot is running and whether it is verified |
-| page at `ubot.local` | checks on load; offers an update chip when the bucket is newer |
-
-An update disables the drivers, downloads with the IDF certificate bundle
-(Amazon's roots are in it), refuses an image whose project name is not
-`ubot_base`, writes it and reboots. The new image boots once as "pending
-verify" and marks itself valid at the end of `app_main`; if it never gets there
-the bootloader boots the previous slot next time. Only `https://` is accepted.
-`ota check` that finds nothing newer does not touch the drivers.
+BLE can initiate and monitor S3 installation. Binary upload requires Wi-Fi.
+The Mac updater verifies the boot, version and full ELF identity before
+confirming the candidate. A candidate without confirmation rolls back after
+120 seconds when a valid fallback exists. Automatic installation is disabled.
+Use the Mac updater for installation: the legacy browser's update chip cannot
+perform management confirmation. See [MAINTENANCE.md](MAINTENANCE.md).
 
 ## Verified on the rack, 2026-09-02
 

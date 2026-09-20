@@ -29,6 +29,8 @@ static const ble_uuid128_t UUID_DRIVE   = UBOT_UUID(0x01);
 static const ble_uuid128_t UUID_CONTROL = UBOT_UUID(0x02);
 static const ble_uuid128_t UUID_STATUS  = UBOT_UUID(0x03);
 
+#include "manage_ble.inc"
+
 static uint16_t s_drive_handle, s_control_handle, s_status_handle;
 static uint8_t s_own_addr_type;
 static char s_addr[18] = "?";
@@ -82,6 +84,7 @@ static void build_status(status_packet_t *p) {
 
 static int gatt_access(uint16_t conn_handle, uint16_t attr_handle,
                        struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    if(ctxt->op==BLE_GATT_ACCESS_OP_WRITE_CHR && attr_handle==s_request_handle)return management_write(conn_handle,ctxt);
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR && attr_handle == s_status_handle) {
         status_packet_t p;
         build_status(&p);
@@ -105,10 +108,10 @@ static int gatt_access(uint16_t conn_handle, uint16_t attr_handle,
         }
         esp_err_t err = ESP_OK;
         switch (op) {
-            case 0: drive_stop(); break;
+            case 0: management_stop(false); break;
             case 1: err = drive_enable(true); break;
             case 2: err = drive_enable(false); break;
-            case 3: drive_estop(); break;
+            case 3: management_stop(true); break;
             case 4: err = drive_clear_faults(); break;
             default: return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
         }
@@ -123,6 +126,8 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &UUID_SVC.u,
         .characteristics = (struct ble_gatt_chr_def[]) {
+            {.uuid=&UUID_REQUEST.u,.access_cb=gatt_access,.flags=BLE_GATT_CHR_F_WRITE,.val_handle=&s_request_handle},
+            {.uuid=&UUID_RESPONSE.u,.access_cb=gatt_access,.flags=BLE_GATT_CHR_F_INDICATE,.val_handle=&s_response_handle},
             {
                 .uuid = &UUID_DRIVE.u,
                 .access_cb = gatt_access,
@@ -191,6 +196,7 @@ static int gap_event(struct ble_gap_event *event, void *arg) {
         case BLE_GAP_EVENT_CONNECT:
             if (event->connect.status == 0) {
                 s_connections++;
+                management_connected(event->connect.conn_handle);
                 ESP_LOGI(TAG, "connected (handle %d), %d total", event->connect.conn_handle, s_connections);
             } else {
                 ESP_LOGW(TAG, "connect failed: %d", event->connect.status);
@@ -198,7 +204,10 @@ static int gap_event(struct ble_gap_event *event, void *arg) {
             s_advertising = false;
             advertise();   // keep accepting a second peer, e.g. a phone and a laptop
             return 0;
+        case BLE_GAP_EVENT_NOTIFY_TX:
+            management_ack(event); return 0;
         case BLE_GAP_EVENT_DISCONNECT:
+            management_disconnect(event->disconnect.conn.conn_handle);
             if (s_connections > 0) s_connections--;
             ESP_LOGI(TAG, "disconnected (reason %d), %d left", event->disconnect.reason, s_connections);
             // The deadman stops the robot 500 ms after the last drive write,
@@ -211,6 +220,13 @@ static int gap_event(struct ble_gap_event *event, void *arg) {
             advertise();
             return 0;
         case BLE_GAP_EVENT_SUBSCRIBE:
+            if(event->subscribe.attr_handle==s_response_handle){
+                management_peer_t*p=management_peer(event->subscribe.conn_handle);
+                if(p){p->subscribed=event->subscribe.cur_indicate;
+                    if(p->subscribed&&!p->client)p->client=management_open();
+                    if(!p->subscribed){management_close(p->client);p->client=0;p->tx[0]=0;p->inflight=false;}
+                }
+            }
             if (event->subscribe.attr_handle == s_status_handle) {
                 s_status_subscribed = event->subscribe.cur_notify;
                 ESP_LOGI(TAG, "status notifications %s", s_status_subscribed ? "on" : "off");
@@ -255,11 +271,15 @@ static void tick(void *arg) {
 }
 
 esp_err_t ble_init(void) {
+    esp_log_level_set("NimBLE", ESP_LOG_WARN);
+    const esp_timer_create_args_t mt={.callback=management_schedule,.name="ble_manage"};
+    ESP_ERROR_CHECK(esp_timer_create(&mt,&management_timer));
     esp_err_t err = nimble_port_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "nimble_port_init: %s", esp_err_to_name(err));
         return err;
     }
+    ble_npl_event_init(&management_event,management_tx,NULL);
     ble_hs_cfg.reset_cb = on_reset;
     ble_hs_cfg.sync_cb = on_sync;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
@@ -288,6 +308,7 @@ esp_err_t ble_init(void) {
 
     ble_store_config_init();
     nimble_port_freertos_init(host_task);
+    esp_timer_start_periodic(management_timer,20000);
 
     const esp_timer_create_args_t targs = { .callback = tick, .name = "ble_tick" };
     err = esp_timer_create(&targs, &s_tick);
