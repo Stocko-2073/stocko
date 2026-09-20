@@ -1,12 +1,18 @@
 include <BOSL2/std.scad>
 include <BOSL2/screws.scad>
+include <BOSL2/threading.scad>
 include <BOSL2/gears.scad>
 include <BOSL2/ball_bearings.scad>
 include <BOSL2/nema_steppers.scad>
 include <../lib/as5600.scad>
 include <../lib/globals.scad>
+// use <modules/xiao_mount/xiao_mount.scad>
+use <modules/caster_as5600_mount/caster_as5600_mount.scad>
+use <modules/fpc_camera/fpc_camera.scad>
+use <modules/rpsma/rpsma_pigtail.scad>
+use <modules/rpsma/rpsma_antenna.scad>
 
-$fn=0;$fa=1;$fs=$preview?2:0.25;ep=0.03;$slop=0.2;
+$fn=0;$fa=1;$fs=$preview?1:0.25;ep=0.03;$slop=0.2;
 // $fn=0;$fa=1;$fs=2;ep=0.03;$slop=0.2;
 // $fn=0;$fa=1;$fs=0.25;ep=0.03;$slop=0.2;
 _6902ZZ=ball_bearing_info("6902ZZ");
@@ -21,13 +27,18 @@ caster_d=60;
 caster_leg_x=13;
 caster_leg_len=90;
 
+body_lid_panel=1.5;
+body_lid_hole_y=120;
+body_lid_hole_d=10;
+
+board_mount_y_offset=40;
 
 module m3_11() {
     color("#888") screw("M3,11",head="socket",drive="hex",atype="head",thread="none",orient=RIGHT,anchor=BOT,details=false) children();
 }
 
 module m3_8(orient=UP) {
-    color("#888") screw("M3,11",head="socket",drive="hex",atype="threads",thread="none",orient=orient,anchor=TOP,details=false) children();
+    color("#888") screw("M3,8",head="socket",drive="hex",atype="threads",thread="none",orient=orient,anchor=TOP,details=false) children();
 }
 
 module m3_nut() {
@@ -398,6 +409,7 @@ module caster_screw_hole() {
 
 // !yview(true,xray=true)
 module caster(l) {
+    up(5+ep+$slop) caster_magnet_holder() magnet();
     down(l) {
         dd=_6902ZZ[0]+3;
         back((caster_d-4-dd)/2) {
@@ -524,6 +536,158 @@ module leg_cap() {
         children(0); // screw
 }
 
+module board_mount_lid_form(wall=1.5) {
+    r=30+wall;
+    xx=100+wall*2;
+    yy=87+wall;
+    zz=58+wall;
+    ch=5+wall/2;
+    hull() {
+        up(zz-r) fwd(r) intersection() {
+            xcyl(r=r,h=xx,chamfer=ch);
+            cuboid([xx+ep,r,r],anchor=BOT+FWD);
+        }
+        cuboid([xx,yy/2,zz-r],anchor=BOT+BACK,chamfer=ch,edges=[BACK+LEFT,BACK+RIGHT]);
+        fwd(yy/2) cuboid([xx,yy/2,zz],anchor=BOT+BACK,chamfer=ch,edges=[TOP+LEFT,TOP+RIGHT]);
+    }
+}
+
+module board_mount_lid() {
+    wall=3;
+    render() color("#f84")
+    diff() {
+        board_mount_lid_form(wall);
+        tag("remove") {
+            fwd(wall+ep) board_mount_lid_form(0);
+            up(8) back(ep) {
+                d=12;
+                ycyl(d=d,l=wall+ep*2,anchor=BACK);
+                cuboid([d,wall+ep*2,d/2+3],anchor=TOP+BACK);
+            }
+        }
+        fwd(86.25) up(58) tag("remove") {
+            back(5) down(2) {
+                up(5) screw_hole("M3",l=8,head="socket",atype="threads",anchor=TOP);
+                nut_trap_side(10,"M3",$slop=0.1,anchor=TOP,spin=90);
+            }
+            left(35) back(8.5) {
+                d=12;
+                cyl(d=d,h=wall,extra=ep,anchor=BOT);
+                cuboid([d,d/2+10,wall],anchor=BACK+BOT);
+            }
+        }
+    }
+}
+
+module board_mount() {
+    d=body_lid_hole_d-$slop*2;
+    d2=d-6;
+    wall=1.5;
+    yy=83;
+    zz=55;
+    floor=3;
+    color("#eee")
+    diff() {
+        back(33/2) {
+            hull() {
+                cuboid([100-sqrt(2)*3,yy,ep],anchor=BOT+BACK,chamfer=5,edges=[BACK+LEFT,BACK+RIGHT]);
+                up(2) cuboid([100,yy,ep],anchor=TOP+BACK,chamfer=5,edges=[BACK+LEFT,BACK+RIGHT]);
+                up(3) cuboid([100,yy,ep],anchor=TOP+BACK,chamfer=5,edges=[BACK+LEFT,BACK+RIGHT]);
+            }
+            fwd(83) up(3) {
+                cuboid([100,3,55],anchor=BOT+FWD,chamfer=5,edges=[TOP+LEFT,TOP+RIGHT]);
+                xflip_copy() right(50) {
+                    cuboid([3,70,10],anchor=BOT+FWD+RIGHT);
+                    up(10) cuboid([6.5,70,2],anchor=TOP+FWD+RIGHT);
+                    up(6) cuboid([6.5,70,2],anchor=TOP+FWD+RIGHT);
+                }
+            }
+        }
+        back(33/2) fwd(3+body_lid_hole_d/2)
+        ycopies([0,-board_mount_y_offset])
+        hull() xflip_copy() right(10) {
+            h=wall+$slop;
+            // cyl(d=body_lid_hole_d-$slop*2,h=ep,anchor=TOP);
+            fwd(h)
+            cyl(d=body_lid_hole_d-$slop*2,h=ep,anchor=TOP);
+            down(h)
+            cyl(d=body_lid_hole_d-$slop*2,h=ep,anchor=BOT);
+        }
+        up(3) back(16.5) {
+            zz=6.2;
+            cuboid([10,2.5,zz],anchor=BACK+BOT);
+            xflip_copy() right(5) hull() {
+                cuboid([2,6,ep],anchor=BACK+BOT+LEFT);
+                up(zz) cuboid([2,2.5,ep],anchor=BACK+TOP+LEFT);
+            }
+            up(5) tag("remove") ycyl(d=7.5,h=2.5,extra=ep,anchor=BACK);
+        }
+
+        up(1.5) fwd(3) screw_hole("M3",l=8,head="socket",atype="threads",anchor=TOP);
+
+        fwd(yy-16.5) up(zz+3) {
+            // screw mount
+            back(5) cyl(d=10,h=7,anchor=TOP);
+            cuboid([10,5,7],anchor=TOP+FWD);
+            tag("remove") back(5) down(2) {
+                up(5)screw_hole("M3",l=8,head="socket",atype="threads",anchor=TOP);
+                nut_trap_side(10,"M3",$slop=0.1,anchor=TOP,spin=90);
+            }
+
+            // antenna mount
+            left(35) {
+                back(8.5) {
+                    cyl(d=14,h=2,anchor=TOP);
+                    tag("remove") up(1)
+                        cyl(d=6.5+$slop,h=4,anchor=TOP);
+
+                }
+                cuboid([14,8.5,2],anchor=TOP+FWD);
+                xflip_copy() right(7)
+                    cuboid([2,8.5,7],anchor=TOP+FWD+RIGHT,chamfer=3,edges=[BOT+BACK]);
+            }
+
+        }
+
+        tag("remove") {
+            back(16.5) fwd(3+body_lid_hole_d/2)
+            up(3) {
+                h=3+wall+$slop;
+                hull() xflip_copy() right(10) {
+                    fwd(wall) {
+                        cyl(d=body_lid_hole_d-wall*2,h=ep,anchor=TOP,extra=ep);
+                        down(h)
+                            cyl(d=body_lid_hole_d-wall*2,h=ep,anchor=BOT,extra=ep);
+                    }
+                }
+                hull() xflip_copy() right(10) down(h){
+                    up(wall) fwd(wall)
+                        cyl(d=body_lid_hole_d-wall*2,h=ep,anchor=TOP,extra=ep);
+                    ycopies([0,-wall])
+                    cyl(d=body_lid_hole_d-wall*2,h=ep,anchor=BOT,extra=ep);
+                }
+            }
+        }
+    }
+    up(1.5) fwd(3) children(0); // screw
+    back(33/2+3+$slop) children(1); // board_mount_lid
+    fwd(28) up(10) children(2); // board
+}
+// !board_mount();
+
+module board() {
+    cam_route=["move",15,"arcdown",10,180,"move",10];
+    down(2)back(38) fpc_camera(cam_route,orient=BACK);
+
+    panel=2;
+    route=["move",15,"arcup",6,90,"move",20];
+    up(46) fwd(30) left(35) rpsma_pigtail(route,cable_len=150,panel=panel,threads=true) {
+        attach("face",BOT) rpsma_antenna();
+    }
+
+    %cuboid([91,71,40],anchor=BOT);
+}
+
 module body_tray() {
     wall=3;
     color("#f84") diff() {
@@ -538,20 +702,48 @@ module body_tray() {
 module body_lid() {
     w=250;
     wall=3;
+    panel=body_lid_panel;
+    lip=3;
     rr=45;
     slop=0.5;
-    color("#ccc") diff() {
-            back(120-55+slop) {
+    module blank() {
+        back(120-55+slop) {
             cuboid([w-wall*2-slop*2,20+55-wall-slop*2,wall],anchor=FWD+TOP,rounding=rr-wall-slop,edges=[BACK+LEFT,BACK+RIGHT]);
-            xflip_copy() right(184/2-wall-ep-slop) {
+            xflip_copy() right(184/2-wall-ep-slop)
                 back(ep) cuboid([12+ep,12+ep,wall],anchor=BACK+TOP+LEFT,rounding=6,edges=[RIGHT+FWD]);
-                right(6) fwd(6) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
+        }
+        back(wall+4+slop+99/2) cuboid([184-wall*2-slop*2,99+2+wall*2-slop,wall],anchor=TOP);
+    }
+    color("#ccc") diff() {
+        blank();
+        back(120-55+slop) {
+            xflip_copy() right(184/2-wall-ep-slop) {
+                right(6+$slop) fwd(6-$slop) screw_hole("M3",l=13,head="socket",atype="threads",anchor=TOP,tolerance="tap")
                     attach(BOT) down(2) nut_trap_side(30,"M3",$slop=0.1,anchor=TOP);
             }
         }
-        back(wall+4+slop+99/2) cuboid([184-wall*2-slop*2,99+2+wall*2-slop,wall],anchor=TOP);
-        tag("remove") up(ep) back(120) cyl(d=20,h=wall+ep*2,anchor=TOP);
+        // Recess the underside, leaving a full-thickness rim around the outline.
+        tag("remove") {
+            down(wall+ep) linear_extrude(height=wall-panel+ep)
+                offset(delta=-lip) projection() blank();
+            up(ep) back(body_lid_hole_y) {
+                ycopies([0,-board_mount_y_offset])
+                hull() xflip_copy()
+                    back(16.5) fwd(wall+body_lid_hole_d/2) right(10) hull() {
+                        // cyl(d=body_lid_hole_d,h=ep,anchor=TOP);
+                        fwd(panel)
+                        cyl(d=body_lid_hole_d,h=ep,anchor=TOP);
+                        down(panel+ep*2)
+                        cyl(d=body_lid_hole_d,h=ep,anchor=BOT);
+                    }
+                xflip_copy()
+                    right(w/2-25) cyl(d=5.8,h=wall+ep*2,anchor=TOP);
+            }
+            back(body_lid_hole_y) up($slop)
+            up(1.5) fwd(3) screw_hole("M3",l=8,head="socket",atype="threads",anchor=TOP);
+        }
     }
+    back(body_lid_hole_y) up($slop) children(0); // board_mount
 }
 
 module body() {
@@ -625,6 +817,8 @@ module body() {
     down(33) back(6+yyy+$slop) children(2); // battery
     back(yyy+$slop) down(zz/2-wall-$slop) back(wall*2) children(3); // body_tray
     up(zz/2+$slop) back(yyy) children(4); // body_lid
+    back(177-15.75) xflip_copy() left(w/2+2.25-45/2)
+        children(5); // caster encoder
 }
 
 module robot() {
@@ -652,7 +846,15 @@ module robot() {
         caster(caster_leg_len);
         color("#444") cuboid([150,94,65],anchor=BOT+FWD); // battery
         body_tray();
-        body_lid();
+        union() {
+            body_lid() board_mount() {
+                m3_8() down(1.5+$slop) m3_nut();
+                board_mount_lid();
+                board();
+            }
+            //back(body_lid_hole_y) xiao_mount(lid_thickness=body_lid_panel);
+        }
+        caster_encoder();
     }
 }
 
@@ -675,9 +877,10 @@ module robot() {
 // !yrot(-90) xflip() leg(); // print right
 // !yrot(90) leg_cap() nop(); // print
 // !body(); // print
-
+// !yrot(180) body_lid(); // print
+// !xrot(90) board_mount(); // print
+!board_mount_lid();
 // !body_tray();
-// !body_lid();
 
 // zrot($t*360) render()
 // zview(true)
@@ -685,7 +888,15 @@ module robot() {
 // back(154/2-5-5-5)
 
 // yview() fwd(59) left(112.75-15)
-robot();
+// xview()
+// robot();
+
+// xview()
+body_lid() board_mount() {
+    m3_8() down(1.5+$slop) m3_nut();
+    board_mount_lid();
+    board();
+}
 /*
 up(300) {
     measure([-75,50,0],[75,50,0]);

@@ -38,7 +38,7 @@ fpc_camera_len=fpc_camera_base.y+fpc_camera_flex_len+fpc_camera_conn.y; // 75
 fpc_camera_ep=0.03;
 
 fpc_camera_flex_color="#a8702e";
-fpc_camera_body_color="#222";
+fpc_camera_body_color="#444";
 
 // Turtle state for the free cable: starts at the holder edge heading -Y, up=+Z.
 function fpc_camera_flex_state(route=fpc_camera_flex_len) =
