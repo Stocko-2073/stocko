@@ -5,6 +5,8 @@ printed marker page (`work/border_letter_aruco_4x4_10mm.pdf`, printed at 100%). 
 onto the page, guides you to each pose with two wireframe cubes and a sight line, takes the photo
 by itself when you're lined up and steady, and sends it to the Mac. The agent gets the photo with its
 intrinsics and two poses: the phone's tracked pose, and one solved from the markers in the still itself.
+A `freeform` request has no pose: it's taken as soon as the whole page is in view with the phone steady,
+e.g. for a first look at what's on it.
 
 ```
 Claude Code ──stdio──> agentcam-mcp (agentcam/mcp) <──Wi-Fi: Bonjour, WebSocket, HTTP──> AgentCam (iPhone)
@@ -41,8 +43,8 @@ Only one Claude Code session can run the server at a time (it holds a lock on `c
 ## Build and install
 
 ```sh
-cd 3d-scan/agentcam/mcp && uv sync --group dev && uv run pytest -q          # server: 33 tests
-cd ../Packages/AgentCamCore && swift test                                # core: 30 tests
+cd 3d-scan/agentcam/mcp && uv sync --group dev && uv run pytest -q          # server: 34 tests
+cd ../Packages/AgentCamCore && swift test                                # core: 31 tests
 cd ../AgentCamVision && swift test                                       # vision: 6 tests (downloads OpenCV, ~200 MB, once)
 cd ../.. && xcodegen generate
 xcodebuild build -project AgentCam.xcodeproj -scheme AgentCam \
@@ -71,7 +73,7 @@ each queued request, renders the page from that pose, and uploads it through the
 
 Done: page lock, guidance, automatic capture on the main lens (12 MP), torch, focus, exposure and
 white-balance locks, ARKit LiDAR depth, delivery with still-image PnP checks, placement prompts,
-"can't reach" skips with a turn-the-page tip.
+"can't reach" skips with a turn-the-page tip, freeform requests.
 
 Not yet: requests needing the full camera path (ultra-wide macro, 5x telephoto, flash, 48 MP, RAW,
 LiDAR photo depth) show "Can't do this one yet". That's the next phase: pause AR, shoot with

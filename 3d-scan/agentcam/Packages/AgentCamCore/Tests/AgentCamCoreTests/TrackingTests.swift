@@ -195,6 +195,23 @@ struct SyntheticWorld {
         #expect(simd_distance(b, SIMD2(0, -1)) < 1e-9)
     }
 
+    @Test func aFreeformShotNeedsTheWholePageInView() {
+        let k = simd_double3x3(rows: [SIMD3(1450, 0, 960), SIMD3(0, 1450, 720), SIMD3(0, 0, 1)])
+        let size = SIMD2<Double>(1920, 1440)
+        func fit(eye: SIMD3<Double>, looking target: SIMD3<Double>) -> PageFraming.Fit {
+            PageFraming.fit(outline: w.layout.outline, cameraToPage: w.worldFromPage.rigidInverse * w.camera(eye: eye, target: target),
+                            k: k, imageSize: size, marginPx: 20)
+        }
+        #expect(fit(eye: SIMD3(0, 0, 600), looking: .zero) == .whole)
+        #expect(fit(eye: SIMD3(0, -350, 350), looking: .zero) == .whole)
+        // Straight down from 200 mm, the page's 279 mm length is ~2000 px: more than the image.
+        #expect(fit(eye: SIMD3(0, 0, 200), looking: .zero) == .tooBig)
+        // From 600 mm but over the page's right edge: it would fit, it's just off to one side.
+        #expect(fit(eye: SIMD3(300, 0, 600), looking: SIMD3(300, 0, 0)) == .partly)
+        // Low across the paper, the near corners are behind the camera.
+        #expect(fit(eye: SIMD3(0, 0, 50), looking: SIMD3(0, 300, 50)) == .partly)
+    }
+
     @Test func cubesAreAThirdOfTheViewAcross() {
         let d = GuidanceGeometry.cursorDistanceMm(targetDistanceMm: 300)
         #expect(d == 150)

@@ -78,7 +78,7 @@ final class Harness: @unchecked Sendable {
         h.socket.deliver(String(decoding: try example("requests.json"), as: UTF8.self))
         h.link.synchronize()
         let snaps = h.events.compactMap { if case .requests(let s) = $0 { s } else { nil } }
-        #expect(snaps.first?.items.count == 3)
+        #expect(snaps.first?.items.count == 4)
     }
 
     @Test func silenceMeansReconnect() {

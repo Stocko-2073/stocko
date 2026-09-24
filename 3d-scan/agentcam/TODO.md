@@ -84,6 +84,8 @@ Requests that need these show "Can't do this one yet" today.
   - [ ] Kill mid-upload, relaunch, and it resumes.
   - [ ] Denied Local Network shows the Settings hint.
   - [ ] Measure a caliper-checked object from ≥ 2 stills (< 0.5 mm).
+  - [ ] Freeform: fires once the whole page is in view and the phone is steady, and the page is still whole
+    in the still (the 2% edge margin). Check the stills are sharp, and that hand shake alone never blocks it.
 - [ ] Optional, only if needed:
   - [ ] A LAN pairing token (today anyone on the Wi-Fi can reach port 47815).
   - [ ] An HTTP-transport daemon so several Claude Code sessions can share one phone.

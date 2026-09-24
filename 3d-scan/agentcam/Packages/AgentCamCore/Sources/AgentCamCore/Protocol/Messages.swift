@@ -93,7 +93,8 @@ public struct Target: Codable, Sendable, Equatable {
 
 public struct PhotoRequest: Codable, Sendable, Equatable, Identifiable {
     /// free: no target; the user frames the shot, taken once the phone is held still.
-    public enum Kind: String, Codable, Sendable { case pose, free }
+    /// freeform: no target or hold; taken as soon as the whole page is in view with the phone steady.
+    public enum Kind: String, Codable, Sendable { case pose, free, freeform }
 
     public var id: String
     public var seq: Int

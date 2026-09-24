@@ -56,6 +56,7 @@ def requests_snapshot() -> dict:
             "placement": {"label": "flipped", "instruction": "Turn the battery upside down, centred on the page."}}),
         PhotoRequestSpec.model_validate({"kind": "free", "options": {"torch": 0.5, "depth": "arkit"},
                                          "note": "anything that shows the vent depth"}),
+        PhotoRequestSpec.model_validate({"kind": "freeform", "note": "first look at what's on the page"}),
     ]
     items = []
     for i, spec in enumerate(specs):

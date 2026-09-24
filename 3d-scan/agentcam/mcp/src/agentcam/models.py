@@ -107,8 +107,11 @@ class Placement(Strict):
 
 class PhotoRequestSpec(Strict):
     """What the agent asks for."""
-    kind: Literal["pose", "free"] = Field(
-        "pose", description="free: no target; the user frames the shot, which is taken once the phone is held still.")
+    kind: Literal["pose", "free", "freeform"] = Field(
+        "pose", description="free: no target; the user frames the shot, which is taken once the phone is held still. "
+                            "freeform: no target or hold; taken as soon as the whole page is in view with the phone "
+                            "steady (tolerance max_speed_mm_s and max_ang_speed_deg_s), e.g. for a first look at what's "
+                            "on it.")
     pose: PoseSpec | None = None
     options: CaptureOptions = CaptureOptions()
     tolerance: Tolerance = Tolerance()
@@ -119,8 +122,8 @@ class PhotoRequestSpec(Strict):
     def _pose_for_pose_kind(self) -> PhotoRequestSpec:
         if self.kind == "pose" and self.pose is None:
             raise ValueError("kind 'pose' needs a pose")
-        if self.kind == "free" and self.pose is not None:
-            raise ValueError("kind 'free' takes no pose")
+        if self.kind != "pose" and self.pose is not None:
+            raise ValueError(f"kind {self.kind!r} takes no pose")
         return self
 
 

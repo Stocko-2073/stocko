@@ -42,6 +42,17 @@ async def test_request_capture_wait(tmp_path):
         assert "r0001 [captured]" in text_of(await call(client, "list_requests"))
 
 
+async def test_freeform_requests_need_no_pose(tmp_path):
+    async with running_server(tmp_path) as (client, base):
+        r = await call(client, "request_photos", requests=[{**orbit(-90, 55, 380), "kind": "freeform"}])
+        assert r.is_error and "takes no pose" in text_of(r)
+        r = await call(client, "request_photos", requests=[{"kind": "freeform", "note": "what's on the page?"}])
+        assert "r0001 [queued] freeform (whole page in view)" in text_of(r)
+        await fakephone.run(base, count=1, skip=set(), seed=5, once=False)
+        text = text_of(await call(client, "wait_for_photos", ids=["r0001"], timeout_s=10))
+        assert "r0001 [captured] freeform" in text and "still PnP" in text, text
+
+
 async def test_skip_is_reported(tmp_path):
     async with running_server(tmp_path) as (client, base):
         await call(client, "request_photos", requests=[orbit(-90, 55, 380)])

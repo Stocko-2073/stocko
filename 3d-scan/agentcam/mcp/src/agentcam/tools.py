@@ -46,7 +46,8 @@ the photo with its intrinsics and pose.
 Workflow: queue requests with request_photos (they wait on this Mac even while the app is closed),
 ask the user to open AgentCam on their iPhone, then call wait_for_photos. Full-resolution files stay on
 disk at the paths given; tool results carry downscaled upright previews. Call get_board for the frame
-conventions before choosing poses.
+conventions before choosing poses. For a first look at what's on the page, request {"kind": "freeform"}:
+no pose, taken as soon as the whole page is in view with the phone steady.
 """ + "\n" + CONVENTIONS
 
 
@@ -207,6 +208,8 @@ def _describe(r: PhotoRequest, store=None) -> str:
         e = r.target.eye
         parts.append(f"eye ({e[0]:.0f}, {e[1]:.0f}, {e[2]:.0f}) -> look_at {tuple(r.target.look_at)}, "
                      f"{r.target.distance_mm:.0f} mm, lens {r.options.lens}")
+    elif r.kind == "freeform":
+        parts.append(f"freeform (whole page in view), lens {r.options.lens}")
     else:
         parts.append(f"free framing, lens {r.options.lens}")
     if r.note:

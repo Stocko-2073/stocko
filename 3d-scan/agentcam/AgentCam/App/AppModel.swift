@@ -264,6 +264,7 @@ final class AppModel {
     }
 
     private func distance(_ here: Pose, _ r: PhotoRequest) -> Double {
+        if r.kind == .freeform { return 0 }                    // taken from wherever the page is in view
         guard let t = r.target.flatMap({ Pose(rows: $0.cameraToPage) }) else { return .infinity }
         return simd_distance(here.translation, t.translation)
     }
@@ -299,7 +300,8 @@ final class AppModel {
         guard !capturing else { return }
         capturing = true
         let now = tracking.snapshot.time
-        let speeds = steadiness.speeds(window: request.tolerance.steadyS, now: now)
+        let window = request.kind == .freeform ? Self.freeformSteadyS : request.tolerance.steadyS
+        let speeds = steadiness.speeds(window: window, now: now)
         capture.capture(request, placement: confirmedPlacement, speeds: speeds) { [weak self] result in
             guard let self else { return }
             capturing = false
@@ -375,6 +377,7 @@ final class AppModel {
                                   secondary: ["It needs a lens or flash this build can't use: tap Can't reach"])
             return
         }
+        if a.kind == .freeform { return wholePage(a, snap, here: here) }
         guard a.kind == .pose, let tgt = a.target, let target = Pose(rows: tgt.cameraToPage) else {
             freeFraming(a, snap)
             return
@@ -437,6 +440,39 @@ final class AppModel {
                               primary: steady ? "Hold…" : "Frame it, then hold still",
                               aligned: steady, holdProgress: progress)
         if steady, progress >= 1 { take(a) }
+    }
+
+    /// Long enough that hand shake doesn't read as movement, short enough not to feel like a hold.
+    private static let freeformSteadyS: TimeInterval = 1.0 / 3
+
+    /// Freeform: no target and no hold. Taken the moment the page is found
+    /// (markers seen within the last half second) and wholly in view, once the
+    /// phone is under the request's speed limits: a phone still moving into
+    /// frame would blur the shot.
+    private func wholePage(_ a: PhotoRequest, _ snap: TrackingSnapshot, here: Pose) {
+        renderer.scene.target = nil
+        guard let page = snap.page, snap.time - page.lastTime < 0.5 else {
+            guidance = GuidanceUI(readiness: .findingPage, primary: "Point at the page")
+            return
+        }
+        let fit = PageFraming.fit(outline: layout.outline, cameraToPage: here, k: snap.k, imageSize: snap.imageSize,
+                                  marginPx: 0.02 * min(snap.imageSize.x, snap.imageSize.y))
+        if fit == .whole {
+            let tol = a.tolerance
+            guard steadiness.isSteady(window: Self.freeformSteadyS, now: snap.time, maxMmPerS: tol.maxSpeedMmS,
+                                      maxDegPerS: tol.maxAngSpeedDegS) else {
+                guidance = GuidanceUI(readiness: .holding, primary: "Hold still", aligned: true)
+                return
+            }
+            guidance = GuidanceUI(readiness: .capturing)
+            take(a)
+            return
+        }
+        let centre = here.rigidInverse.transform(.zero)
+        guidance = GuidanceUI(readiness: .aligning, primary: "Get the whole page in view",
+                              secondary: fit == .tooBig ? ["Back up"] : [],
+                              arrow: OffscreenArrow.direction(toCameraPoint: centre, k: snap.k, imageSize: snap.imageSize,
+                                                              marginPx: 60))
     }
 
     private func status(_ snap: TrackingSnapshot) -> PhoneStatus {

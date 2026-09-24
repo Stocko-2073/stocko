@@ -155,6 +155,38 @@ public enum GuidanceGeometry {
     public static let topEdges: Set<Int> = [4, 6, 8, 10]
 }
 
+/// Freeform requests have no target: they're taken as soon as the whole page is in view (and the phone is steady).
+public enum PageFraming {
+    public enum Fit: Equatable, Sendable {
+        /// Every corner of the page is in the image.
+        case whole
+        /// Some of the page is out of the image (or behind the camera).
+        case partly
+        /// The page is in front of the camera but bigger than the image: back up.
+        case tooBig
+    }
+
+    /// Where the page's outline (page frame) falls in an image with intrinsics
+    /// `k` and `imageSize` (sensor pixels), for a camera at `cameraToPage`.
+    /// A corner counts as in the image when it's at least `marginPx` from the edges.
+    public static func fit(outline: [SIMD3<Double>], cameraToPage: Pose, k: simd_double3x3, imageSize: SIMD2<Double>,
+                           marginPx: Double) -> Fit {
+        let cameraFromPage = cameraToPage.rigidInverse
+        let fx = k[0][0], fy = k[1][1], cx = k[2][0], cy = k[2][1]
+        var pixels: [SIMD2<Double>] = []
+        for corner in outline {
+            let p = cameraFromPage.transform(corner)
+            guard p.z > 1 else { return .partly }
+            pixels.append(SIMD2(fx * p.x / p.z + cx, fy * p.y / p.z + cy))
+        }
+        guard let first = pixels.first else { return .partly }
+        let lo = SIMD2(repeating: marginPx), hi = imageSize - marginPx
+        if pixels.allSatisfy({ all($0 .>= lo) && all($0 .<= hi) }) { return .whole }
+        let span = pixels.reduce(first, simd_max) - pixels.reduce(first, simd_min)
+        return all(span .<= hi - lo) ? .partly : .tooBig
+    }
+}
+
 /// The 2D direction on screen toward something off screen.
 public enum OffscreenArrow {
     /// Sensor pixel direction -> the portrait view's direction. The portrait

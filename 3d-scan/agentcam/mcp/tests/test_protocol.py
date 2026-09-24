@@ -23,4 +23,4 @@ def test_examples_parse():
 
 def test_full_path_detection():
     snap = load("requests.json")["items"]
-    assert [PhotoRequest.model_validate(i).options.needs_full_path() for i in snap] == [False, True, False]
+    assert [PhotoRequest.model_validate(i).options.needs_full_path() for i in snap] == [False, True, False, False]
