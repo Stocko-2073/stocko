@@ -76,9 +76,10 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         }
         config.isAutoFocusEnabled = true
         config.planeDetection = []
-        // Resume without reset: ARKit tries to keep its world, but it may have
-        // moved, so the page lock starts over (a new tracking generation).
-        session.run(config)
+        // Always a fresh world. Resuming ARKit's old one means relocalizing,
+        // which can wait forever if the phone isn't back where it was, and the
+        // page lock re-acquires from the markers within a second anyway.
+        session.run(config, options: [.resetTracking, .removeExistingAnchors])
         queue.async { [self] in trackingGeneration += 1 }
     }
 
@@ -152,7 +153,10 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
 
     func sessionInterruptionEnded(_ session: ARSession) { trackingGeneration += 1 }
 
-    func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool { true }
+    /// No: after an interruption ARKit would otherwise sit in "relocalizing"
+    /// until the phone returns to its old spot, and markers are only looked
+    /// for while tracking is normal. A fresh start re-finds the page at once.
+    func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool { false }
 
     func session(_ session: ARSession, didFailWithError error: Error) {
         lock.withLock { $0.arkit = "failed: \(error.localizedDescription)"; $0.isNormal = false }
