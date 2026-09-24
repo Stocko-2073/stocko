@@ -9,5 +9,6 @@ checkpoints/dsine/
 captures/
 agentcam/AgentCam.xcodeproj/
 agentcam/AgentCam/Info.plist
+agentcam/build/
 .build/
 .swiftpm/
