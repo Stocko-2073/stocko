@@ -33,6 +33,9 @@ public enum UBotGATT {
     /// Read / notify at 5 Hz. 13 bytes, packed little-endian.
     public static let status = CBUUID(string: "7B1A0003-6F4B-4C2E-9D3A-2E5F1C8A9B01")
 
+    public static let managementRequest = CBUUID(string: "7B1A0004-6F4B-4C2E-9D3A-2E5F1C8A9B01")
+    public static let managementResponse = CBUUID(string: "7B1A0005-6F4B-4C2E-9D3A-2E5F1C8A9B01")
+
     // MARK: Standard services
 
     public static let batteryService  = CBUUID(string: "180F")

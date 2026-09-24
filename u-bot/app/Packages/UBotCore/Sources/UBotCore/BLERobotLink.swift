@@ -28,6 +28,19 @@ public final class BLERobotLink: NSObject, RobotLink {
     private var driveChr: CBCharacteristic?
     private var controlChr: CBCharacteristic?
     private var statusChr: CBCharacteristic?
+    private var managementRequestChr: CBCharacteristic?
+    private var managementResponseChr: CBCharacteristic?
+    private var managementFragments: [Data] = []
+    private var managementWriting = false
+    private var managementMessageID: UInt16 = 0
+    private var managementReceiver = ManagementFragments()
+    private lazy var management: ManagementSession = {
+        let session = ManagementSession(queue: queue)
+        session.send = { [weak self] data in self?.sendManagement(data) }
+        session.onRequestFinished = { [weak self] in self?.managementFragments.removeAll() }
+        return session
+    }()
+
 
     private lazy var ticker = DriveTicker(queue: queue)
 
@@ -118,6 +131,33 @@ public final class BLERobotLink: NSObject, RobotLink {
             pendingControl.append(op)
             p.writeValue(op.frame, for: ch, type: .withResponse)
         }
+    }
+
+    public func executeManagement(_ args: [String], completion: @escaping ManagementCompletion) {
+        queue.async { [self] in
+            guard running, state.isReady else { completion(.failure(.disconnected)); return }
+            guard managementRequestChr != nil, managementResponseChr?.isNotifying == true else {
+                completion(.failure(.unavailable)); return
+            }
+            management.request(args, completion: completion)
+        }
+    }
+
+    private func sendManagement(_ data: Data) {
+        guard let p = peripheral, p.state == .connected else { management.reset(); return }
+        do {
+            managementMessageID &+= 1
+            managementFragments = try ManagementFragments.encode(data, id: managementMessageID,
+                mtu: p.maximumWriteValueLength(for: .withResponse))
+            writeManagementFragment()
+        } catch { management.reset(.invalidResponse) }
+    }
+
+    private func writeManagementFragment() {
+        guard !managementWriting, !managementFragments.isEmpty,
+              let p = peripheral, let ch = managementRequestChr else { return }
+        managementWriting = true
+        p.writeValue(managementFragments.removeFirst(), for: ch, type: .withResponse)
     }
 
     // MARK: - Discovery
@@ -238,6 +278,10 @@ public final class BLERobotLink: NSObject, RobotLink {
         driveChr = nil
         controlChr = nil
         statusChr = nil
+        management.reset()
+        managementRequestChr = nil; managementResponseChr = nil
+        managementFragments.removeAll(); managementWriting = false
+        managementReceiver = ManagementFragments()
         pendingControl.removeAll()
         stopWatchdog()
         stopQualityTimer()
@@ -335,7 +379,8 @@ extension BLERobotLink: CBPeripheralDelegate {
             switch s.uuid {
             case UBotGATT.service:
                 p.discoverCharacteristics(
-                    [UBotGATT.drive, UBotGATT.control, UBotGATT.status], for: s)
+                    [UBotGATT.drive, UBotGATT.control, UBotGATT.status,
+                     UBotGATT.managementRequest, UBotGATT.managementResponse], for: s)
             case UBotGATT.batteryService:
                 p.discoverCharacteristics([UBotGATT.batteryLevel], for: s)
             case UBotGATT.deviceInfo:
@@ -362,6 +407,11 @@ extension BLERobotLink: CBPeripheralDelegate {
                 statusChr = ch
                 p.setNotifyValue(true, for: ch)
                 p.readValue(for: ch)            // paint the HUD before the first notify
+            case UBotGATT.managementRequest:
+                managementRequestChr = ch
+            case UBotGATT.managementResponse:
+                managementResponseChr = ch
+                p.setNotifyValue(true, for: ch)
             case UBotGATT.batteryLevel:
                 p.setNotifyValue(true, for: ch)
                 p.readValue(for: ch)
@@ -392,6 +442,13 @@ extension BLERobotLink: CBPeripheralDelegate {
             lastStatusAt = Date()
             if case .stalled = state { state = .ready(name: p.name ?? nameFilter) }
             emit(.status(s))
+        case UBotGATT.managementResponse:
+            do {
+                if let message = try managementReceiver.receive(data) { management.receive(message) }
+            } catch {
+                managementReceiver = ManagementFragments()
+                management.reset(.invalidResponse)
+            }
         case UBotGATT.batteryLevel:
             if let pct = data.first { emit(.batteryLevel(pct)) }
         case UBotGATT.firmwareRevision:
@@ -406,7 +463,14 @@ extension BLERobotLink: CBPeripheralDelegate {
     public func peripheral(_ p: CBPeripheral,
                            didWriteValueFor ch: CBCharacteristic,
                            error: Error?) {
-        // Only control writes are acknowledged and tracked. A drive write that
+        guard running, peripheral === p else { return }
+        if ch.uuid == UBotGATT.managementRequest {
+            managementWriting = false
+            if error != nil { management.reset(.refused("The robot refused the settings request.")) }
+            else { writeManagementFragment() }
+            return
+        }
+        // Control writes are tracked separately from management. A drive write that
         // was escalated to .withResponse under backpressure also lands here and
         // is deliberately ignored -- the firmware returns 0 for it regardless,
         // so it carries no information.

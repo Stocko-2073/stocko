@@ -20,6 +20,11 @@ final class RobotController {
     private(set) var firmware: String?
     private(set) var model: String?
     private(set) var toast: Toast?
+    private(set) var driveSettings: DriveSettings?
+    private(set) var settingsBusy = false
+    private(set) var settingsError: String?
+    private(set) var settingsNotice: String?
+    private var settingsRevision = 0
 
     /// True between engage and release. Distinguishes "this phone is driving"
     /// from "someone else is driving", which the status flag alone cannot.
@@ -66,6 +71,7 @@ final class RobotController {
         let old = link
         old.onEvent = nil
         generation += 1
+        invalidateSettings()
         // Give the explicit stop a bounded opportunity to leave the old link.
         // The firmware deadman remains the backstop if that link is broken.
         Task { @MainActor in
@@ -86,7 +92,7 @@ final class RobotController {
     }
 
     func start() { link.start() }
-    func stop() { link.stop() }
+    func stop() { invalidateSettings(); link.stop() }
 
     // MARK: Derived
 
@@ -219,6 +225,84 @@ final class RobotController {
         link.send(op)
     }
 
+    // MARK: Robot settings
+
+    func prepareSettings() {
+        invalidateSettings()
+        settingsError = nil
+        emergencyRelease(alsoStop: true)
+    }
+
+    var canSaveSettings: Bool {
+        linkState.isReady && status != nil && status?.isEnabled == false
+            && status?.isCommandActive == false && status?.busyReason == nil
+            && !isDriving && !settingsBusy && driveSettings != nil
+    }
+
+    private func invalidateSettings() {
+        settingsRevision += 1
+        driveSettings = nil
+        settingsNotice = nil
+    }
+
+    private func executeSettings(_ args: [String], revision: Int) async throws -> String {
+        try Task.checkCancellation()
+        guard linkState.isReady, revision == settingsRevision else { throw RobotSettingsError.disconnected }
+        let result: Result<String, RobotSettingsError> = await withCheckedContinuation { continuation in
+            link.executeManagement(args) { continuation.resume(returning: $0) }
+        }
+        try Task.checkCancellation()
+        guard linkState.isReady, revision == settingsRevision else { throw RobotSettingsError.disconnected }
+        return try result.get()
+    }
+
+    func refreshDriveSettings() async {
+        guard !settingsBusy else { return }
+        settingsBusy = true; settingsError = nil; settingsNotice = nil
+        driveSettings = nil
+        defer { settingsBusy = false }
+        do {
+            let output = try await executeSettings(["set"], revision: settingsRevision)
+            driveSettings = try DriveSettings(output: output)
+        } catch {
+            settingsError = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func saveDriveSetting(_ setting: DriveSetting, value: Double) async -> Bool {
+        guard !settingsBusy else { return false }
+        settingsError = nil; settingsNotice = nil
+        guard setting.accepts(value) else { settingsError = RobotSettingsError.invalidValue.localizedDescription; return false }
+        guard linkState.isReady, status != nil else {
+            settingsError = RobotSettingsError.disconnected.localizedDescription; return false
+        }
+        guard driveSettings != nil else {
+            settingsError = RobotSettingsError.invalidResponse.localizedDescription; return false
+        }
+        guard canSaveSettings else {
+            settingsError = RobotSettingsError.motorsOn.localizedDescription; return false
+        }
+        let revision = settingsRevision
+        settingsBusy = true
+        defer { settingsBusy = false }
+        do {
+            _ = try await executeSettings(["set", setting.rawValue, String(value)], revision: revision)
+            // The ACK is insufficient: refresh the effective value before claiming success.
+            driveSettings = nil
+            let output = try await executeSettings(["set"], revision: revision)
+            let verified = try DriveSettings(output: output)
+            driveSettings = verified
+            guard setting.matchesReadback(verified[setting], requested: value) else { throw RobotSettingsError.verificationFailed }
+            settingsNotice = "Saved \(setting.title.lowercased()) to the robot: \(setting.display(verified[setting])) \(setting.unit)."
+            return true
+        } catch {
+            driveSettings = nil
+            settingsError = error.localizedDescription
+            return false
+        }
+    }
+
     func show(_ text: String, kind: Toast.Kind = .info) {
         toast = Toast(text: text, kind: kind)
         toastTask?.cancel()
@@ -239,7 +323,7 @@ final class RobotController {
             // A link that stops being usable must not leave the last non-zero
             // command sitting on the wire.
             if wasReady, !s.isReady { emergencyRelease(alsoStop: false) }
-            if !s.isReady { status = nil }
+            if !s.isReady { status = nil; invalidateSettings() }
 
         case .status(let s):
             status = s

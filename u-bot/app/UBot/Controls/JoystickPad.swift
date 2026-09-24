@@ -13,10 +13,6 @@ struct JoystickPad: View {
     private let knobFraction: CGFloat = 0.26
     private let travelFraction: CGFloat = 0.37
 
-    /// Linear, full-range input keeps the knob and drive command in step
-    /// with the finger.
-    private let response = StickResponse.standard
-
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
@@ -24,9 +20,9 @@ struct JoystickPad: View {
             let knob = size * knobFraction
             let travel = size * travelFraction
 
-            // The linear command follows the finger, clamped to knob travel.
-            let offset = CGSize(width: -model.command.w * travel,
-                                height: -model.command.v * travel)
+            // Draw from physical input; the transmitted command has a softer centre.
+            let offset = CGSize(width: -model.stickPosition.w * travel,
+                                height: -model.stickPosition.v * travel)
 
             ZStack {
                 Circle()
@@ -50,7 +46,7 @@ struct JoystickPad: View {
                     .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
                     .offset(offset)
                     .animation(model.isEngaged ? nil : .spring(duration: 0.25),
-                               value: model.command)
+                               value: model.stickPosition)
             }
             .frame(width: size, height: size)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -67,10 +63,9 @@ struct JoystickPad: View {
                         // Normalise by knob travel so full output is reached
                         // where the knob touches the rim. +y points down;
                         // DriveCommand maps the signs to forward and turn.
-                        let s = response.shape(
-                            x: (value.location.x - radius) / travel,
-                            y: (value.location.y - radius) / travel)
-                        let c = DriveCommand(stickX: s.x, stickY: s.y)
+                        let c = DriveCommand(
+                            stickX: (value.location.x - radius) / travel,
+                            stickY: (value.location.y - radius) / travel)
                         model.isEngaged ? model.update(c) : model.engage(c)
                     }
                     .onEnded { _ in model.release() }

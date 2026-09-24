@@ -152,16 +152,31 @@ struct StickResponseTests {
         }
     }
 
-    @Test("standard response is proportional throughout both axes")
-    func proportionalTravel() {
-        for t in [-1.0, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1.0] {
-            #expect(r.shape(x: t, y: 0).x == t)
-            #expect(r.shape(x: 0, y: t).y == t)
+    @Test("standard response softens both axes and keeps reverse symmetric")
+    func softCenter() {
+        for (input, expected) in [(0.0, 0.0), (0.25, 0.109375),
+                                  (0.5, 0.275), (0.75, 0.553125), (1.0, 1.0)] {
+            for sign in [-1.0, 1.0] {
+                #expect(abs(r.shape(x: sign * input, y: 0).x - sign * expected) < 1e-9)
+                #expect(abs(r.shape(x: 0, y: sign * input).y - sign * expected) < 1e-9)
+            }
         }
         let s = r.shape(x: 0.3, y: -0.4)
         let command = DriveCommand(stickX: s.x, stickY: s.y)
-        #expect(command.v == 0.4)
-        #expect(command.w == -0.3)
+        #expect(abs(command.v - 0.1984) < 1e-9)
+        #expect(abs(command.w + 0.1362) < 1e-9)
+    }
+
+    @Test("standard response increases smoothly from centre to full travel")
+    func monotonic() {
+        var previous = 0.0
+        for step in 1...100 {
+            let input = Double(step) / 100
+            let output = r.shape(x: input, y: 0).x
+            #expect(output > previous)
+            #expect(output <= input)
+            previous = output
+        }
     }
 
     @Test("custom responses can still opt into expo and turn scaling")

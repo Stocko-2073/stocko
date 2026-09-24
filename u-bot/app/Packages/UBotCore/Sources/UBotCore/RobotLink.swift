@@ -83,4 +83,11 @@ public protocol RobotLink: AnyObject {
     func releaseStick()
 
     func send(_ op: ControlOp)
+    func executeManagement(_ args: [String], completion: @escaping ManagementCompletion)
+}
+
+public extension RobotLink {
+    func executeManagement(_ args: [String], completion: @escaping ManagementCompletion) {
+        completion(.failure(.unavailable))
+    }
 }

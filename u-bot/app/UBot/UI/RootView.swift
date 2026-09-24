@@ -52,6 +52,9 @@ struct RootView: View {
             }
             surface.lock = new
         }
+        .onChange(of: controller.isDriving) { _, driving in
+            if !driving { surface.forceRelease() }
+        }
         .onReceive(NotificationCenter.default.publisher(
             for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
             thermal = ProcessInfo.processInfo.thermalState
@@ -121,6 +124,33 @@ struct RootView: View {
             // it costs nothing at full deflection.
             JoystickPad(model: surface)
                 .frame(maxWidth: 250)
+                .overlay(alignment: .bottomTrailing) {
+                    if controller.stateCard.action?.op == .clearFaults {
+                        Button {
+                            surface.forceRelease()
+                            controller.releaseStick()
+                            controller.send(.clearFaults)
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 22, weight: .bold))
+                                Text("Clear")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .frame(width: 64, height: 64)
+                            .background(UBotPalette.bad, in: Circle())
+                            .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
+                            .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear fault")
+                        .accessibilityHint("Clears the robot fault. Touch the joystick again to drive.")
+                        .accessibilityIdentifier("clear-fault")
+                        .offset(x: 24)
+                    }
+                }
                 .padding(.vertical, 2)
 
             PowerBar(controller: controller)

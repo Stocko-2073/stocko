@@ -34,12 +34,31 @@ public final class MockRobotLink: RobotLink {
     private var command: DriveCommand = .zero
     private var driving = false
 
+    private var settings: [DriveSetting: Double] = [.topSpeed: 1, .acceleration: 1, .braking: 2]
+
     public init() {}
+
+    public func executeManagement(_ args: [String], completion: @escaping ManagementCompletion) {
+        queue.async { [self] in
+            guard timer != nil, scenario != .stalled, scenario != .linkLost else {
+                completion(.failure(.disconnected)); return
+            }
+            if args == ["set"] {
+                let values = DriveSetting.allCases.map { "\($0.rawValue)=\(settings[$0]!)" }.joined(separator: " ")
+                completion(.success("effective drive settings: " + values + "\n"))
+            } else if args.count == 3, args[0] == "set",
+                      let setting = DriveSetting(rawValue: args[1]), let value = Double(args[2]), setting.accepts(value) {
+                guard !enabled else { completion(.failure(.motorsOn)); return }
+                settings[setting] = value
+                completion(.success("\(setting.rawValue) = \(value)\n"))
+            } else { completion(.failure(.invalidValue)) }
+        }
+    }
 
     public func start() {
         queue.async { [self] in
             applyScenario()
-            emit(.firmware("0.1.4"))
+            emit(.firmware("0.2.7"))
             emit(.model("U-BOT base"))
             guard timer == nil else { return }
             let t = DispatchSource.makeTimerSource(queue: queue)

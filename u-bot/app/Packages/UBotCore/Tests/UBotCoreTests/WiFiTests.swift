@@ -234,3 +234,52 @@ extension WiFiLinkTests {
         #expect(lock.withLock { connections } == 1)
     }
 }
+
+@Suite("Wi-Fi robot settings")
+struct WiFiSettingsTests {
+    @Test func settingsUseManagementSocketAndDoNotReplayAfterDisconnect() {
+        let drive = FakeSocket(), management = FakeSocket()
+        let results = SettingsResults()
+        let link = WiFiRobotLink(address: "ubot.local", makeSocket: { url in
+            url.path == "/manage" ? management : drive
+        })
+        link.start(); flush(link)
+        drive.deliver(statusJSON); flush(link)
+        link.executeManagement(["set", "accel_tps2", "1"]) { results.append($0) }
+        flush(link)
+        management.deliver(#"{"type":"hello","protocol":1,"session":42}"#); flush(link)
+        #expect(management.sent.count == 1)
+        #expect(drive.sent.isEmpty)
+        let request = try! JSONSerialization.jsonObject(with: Data(management.sent[0].utf8)) as! [String: Any]
+        #expect(request["args"] as? [String] == ["set", "accel_tps2", "1"])
+        link.stop(); flush(link)
+        management.deliver(#"{"type":"finished","id":1,"code":0}"#); flush(link)
+        #expect(results.values == [.failure(.disconnected)])
+        #expect(management.isClosed)
+        #expect(management.sent.count == 1)
+    }
+
+    @Test func completeManagementResponseReachesCaller() {
+        let drive = FakeSocket(), management = FakeSocket()
+        let results = SettingsResults()
+        let link = WiFiRobotLink(address: "ubot.local", makeSocket: { url in
+            url.path == "/manage" ? management : drive
+        })
+        link.start(); flush(link)
+        drive.deliver(statusJSON); flush(link)
+        link.executeManagement(["set"]) { results.append($0) }; flush(link)
+        management.deliver(#"{"type":"hello","protocol":1,"session":42}"#); flush(link)
+        management.deliver(#"{"type":"output","id":1,"offset":0,"data":"settings"}"#); flush(link)
+        #expect(results.values.isEmpty)
+        management.deliver(#"{"type":"finished","id":1,"code":0}"#); flush(link)
+        #expect(results.values == [.success("settings")])
+        link.stop(); flush(link)
+    }
+}
+
+private final class SettingsResults: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [Result<String, RobotSettingsError>] = []
+    var values: [Result<String, RobotSettingsError>] { lock.withLock { storage } }
+    func append(_ result: Result<String, RobotSettingsError>) { lock.withLock { storage.append(result) } }
+}

@@ -63,6 +63,7 @@ public final class WiFiRobotLink: RobotLink {
     private var controls: [ControlOp] = []
     private var pending: (op: ControlOp, time: TimeInterval)?
     private var robotName = "ubot"
+    private lazy var management = WiFiManagementChannel(queue: queue, address: address, makeSocket: makeSocket)
 
     public convenience init(address: String = "ubot.local") {
         self.init(address: address, makeSocket: { SessionWebSocket(url: $0) })
@@ -103,7 +104,15 @@ public final class WiFiRobotLink: RobotLink {
         }
     }
 
+    public func executeManagement(_ args: [String], completion: @escaping ManagementCompletion) {
+        queue.async { [self] in
+            guard running, ready else { completion(.failure(.disconnected)); return }
+            management.request(args, completion: completion)
+        }
+    }
+
     private func retire() {
+        management.close()
         generation += 1
         ready = false
         driving = false; command = .zero; zeros = 0

@@ -36,7 +36,7 @@ The app needs Xcode. The core does not.
     cd Packages/UBotCore
     swift build
     swift run ubotctl selftest      # 39 checks, no radio, no robot
-    swift test                      # 43 tests
+    swift test                      # 57 tests
 
     # The app, once Xcode is installed:
     brew install xcodegen
@@ -63,7 +63,7 @@ and screenshotted without hardware.
 ## Wi-Fi and connection selection
 
 Use the **BLE / Wi-Fi** selector at the top right. The selection is saved; an
-existing installation starts in BLE mode. The gear opens connection settings.
+existing installation starts in BLE mode. The gear opens Settings, with robot motion settings and the Wi-Fi address.
 Wi-Fi defaults to `ubot.local`; enter an IP address or hostname, optionally
 with a port, if name resolution is unavailable. The endpoint is always
 `ws://<address>/ws`. Allow **Local Network** access when iOS prompts.
@@ -90,6 +90,41 @@ The bench harness selects Wi-Fi with an optional argument:
 
 Without `--wifi`, the harness uses BLE. The iPhone controller and UI tests are
 included in the generated `UBot` Xcode scheme, alongside the package tests.
+
+## Robot settings
+
+Open **Settings (gear) → Motion settings** to read the robot's current top
+speed, acceleration, and braking. Tap a row, enter a value, and tap **Save**.
+Values use wheel turns/s or turns/s² and apply to both wheels. They are saved
+on the robot across restarts; reinstalling the phone app does not reset them.
+
+| Setting | Allowed range |
+| --- | --- |
+| Top speed | 0.05–2 wheel turns/s |
+| Acceleration | 0.5–20 wheel turns/s² |
+| Braking | 0.2–20 wheel turns/s² |
+
+Opening Settings releases the joystick and sends Stop. Current values can be
+read with motors on, but saving requires motors off and fresh connection
+status. A **Turn motors off** button is available in the motion screen. Saving
+never enables motors or clears faults. Each save changes only the selected
+setting and reads back the effective settings before reporting success.
+
+Both BLE and Wi-Fi use the existing firmware management interface (BLE
+characteristics 0004/0005, or the `/manage` WebSocket). BLE reuses the connected
+peripheral. Wi-Fi opens its management channel only when a setting is read or
+saved. Older firmware without this interface shows an unavailable message.
+There is no firmware update required on the current 0.2.7 robot.
+
+Requests time out, reject incomplete responses, and are not replayed after
+connection loss. If a save cannot be confirmed, the screen clears the cached
+values and asks you to refresh: the write may have reached the robot even
+though its reply was lost. The simulator uses an in-memory mock robot.
+
+Local validation covers protocol framing, parsing and readback, input ranges,
+connection changes, failed saves, and the simulator edit flow. Live BLE/Wi-Fi
+settings validation is deferred until the outdoor driving test is finished;
+no live settings were changed while developing this screen.
 
 ## Safety model
 
@@ -128,11 +163,17 @@ on the next activation. Camera interruptions are shown over the preview.
 
 ## Stick response
 
-The stick follows your finger up to the rim of its travel. Input is linear:
-half travel requests half rate, and full travel requests the full configured
-forward, reverse, or turn rate. There is no additional app turn cap or response
-curve. Diagonal input is clamped to the unit circle; the firmware scales mixed
-forward/turn commands together when needed to respect wheel speed limits.
+The knob follows your finger up to the rim of its travel. Drive requests use
+`0.4 * input + 0.6 * input³` independently on forward and turn after clamping
+the stick to the unit disc. At 25%, 50%, and 75% travel along either axis, the
+robot receives about 10.9%, 27.5%, and 55.3% of its configured rate; full travel
+still requests 100%. Reverse is symmetric, and there is no additional turn cap.
+The visual stick position is kept separate from the shaped command, so the
+knob tracks the finger and centres on release or lock.
+
+This curve applies to native app driving over both BLE and Wi-Fi. The firmware
+web joystick and raw bench commands remain linear. Robot acceleration, braking,
+top-speed settings, and deadman behavior are unchanged.
 
 Actual speed and acceleration are saved robot settings (`vmax_tps` and
 `accel_tps2`), adjustable through `ubotctl exec set` without reflashing. For

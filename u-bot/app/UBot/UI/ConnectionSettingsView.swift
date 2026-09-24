@@ -13,6 +13,13 @@ struct ConnectionSettingsView: View {
                 if let firmware = controller.firmware {
                     LabeledContent("Firmware", value: firmware)
                 }
+                Section("Robot") {
+                    NavigationLink {
+                        RobotSettingsView(controller: controller)
+                    } label: {
+                        Label("Motion settings", systemImage: "slider.horizontal.3")
+                    }
+                }
                 Section {
                     TextField("Robot address", text: $address)
                         .textInputAutocapitalization(.never)
@@ -27,13 +34,13 @@ struct ConnectionSettingsView: View {
                         .foregroundStyle(.red)
                 }
             }
-            .navigationTitle("Connection")
+            .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Done") { dismiss() }.disabled(controller.settingsBusy)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("Save connection") {
                         let value = address.trimmingCharacters(in: .whitespacesAndNewlines)
                         let changed = settings.wifiAddress != value
                         settings.wifiAddress = value
@@ -42,10 +49,11 @@ struct ConnectionSettingsView: View {
                         }
                         dismiss()
                     }
-                    .disabled(WiFiProtocol.endpoint(address) == nil)
+                    .disabled(WiFiProtocol.endpoint(address) == nil || controller.settingsBusy)
                 }
             }
         }
+        .interactiveDismissDisabled(controller.settingsBusy)
         .onAppear { address = settings.wifiAddress }
     }
 }

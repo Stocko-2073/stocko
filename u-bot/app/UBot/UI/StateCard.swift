@@ -21,7 +21,8 @@ struct StateCardView: View {
                 }
             }
             Spacer(minLength: 0)
-            if let action = card.action {
+            // Fault recovery lives beside the joystick, within thumb reach.
+            if let action = card.action, action.op != .clearFaults {
                 Button(action.label) { onAction(action.op) }
                     .font(.system(size: 13, weight: .semibold))
                     .buttonStyle(.plain)

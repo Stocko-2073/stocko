@@ -7,9 +7,9 @@ import Foundation
 /// mapping stays something `ubotctl` can assert against and this stays
 /// something you can tune in a yard without touching the protocol.
 ///
-/// The standard response is linear with full authority on both axes. Robot
-/// speed limits live in the firmware's saved settings; the app does not reduce
-/// them again. Custom responses can still opt into curvature or turn scaling.
+/// The standard response softens the centre with a linear/cubic blend while
+/// preserving full authority at the ends of both axes. Speed and acceleration
+/// limits remain in the firmware's saved settings.
 public struct StickResponse: Sendable, Equatable {
 
     /// Curvature, 0...1. At 0 the stick is linear. At 1 it is a pure cube, so
@@ -22,9 +22,9 @@ public struct StickResponse: Sendable, Equatable {
     /// never scaled. The standard response uses the full range on both axes.
     public var turnScale: Double
 
-    /// What the pad uses: half travel commands half rate, and full travel
+    /// What the pad uses: half travel commands 27.5% rate, and full travel
     /// reaches the robot's configured limit in every cardinal direction.
-    public static let standard = StickResponse(expo: 0, turnScale: 1)
+    public static let standard = StickResponse(expo: 0.6, turnScale: 1)
 
     /// Linear and unscaled -- the old behaviour, and what a bench script wants
     /// when it means the number it wrote.

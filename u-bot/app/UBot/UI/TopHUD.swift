@@ -51,12 +51,12 @@ struct TopHUD: View {
                 .frame(width: 112)
                 .accessibilityLabel("Robot connection")
             Button {
-                controller.emergencyRelease(alsoStop: true)
+                controller.prepareSettings()
                 showingConnection = true
             } label: {
                 Image(systemName: "gearshape").frame(width: 32, height: 44)
             }
-            .accessibilityLabel("Connection settings")
+            .accessibilityLabel("Settings")
         }
     }
 
