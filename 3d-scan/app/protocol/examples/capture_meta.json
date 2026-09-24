@@ -1,0 +1,147 @@
+{
+ "capture_id": "6f1c0a9e2b7d4c11",
+ "request_id": "r0001",
+ "captured_at": "2026-09-23T22:01:10.512+00:00",
+ "path": "fast",
+ "files": [
+  {
+   "name": "image.jpg",
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "bytes": 3145728
+  },
+  {
+   "name": "depth.png",
+   "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+   "bytes": 98304
+  },
+  {
+   "name": "confidence.png",
+   "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+   "bytes": 49152
+  }
+ ],
+ "image": {
+  "file": "image.jpg",
+  "w": 4032,
+  "h": 3024,
+  "grid": "sensor",
+  "upright_rotation_cw_deg": 0
+ },
+ "intrinsics": {
+  "K": [
+   [
+    2860.1,
+    0,
+    2015.2
+   ],
+   [
+    0,
+    2860.1,
+    1511.8
+   ],
+   [
+    0,
+    0,
+    1
+   ]
+  ],
+  "source": "arkit",
+  "ref_dims": [
+   4032,
+   3024
+  ],
+  "distortion": {
+   "model": "none"
+  }
+ },
+ "pose": {
+  "camera_to_page": [
+   [
+    1,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    -0.5736,
+    0.8192,
+    -245.7
+   ],
+   [
+    0,
+    -0.8192,
+    -0.5736,
+    192.1
+   ],
+   [
+    0,
+    0,
+    0,
+    1
+   ]
+  ],
+  "source": "arkit_live",
+  "target_error": {
+   "right_mm": 1.5,
+   "down_mm": -0.4,
+   "forward_mm": 3.2,
+   "pointing_deg": 0.8,
+   "roll_deg": 1.2
+  }
+ },
+ "lens": {
+  "id": "wide",
+  "device_type": "AVCaptureDeviceTypeBuiltInWideAngleCamera",
+  "lens_position": 0.62,
+  "focus_mode": "auto",
+  "distortion_correction": true
+ },
+ "exposure": {
+  "duration_s": 0.008,
+  "iso": 200,
+  "bias_ev": 0,
+  "wb_gains": [
+   2.0,
+   1.0,
+   1.7
+  ],
+  "flash_fired": false,
+  "torch": 0
+ },
+ "tracking": {
+  "arkit": "normal",
+  "board_age_s": 0.2,
+  "board_generation": 1,
+  "tilt_deg": 1.1,
+  "speed_mm_s": 4,
+  "ang_speed_deg_s": 0.6
+ },
+ "depth": {
+  "file": "depth.png",
+  "format": "uint16_mm",
+  "confidence": "confidence.png",
+  "w": 256,
+  "h": 192,
+  "K": [
+   [
+    182.4,
+    0,
+    128.5
+   ],
+   [
+    0,
+    182.4,
+    96.4
+   ],
+   [
+    0,
+    0,
+    1
+   ]
+  ],
+  "source": "arkit_scene_depth"
+ },
+ "placement": null,
+ "warnings": []
+}

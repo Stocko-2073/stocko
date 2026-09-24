@@ -1,0 +1,62 @@
+{
+ "t": "status",
+ "v": 1,
+ "ts": 1790200000.25,
+ "app": "foreground",
+ "thermal": "nominal",
+ "battery": 0.81,
+ "tracking": {
+  "arkit": "normal",
+  "board": {
+   "locked": true,
+   "age_s": 0.3,
+   "markers": 23,
+   "rms_px": 0.6,
+   "tilt_deg": 1.1,
+   "jitter_mm": 0.3,
+   "generation": 1
+  }
+ },
+ "camera_to_page": [
+  [
+   1,
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   -0.5736,
+   0.8192,
+   -245.7
+  ],
+  [
+   0,
+   -0.8192,
+   -0.5736,
+   192.1
+  ],
+  [
+   0,
+   0,
+   0,
+   1
+  ]
+ ],
+ "active": {
+  "request_id": "r0001",
+  "phase": "aligning",
+  "err": {
+   "right_mm": 12.0,
+   "down_mm": -3.0,
+   "forward_mm": 40.0,
+   "pointing_deg": 4.1,
+   "roll_deg": 2.0,
+   "steady": false
+  }
+ },
+ "outbox": {
+  "pending": 0,
+  "bytes": 0
+ }
+}

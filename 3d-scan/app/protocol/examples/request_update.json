@@ -1,0 +1,7 @@
+{
+ "t": "request_update",
+ "v": 1,
+ "id": "r0002",
+ "state": "skipped",
+ "reason": "can't reach behind the monitor"
+}

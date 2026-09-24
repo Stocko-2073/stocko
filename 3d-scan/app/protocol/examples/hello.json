@@ -1,0 +1,78 @@
+{
+ "t": "hello",
+ "v": 1,
+ "app_state": "foreground",
+ "device": {
+  "model": "iPhone17,1",
+  "ios": "26.6.2",
+  "app": "0.1.0"
+ },
+ "lenses": [
+  {
+   "id": "wide",
+   "fov_deg": [
+    71.6,
+    57.0
+   ],
+   "min_focus_mm": 150,
+   "max_photo_dims": [
+    [
+     4032,
+     3024
+    ],
+    [
+     8064,
+     6048
+    ]
+   ],
+   "raw": [
+    "bayer",
+    "proraw"
+   ],
+   "flash": true
+  },
+  {
+   "id": "ultrawide",
+   "fov_deg": [
+    106.0,
+    90.0
+   ],
+   "min_focus_mm": 20,
+   "max_photo_dims": [
+    [
+     4032,
+     3024
+    ],
+    [
+     8064,
+     6048
+    ]
+   ],
+   "raw": [
+    "bayer",
+    "proraw"
+   ],
+   "flash": true
+  },
+  {
+   "id": "telephoto",
+   "fov_deg": [
+    16.4,
+    12.3
+   ],
+   "min_focus_mm": 600,
+   "max_photo_dims": [
+    [
+     4032,
+     3024
+    ]
+   ],
+   "raw": [
+    "bayer",
+    "proraw"
+   ],
+   "flash": true
+  }
+ ],
+ "lidar": true
+}

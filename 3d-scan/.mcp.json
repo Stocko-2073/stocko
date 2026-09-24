@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "agentcam": {
+      "command": "uv",
+      "args": ["run", "--quiet", "--project", "app/mcp", "agentcam-mcp"],
+      "env": {"AGENTCAM_PORT": "47815"},
+      "timeout": 900000
+    }
+  }
+}
