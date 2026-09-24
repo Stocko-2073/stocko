@@ -32,7 +32,7 @@ func sampleMeta(_ capture: String, request: String = "r0001", at: String = "2026
                     image: .init(file: "image.jpg", w: 4, h: 3, uprightRotationCwDeg: 0),
                     intrinsics: .init(K: [[1, 0, 2], [0, 1, 1.5], [0, 0, 1]], source: "test", refDims: [4, 3],
                                       distortion: .init(model: "none")),
-                    pose: .init(cameraToPage: nil, source: "none"))
+                    pose: .init(cameraToMat: nil, source: "none"))
 }
 
 @Suite struct OutboxTests {

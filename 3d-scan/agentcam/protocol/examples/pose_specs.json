@@ -13,7 +13,7 @@
     "distance_mm": 300
    }
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     1.0,
     0.0,
@@ -62,7 +62,7 @@
    },
    "hold": "portrait"
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     0.5,
     -0.0,
@@ -110,7 +110,7 @@
     "distance_mm": 400
    }
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     1.0,
     -0.0,
@@ -159,7 +159,7 @@
    },
    "hold": "portrait"
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     -0.0,
     -1.0,
@@ -208,7 +208,7 @@
    },
    "roll_deg": 20
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     -0.849726861,
     -0.267163445,
@@ -256,7 +256,7 @@
     180
    ]
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     0.8,
     0.337386013,
@@ -309,7 +309,7 @@
     0
    ]
   },
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     0.0,
     -1.0,

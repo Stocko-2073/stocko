@@ -44,15 +44,15 @@ public struct CaptureMetadata: Codable, Sendable, Equatable {
         }
     }
     public struct Pose: Codable, Sendable, Equatable {
-        public var cameraToPage: Matrix?
+        public var cameraToMat: Matrix?
         /// arkit_live: the frame's own tracked pose; arkit_held: the last pose
-        /// before leaving AR for a full-path shot; none: no page lock.
+        /// before leaving AR for a full-path shot; none: no mat lock.
         public var source: String
         public var targetError: AlignmentReport?
         /// Full path only: tracked poses just before and after the shot.
         public var bracket: Bracket?
-        public init(cameraToPage: Matrix?, source: String, targetError: AlignmentReport? = nil, bracket: Bracket? = nil) {
-            self.cameraToPage = cameraToPage
+        public init(cameraToMat: Matrix?, source: String, targetError: AlignmentReport? = nil, bracket: Bracket? = nil) {
+            self.cameraToMat = cameraToMat
             self.source = source
             self.targetError = targetError
             self.bracket = bracket
@@ -104,18 +104,18 @@ public struct CaptureMetadata: Codable, Sendable, Equatable {
     }
     public struct Tracking: Codable, Sendable, Equatable {
         public var arkit: String
-        public var boardAgeS: Double?
-        public var boardGeneration: Int?
+        public var matAgeS: Double?
+        public var matGeneration: Int?
         public var tiltDeg: Double?
         public var speedMmS: Double?
         public var angSpeedDegS: Double?
-        /// ARKit's own world pose of the camera (metres, ARKit axes), for debugging.
+        /// ARKit's own world pose of the camera (meters, ARKit axes), for debugging.
         public var arkitCameraTransform: Matrix?
-        public init(arkit: String, boardAgeS: Double? = nil, boardGeneration: Int? = nil, tiltDeg: Double? = nil,
+        public init(arkit: String, matAgeS: Double? = nil, matGeneration: Int? = nil, tiltDeg: Double? = nil,
                     speedMmS: Double? = nil, angSpeedDegS: Double? = nil, arkitCameraTransform: Matrix? = nil) {
             self.arkit = arkit
-            self.boardAgeS = boardAgeS
-            self.boardGeneration = boardGeneration
+            self.matAgeS = matAgeS
+            self.matGeneration = matGeneration
             self.tiltDeg = tiltDeg
             self.speedMmS = speedMmS
             self.angSpeedDegS = angSpeedDegS

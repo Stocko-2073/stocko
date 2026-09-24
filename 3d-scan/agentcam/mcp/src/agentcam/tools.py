@@ -10,44 +10,44 @@ from typing import Literal
 from mcp.server.mcpserver import Context, Image, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from . import enrich
-from .models import BoardInfo, PhotoRequest, PhotoRequestSpec
+from .analysis import jpeg_bytes
+from .models import MatInfo, PhotoRequest, PhotoRequestSpec
 
 MAX_WAIT_S = 600
 PROGRESS_EVERY_S = 15
 
 CONVENTIONS = """\
-Frames and units (millimetres, degrees):
-- Page frame: origin at the page centre, +x toward the right edge, +y toward the top edge
+Frames and units (millimeters, degrees):
+- Mat frame: origin at the mat center, +x toward the right edge, +y toward the top edge
   (the marker row holding id 0), +z up out of the paper. The object sits inside the marker ring.
 - Pose spec: {"look_at": [x,y,z], "orbit": {"azimuth_deg", "elevation_deg", "distance_mm"}} or
   {"look_at", "eye": [x,y,z]}. Orbit: eye = look_at + d*(cos e*cos a, cos e*sin a, sin e); azimuth runs
-  counter-clockwise from +x seen from above; elevation 90 looks straight down.
+  counterclockwise from +x seen from above; elevation 90 looks straight down.
   "hold": "landscape" (phone top to the left; the stored image is upright) or "portrait" (phone upright).
   "roll_deg" turns the camera about its viewing axis, clockwise as seen from behind it.
   "up_hint" picks the world direction that is image-up (default +z; +y when looking straight down).
 - Camera frame: OpenCV (x right, y down, z forward) on the stored pixel grid, which is the sensor's
-  native landscape grid; pixel (0,0) is the centre of the top-left pixel. Stored files have EXIF
+  native landscape grid; pixel (0,0) is the center of the top-left pixel. Stored files have EXIF
   Orientation 1, so cv2.imread gives exactly that grid. meta.json "image.upright_rotation_cw_deg" says how
-  to turn the image upright for viewing. camera_to_page maps camera-frame points to the page frame.
-- The user may turn the page, with the object on it, to reach a view (say the desk is against a wall).
-  Poses are relative to the page, so that's fine as long as the object doesn't shift on the paper; each move
-  bumps meta.json "tracking.board_generation". Photos in the same generation share an unmoved page.
-- Two poses per photo: meta.json "pose" is the phone's (ARKit tracking relative to the page); analysis.json
+  to turn the image upright for viewing. camera_to_mat maps camera-frame points to the mat frame.
+- The user may turn the mat, with the object on it, to reach a view (say the desk is against a wall).
+  Poses are relative to the mat, so that's fine as long as the object doesn't shift on the paper; each move
+  bumps meta.json "tracking.mat_generation". Photos in the same generation share an unmoved mat.
+- Two poses per photo: meta.json "pose" is the phone's (ARKit tracking relative to the mat); analysis.json
   "pnp" is solved from the markers visible in the still itself, with its reprojection rms. Prefer "pnp"
   when it exists and its rms is small.
 """
 
 INSTRUCTIONS = """\
-AgentCam guides the user's iPhone to camera poses you choose around an object sitting on a printed
-ArUco-bordered US Letter page, captures automatically when the phone is aligned and steady, and returns
-the photo with its intrinsics and pose.
+AgentCam guides the user's iPhone to camera poses you choose around an object sitting on the mat
+(a printed US Letter sheet with an ArUco marker border), captures automatically when the phone is
+aligned and steady, and returns the photo with its intrinsics and pose.
 
 Workflow: queue requests with request_photos (they wait on this Mac even while the app is closed),
 ask the user to open AgentCam on their iPhone, then call wait_for_photos. Full-resolution files stay on
-disk at the paths given; tool results carry downscaled upright previews. Call get_board for the frame
-conventions before choosing poses. For a first look at what's on the page, request {"kind": "freeform"}:
-no pose, taken as soon as the whole page is in view with the phone steady.
+disk at the paths given; tool results carry downscaled upright previews. Call get_mat for the frame
+conventions before choosing poses. For a first look at what's on the mat, request {"kind": "freeform"}:
+no pose, taken as soon as the whole mat is in view with the phone steady.
 """ + "\n" + CONVENTIONS
 
 
@@ -73,7 +73,7 @@ def register(mcp: MCPServer, runtime) -> None:
         """Queue one or more photo requests. Returns their ids, the resolved camera targets and any preflight
         warnings. Requests wait here until the phone takes them, so queue a whole set, then ask the user to
         open AgentCam and call wait_for_photos. Lens/flash/48mp/RAW/lidar_photo options briefly leave AR on
-        the phone; the photo's pose then comes from the markers in the still. See get_board for frames."""
+        the phone; the photo's pose then comes from the markers in the still. See get_mat for frames."""
         try:
             made = await hub().add_requests(requests)
         except ValueError as e:
@@ -85,7 +85,7 @@ def register(mcp: MCPServer, runtime) -> None:
 
     @mcp.tool()
     async def list_requests(include_done: bool = True, limit: int = 50) -> str:
-        """The request queue: state (queued, captured, skipped, cancelled), target and capture ids."""
+        """The request queue: state (queued, captured, skipped, canceled), target and capture ids."""
         h = hub()
         rs = h.store.ordered() if include_done else h.store.queued()
         rs = rs[-limit:]
@@ -99,7 +99,7 @@ def register(mcp: MCPServer, runtime) -> None:
                               preview_px: int = 1024) -> list[str | Image]:
         """Block until the given requests (default: every queued one) are captured or skipped, or until
         timeout_s (max 600). Returns a summary with file paths and upright preview images of the newest
-        captures. Cancelling this call does not cancel the requests; call it again to keep waiting."""
+        captures. Canceling this call does not cancel the requests; call it again to keep waiting."""
         h = hub()
         ids = ids if ids is not None else [r.id for r in h.store.queued()]
         missing = [i for i in ids if i not in h.store.requests]
@@ -126,7 +126,7 @@ def register(mcp: MCPServer, runtime) -> None:
             folder = h.store.capture_dir(r.id, r.capture_ids[-1])
             if (folder / "preview.jpg").exists():
                 out.append(f"{r.id} preview (upright):")
-                out.append(Image(data=enrich.jpeg_bytes(folder / "preview.jpg", preview_px), format="jpeg"))
+                out.append(Image(data=jpeg_bytes(folder / "preview.jpg", preview_px), format="jpeg"))
                 shown += 1
         return out
 
@@ -148,22 +148,22 @@ def register(mcp: MCPServer, runtime) -> None:
         if crop:
             if len(crop) != 4:
                 return ["crop must be [x, y, w, h]"]
-            data = enrich.jpeg_bytes(folder / meta["image"]["file"], preview_px, tuple(crop), rot)
+            data = jpeg_bytes(folder / meta["image"]["file"], preview_px, tuple(crop), rot)
         elif (folder / "preview.jpg").exists():
-            data = enrich.jpeg_bytes(folder / "preview.jpg", preview_px)
+            data = jpeg_bytes(folder / "preview.jpg", preview_px)
         else:
-            data = enrich.jpeg_bytes(folder / meta["image"]["file"], preview_px, None, rot)
+            data = jpeg_bytes(folder / meta["image"]["file"], preview_px, None, rot)
         return [text, Image(data=data, format="jpeg")]
 
     @mcp.tool()
     async def cancel_requests(ids: list[str] | None = None) -> str:
         """Cancel queued requests (default: all of them). The phone drops them from its list."""
-        cancelled = await hub().cancel(ids)
-        return f"Cancelled {', '.join(cancelled)}." if cancelled else "Nothing to cancel."
+        canceled = await hub().cancel(ids)
+        return f"Canceled {', '.join(canceled)}." if canceled else "Nothing to cancel."
 
     @mcp.tool()
     async def phone_status() -> str:
-        """Whether the phone is connected and in the foreground, its lenses, whether it has the page locked,
+        """Whether the phone is connected and in the foreground, its lenses, whether it has the mat locked,
         its live camera pose, and what it is doing now."""
         h = hub()
         info = {
@@ -181,24 +181,24 @@ def register(mcp: MCPServer, runtime) -> None:
         return json.dumps(info, indent=1)
 
     @mcp.tool()
-    async def get_board() -> str:
-        """The printed page, its frame conventions, and where its marker layout (page-frame mm) is on disk."""
+    async def get_mat() -> str:
+        """The printed mat, its frame conventions, and where its marker layout (mat-frame mm) is on disk."""
         h = hub()
-        return CONVENTIONS + "\nBoard:\n" + json.dumps(
-            h.board.describe() | {"layout_page_frame_file": str(runtime.write_board_file())}, indent=1)
+        return CONVENTIONS + "\nMat:\n" + json.dumps(
+            h.mat.describe() | {"layout_mat_frame_file": str(runtime.write_mat_file())}, indent=1)
 
     @mcp.tool()
     async def set_print_scale(measured_x_mm: float, measured_y_mm: float) -> str:
-        """Correct for the printer's scaling. Ask the user to measure, with calipers, the page's marker ring
+        """Correct for the printer's scaling. Ask the user to measure, with calipers, the mat's marker ring
         from the outer edge of the leftmost marker to the outer edge of the rightmost (x) and from the top
-        row's outer edge to the bottom row's (y); get_board lists the nominal spans."""
+        row's outer edge to the bottom row's (y); get_mat lists the nominal spans."""
         h = hub()
-        nx, ny = h.board.nominal_span_mm
+        nx, ny = h.mat.nominal_span_mm
         if not (0.9 < measured_x_mm / nx < 1.1 and 0.9 < measured_y_mm / ny < 1.1):
             return f"Those differ from the nominal {nx:.1f} x {ny:.1f} mm by more than 10%; not applied."
         scale = (round(measured_x_mm / nx, 6), round(measured_y_mm / ny, 6))
-        await h.set_board(BoardInfo(dictionary=h.store.board.dictionary, print_scale=scale))
-        runtime.write_board_file()
+        await h.set_mat(MatInfo(dictionary=h.store.mat.dictionary, print_scale=scale))
+        runtime.write_mat_file()
         return f"Print scale set to x {scale[0]:.5f}, y {scale[1]:.5f}; the phone and later analyses use it."
 
 
@@ -208,10 +208,8 @@ def _describe(r: PhotoRequest, store=None) -> str:
         e = r.target.eye
         parts.append(f"eye ({e[0]:.0f}, {e[1]:.0f}, {e[2]:.0f}) -> look_at {tuple(r.target.look_at)}, "
                      f"{r.target.distance_mm:.0f} mm, lens {r.options.lens}")
-    elif r.kind == "freeform":
-        parts.append(f"freeform (whole page in view), lens {r.options.lens}")
     else:
-        parts.append(f"free framing, lens {r.options.lens}")
+        parts.append(f"freeform (whole mat in view), lens {r.options.lens}")
     if r.note:
         parts.append(f'note "{r.note}"')
     if r.placement:
@@ -245,5 +243,5 @@ def _capture_line(store, rid: str, cid: str) -> str:
         if "phone_vs_pnp" in a:
             s += f", phone vs PnP {a['phone_vs_pnp']['dt_mm']} mm / {a['phone_vs_pnp']['dr_deg']} deg"
     else:
-        s += f", no page pose in the still ({a.get('markers_detected', 0)} markers seen)"
+        s += f", no mat pose in the still ({a.get('markers_detected', 0)} markers seen)"
     return s + f"; meta {Path(folder) / 'meta.json'}"

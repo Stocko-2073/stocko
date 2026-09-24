@@ -1,7 +1,7 @@
 """Protocol models: the source of truth for the wire format.
 
 The app's AgentCamCore/Protocol mirrors these, and both sides decode every file
-in agentcam/protocol/examples in their tests. Units are millimetres and degrees;
+in agentcam/protocol/examples in their tests. Units are millimeters and degrees;
 frames are described in geometry.py.
 """
 
@@ -22,15 +22,15 @@ class Strict(BaseModel):
 
 
 class Orbit(Strict):
-    azimuth_deg: float = Field(description="Counter-clockwise from +x (the page's right edge) as seen from above.")
+    azimuth_deg: float = Field(description="Counterclockwise from +x (the mat's right edge) as seen from above.")
     elevation_deg: float = Field(ge=-90, le=90, description="Up from the paper; 90 looks straight down.")
     distance_mm: float = Field(gt=0, description="From look_at to the camera.")
 
 
 class PoseSpec(Strict):
-    look_at: Vec3 = Field((0.0, 0.0, 0.0), description="Page-frame point the camera looks at.")
+    look_at: Vec3 = Field((0.0, 0.0, 0.0), description="Mat-frame point the camera looks at.")
     orbit: Orbit | None = None
-    eye: Vec3 | None = Field(None, description="Camera centre, instead of orbit.")
+    eye: Vec3 | None = Field(None, description="Camera center, instead of orbit.")
     hold: Literal["landscape", "portrait"] = Field(
         "landscape", description="landscape: phone top to the left (sensor grid upright); portrait: phone upright.")
     roll_deg: float = Field(0.0, description="About the viewing axis, clockwise as seen from behind the camera.")
@@ -107,9 +107,8 @@ class Placement(Strict):
 
 class PhotoRequestSpec(Strict):
     """What the agent asks for."""
-    kind: Literal["pose", "free", "freeform"] = Field(
-        "pose", description="free: no target; the user frames the shot, which is taken once the phone is held still. "
-                            "freeform: no target or hold; taken as soon as the whole page is in view with the phone "
+    kind: Literal["pose", "freeform"] = Field(
+        "pose", description="freeform: no target or hold; taken as soon as the whole mat is in view with the phone "
                             "steady (tolerance max_speed_mm_s and max_ang_speed_deg_s), e.g. for a first look at what's "
                             "on it.")
     pose: PoseSpec | None = None
@@ -128,14 +127,14 @@ class PhotoRequestSpec(Strict):
 
 
 class Target(Strict):
-    camera_to_page: Mat4
+    camera_to_mat: Mat4
     eye: Vec3
     look_at: Vec3
     distance_mm: float
     position_tolerance_mm: float
 
 
-RequestState = Literal["queued", "captured", "skipped", "cancelled"]
+RequestState = Literal["queued", "captured", "skipped", "canceled"]
 
 
 class PhotoRequest(PhotoRequestSpec):
@@ -151,7 +150,7 @@ class PhotoRequest(PhotoRequestSpec):
     skip_reason: str | None = None
 
 
-class BoardInfo(Strict):
+class MatInfo(Strict):
     dictionary: str = "DICT_4X4_100"
     print_scale: tuple[float, float] = (1.0, 1.0)
 
@@ -207,7 +206,7 @@ class Intrinsics(BaseModel):
 
 class CapturePose(BaseModel):
     model_config = ConfigDict(extra="allow")
-    camera_to_page: Mat4 | None
+    camera_to_mat: Mat4 | None
     source: Literal["arkit_live", "arkit_held", "none"]
 
 

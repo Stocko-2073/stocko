@@ -14,7 +14,7 @@ struct PhotoFixture: Decodable {
     let detections: [Detection]
     let inliers: [Bool]
     let rejectedIds: [Int]
-    let cameraToPage: Matrix
+    let cameraToMat: Matrix
     let rmsPx: Double
 
     static func load() throws -> PhotoFixture {
@@ -24,14 +24,14 @@ struct PhotoFixture: Decodable {
     var markers: [DetectedMarker] { detections.map { DetectedMarker(id: $0.id, corners: $0.corners.map { SIMD2($0[0], $0[1]) }) } }
 }
 
-@Suite struct BoardSolverTests {
+@Suite struct MatSolverTests {
     @Test func agreesWithTheServerOnTheRealPhoto() throws {
         let ref = try PhotoFixture.load()
-        let fit = BoardSolver.solve(ref.markers, layout: try BoardLayout.bundled(), k: ref.k)
+        let fit = MatSolver.solve(ref.markers, layout: try MatLayout.bundled(), k: ref.k)
         #expect(fit.inliers == ref.inliers)
         #expect(fit.rejectedIds == ref.rejectedIds)
         let best = try #require(fit.solutions.first)
-        let (mm, deg) = poseDifference(best.cameraFromPage.rigidInverse, try #require(Pose(rows: ref.cameraToPage)))
+        let (mm, deg) = poseDifference(best.cameraFromMat.rigidInverse, try #require(Pose(rows: ref.cameraToMat)))
         #expect(mm < 0.1 && deg < 0.05, "phone vs server: \(mm) mm, \(deg) deg")
         #expect(abs(best.rmsPx - ref.rmsPx) < 0.01 * ref.rmsPx)
     }
@@ -41,7 +41,7 @@ struct PhotoFixture: Decodable {
         let markers = try #require(pixels.withUnsafeBytes {
             MarkerDetector(family: .aruco4x4)!.detect(gray: $0.baseAddress!, width: w, height: h, bytesPerRow: w)
         })
-        let fit = BoardSolver.solve(markers, layout: try BoardLayout.bundled(), k: try PhotoFixture.load().k)
+        let fit = MatSolver.solve(markers, layout: try MatLayout.bundled(), k: try PhotoFixture.load().k)
         #expect(fit.usedCount == 70 && fit.rejectedIds == [17])
         #expect(try #require(fit.solutions.first).rmsPx < 8)
     }
@@ -49,7 +49,7 @@ struct PhotoFixture: Decodable {
     @Test func oneMarkerStillGivesAPose() throws {
         let ref = try PhotoFixture.load()
         let one = ref.markers.filter { $0.id == 5 }
-        let fit = BoardSolver.solve(one, layout: try BoardLayout.bundled(), k: ref.k)
+        let fit = MatSolver.solve(one, layout: try MatLayout.bundled(), k: ref.k)
         #expect(fit.inliers == [true] && fit.solutions.count == 2)
     }
 
@@ -57,7 +57,7 @@ struct PhotoFixture: Decodable {
         let ref = try PhotoFixture.load()
         var markers = ref.markers
         markers.append(DetectedMarker(id: 99, corners: markers[0].corners))
-        let fit = BoardSolver.solve(markers, layout: try BoardLayout.bundled(), k: ref.k)
+        let fit = MatSolver.solve(markers, layout: try MatLayout.bundled(), k: ref.k)
         #expect(fit.inliers.last == false && fit.usedCount == 70)
     }
 }

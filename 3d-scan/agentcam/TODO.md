@@ -1,6 +1,6 @@
 # AgentCam TODO
 
-Phases 0–4 are done: OpenCV packaging, server and fake phone, thin app, page lock, guidance and
+Phases 0–4 are done: OpenCV packaging, server and fake phone, thin app, mat lock, guidance and
 automatic capture. They were checked on the iPhone 16 Pro over three sessions, 9 photos in all.
 Phone vs still-PnP poses agreed within 0.3–1.2 mm / 0.05–0.22°, and 2.8 mm / 0.7° for one side view
 with 20 markers. What's left, in order.
@@ -10,7 +10,7 @@ with 20 markers. What's left, in order.
 Requests that need these show "Can't do this one yet" today.
 
 - [ ] **Probe first**, on a debug screen:
-  - [ ] Does `captureHighResolutionFrame(using:)` (iOS 26) honour `flashMode` or larger
+  - [ ] Does `captureHighResolutionFrame(using:)` (iOS 26) honor `flashMode` or larger
     `maxPhotoDimensions`? If flash works there, it can stay on the fast path.
   - [ ] Time the AR pause → AVCaptureSession shot → AR resume, and record the tracking-state
     timeline. The plan assumes 1–2.5 s.
@@ -31,18 +31,18 @@ Requests that need these show "Can't do this one yet" today.
 - [ ] `CaptureCoordinator` full-path sequence:
   1. Show "hold still" and record the pose.
   2. Pause AR, shoot, resume AR without reset.
-  3. Wait for `.normal` tracking and a fresh page observation, then record the pose again.
+  3. Wait for `.normal` tracking and a fresh mat observation, then record the pose again.
   4. Report the before/after bracket and its delta. `pose.source = arkit_held`.
 
   The server's still PnP remains the reference pose.
 - [ ] Guide the *capture lens*, not the wide camera: turn the target into a wide-camera target with
   the lens extrinsics (`TargetResolver`). While guiding, draw that lens's field of view as a
   rectangle.
-- [ ] Macro stand-off:
+- [ ] Macro standoff:
   1. Guide to a pose on the same sight line at least 120 mm out.
   2. Switch to a live ultra-wide preview with a reticle.
   3. The user pushes in and it captures when steady.
-  4. The pose comes from the still if markers are visible, else it's "unknown", with the stand-off
+  4. The pose comes from the still if markers are visible, else it's "unknown", with the standoff
      pose recorded.
 - [ ] `hello` reports per-lens RAW types and real 4:3 photo sizes. The server's preflight uses them.
 - [ ] Tests:
@@ -52,24 +52,24 @@ Requests that need these show "Can't do this one yet" today.
 ## Phase 6: metrology and polish
 
 - [ ] `calibrate_lens` tool: run cv2 calibration over a set of requests that share a locked focus
-  (the markers on the empty page), then store K and distortion per lens and format. Later analyses
+  (the markers on the empty mat), then store K and distortion per lens and format. Later analyses
   use them.
 - [ ] Undistortion-aware still PnP when a lens has a calibration or Apple's distortion lookup table.
 - [ ] Rotate HUD text for landscape holds, so it reads upright when the phone is sideways.
-- [ ] `get_photo` depth previews (a false-colour PNG) for the agent to look at.
+- [ ] `get_photo` depth previews (a false-color PNG) for the agent to look at.
 - [ ] Record the print scale with the user's caliper spans (`set_print_scale` exists, but nothing
   prompts for it yet).
 
 ## From testing (open questions)
 
-- [ ] Request D (a low, 30° landscape shot from the page's bottom edge) was skipped as "can't reach".
+- [ ] Request D (a low, 30° landscape shot from the mat's bottom edge) was skipped as "can't reach".
   Find out whether the low sideways pose or the hints were the problem.
-- [ ] The user's reachable side here is the page's top edge (marker 0). Consider letting the server
+- [ ] The user's reachable side here is the mat's top edge (marker 0). Consider letting the server
   learn reachable azimuths from skips and live poses. `phone_status` could then report where the
-  user stands, so the agent picks reachable views or says "turn the page" up front.
+  user stands, so the agent picks reachable views or says "turn the mat" up front.
 - [ ] Write request notes by marker edge ("from the marker-0 edge"), not "near/far". Say so in the
   tool descriptions.
-- [ ] Views below about 20° elevation lose the markers. A second page taped upright behind the object
+- [ ] Views below about 20° elevation lose the markers. A second mat taped upright behind the object
   would give end-on views a pose.
 
 ## Loose ends
@@ -78,17 +78,17 @@ Requests that need these show "Can't do this one yet" today.
   tracking doesn't run in the Simulator). Then UI tests: connection badge, request card, can't reach,
   all done.
 - [ ] Remaining on-device checks:
-  - [ ] Page-pose jitter while still (< 0.5 mm).
+  - [ ] Mat-pose jitter while still (< 0.5 mm).
   - [ ] Pose unchanged when the phone rolls 0 → 90 → 180°.
   - [ ] Reconnect < 3 s after 5 min in the background.
   - [ ] Kill mid-upload, relaunch, and it resumes.
   - [ ] Denied Local Network shows the Settings hint.
   - [ ] Measure a caliper-checked object from ≥ 2 stills (< 0.5 mm).
-  - [ ] Freeform: fires once the whole page is in view and the phone is steady, and the page is still whole
-    in the still (the 2% edge margin). Check the stills are sharp, and that hand shake alone never blocks it.
+  - [ ] Freeform: fires once the whole mat is in view and the phone is steady, and the mat is still whole
+    in the still (the 2% edge margin). Check the stills are sharp, and that camera shake alone never blocks it.
 - [ ] Optional, only if needed:
   - [ ] A LAN pairing token (today anyone on the Wi-Fi can reach port 47815).
   - [ ] An HTTP-transport daemon so several Claude Code sessions can share one phone.
-  - [ ] Multi-frame page refinement, if phone-vs-still disagreement ever exceeds guidance tolerance.
-- [ ] Tell the modelling agent about AgentCam in `work/AGENTS.md`: request views, wait, prefer the
-  still's PnP pose, and use `board_generation` to group photos of an unmoved page.
+  - [ ] Multi-frame mat refinement, if phone-vs-still disagreement ever exceeds guidance tolerance.
+- [ ] Tell the modeling agent about AgentCam in `3d-scan/AGENTS.md`: request views, wait, prefer the
+  still's PnP pose, and use `mat_generation` to group photos of an unmoved mat.

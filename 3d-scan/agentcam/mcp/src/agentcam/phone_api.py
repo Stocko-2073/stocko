@@ -5,7 +5,7 @@
                                                          201 stored, 200 already stored, 409 hash mismatch
     POST /v1/requests/{rid}/captures/{cid}/commit        CaptureMetadata JSON; idempotent
     GET  /v1/requests                                    queue snapshot (polling fallback)
-    GET  /v1/board, GET /v1/health
+    GET  /v1/mat, GET /v1/health
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def make_app(hub: Hub) -> web.Application:
         web.put("/v1/requests/{rid}/captures/{cid}/files/{name}", put_file),
         web.post("/v1/requests/{rid}/captures/{cid}/commit", commit),
         web.get("/v1/requests", requests),
-        web.get("/v1/board", board),
+        web.get("/v1/mat", mat),
         web.get("/v1/health", health),
     ])
     return app
@@ -85,9 +85,9 @@ async def requests(request: web.Request) -> web.Response:
     return web.json_response(request.app[HUB].snapshot())
 
 
-async def board(request: web.Request) -> web.Response:
+async def mat(request: web.Request) -> web.Response:
     hub = request.app[HUB]
-    return web.json_response(hub.store.board.model_dump(mode="json") | hub.board.describe())
+    return web.json_response(hub.store.mat.model_dump(mode="json") | hub.mat.describe())
 
 
 async def health(request: web.Request) -> web.Response:

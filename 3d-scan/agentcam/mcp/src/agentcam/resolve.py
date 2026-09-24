@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from .board import Board
+from .mat import MatLayout
 from .geometry import invert, look_at_pose, orbit_eye
 from .models import PoseSpec, PhotoRequestSpec, Target
 
@@ -22,7 +22,7 @@ LOW_ELEVATION_DEG = 20.0
 
 
 def resolve_pose(spec: PoseSpec) -> tuple[np.ndarray, np.ndarray, float]:
-    """(camera_to_page, eye, distance) for a pose spec."""
+    """(camera_to_mat, eye, distance) for a pose spec."""
     look_at = np.asarray(spec.look_at, float)
     if spec.orbit is not None:
         eye = orbit_eye(look_at, spec.orbit.azimuth_deg, spec.orbit.elevation_deg, spec.orbit.distance_mm)
@@ -34,7 +34,7 @@ def resolve_pose(spec: PoseSpec) -> tuple[np.ndarray, np.ndarray, float]:
     return look_at_pose(eye, look_at, spec.hold, spec.roll_deg, spec.up_hint), eye, distance
 
 
-def resolve(req: PhotoRequestSpec, board: Board, lenses: dict | None = None) -> tuple[Target | None, list[str]]:
+def resolve(req: PhotoRequestSpec, mat: MatLayout, lenses: dict | None = None) -> tuple[Target | None, list[str]]:
     """Raises ValueError for impossible requests; returns warnings for doubtful ones."""
     if req.pose is None:
         return None, []
@@ -50,23 +50,23 @@ def resolve(req: PhotoRequestSpec, board: Board, lenses: dict | None = None) -> 
     min_focus = lens.get("min_focus_mm")
     if min_focus and distance < min_focus:
         warnings.append(f"{distance:.0f} mm is closer than the {req.options.lens} lens focuses ({min_focus:.0f} mm)")
-    visible = visible_markers(t, board, lens["fov_deg"])
+    visible = visible_markers(t, mat, lens["fov_deg"])
     if visible < 4:
         warnings.append(f"only {visible} markers predicted in view: no pose from the still itself")
     position_tol = req.tolerance.position_mm or max(8.0, 0.03 * distance)
-    target = Target(camera_to_page=np.round(t, 6).tolist(), eye=tuple(np.round(eye, 3)),
+    target = Target(camera_to_mat=np.round(t, 6).tolist(), eye=tuple(np.round(eye, 3)),
                     look_at=req.pose.look_at, distance_mm=round(distance, 3),
                     position_tolerance_mm=round(position_tol, 2))
     return target, warnings
 
 
-def visible_markers(camera_to_page: np.ndarray, board: Board, fov_deg: tuple[float, float]) -> int:
+def visible_markers(camera_to_mat: np.ndarray, mat: MatLayout, fov_deg: tuple[float, float]) -> int:
     """Markers whose four corners fall inside the frame, in front of the camera."""
-    cam_from_page = invert(camera_to_page)
+    cam_from_mat = invert(camera_to_mat)
     tx, ty = (math.tan(math.radians(f / 2)) for f in fov_deg)
     count = 0
-    for corners in board.corners.values():
-        pts = np.c_[corners, np.zeros(4)] @ cam_from_page[:3, :3].T + cam_from_page[:3, 3]
+    for corners in mat.corners.values():
+        pts = np.c_[corners, np.zeros(4)] @ cam_from_mat[:3, :3].T + cam_from_mat[:3, 3]
         if (pts[:, 2] > 1).all() and (np.abs(pts[:, 0] / pts[:, 2]) < tx).all() and (np.abs(pts[:, 1] / pts[:, 2]) < ty).all():
             count += 1
     return count

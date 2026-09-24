@@ -34,11 +34,11 @@ def test_portrait_puts_world_up_along_minus_x():
     assert upright_rotation_cw_deg(t) == 90
 
 
-def test_straight_down_takes_up_from_the_page_top():
+def test_straight_down_takes_up_from_the_mat_top():
     t = look_at_pose((0, 0, 400), (0, 0, 0), "landscape")
     x, y, z = axes(t)
     np.testing.assert_allclose(z, [0, 0, -1], atol=1e-9)
-    np.testing.assert_allclose(y, [0, -1, 0], atol=1e-9)   # image up = page top (+y)
+    np.testing.assert_allclose(y, [0, -1, 0], atol=1e-9)   # image up = mat top (+y)
     assert upright_rotation_cw_deg(t) == 0
 
 
@@ -69,5 +69,5 @@ def test_shared_pose_examples_still_resolve_the_same():
     assert len(examples) >= 6
     for ex in examples:
         t, eye, distance = resolve_pose(PoseSpec.model_validate(ex["spec"]))
-        np.testing.assert_allclose(t, ex["camera_to_page"], atol=1e-6, err_msg=ex["name"])
+        np.testing.assert_allclose(t, ex["camera_to_mat"], atol=1e-6, err_msg=ex["name"])
         assert upright_rotation_cw_deg(t) == ex["upright_rotation_cw_deg"], ex["name"]

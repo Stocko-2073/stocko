@@ -58,7 +58,7 @@ targets:
 
         # Shown verbatim in the system alerts.
         NSCameraUsageDescription:
-          AgentCam uses the camera to find the marker page, guide you to the
+          AgentCam uses the camera to find the marker mat, guide you to the
           view your agent asked for, and take the photo.
         NSLocalNetworkUsageDescription:
           AgentCam finds your Mac on this Wi-Fi network to receive photo

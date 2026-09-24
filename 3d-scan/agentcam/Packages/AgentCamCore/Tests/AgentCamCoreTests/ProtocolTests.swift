@@ -18,14 +18,13 @@ func example(_ name: String) throws -> Data {
         let hello = try Wire.decoder.decode(Hello.self, from: example("hello.json"))
         #expect(hello.lenses.map(\.id) == [.wide, .ultrawide, .telephoto])
         let welcome = try Wire.decoder.decode(Welcome.self, from: example("welcome.json"))
-        #expect(welcome.board.dictionary == "DICT_4X4_100")
+        #expect(welcome.mat.dictionary == "DICT_4X4_100")
         let snapshot = try Wire.decoder.decode(RequestsSnapshot.self, from: example("requests.json"))
-        #expect(snapshot.items.map(\.id) == ["r0001", "r0002", "r0003", "r0004"])
-        #expect(snapshot.items.map(\.options.needsFullPath) == [false, true, false, false])
+        #expect(snapshot.items.map(\.id) == ["r0001", "r0002", "r0003"])
+        #expect(snapshot.items.map(\.options.needsFullPath) == [false, true, false])
         #expect(snapshot.items[1].placement?.label == "flipped")
-        #expect(snapshot.items[2].kind == .free && snapshot.items[2].target == nil)
-        #expect(snapshot.items[3].kind == .freeform && snapshot.items[3].target == nil)
-        #expect(Pose(rows: try #require(snapshot.items[0].target).cameraToPage) != nil)
+        #expect(snapshot.items[2].kind == .freeform && snapshot.items[2].target == nil)
+        #expect(Pose(rows: try #require(snapshot.items[0].target).cameraToMat) != nil)
         _ = try Wire.decoder.decode(PhoneStatus.self, from: example("status.json"))
         _ = try Wire.decoder.decode(RequestUpdate.self, from: example("request_update.json"))
         let meta = try Wire.decoder.decode(CaptureMetadata.self, from: example("capture_meta.json"))
@@ -39,21 +38,21 @@ func example(_ name: String) throws -> Data {
         #expect(intrinsics["K"] != nil && intrinsics["ref_dims"] != nil)          // K stays K
         let image = try #require(json["image"] as? [String: Any])
         #expect(image["upright_rotation_cw_deg"] as? Int == 0)
-        #expect((json["pose"] as? [String: Any])?["camera_to_page"] != nil)
+        #expect((json["pose"] as? [String: Any])?["camera_to_mat"] != nil)
         #expect(Wire.snake("sha256") == "sha256" && Wire.snake("maxSpeedMmS") == "max_speed_mm_s")
     }
 
     @Test func uprightRotationMatchesThePythonConventions() throws {
         struct Case: Decodable {
             let name: String
-            let cameraToPage: Matrix
+            let cameraToMat: Matrix
             let uprightRotationCwDeg: Int
         }
         let cases = try Wire.decoder.decode([Case].self, from: example("pose_specs.json"))
         #expect(cases.count >= 6)
         for c in cases {
-            let pose = try #require(Pose(rows: c.cameraToPage))
-            #expect(uprightRotationCwDeg(cameraToPage: pose) == c.uprightRotationCwDeg, "\(c.name)")
+            let pose = try #require(Pose(rows: c.cameraToMat))
+            #expect(uprightRotationCwDeg(cameraToMat: pose) == c.uprightRotationCwDeg, "\(c.name)")
             #expect(Pose(rows: pose.rowMajor) == pose)
             // The examples are rounded to 9 decimals, so not exactly orthonormal.
             let (mm, deg) = poseDifference(pose.rigidInverse.rigidInverse, pose)
@@ -61,24 +60,24 @@ func example(_ name: String) throws -> Data {
         }
     }
 
-    @Test func boardLayoutIsInThePageFrame() throws {
-        let board = try BoardLayout.bundled()
-        #expect(board.corners.count == 70)
-        let tl = try #require(board.corners[0]?.first)
+    @Test func matLayoutIsInTheMatFrame() throws {
+        let mat = try MatLayout.bundled()
+        #expect(mat.corners.count == 70)
+        let tl = try #require(mat.corners[0]?.first)
         #expect(abs(tl.x - -98.75) < 1e-9 && abs(tl.y - 130.0) < 1e-9)
-        let scaled = try BoardLayout.bundled(BoardInfo(printScale: [0.99, 1.01]))
+        let scaled = try MatLayout.bundled(MatInfo(printScale: [0.99, 1.01]))
         #expect(abs(try #require(scaled.corners[0]?.first).y - 131.3) < 1e-9)
-        #expect(try BoardLayout.bundled(BoardInfo(dictionary: "DICT_APRILTAG_36h11")).corners.count == 70)
+        #expect(try MatLayout.bundled(MatInfo(dictionary: "DICT_APRILTAG_36h11")).corners.count == 70)
     }
 
     @Test func bundledLayoutsAreTheProtocolCopies() throws {
         // SPM can't bundle a symlinked resource, so the package keeps copies.
         let bundled = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appendingPathComponent("Sources/AgentCamCore/Resources/boards")
-        for name in BoardLayout.layoutFiles.values {
+            .deletingLastPathComponent().appendingPathComponent("Sources/AgentCamCore/Resources/mats")
+        for name in MatLayout.layoutFiles.values {
             let a = try Data(contentsOf: bundled.appendingPathComponent("\(name).json"))
-            let b = try Data(contentsOf: protocolDir.appendingPathComponent("boards/\(name).json"))
-            #expect(a == b, "copy agentcam/protocol/boards/\(name).json into Sources/AgentCamCore/Resources/boards")
+            let b = try Data(contentsOf: protocolDir.appendingPathComponent("mats/\(name).json"))
+            #expect(a == b, "copy agentcam/protocol/mats/\(name).json into Sources/AgentCamCore/Resources/mats")
         }
     }
 

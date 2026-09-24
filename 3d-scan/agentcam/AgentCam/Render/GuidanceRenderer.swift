@@ -6,17 +6,17 @@ import UIKit
 
 /// What to draw this frame, set by the app model (main thread).
 struct GuidanceScene {
-    /// Target camera pose on the page and the cube distance for it.
+    /// Target camera pose on the mat and the cube distance for it.
     var target: Pose?
     var lookAt: SIMD3<Double>?
     var cursorDistanceMm: Double = 150
     var aligned = false
-    var showPage = true
-    /// The page's outline in the page frame (from the board layout in use).
-    var pageOutline: [SIMD3<Double>] = []
+    var showMat = true
+    /// The mat's outline in the mat frame (from the mat layout in use).
+    var matOutline: [SIMD3<Double>] = []
 }
 
-/// Draws the page outline, the target cube, the camera-fixed cursor cube and
+/// Draws the mat outline, the target cube, the camera-fixed cursor cube and
 /// the target's sight line as thin unlit boxes in ARKit's world. Everything is
 /// rebuilt from the displayed frame's own camera transform on each scene
 /// update, so the cursor cube is exactly camera-fixed and nothing depends on
@@ -30,7 +30,7 @@ final class GuidanceRenderer {
     private let root = AnchorEntity(world: .zero)
     private var cursorEdges: [ModelEntity] = []
     private var targetEdges: [ModelEntity] = []
-    private var pageEdges: [ModelEntity] = []
+    private var matEdges: [ModelEntity] = []
     private let sightLine: ModelEntity
     private let bead: ModelEntity
     private var subscription: Cancellable?
@@ -51,7 +51,7 @@ final class GuidanceRenderer {
         arView.scene.addAnchor(root)
         cursorEdges = (0..<12).map { i in edge(GuidanceGeometry.topEdges.contains(i) ? Self.orange : Self.white) }
         targetEdges = (0..<12).map { _ in edge(Self.yellow) }
-        pageEdges = (0..<4).map { _ in edge(Self.cyan) }
+        matEdges = (0..<4).map { _ in edge(Self.cyan) }
         root.addChild(sightLine)
         root.addChild(bead)
         subscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak self] _ in
@@ -69,7 +69,7 @@ final class GuidanceRenderer {
     private func update() {
         guard let frame = arView.session.currentFrame else { return hideAll() }
         let worldFromCamera = Frames.worldFromOpenCVCamera(arkit: frame.camera.transform)
-        let cameraCentre = worldFromCamera.translation
+        let cameraCenter = worldFromCamera.translation
         let snap = tracking.snapshot
         let k = simd_double3x3(frame.camera.intrinsics)
         let imageHeight = Double(frame.camera.imageResolution.height)
@@ -77,27 +77,27 @@ final class GuidanceRenderer {
         let side = GuidanceGeometry.cubeSideMm(distanceMm: d, imageHeightPx: imageHeight, fyPx: k[1][1])
         let cube = GuidanceGeometry.cubeCorners(sideMm: side, distanceMm: d)
 
-        place(cursorEdges, corners: cube.map { worldFromCamera.transform($0) }, camera: cameraCentre)
+        place(cursorEdges, corners: cube.map { worldFromCamera.transform($0) }, camera: cameraCenter)
 
-        if let page = snap.page, page.locked {
-            let worldFromPage = page.worldFromPage
-            let outline = scene.pageOutline
-            setEdges(pageEdges, segments: (0..<outline.count).map {
-                (worldFromPage.transform(outline[$0]), worldFromPage.transform(outline[($0 + 1) % outline.count]))
-            }, camera: cameraCentre, enabled: scene.showPage)
+        if let mat = snap.mat, mat.locked {
+            let worldFromMat = mat.worldFromMat
+            let outline = scene.matOutline
+            setEdges(matEdges, segments: (0..<outline.count).map {
+                (worldFromMat.transform(outline[$0]), worldFromMat.transform(outline[($0 + 1) % outline.count]))
+            }, camera: cameraCenter, enabled: scene.showMat)
             if let target = scene.target {
-                let worldFromTarget = worldFromPage * target
-                place(targetEdges, corners: cube.map { worldFromTarget.transform($0) }, camera: cameraCentre)
+                let worldFromTarget = worldFromMat * target
+                place(targetEdges, corners: cube.map { worldFromTarget.transform($0) }, camera: cameraCenter)
                 let material = scene.aligned ? Self.green : Self.yellow
                 for (i, e) in targetEdges.enumerated() {
                     e.model?.materials = [GuidanceGeometry.topEdges.contains(i) ? Self.orange : material]
                 }
                 if let lookAt = scene.lookAt {
-                    let a = worldFromTarget.translation, b = worldFromPage.transform(lookAt)
-                    setSegment(sightLine, a, b, camera: cameraCentre)
+                    let a = worldFromTarget.translation, b = worldFromMat.transform(lookAt)
+                    setSegment(sightLine, a, b, camera: cameraCenter)
                     bead.isEnabled = true
                     bead.position = SIMD3<Float>(b / 1000)
-                    bead.scale = SIMD3(repeating: Float(max(1.5, 0.008 * simd_distance(b, cameraCentre)) / 1000))
+                    bead.scale = SIMD3(repeating: Float(max(1.5, 0.008 * simd_distance(b, cameraCenter)) / 1000))
                 } else {
                     sightLine.isEnabled = false
                     bead.isEnabled = false
@@ -108,14 +108,14 @@ final class GuidanceRenderer {
                 bead.isEnabled = false
             }
         } else {
-            (pageEdges + targetEdges).forEach { $0.isEnabled = false }
+            (matEdges + targetEdges).forEach { $0.isEnabled = false }
             sightLine.isEnabled = false
             bead.isEnabled = false
         }
     }
 
     private func hideAll() {
-        (cursorEdges + targetEdges + pageEdges).forEach { $0.isEnabled = false }
+        (cursorEdges + targetEdges + matEdges).forEach { $0.isEnabled = false }
         sightLine.isEnabled = false
         bead.isEnabled = false
     }

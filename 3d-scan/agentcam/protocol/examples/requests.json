@@ -61,7 +61,7 @@
    "created_at": "2026-09-23T22:00:00.000+00:00",
    "updated_at": "2026-09-23T22:00:00.000+00:00",
    "target": {
-    "camera_to_page": [
+    "camera_to_mat": [
      [
       1.0,
       0.0,
@@ -156,7 +156,7 @@
    },
    "placement": {
     "label": "flipped",
-    "instruction": "Turn the battery upside down, centred on the page."
+    "instruction": "Turn the battery upside down, centered on the mat."
    },
    "note": "",
    "id": "r0002",
@@ -165,7 +165,7 @@
    "created_at": "2026-09-23T22:00:00.000+00:00",
    "updated_at": "2026-09-23T22:00:00.000+00:00",
    "target": {
-    "camera_to_page": [
+    "camera_to_mat": [
      [
       0.5,
       -0.0,
@@ -211,7 +211,7 @@
    "skip_reason": null
   },
   {
-   "kind": "free",
+   "kind": "freeform",
    "pose": null,
    "options": {
     "lens": "wide",
@@ -246,56 +246,9 @@
     "max_ang_speed_deg_s": 1.5
    },
    "placement": null,
-   "note": "anything that shows the vent depth",
+   "note": "first look at what's on the mat",
    "id": "r0003",
    "seq": 3,
-   "state": "queued",
-   "created_at": "2026-09-23T22:00:00.000+00:00",
-   "updated_at": "2026-09-23T22:00:00.000+00:00",
-   "target": null,
-   "preflight": [],
-   "capture_ids": [],
-   "skip_reason": null
-  },
-  {
-   "kind": "freeform",
-   "pose": null,
-   "options": {
-    "lens": "wide",
-    "resolution": "12mp",
-    "raw": "none",
-    "flash": "off",
-    "torch": 0.0,
-    "depth": "none",
-    "focus": {
-     "mode": "auto",
-     "lens_position": null
-    },
-    "exposure": {
-     "mode": "auto",
-     "duration_s": null,
-     "iso": null,
-     "bias_ev": 0.0
-    },
-    "white_balance": {
-     "mode": "auto",
-     "gains": null
-    },
-    "distortion_correction": false,
-    "path": "auto"
-   },
-   "tolerance": {
-    "position_mm": null,
-    "pointing_deg": 3.0,
-    "roll_deg": 10.0,
-    "steady_s": 0.5,
-    "max_speed_mm_s": 10.0,
-    "max_ang_speed_deg_s": 1.5
-   },
-   "placement": null,
-   "note": "first look at what's on the page",
-   "id": "r0004",
-   "seq": 4,
    "state": "queued",
    "created_at": "2026-09-23T22:00:00.000+00:00",
    "updated_at": "2026-09-23T22:00:00.000+00:00",

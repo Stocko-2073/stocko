@@ -54,7 +54,7 @@ final class Harness: @unchecked Sendable {
         return events.compactMap { if case .state(let s) = $0 { s } else { nil } }
     }
     func welcome() {
-        socket.deliver(#"{"t":"welcome","v":1,"server_id":"abc","board":{"dictionary":"DICT_4X4_100","print_scale":[1,1]}}"#)
+        socket.deliver(#"{"t":"welcome","v":1,"server_id":"abc","mat":{"dictionary":"DICT_4X4_100","print_scale":[1,1]}}"#)
         link.synchronize()
     }
 }
@@ -78,7 +78,7 @@ final class Harness: @unchecked Sendable {
         h.socket.deliver(String(decoding: try example("requests.json"), as: UTF8.self))
         h.link.synchronize()
         let snaps = h.events.compactMap { if case .requests(let s) = $0 { s } else { nil } }
-        #expect(snaps.first?.items.count == 4)
+        #expect(snaps.first?.items.count == 3)
     }
 
     @Test func silenceMeansReconnect() {
@@ -125,7 +125,7 @@ final class Harness: @unchecked Sendable {
         h.socket.holdSends = true
         func status(_ ts: Double) -> PhoneStatus {
             PhoneStatus(ts: ts, app: "foreground", thermal: "nominal", battery: nil,
-                        tracking: .init(arkit: "normal", board: nil), cameraToPage: nil, active: nil,
+                        tracking: .init(arkit: "normal", mat: nil), cameraToMat: nil, active: nil,
                         outbox: .init(pending: 0, bytes: 0))
         }
         h.link.send(status: status(1)); h.link.send(status: status(2)); h.link.send(status: status(3))

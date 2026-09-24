@@ -2,7 +2,7 @@
 
     <root>/requests/<id>.json                 one file per request
     <root>/<request_id>/<capture_id>/...      delivered files, meta.json, analysis.json, preview.jpg
-    <root>/board.json                         board dictionary and print scale
+    <root>/mat.json                           marker dictionary and print scale
     <root>/.lock                              held by the running server
 """
 
@@ -15,7 +15,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import BoardInfo, PhotoRequest
+from .models import MatInfo, PhotoRequest
 
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
@@ -56,8 +56,8 @@ class Store:
         for p in sorted(self.requests_dir.glob("*.json")):
             r = PhotoRequest.model_validate_json(p.read_text())
             self.requests[r.id] = r
-        board = root / "board.json"
-        self.board = BoardInfo.model_validate_json(board.read_text()) if board.exists() else BoardInfo()
+        mat = root / "mat.json"
+        self.mat = MatInfo.model_validate_json(mat.read_text()) if mat.exists() else MatInfo()
 
     def close(self) -> None:
         if not self._lock_file.closed:
@@ -72,9 +72,9 @@ class Store:
         self.requests[r.id] = r
         write_json(self.requests_dir / f"{r.id}.json", r.model_dump(mode="json"))
 
-    def save_board(self, board: BoardInfo) -> None:
-        self.board = board
-        write_json(self.root / "board.json", board.model_dump(mode="json"))
+    def save_mat(self, mat: MatInfo) -> None:
+        self.mat = mat
+        write_json(self.root / "mat.json", mat.model_dump(mode="json"))
 
     def ordered(self) -> list[PhotoRequest]:
         return sorted(self.requests.values(), key=lambda r: r.seq)

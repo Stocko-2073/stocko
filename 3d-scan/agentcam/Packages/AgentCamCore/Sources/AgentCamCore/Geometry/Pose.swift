@@ -3,12 +3,12 @@ import simd
 
 // Frames, as in the server's geometry.py:
 //
-// - Page frame: mm, origin at the page centre, +x right, +y toward the marker-0
+// - Mat frame: mm, origin at the mat center, +x right, +y toward the marker-0
 //   (top) edge, +z up out of the paper.
 // - OpenCV camera frame: x right, y down, z forward, on the sensor-native
 //   landscape pixel grid (the grid ARKit's capturedImage uses).
 // - ARKit camera frame: x right, y up, z backward, same sensor orientation.
-// - "World": ARKit's world, but in millimetres, so it composes with the page.
+// - "World": ARKit's world, but in millimeters, so it composes with the mat.
 //
 // A transform named `aToB` or `b_from_a` maps points in frame a to frame b.
 
@@ -52,15 +52,15 @@ public enum Frames {
     /// Maps OpenCV camera coordinates to ARKit camera coordinates: (x, -y, -z).
     public static let openCVToARKitCamera = simd_double4x4(diagonal: SIMD4(1, -1, -1, 1))
 
-    /// ARKit's camera.transform (metres, ARKit camera axes) as the OpenCV
-    /// camera's pose in the millimetre world.
+    /// ARKit's camera.transform (meters, ARKit camera axes) as the OpenCV
+    /// camera's pose in the millimeter world.
     public static func worldFromOpenCVCamera(arkit transform: simd_float4x4) -> simd_double4x4 {
         var t = simd_double4x4(transform)
         t.columns.3 = SIMD4(t.columns.3.xyz * 1000, 1)
         return t * openCVToARKitCamera
     }
 
-    /// World up (ARKit's +y) in the millimetre world.
+    /// World up (ARKit's +y) in the millimeter world.
     public static let worldUp = SIMD3<Double>(0, 1, 0)
 }
 
@@ -81,12 +81,12 @@ public func poseDifference(_ a: Pose, _ b: Pose) -> (mm: Double, deg: Double) {
 }
 
 /// Clockwise quarter turn (0/90/180/270) that shows a sensor-grid image
-/// upright: world up, or the page's top edge when looking straight down.
+/// upright: world up, or the mat's top edge when looking straight down.
 /// Same rule as the server's geometry.upright_rotation_cw_deg.
-public func uprightRotationCwDeg(cameraToPage t: Pose) -> Int {
+public func uprightRotationCwDeg(cameraToMat t: Pose) -> Int {
     let r = t.rotation
-    let pageUp = SIMD3<Double>(0, 0, 1), pageTop = SIMD3<Double>(0, 1, 0)
-    let up = abs(simd_dot(r.columns.2, pageUp)) > nearVertical ? pageTop : pageUp
+    let matUp = SIMD3<Double>(0, 0, 1), matTop = SIMD3<Double>(0, 1, 0)
+    let up = abs(simd_dot(r.columns.2, matUp)) > nearVertical ? matTop : matUp
     let u = r.transpose * up                       // up in camera axes
     if abs(u.y) >= abs(u.x) { return u.y < 0 ? 0 : 180 }
     return u.x < 0 ? 90 : 270

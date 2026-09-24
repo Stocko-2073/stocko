@@ -26,7 +26,7 @@ enum Encoding {
         return context.createCGImage(image, from: image.extent)
     }
 
-    /// Depth in metres (Float32) -> 16-bit PNG in millimetres; 0 = no depth.
+    /// Depth in meters (Float32) -> 16-bit PNG in millimeters; 0 = no depth.
     static func depthPNG(_ buffer: CVPixelBuffer) -> (data: Data, width: Int, height: Int)? {
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }

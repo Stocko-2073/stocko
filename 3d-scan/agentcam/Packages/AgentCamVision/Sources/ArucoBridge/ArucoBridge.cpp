@@ -16,7 +16,7 @@ ACDetector *ac_detector_create(ACFamily family) {
     const auto dictionary = cv::aruco::getPredefinedDictionary(
         family == ACFamilyAprilTag36h11 ? cv::aruco::DICT_APRILTAG_36h11 : cv::aruco::DICT_4X4_100);
     cv::aruco::DetectorParameters params;
-    // Must match the server (agentcam/mcp enrich.py), so phone and Mac agree.
+    // Must match the server (agentcam/mcp analysis.py), so phone and Mac agree.
     params.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
     try {
         return new ACDetector{cv::aruco::ArucoDetector(dictionary, params)};
@@ -134,7 +134,7 @@ double maxCornerError(const Marker &m, const ACPlanarPose &pose, const cv::Mat &
 
 }  // namespace
 
-int ac_solve_board(const int32_t *ids, const double *object, const double *image, int markerCount,
+int ac_solve_mat(const int32_t *ids, const double *object, const double *image, int markerCount,
                    const double *k, double thresholdPx, uint8_t *inliers, ACPlanarPose out[2]) {
     if (markerCount < 1 || ids == nullptr || object == nullptr || image == nullptr || k == nullptr) return 0;
     try {
@@ -177,7 +177,7 @@ int ac_solve_board(const int32_t *ids, const double *object, const double *image
             use = again;
         }
 
-        // Two copies of one id can't both be on the page; keep the one that fits.
+        // Two copies of one id can't both be on the mat; keep the one that fits.
         bool changed = false;
         for (int i = 0; i < markerCount; ++i) {
             if (!use[i]) continue;

@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         // Prebuilt opencv2.xcframework (iOS, arm64 Simulator and macOS slices),
         // built in CI with OpenCV's own platforms/apple/build_xcframework.py.
-        // Keep the version in step with opencv-python-headless in agentcam/mcp so
+        // Keep the version in sync with opencv-python-headless in agentcam/mcp so
         // the phone and the Mac see the same detections.
         .package(url: "https://github.com/yeatse/opencv-spm", exact: "4.13.0"),
         .package(path: "../AgentCamCore"),

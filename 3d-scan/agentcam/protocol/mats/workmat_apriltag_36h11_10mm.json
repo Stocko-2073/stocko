@@ -2,11 +2,11 @@
  "dictionary": "DICT_APRILTAG_36h11",
  "marker_mm": 10.0,
  "pitch_mm": 12.5,
- "page_mm": [
+ "mat_mm": [
   215.9,
   279.4
  ],
- "frame": "mm, origin page top-left, x right, y down; corners TL, TR, BR, BL",
+ "frame": "mm, origin mat top-left, x right, y down; corners TL, TR, BR, BL",
  "markers": [
   {
    "id": 0,

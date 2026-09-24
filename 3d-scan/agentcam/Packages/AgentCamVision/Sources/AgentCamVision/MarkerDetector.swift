@@ -1,8 +1,7 @@
 import ArucoBridge
 import simd
 
-/// The marker dictionaries a border page can be printed with
-/// (work/marker_border.py).
+/// The marker dictionaries a mat can be printed with.
 public enum MarkerFamily: String, Sendable, Codable, CaseIterable {
     case aruco4x4 = "DICT_4X4_100"
     case apriltag36h11 = "DICT_APRILTAG_36h11"
@@ -16,7 +15,7 @@ public enum MarkerFamily: String, Sendable, Codable, CaseIterable {
 }
 
 /// One marker as the detector saw it. Corners are TL, TR, BR, BL as printed, in
-/// pixels, with (0, 0) at the centre of the top-left pixel (OpenCV's convention,
+/// pixels, with (0, 0) at the center of the top-left pixel (OpenCV's convention,
 /// used everywhere in AgentCam).
 public struct DetectedMarker: Sendable, Equatable {
     public var id: Int

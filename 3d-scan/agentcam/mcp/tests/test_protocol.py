@@ -2,7 +2,7 @@
 
 import json
 
-from agentcam.models import BoardInfo, CaptureMetadata, Hello, PhotoRequest, RequestUpdate
+from agentcam.models import MatInfo, CaptureMetadata, Hello, PhotoRequest, RequestUpdate
 from conftest import PROTOCOL
 
 EXAMPLES = PROTOCOL / "examples"
@@ -14,7 +14,7 @@ def load(name):
 
 def test_examples_parse():
     Hello.model_validate(load("hello.json"))
-    BoardInfo.model_validate(load("welcome.json")["board"])
+    MatInfo.model_validate(load("welcome.json")["mat"])
     for item in load("requests.json")["items"]:
         PhotoRequest.model_validate(item)
     RequestUpdate.model_validate(load("request_update.json"))
@@ -23,4 +23,4 @@ def test_examples_parse():
 
 def test_full_path_detection():
     snap = load("requests.json")["items"]
-    assert [PhotoRequest.model_validate(i).options.needs_full_path() for i in snap] == [False, True, False, False]
+    assert [PhotoRequest.model_validate(i).options.needs_full_path() for i in snap] == [False, True, False]

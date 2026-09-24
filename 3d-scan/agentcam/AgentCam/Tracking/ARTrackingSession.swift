@@ -7,24 +7,24 @@ import os
 /// the render loop and the UI never wait on the AR queue.
 struct TrackingSnapshot {
     var time: TimeInterval = 0
-    /// The OpenCV camera's pose in the millimetre world (ARKit's, scaled).
+    /// The OpenCV camera's pose in the millimeter world (ARKit's, scaled).
     var worldFromCamera: Pose?
     var arkit = "not running"
     var isNormal = false
     var k = matrix_identity_double3x3
     var imageSize = SIMD2<Double>(1920, 1440)
-    var page: BoardPoseFusion.Estimate?
+    var mat: MatPoseFusion.Estimate?
     var markersSeen = 0
     var markersUsed = 0
     var lastRejection: String?
 
-    var cameraToPage: Pose? {
-        guard let page, page.locked, let worldFromCamera else { return nil }
-        return page.worldFromPage.rigidInverse * worldFromCamera
+    var cameraToMat: Pose? {
+        guard let mat, mat.locked, let worldFromCamera else { return nil }
+        return mat.worldFromMat.rigidInverse * worldFromCamera
     }
 }
 
-/// Owns the ARKit session and the page lock. ARKit calls back on this
+/// Owns the ARKit session and the mat lock. ARKit calls back on this
 /// object's own serial queue; marker detection runs on a second queue so a
 /// slow frame never stalls tracking (frames are dropped while it's busy).
 final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable {
@@ -33,8 +33,8 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
     private let detectQueue = DispatchQueue(label: "com.stocko.agentcam.detect", qos: .userInitiated)
     private let lock = OSAllocatedUnfairLock(initialState: TrackingSnapshot())
     private var detector: MarkerDetector?
-    private var fusion: BoardPoseFusion?
-    private var layout: BoardLayout?
+    private var fusion: MatPoseFusion?
+    private var layout: MatLayout?
     private var detecting = false
     private var lastDetection: TimeInterval = 0
     private var trackingGeneration = 1
@@ -48,20 +48,20 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         super.init()
         session.delegate = self
         session.delegateQueue = queue
-        setBoard(BoardInfo())
+        setMat(MatInfo())
     }
 
     var snapshot: TrackingSnapshot { lock.withLock { $0 } }
 
-    /// The page to look for (from the server's welcome, including print scale).
-    func setBoard(_ info: BoardInfo) {
+    /// The mat to look for (from the server's welcome, including print scale).
+    func setMat(_ info: MatInfo) {
         queue.async { [self] in
-            guard let layout = try? BoardLayout.bundled(info) else { return }
+            guard let layout = try? MatLayout.bundled(info) else { return }
             let family: MarkerFamily = info.dictionary == MarkerFamily.apriltag36h11.rawValue ? .apriltag36h11 : .aruco4x4
             if detector?.family != family { detector = MarkerDetector(family: family) }
             self.layout = layout
-            fusion = BoardPoseFusion(layout: layout)
-            lock.withLock { $0.page = nil }
+            fusion = MatPoseFusion(layout: layout)
+            lock.withLock { $0.mat = nil }
         }
     }
 
@@ -78,7 +78,7 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         config.planeDetection = []
         // Always a fresh world. Resuming ARKit's old one means relocalizing,
         // which can wait forever if the phone isn't back where it was, and the
-        // page lock re-acquires from the markers within a second anyway.
+        // mat lock re-acquires from the markers within a second anyway.
         session.run(config, options: [.resetTracking, .removeExistingAnchors])
         queue.async { [self] in trackingGeneration += 1 }
     }
@@ -96,7 +96,7 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         let k = simd_double3x3(camera.intrinsics)
         let size = SIMD2(Double(camera.imageResolution.width), Double(camera.imageResolution.height))
         let normal = camera.trackingState == .normal
-        let page = fusion?.estimate
+        let mat = fusion?.estimate
         lock.withLock {
             $0.time = frame.timestamp
             $0.worldFromCamera = worldFromCamera
@@ -104,7 +104,7 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
             $0.imageSize = size
             $0.isNormal = normal
             $0.arkit = Self.describe(camera.trackingState)
-            $0.page = page
+            $0.mat = mat
         }
         guard normal, !detecting, frame.timestamp - lastDetection >= Self.detectionInterval,
               let detector, let layout else { return }
@@ -115,29 +115,29 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         let time = frame.timestamp
         detectQueue.async { [weak self] in
             let markers = gray.withPixels { detector.detect(gray: $0, width: gray.width, height: gray.height, bytesPerRow: gray.width) } ?? []
-            let fit = BoardSolver.solve(markers, layout: layout, k: k)
+            let fit = MatSolver.solve(markers, layout: layout, k: k)
             self?.queue.async { self?.finishDetection(fit, worldFromCamera: worldFromCamera, time: time, generation: generation) }
         }
     }
 
-    private func finishDetection(_ fit: BoardFit, worldFromCamera: Pose, time: TimeInterval, generation: Int) {
+    private func finishDetection(_ fit: MatFit, worldFromCamera: Pose, time: TimeInterval, generation: Int) {
         detecting = false
         var rejection: String?
         if generation == trackingGeneration, let fusion, !fit.solutions.isEmpty {
             let used = zip(fit.markers, fit.inliers).filter(\.1).map(\.0.id)
-            let outcome = fusion.observe(PageObservation(
+            let outcome = fusion.observe(MatObservation(
                 time: time, worldFromCamera: worldFromCamera,
-                solutions: fit.solutions.map { ($0.cameraFromPage, $0.rmsPx) },
+                solutions: fit.solutions.map { ($0.cameraFromMat, $0.rmsPx) },
                 markerIds: used, trackingGeneration: generation))
             if case .rejected(let why) = outcome { rejection = why }
         }
-        let page = fusion?.estimate
+        let mat = fusion?.estimate
         let why = rejection
         lock.withLock {
             $0.markersSeen = fit.markers.count
             $0.markersUsed = fit.usedCount
             $0.lastRejection = why
-            $0.page = page
+            $0.mat = mat
         }
     }
 
@@ -145,7 +145,7 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
         if case .limited(.relocalizing) = camera.trackingState {
             wasRelocalizing = true
         } else if camera.trackingState == .normal, wasRelocalizing {
-            // Relocalized: ARKit may have shifted its world under the page.
+            // Relocalized: ARKit may have shifted its world under the mat.
             wasRelocalizing = false
             trackingGeneration += 1
         }
@@ -155,7 +155,7 @@ final class ARTrackingSession: NSObject, ARSessionDelegate, @unchecked Sendable 
 
     /// No: after an interruption ARKit would otherwise sit in "relocalizing"
     /// until the phone returns to its old spot, and markers are only looked
-    /// for while tracking is normal. A fresh start re-finds the page at once.
+    /// for while tracking is normal. A fresh start re-finds the mat at once.
     func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool { false }
 
     func session(_ session: ARSession, didFailWithError error: Error) {

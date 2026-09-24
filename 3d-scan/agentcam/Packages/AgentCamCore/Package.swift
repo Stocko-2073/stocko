@@ -13,7 +13,7 @@ let package = Package(
     targets: [
         // Protocol, geometry, tracking fusion, guidance and networking. No UIKit,
         // no ARKit, no OpenCV, so all of it is tested on the Mac with `swift test`.
-        .target(name: "AgentCamCore", resources: [.copy("Resources/boards")]),
+        .target(name: "AgentCamCore", resources: [.copy("Resources/mats")]),
         // Shared examples and fixtures are read from agentcam/protocol by path.
         .testTarget(name: "AgentCamCoreTests", dependencies: ["AgentCamCore"]),
     ]

@@ -7,7 +7,7 @@ struct CaptureResult {
     var requestId: String
     var captureId: String
     var thumbnail: CGImage?
-    var hadPagePose: Bool
+    var hadMatPose: Bool
 }
 
 enum CaptureError: LocalizedError {
@@ -27,7 +27,7 @@ enum CaptureError: LocalizedError {
 }
 
 /// Takes the photo for a request and puts it in the outbox. The fast path is
-/// ARKit's own 12 MP still, so tracking (and the pose) carry on unbroken.
+/// ARKit's own 12 MP still, so tracking (and the pose) continue unbroken.
 @MainActor
 final class CaptureCoordinator {
     private let tracking: ARTrackingSession
@@ -83,11 +83,11 @@ final class CaptureCoordinator {
         let k = scaled(simd_double3x3(camera.intrinsics), from: camera.imageResolution, to: CGSize(width: w, height: h))
         let worldFromCamera = Frames.worldFromOpenCVCamera(arkit: camera.transform)
 
-        var cameraToPage: Pose?
-        if let page = before.page, page.locked { cameraToPage = page.worldFromPage.rigidInverse * worldFromCamera }
-        let rotation = uprightRotationCwDeg(cameraToPage: cameraToPage ?? levelFrame.rigidInverse * worldFromCamera)
-        let target = request.target.flatMap { Pose(rows: $0.cameraToPage) }
-        let targetError = cameraToPage.flatMap { c in target.map { Alignment.report(current: c, target: $0) } }
+        var cameraToMat: Pose?
+        if let mat = before.mat, mat.locked { cameraToMat = mat.worldFromMat.rigidInverse * worldFromCamera }
+        let rotation = uprightRotationCwDeg(cameraToMat: cameraToMat ?? levelFrame.rigidInverse * worldFromCamera)
+        let target = request.target.flatMap { Pose(rows: $0.cameraToMat) }
+        let targetError = cameraToMat.flatMap { c in target.map { Alignment.report(current: c, target: $0) } }
 
         var files: [(name: String, data: Data)] = [("image.jpg", jpeg)]
         var depth: CaptureMetadata.Depth?
@@ -106,31 +106,31 @@ final class CaptureCoordinator {
 
         let captureId = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased()
         var warnings: [String] = []
-        if cameraToPage == nil { warnings.append("the page wasn't locked, so this photo has no page pose") }
+        if cameraToMat == nil { warnings.append("the mat wasn't locked, so this photo has no mat pose") }
         let meta = CaptureMetadata(
             captureId: String(captureId), requestId: request.id, capturedAt: Self.timestamp(), path: "fast", files: [],
             image: .init(file: "image.jpg", w: w, h: h, uprightRotationCwDeg: rotation),
             intrinsics: .init(K: k.rowMajor, source: "arkit", refDims: [w, h], distortion: .init(model: "none")),
-            pose: .init(cameraToPage: cameraToPage?.rowMajor, source: cameraToPage == nil ? "none" : "arkit_live",
+            pose: .init(cameraToMat: cameraToMat?.rowMajor, source: cameraToMat == nil ? "none" : "arkit_live",
                         targetError: targetError),
             lens: lens, exposure: exposure,
             tracking: .init(arkit: ARTrackingSession.describe(camera.trackingState),
-                            boardAgeS: before.page.map { before.time - $0.lastTime },
-                            boardGeneration: before.page?.boardGeneration, tiltDeg: before.page?.tiltDeg,
+                            matAgeS: before.mat.map { before.time - $0.lastTime },
+                            matGeneration: before.mat?.matGeneration, tiltDeg: before.mat?.tiltDeg,
                             speedMmS: speeds?.mmPerS, angSpeedDegS: speeds?.degPerS,
                             arkitCameraTransform: simd_double4x4(camera.transform).rowMajor),
             depth: depth, placement: placement, warnings: warnings)
         try outbox.add(meta, files: files)
         return CaptureResult(requestId: request.id, captureId: String(captureId),
-                             thumbnail: Encoding.thumbnail(buffer, rotationCw: rotation), hadPagePose: cameraToPage != nil)
+                             thumbnail: Encoding.thumbnail(buffer, rotationCw: rotation), hadMatPose: cameraToMat != nil)
     }
 
     /// A level frame in ARKit's world (+z up), for "which way is up" when
-    /// there's no page pose yet.
+    /// there's no mat pose yet.
     nonisolated static let levelFrame = Pose(rotation: simd_double3x3(simd_quatd(angle: -.pi / 2, axis: SIMD3(1, 0, 0))),
                                              translation: .zero)
 
-    /// K for an image resampled from `from` to `to` pixels (pixel centres at integers).
+    /// K for an image resampled from `from` to `to` pixels (pixel centers at integers).
     nonisolated static func scaled(_ k: simd_double3x3, from: CGSize, to: CGSize) -> simd_double3x3 {
         let sx = Double(to.width / from.width), sy = Double(to.height / from.height)
         guard abs(sx - 1) > 1e-9 || abs(sy - 1) > 1e-9 else { return k }

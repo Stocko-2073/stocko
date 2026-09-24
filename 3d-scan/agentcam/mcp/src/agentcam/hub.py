@@ -13,9 +13,9 @@ import numpy as np
 from aiohttp import web
 from pydantic import ValidationError
 
-from . import enrich
-from .board import Board
-from .models import (PROTOCOL_VERSION, BoardInfo, CaptureMetadata, Hello, PhotoRequest, PhotoRequestSpec,
+from .analysis import analyze, write_preview
+from .mat import MatLayout
+from .models import (PROTOCOL_VERSION, MatInfo, CaptureMetadata, Hello, PhotoRequest, PhotoRequestSpec,
                      RequestUpdate)
 from .resolve import resolve
 from .store import Store, now, write_json
@@ -37,7 +37,7 @@ class Hub:
     def __init__(self, store: Store, server_id: str):
         self.store = store
         self.server_id = server_id
-        self.board = Board.load(store.board.dictionary, tuple(store.board.print_scale))
+        self.mat = MatLayout.load(store.mat.dictionary, tuple(store.mat.print_scale))
         self.phone: web.WebSocketResponse | None = None
         self.hello: Hello | None = None
         self.status: dict | None = None
@@ -45,7 +45,7 @@ class Hub:
         self.connected_since: float | None = None
         self.app_state = "closed"
         self.rev = 0
-        self.analyzing: set[str] = set()              # capture ids still being enriched
+        self.analyzing: set[str] = set()              # capture ids still being analyzed
         self.changed = asyncio.Condition()
         self._tasks: set[asyncio.Task] = set()
 
@@ -59,7 +59,7 @@ class Hub:
         resolved = []
         for i, spec in enumerate(specs):
             try:
-                resolved.append(resolve(spec, self.board, self.lens_models()))
+                resolved.append(resolve(spec, self.mat, self.lens_models()))
             except ValueError as e:
                 raise ValueError(f"request {i}: {e}") from None
         seq, stamp, out = self.store.next_seq(), now(), []
@@ -72,19 +72,19 @@ class Hub:
         return out
 
     async def cancel(self, ids: list[str] | None) -> list[str]:
-        cancelled = []
+        canceled = []
         for r in self.store.queued():
             if ids is None or r.id in ids:
-                r.state = "cancelled"
+                r.state = "canceled"
                 self.store.save(r)
-                cancelled.append(r.id)
-        if cancelled:
+                canceled.append(r.id)
+        if canceled:
             await self.requests_changed()
-        return cancelled
+        return canceled
 
-    async def set_board(self, board: BoardInfo) -> None:
-        self.board = Board.load(board.dictionary, tuple(board.print_scale))
-        self.store.save_board(board)
+    async def set_mat(self, mat: MatInfo) -> None:
+        self.mat = MatLayout.load(mat.dictionary, tuple(mat.print_scale))
+        self.store.save_mat(mat)
         if self.phone is not None:
             await self._send(self.phone, self.welcome())
 
@@ -112,7 +112,7 @@ class Hub:
 
     def welcome(self) -> dict:
         return {"t": "welcome", "v": PROTOCOL_VERSION, "server_id": self.server_id,
-                "board": self.store.board.model_dump(mode="json")}
+                "mat": self.store.mat.model_dump(mode="json")}
 
     def snapshot(self) -> dict:
         return {"t": "requests", "v": PROTOCOL_VERSION, "rev": self.rev,
@@ -219,13 +219,13 @@ class Hub:
             r.state = "captured"
         self.store.save(r)
         self.analyzing.add(capture_id)
-        task = asyncio.create_task(self._enrich(request_id, capture_id, stored))
+        task = asyncio.create_task(self._run_analysis(request_id, capture_id, stored))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         await self.requests_changed()
         return {"ok": True, "duplicate": False, "request_state": r.state}
 
-    async def _enrich(self, request_id: str, capture_id: str, meta: dict) -> None:
+    async def _run_analysis(self, request_id: str, capture_id: str, meta: dict) -> None:
         folder = self.store.capture_dir(request_id, capture_id)
         try:
             analysis = await asyncio.to_thread(self._analyze, folder, meta)
@@ -239,11 +239,11 @@ class Hub:
     def _analyze(self, folder: Path, meta: dict) -> dict:
         image = folder / meta["image"]["file"]
         k = np.array(meta["intrinsics"]["K"], float)
-        phone = meta["pose"].get("camera_to_page")
-        out = enrich.analyze(image, self.board, k, None if phone is None else np.array(phone, float))
+        phone = meta["pose"].get("camera_to_mat")
+        out = analyze(image, self.mat, k, None if phone is None else np.array(phone, float))
         try:
-            out["preview"] = enrich.write_preview(image, folder / "preview.jpg",
-                                                  meta["image"].get("upright_rotation_cw_deg", 0))
+            out["preview"] = write_preview(image, folder / "preview.jpg",
+                                           meta["image"].get("upright_rotation_cw_deg", 0))
         except OSError as e:                                    # PIL can't decode it either
             out["preview_error"] = str(e)
         return out

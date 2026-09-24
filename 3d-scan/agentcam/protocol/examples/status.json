@@ -7,7 +7,7 @@
  "battery": 0.81,
  "tracking": {
   "arkit": "normal",
-  "board": {
+  "mat": {
    "locked": true,
    "age_s": 0.3,
    "markers": 23,
@@ -17,7 +17,7 @@
    "generation": 1
   }
  },
- "camera_to_page": [
+ "camera_to_mat": [
   [
    1,
    0,

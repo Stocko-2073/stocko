@@ -1,7 +1,7 @@
 """agentcam-fakephone: a stand-in for the iPhone app, for tests and demos.
 
 It speaks the real protocol: connects to /v1/ws, says hello, takes each queued
-request, renders a synthetic photo of the marker page from (nearly) the
+request, renders a synthetic photo of the marker mat from (nearly) the
 requested pose, uploads it and commits it, so the whole server path, including
 the still-PnP analysis, runs without a phone.
 """
@@ -22,7 +22,7 @@ import aiohttp
 import cv2
 import numpy as np
 
-from .board import BOARDS_DIR, LAYOUT_FILES, CV_DICTIONARIES
+from .mat import MATS_DIR, LAYOUT_FILES, CV_DICTIONARIES
 from .geometry import invert, look_at_pose, orbit_eye, upright_rotation_cw_deg
 from .models import PROTOCOL_VERSION
 
@@ -33,29 +33,29 @@ K = np.array([[FOCAL, 0, (WIDTH - 1) / 2], [0, FOCAL, (HEIGHT - 1) / 2], [0, 0, 
 PX_PER_MM = 6
 
 
-def page_raster(dictionary: str = "DICT_4X4_100") -> np.ndarray:
-    """The printed page at PX_PER_MM, drawn from the layout JSON."""
-    layout = json.loads((BOARDS_DIR / LAYOUT_FILES[dictionary]).read_text())
-    w, h = layout["page_mm"]
-    page = np.full((round(h * PX_PER_MM), round(w * PX_PER_MM)), 255, np.uint8)
+def mat_raster(dictionary: str = "DICT_4X4_100") -> np.ndarray:
+    """The printed mat at PX_PER_MM, drawn from the layout JSON."""
+    layout = json.loads((MATS_DIR / LAYOUT_FILES[dictionary]).read_text())
+    w, h = layout["mat_mm"]
+    raster = np.full((round(h * PX_PER_MM), round(w * PX_PER_MM)), 255, np.uint8)
     d = cv2.aruco.getPredefinedDictionary(CV_DICTIONARIES[dictionary])
     side = round(layout["marker_mm"] * PX_PER_MM)
     for m in layout["markers"]:
         x, y = (round(v * PX_PER_MM) for v in m["corners"][0])
-        page[y:y + side, x:x + side] = d.generateImageMarker(m["id"], side, 1)
-    return page
+        raster[y:y + side, x:x + side] = d.generateImageMarker(m["id"], side, 1)
+    return raster
 
 
-def render(camera_to_page: np.ndarray, page: np.ndarray, page_mm=(215.9, 279.4), noise: float = 2.0,
+def render(camera_to_mat: np.ndarray, raster: np.ndarray, mat_mm=(215.9, 279.4), noise: float = 2.0,
            rng: np.random.Generator | None = None) -> np.ndarray:
-    """What an undistorted pinhole camera K at `camera_to_page` sees: the page on a grey table."""
-    w, h = page_mm
-    cam_from_page = invert(camera_to_page)
-    r, t = cam_from_page[:3, :3], cam_from_page[:3, 3]
+    """What an undistorted pinhole camera K at `camera_to_mat` sees: the mat on a gray table."""
+    w, h = mat_mm
+    cam_from_mat = invert(camera_to_mat)
+    r, t = cam_from_mat[:3, :3], cam_from_mat[:3, 3]
     s = 1 / PX_PER_MM
-    raster_to_page = np.array([[s, 0, s / 2 - w / 2], [0, -s, h / 2 - s / 2], [0, 0, 1]])
-    homography = K @ np.c_[r[:, 0], r[:, 1], t] @ raster_to_page
-    img = cv2.warpPerspective(page, homography, (WIDTH, HEIGHT), flags=cv2.INTER_AREA, borderValue=90)
+    raster_to_mat = np.array([[s, 0, s / 2 - w / 2], [0, -s, h / 2 - s / 2], [0, 0, 1]])
+    homography = K @ np.c_[r[:, 0], r[:, 1], t] @ raster_to_mat
+    img = cv2.warpPerspective(raster, homography, (WIDTH, HEIGHT), flags=cv2.INTER_AREA, borderValue=90)
     img = cv2.GaussianBlur(img, (3, 3), 0.7)
     rng = rng or np.random.default_rng()
     return np.clip(img + rng.normal(0, noise, img.shape), 0, 255).astype(np.uint8)
@@ -80,12 +80,12 @@ def hello() -> dict:
             "lidar": False}
 
 
-async def capture(session: aiohttp.ClientSession, base: str, req: dict, page: np.ndarray,
+async def capture(session: aiohttp.ClientSession, base: str, req: dict, raster: np.ndarray,
                   rng: np.random.Generator) -> dict:
-    target = np.array(req["target"]["camera_to_page"]) if req.get("target") else _default_pose()
+    target = np.array(req["target"]["camera_to_mat"]) if req.get("target") else _default_pose()
     true_pose = perturb(target, 3.0, 0.5, rng)
     reported = perturb(true_pose, 1.0, 0.1, rng)     # tracking is good, not perfect
-    jpeg = cv2.imencode(".jpg", render(true_pose, page, rng=rng), [cv2.IMWRITE_JPEG_QUALITY, 92])[1].tobytes()
+    jpeg = cv2.imencode(".jpg", render(true_pose, raster, rng=rng), [cv2.IMWRITE_JPEG_QUALITY, 92])[1].tobytes()
     cid = uuid.uuid4().hex[:16]
     rid = req["id"]
     sha = hashlib.sha256(jpeg).hexdigest()
@@ -98,7 +98,7 @@ async def capture(session: aiohttp.ClientSession, base: str, req: dict, page: np
         "image": {"file": "image.jpg", "w": WIDTH, "h": HEIGHT, "grid": "sensor",
                   "upright_rotation_cw_deg": upright_rotation_cw_deg(true_pose)},
         "intrinsics": {"K": K.tolist(), "source": "fakephone", "ref_dims": [WIDTH, HEIGHT]},
-        "pose": {"camera_to_page": reported.tolist(), "source": "arkit_live"},
+        "pose": {"camera_to_mat": reported.tolist(), "source": "arkit_live"},
         "lens": {"id": "wide"},
         "fake_true_pose": true_pose.tolist(),
     }
@@ -113,7 +113,7 @@ def _default_pose() -> np.ndarray:
 
 async def run(base: str, count: int | None, skip: set[str], seed: int | None, once: bool) -> int:
     rng = np.random.default_rng(seed)
-    page = page_raster()
+    raster = mat_raster()
     done: set[str] = set()
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(f"{base}/v1/ws") as ws:
@@ -133,7 +133,7 @@ async def run(base: str, count: int | None, skip: set[str], seed: int | None, on
                                             "state": "skipped", "reason": "fakephone was told to skip it"})
                         log.info("skipped %s", req["id"])
                     else:
-                        log.info("captured %s: %s", req["id"], await capture(session, base, req, page, rng))
+                        log.info("captured %s: %s", req["id"], await capture(session, base, req, raster, rng))
                     if count is not None and len(done) >= count:
                         return len(done)
                 if once and not m["items"]:

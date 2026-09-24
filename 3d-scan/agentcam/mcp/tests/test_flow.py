@@ -32,7 +32,7 @@ async def test_request_capture_wait(tmp_path):
             meta = json.loads((folder / "meta.json").read_text())
             analysis = json.loads((folder / "analysis.json").read_text())
             true = np.array(meta["fake_true_pose"])
-            dt, dr = pose_difference(np.array(analysis["pnp"]["camera_to_page"]), true)
+            dt, dr = pose_difference(np.array(analysis["pnp"]["camera_to_mat"]), true)
             assert dt < 1.0 and dr < 0.2, (rid, dt, dr)          # the still's own pose is good
             assert analysis["phone_vs_pnp"]["dt_mm"] < 5
             assert (folder / "preview.jpg").exists()
@@ -46,8 +46,8 @@ async def test_freeform_requests_need_no_pose(tmp_path):
     async with running_server(tmp_path) as (client, base):
         r = await call(client, "request_photos", requests=[{**orbit(-90, 55, 380), "kind": "freeform"}])
         assert r.is_error and "takes no pose" in text_of(r)
-        r = await call(client, "request_photos", requests=[{"kind": "freeform", "note": "what's on the page?"}])
-        assert "r0001 [queued] freeform (whole page in view)" in text_of(r)
+        r = await call(client, "request_photos", requests=[{"kind": "freeform", "note": "what's on the mat?"}])
+        assert "r0001 [queued] freeform (whole mat in view)" in text_of(r)
         await fakephone.run(base, count=1, skip=set(), seed=5, once=False)
         text = text_of(await call(client, "wait_for_photos", ids=["r0001"], timeout_s=10))
         assert "r0001 [captured] freeform" in text and "still PnP" in text, text
@@ -65,12 +65,12 @@ async def test_snapshots_follow_the_queue(tmp_path):
     async with running_server(tmp_path) as (client, base):
         async with aiohttp.ClientSession() as s, s.ws_connect(f"{base}/v1/ws") as ws:
             await ws.send_json(fakephone.hello())
-            assert (await next_of(ws, "welcome"))["board"]["dictionary"] == "DICT_4X4_100"
+            assert (await next_of(ws, "welcome"))["mat"]["dictionary"] == "DICT_4X4_100"
             assert (await next_of(ws, "requests"))["items"] == []
             await call(client, "request_photos", requests=[orbit(-90, 55, 380), orbit(90, 55, 380)])
             snap = await next_of(ws, "requests")
             assert [i["id"] for i in snap["items"]] == ["r0001", "r0002"]
-            assert snap["items"][0]["target"]["camera_to_page"]
+            assert snap["items"][0]["target"]["camera_to_mat"]
             await call(client, "cancel_requests", ids=["r0001"])
             assert [i["id"] for i in (await next_of(ws, "requests"))["items"]] == ["r0002"]
             status = json.loads(text_of(await call(client, "phone_status")))
@@ -97,7 +97,7 @@ async def test_uploads_are_idempotent_and_checked(tmp_path):
                               {"name": "depth.png", "sha256": sha, "bytes": len(body)}],
                     "image": {"file": "image.jpg", "w": 10, "h": 10},
                     "intrinsics": {"K": [[10, 0, 5], [0, 10, 5], [0, 0, 1]], "source": "test", "ref_dims": [10, 10]},
-                    "pose": {"camera_to_page": None, "source": "none"}}
+                    "pose": {"camera_to_mat": None, "source": "none"}}
             async with s.post(f"{url}/commit", json=meta) as r:
                 assert r.status == 409                              # depth.png never arrived
             meta["files"].pop()
@@ -159,7 +159,7 @@ async def test_impossible_requests_are_rejected_whole(tmp_path):
 
 async def test_preflight_warns_about_doubtful_requests(tmp_path):
     async with running_server(tmp_path) as (client, _):
-        # Too low to see markers; too close to focus; a 5x view of only the page interior.
+        # Too low to see markers; too close to focus; a 5x view of only the mat interior.
         r = await call(client, "request_photos", requests=[orbit(0, 12, 300), orbit(-90, 60, 90),
                                                            {**orbit(-90, 90, 400), "options": {"lens": "telephoto"}}])
         text = text_of(r)

@@ -20,11 +20,11 @@ struct RootView: View {
         .confirmationDialog("Can't get this view?", isPresented: $confirmSkip, titleVisibility: .visible) {
             Button("Skip: can't reach it") { model.skipActive(reason: "can't reach that view") }
             Button("Skip: something's in the way") { model.skipActive(reason: "something is in the way") }
-            Button("Skip: the page won't lock") { model.skipActive(reason: "the page won't lock") }
+            Button("Skip: the mat won't lock") { model.skipActive(reason: "the mat won't lock") }
             Button("Keep trying", role: .cancel) {}
         } message: {
-            Text(model.guidance.pageTurn.map { "Or: \($0). Photos stay correct as long as the object doesn't slide on the paper." }
-                 ?? "You can also turn the page, object and all, to bring a view round to you.")
+            Text(model.guidance.matTurn.map { "Or: \($0). Photos stay correct as long as the object doesn't slide on the paper." }
+                 ?? "You can also turn the mat, object and all, to bring a view around to you.")
         }
     }
 
@@ -120,7 +120,7 @@ private struct RequestCard: View {
                     Text(label(a)).font(.caption).foregroundStyle(.secondary)
                 }
                 if !a.note.isEmpty { Text(a.note).font(.title3.weight(.semibold)) }
-                if let turn = model.guidance.pageTurn {
+                if let turn = model.guidance.matTurn {
                     Label("Can't reach? \(turn)", systemImage: "arrow.triangle.2.circlepath")
                         .font(.subheadline).foregroundStyle(.cyan)
                 }
@@ -179,7 +179,7 @@ private struct GuidanceOverlay: View {
             if let d = model.guidance.arrow {
                 let inset: CGFloat = 36
                 let (hx, hy) = (size.width / 2 - inset, size.height / 2 - inset)
-                // Where the ray from the centre leaves the inset rectangle.
+                // Where the ray from the center leaves the inset rectangle.
                 let t = min(abs(d.x) > 1e-9 ? hx / abs(d.x) : .infinity, abs(d.y) > 1e-9 ? hy / abs(d.y) : .infinity)
                 Image(systemName: "arrowshape.up.fill")
                     .font(.system(size: 40))
@@ -205,7 +205,7 @@ private struct GuidanceOverlay: View {
 private struct DebugOverlay: View {
     @Environment(AppModel.self) private var model
     var body: some View {
-        let p = model.page
+        let p = model.mat
         VStack(alignment: .leading, spacing: 2) {
             Text("ARKit \(p.arkit)")
             Text("markers \(p.markersUsed)/\(p.markersSeen) \(p.locked ? "LOCKED" : "not locked") gen \(p.generation)")
@@ -263,7 +263,7 @@ private struct BigInstruction: View {
             } else if let primary = g.primary {
                 Text(primary)
                     .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(g.aligned ? .green : g.readiness == .findingPage ? .yellow : .white)
+                    .foregroundStyle(g.aligned ? .green : g.readiness == .findingMat ? .yellow : .white)
                 if !g.secondary.isEmpty {
                     Text(g.secondary.joined(separator: "   "))
                         .font(.title3.weight(.semibold).monospacedDigit())
@@ -282,7 +282,7 @@ private struct BigInstruction: View {
     }
 }
 
-/// Where things stand, in place of a shutter: finding the page, lining up,
+/// Where things stand, in place of a shutter: finding the mat, lining up,
 /// holding (the ring fills), taking the photo.
 private struct ReadinessRing: View {
     @Environment(AppModel.self) private var model
@@ -291,7 +291,7 @@ private struct ReadinessRing: View {
         let g = model.guidance
         let (icon, color): (String, Color) = switch g.readiness {
         case .idle: ("pause", .gray)
-        case .findingPage: ("viewfinder", .yellow)
+        case .findingMat: ("viewfinder", .yellow)
         case .aligning: ("scope", .white)
         case .holding: ("hand.raised.fill", .green)
         case .capturing: ("camera.fill", .green)

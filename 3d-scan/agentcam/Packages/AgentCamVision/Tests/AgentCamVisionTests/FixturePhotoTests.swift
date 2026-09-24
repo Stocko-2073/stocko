@@ -30,7 +30,7 @@ func loadGray(_ url: URL) throws -> (pixels: [UInt8], width: Int, height: Int) {
 }
 
 @Suite struct FixturePhotoTests {
-    @Test func detectsEveryMarkerOnThePrintedPage() throws {
+    @Test func detectsEveryMarkerOnThePrintedMat() throws {
         let (pixels, w, h) = try loadGray(fixtures.appendingPathComponent("aruco_border.jpeg"))
         #expect(w == 4032 && h == 3024)
         let detector = try #require(MarkerDetector(family: .aruco4x4))

@@ -15,9 +15,9 @@ async def test_every_tool_over_stdio(tmp_path):
     async with Client(params) as client:
         names = {t.name for t in (await client.list_tools()).tools}
         assert names == {"request_photos", "list_requests", "wait_for_photos", "get_photo", "cancel_requests",
-                         "phone_status", "get_board", "set_print_scale"}
+                         "phone_status", "get_mat", "set_print_scale"}
         assert "r0001" in text_of(await client.call_tool("request_photos", {"requests": [orbit(-90, 55, 380)]}))
-        for name, args in [("list_requests", {}), ("phone_status", {}), ("get_board", {}),
+        for name, args in [("list_requests", {}), ("phone_status", {}), ("get_mat", {}),
                            ("wait_for_photos", {"timeout_s": 0.2}), ("get_photo", {"request_id": "r0001"}),
                            ("set_print_scale", {"measured_x_mm": 197.2, "measured_y_mm": 259.7}),
                            ("cancel_requests", {})]:

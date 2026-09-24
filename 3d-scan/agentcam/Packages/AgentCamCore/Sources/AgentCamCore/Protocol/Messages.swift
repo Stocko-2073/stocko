@@ -84,7 +84,7 @@ public struct Placement: Codable, Sendable, Equatable {
 }
 
 public struct Target: Codable, Sendable, Equatable {
-    public var cameraToPage: Matrix
+    public var cameraToMat: Matrix
     public var eye: [Double]
     public var lookAt: [Double]
     public var distanceMm: Double
@@ -92,9 +92,8 @@ public struct Target: Codable, Sendable, Equatable {
 }
 
 public struct PhotoRequest: Codable, Sendable, Equatable, Identifiable {
-    /// free: no target; the user frames the shot, taken once the phone is held still.
-    /// freeform: no target or hold; taken as soon as the whole page is in view with the phone steady.
-    public enum Kind: String, Codable, Sendable { case pose, free, freeform }
+    /// freeform: no target or hold; taken as soon as the whole mat is in view with the phone steady.
+    public enum Kind: String, Codable, Sendable { case pose, freeform }
 
     public var id: String
     public var seq: Int
@@ -109,7 +108,7 @@ public struct PhotoRequest: Codable, Sendable, Equatable, Identifiable {
     public var preflight: [String]
 }
 
-public struct BoardInfo: Codable, Sendable, Equatable {
+public struct MatInfo: Codable, Sendable, Equatable {
     public var dictionary: String
     public var printScale: [Double]
 
@@ -123,7 +122,7 @@ public struct Welcome: Codable, Sendable, Equatable {
     public var t: String
     public var v: Int
     public var serverId: String
-    public var board: BoardInfo
+    public var mat: MatInfo
 }
 
 public struct RequestsSnapshot: Codable, Sendable, Equatable {
@@ -208,7 +207,7 @@ public struct Bye: Codable, Sendable, Equatable {
 
 /// Sent about twice a second so the agent can see what the phone is doing.
 public struct PhoneStatus: Codable, Sendable, Equatable {
-    public struct Board: Codable, Sendable, Equatable {
+    public struct Mat: Codable, Sendable, Equatable {
         public var locked: Bool
         public var ageS: Double?
         public var markers: Int
@@ -229,10 +228,10 @@ public struct PhoneStatus: Codable, Sendable, Equatable {
     }
     public struct Tracking: Codable, Sendable, Equatable {
         public var arkit: String
-        public var board: Board?
-        public init(arkit: String, board: Board?) {
+        public var mat: Mat?
+        public init(arkit: String, mat: Mat?) {
             self.arkit = arkit
-            self.board = board
+            self.mat = mat
         }
     }
     public struct Active: Codable, Sendable, Equatable {
@@ -261,18 +260,18 @@ public struct PhoneStatus: Codable, Sendable, Equatable {
     public var thermal: String
     public var battery: Double?
     public var tracking: Tracking
-    public var cameraToPage: Matrix?
+    public var cameraToMat: Matrix?
     public var active: Active?
     public var outbox: Outbox
 
     public init(ts: Double, app: String, thermal: String, battery: Double?, tracking: Tracking,
-                cameraToPage: Matrix?, active: Active?, outbox: Outbox) {
+                cameraToMat: Matrix?, active: Active?, outbox: Outbox) {
         self.ts = ts
         self.app = app
         self.thermal = thermal
         self.battery = battery
         self.tracking = tracking
-        self.cameraToPage = cameraToPage
+        self.cameraToMat = cameraToMat
         self.active = active
         self.outbox = outbox
     }

@@ -9,7 +9,7 @@ import UIKit
 /// tracking session, link and uploader run on their own queues and report here.
 @MainActor @Observable
 final class AppModel {
-    struct PageUI: Equatable {
+    struct MatUI: Equatable {
         var locked = false
         var markersSeen = 0
         var markersUsed = 0
@@ -21,7 +21,7 @@ final class AppModel {
     }
 
     enum Readiness: Equatable {
-        case idle, findingPage, aligning, holding, capturing
+        case idle, findingMat, aligning, holding, capturing
     }
 
     struct GuidanceUI: Equatable {
@@ -33,8 +33,8 @@ final class AppModel {
         var holdProgress = 0.0
         /// Unit direction (view coordinates) toward an off-screen target.
         var arrow: SIMD2<Double>?
-        /// "Turn the page 90° ↻, object and all" when the target is round the other side.
-        var pageTurn: String?
+        /// "Turn the mat 90° ↻, object and all" when the target is around the other side.
+        var matTurn: String?
     }
 
     // MARK: State the UI shows
@@ -45,7 +45,7 @@ final class AppModel {
     var pending: [PhotoRequest] = []
     var active: PhotoRequest?
     var placementPrompt: Placement?
-    var page = PageUI()
+    var mat = MatUI()
     var guidance = GuidanceUI()
     var outboxPending = 0
     var toast: String?
@@ -74,11 +74,10 @@ final class AppModel {
     private var locallyDone: Set<String> = []
     private var inOutbox: Set<String> = []
     private var confirmedPlacement: String?
-    private var board = BoardInfo()
-    private var layout: BoardLayout = try! BoardLayout.bundled()
+    private var matInfo = MatInfo()
+    private var layout: MatLayout = try! MatLayout.bundled()
     private let steadiness = SteadinessDetector()
     private var alignedSince: TimeInterval?
-    private var activeSince: TimeInterval?
     private var timer: Timer?
     private var lastStatus: TimeInterval = 0
     private var lastControls: TimeInterval = 0
@@ -102,7 +101,7 @@ final class AppModel {
                           hello: { DeviceInfo.hello(appState: "foreground") })
         inOutbox = Set(outbox.pending().map(\.meta.requestId))
         outboxPending = inOutbox.count
-        renderer.scene.pageOutline = layout.outline
+        renderer.scene.matOutline = layout.outline
 
         link.onEvent = { [weak self] e in Task { @MainActor in self?.handle(e) } }
         uploader.onEvent = { [weak self] e in Task { @MainActor in self?.handle(e) } }
@@ -177,13 +176,13 @@ final class AppModel {
                 uploader.setServer(nil)
             }
         case .welcome(let w):
-            if w.board != board {
-                board = w.board
-                if let l = try? BoardLayout.bundled(w.board) {
+            if w.mat != matInfo {
+                matInfo = w.mat
+                if let l = try? MatLayout.bundled(w.mat) {
                     layout = l
-                    renderer.scene.pageOutline = l.outline
+                    renderer.scene.matOutline = l.outline
                 }
-                tracking.setBoard(w.board)
+                tracking.setMat(w.mat)
             }
         case .requests(let s):
             snapshot = s
@@ -257,15 +256,15 @@ final class AppModel {
     private func nextRequest() -> PhotoRequest? {
         let samePlacement = pending.filter { $0.placement == nil || $0.placement?.label == confirmedPlacement }
         guard !samePlacement.isEmpty else { return pending.first }
-        guard let here = tracking.snapshot.cameraToPage else { return samePlacement.first }
+        guard let here = tracking.snapshot.cameraToMat else { return samePlacement.first }
         return samePlacement.min { a, b in
             distance(here, a) < distance(here, b)
         }
     }
 
     private func distance(_ here: Pose, _ r: PhotoRequest) -> Double {
-        if r.kind == .freeform { return 0 }                    // taken from wherever the page is in view
-        guard let t = r.target.flatMap({ Pose(rows: $0.cameraToPage) }) else { return .infinity }
+        if r.kind == .freeform { return 0 }                    // taken from wherever the mat is in view
+        guard let t = r.target.flatMap({ Pose(rows: $0.cameraToMat) }) else { return .infinity }
         return simd_distance(here.translation, t.translation)
     }
 
@@ -287,7 +286,6 @@ final class AppModel {
     private func resetGuidance() {
         steadiness.reset()
         alignedSince = nil
-        activeSince = tracking.snapshot.time
         guidance = GuidanceUI()
     }
 
@@ -312,7 +310,7 @@ final class AppModel {
                 locallyDone.insert(r.requestId)
                 inOutbox.insert(r.requestId)
                 setTaken += 1
-                show(r.hadPagePose ? "Captured \(r.requestId)." : "Captured \(r.requestId), without a page pose.")
+                show(r.hadMatPose ? "Captured \(r.requestId)." : "Captured \(r.requestId), without a mat pose.")
                 active = nil
                 refreshQueue()
             case .failure(let e):
@@ -327,10 +325,10 @@ final class AppModel {
 
     private func tick() {
         let snap = tracking.snapshot
-        let newPage = PageUI(locked: snap.page?.locked ?? false, markersSeen: snap.markersSeen, markersUsed: snap.markersUsed,
-                             tiltDeg: snap.page?.tiltDeg, jitterMm: snap.page?.jitterMm, arkit: snap.arkit,
-                             rejection: snap.lastRejection, generation: snap.page?.boardGeneration ?? 1)
-        if newPage != page { page = newPage }
+        let newMat = MatUI(locked: snap.mat?.locked ?? false, markersSeen: snap.markersSeen, markersUsed: snap.markersUsed,
+                             tiltDeg: snap.mat?.tiltDeg, jitterMm: snap.mat?.jitterMm, arkit: snap.arkit,
+                             rejection: snap.lastRejection, generation: snap.mat?.matGeneration ?? 1)
+        if newMat != mat { mat = newMat }
 
         applyCameraControls(now: snap.time)
         updateGuidance(snap)
@@ -362,11 +360,11 @@ final class AppModel {
             guidance.readiness = .capturing
             return
         }
-        guard let here = snap.cameraToPage else {
+        guard let here = snap.cameraToMat else {
             renderer.scene.target = nil
             renderer.scene.aligned = false
             alignedSince = nil
-            guidance = GuidanceUI(readiness: .findingPage, primary: "Point at the page")
+            guidance = GuidanceUI(readiness: .findingMat, primary: "Point at the mat")
             return
         }
         steadiness.add(time: snap.time, pose: here)
@@ -377,9 +375,9 @@ final class AppModel {
                                   secondary: ["It needs a lens or flash this build can't use: tap Can't reach"])
             return
         }
-        if a.kind == .freeform { return wholePage(a, snap, here: here) }
-        guard a.kind == .pose, let tgt = a.target, let target = Pose(rows: tgt.cameraToPage) else {
-            freeFraming(a, snap)
+        if a.kind == .freeform { return wholeMat(a, snap, here: here) }
+        guard let tgt = a.target, let target = Pose(rows: tgt.cameraToMat) else {
+            renderer.scene.target = nil
             return
         }
 
@@ -387,7 +385,7 @@ final class AppModel {
         renderer.scene.target = target
         renderer.scene.lookAt = SIMD3(tgt.lookAt[0], tgt.lookAt[1], tgt.lookAt[2])
         renderer.scene.cursorDistanceMm = cursorDistance
-        guard let page = snap.page, let worldFromCamera = snap.worldFromCamera else { return }
+        guard let mat = snap.mat, let worldFromCamera = snap.worldFromCamera else { return }
         let report = Alignment.report(current: here, target: target)
         let positionTol = tgt.positionToleranceMm
         let aligned = Alignment.isAligned(report, positionMm: positionTol, pointingDeg: tol.pointingDeg, rollDeg: tol.rollDeg)
@@ -401,61 +399,39 @@ final class AppModel {
         }
         let progress = alignedSince.map { min(1, (snap.time - $0) / max(tol.steadyS, 0.01)) } ?? 0
 
-        // Where the target cube's centre is, relative to this camera.
-        let cameraFromTargetCube = worldFromCamera.rigidInverse * page.worldFromPage * target
-        let centre = cameraFromTargetCube.transform(SIMD3(0, 0, cursorDistance))
-        let arrow = OffscreenArrow.direction(toCameraPoint: centre, k: snap.k, imageSize: snap.imageSize, marginPx: 60)
+        // Where the target cube's center is, relative to this camera.
+        let cameraFromTargetCube = worldFromCamera.rigidInverse * mat.worldFromMat * target
+        let center = cameraFromTargetCube.transform(SIMD3(0, 0, cursorDistance))
+        let arrow = OffscreenArrow.direction(toCameraPoint: center, k: snap.k, imageSize: snap.imageSize, marginPx: 60)
         let hints = Alignment.hints(report, hold: a.pose?.hold ?? .landscape, positionMm: positionTol,
                                     current: here, target: target)
-        let turn = aligned ? nil : Reach.pageTurnDeg(targetEye: target.translation, user: here.translation)
+        let turn = aligned ? nil : Reach.matTurnDeg(targetEye: target.translation, user: here.translation)
         renderer.scene.aligned = aligned
         guidance = GuidanceUI(readiness: aligned ? .holding : .aligning,
                               primary: aligned ? (steady ? "Hold…" : "Hold still") : hints.first ?? "Line up the cubes",
                               secondary: aligned ? [] : Array(hints.dropFirst().prefix(2)),
                               aligned: aligned, holdProgress: progress, arrow: arrow,
-                              pageTurn: turn.map(Reach.describe(pageTurnDeg:)))
+                              matTurn: turn.map(Reach.describe(matTurnDeg:)))
 
         if aligned, steady, progress >= 1 {
             take(a)
         }
     }
 
-    /// No target: the user frames the shot and holds still for a moment.
-    private func freeFraming(_ a: PhotoRequest, _ snap: TrackingSnapshot) {
-        renderer.scene.target = nil
-        let tol = a.tolerance
-        let hold = max(1.0, 2 * tol.steadyS)
-        // Time to read the note before a still phone counts as "ready".
-        let settled = snap.time - (activeSince ?? snap.time) > 1.5
-        let steady = settled && steadiness.isSteady(window: tol.steadyS, now: snap.time, maxMmPerS: tol.maxSpeedMmS,
-                                                    maxDegPerS: tol.maxAngSpeedDegS)
-        if steady {
-            if alignedSince == nil { alignedHaptic.impactOccurred() }
-            alignedSince = alignedSince ?? snap.time
-        } else {
-            alignedSince = nil
-        }
-        let progress = alignedSince.map { min(1, (snap.time - $0) / hold) } ?? 0
-        guidance = GuidanceUI(readiness: steady ? .holding : .aligning,
-                              primary: steady ? "Hold…" : "Frame it, then hold still",
-                              aligned: steady, holdProgress: progress)
-        if steady, progress >= 1 { take(a) }
-    }
-
-    /// Long enough that hand shake doesn't read as movement, short enough not to feel like a hold.
+    /// Long enough that camera shake doesn't read as movement, short enough not to feel like a hold.
     private static let freeformSteadyS: TimeInterval = 1.0 / 3
 
-    /// Freeform: no target and no hold. Taken the moment the page is found
+    /// Freeform: no target and no hold. Taken the moment the mat is found
     /// (markers seen within the last half second) and wholly in view, once the
     /// phone is under the request's speed limits: a phone still moving into
     /// frame would blur the shot.
-    private func wholePage(_ a: PhotoRequest, _ snap: TrackingSnapshot, here: Pose) {
+    private func wholeMat(_ a: PhotoRequest, _ snap: TrackingSnapshot, here: Pose) {
         renderer.scene.target = nil
-        guard let page = snap.page, snap.time - page.lastTime < 0.5 else {
-            guidance = GuidanceUI(readiness: .findingPage, primary: "Point at the page")
+        guard let mat = snap.mat, snap.time - mat.lastTime < 0.5 else {
+            guidance = GuidanceUI(readiness: .findingMat, primary: "Point at the mat")
             return
         }
-        let fit = PageFraming.fit(outline: layout.outline, cameraToPage: here, k: snap.k, imageSize: snap.imageSize,
+        let fit = MatFraming.fit(outline: layout.outline, cameraToMat: here, k: snap.k, imageSize: snap.imageSize,
                                   marginPx: 0.02 * min(snap.imageSize.x, snap.imageSize.y))
         if fit == .whole {
             let tol = a.tolerance
@@ -468,31 +444,31 @@ final class AppModel {
             take(a)
             return
         }
-        let centre = here.rigidInverse.transform(.zero)
-        guidance = GuidanceUI(readiness: .aligning, primary: "Get the whole page in view",
+        let center = here.rigidInverse.transform(.zero)
+        guidance = GuidanceUI(readiness: .aligning, primary: "Get the whole mat in view",
                               secondary: fit == .tooBig ? ["Back up"] : [],
-                              arrow: OffscreenArrow.direction(toCameraPoint: centre, k: snap.k, imageSize: snap.imageSize,
+                              arrow: OffscreenArrow.direction(toCameraPoint: center, k: snap.k, imageSize: snap.imageSize,
                                                               marginPx: 60))
     }
 
     private func status(_ snap: TrackingSnapshot) -> PhoneStatus {
-        let board = snap.page.map {
-            PhoneStatus.Board(locked: $0.locked, ageS: snap.time - $0.lastTime, markers: snap.markersUsed, rmsPx: $0.rmsPx,
-                              tiltDeg: $0.tiltDeg, jitterMm: $0.jitterMm, generation: $0.boardGeneration)
+        let mat = snap.mat.map {
+            PhoneStatus.Mat(locked: $0.locked, ageS: snap.time - $0.lastTime, markers: snap.markersUsed, rmsPx: $0.rmsPx,
+                              tiltDeg: $0.tiltDeg, jitterMm: $0.jitterMm, generation: $0.matGeneration)
         }
         var active: PhoneStatus.Active?
         if let a = self.active {
             let phase = placementPrompt != nil ? "placement" : capturing ? "capturing"
-                : guidance.aligned ? "holding" : snap.cameraToPage == nil ? "finding page" : "aligning"
+                : guidance.aligned ? "holding" : snap.cameraToMat == nil ? "finding mat" : "aligning"
             var err: AlignmentReport?
-            if let here = snap.cameraToPage, let t = a.target.flatMap({ Pose(rows: $0.cameraToPage) }) {
+            if let here = snap.cameraToMat, let t = a.target.flatMap({ Pose(rows: $0.cameraToMat) }) {
                 err = Alignment.report(current: here, target: t)
             }
             active = .init(requestId: a.id, phase: phase, err: err)
         }
         return PhoneStatus(ts: Date().timeIntervalSince1970, app: foreground ? "foreground" : "background",
                            thermal: Self.thermal, battery: Self.battery,
-                           tracking: .init(arkit: snap.arkit, board: board), cameraToPage: snap.cameraToPage?.rowMajor,
+                           tracking: .init(arkit: snap.arkit, mat: mat), cameraToMat: snap.cameraToMat?.rowMajor,
                            active: active, outbox: .init(pending: outboxPending, bytes: 0))
     }
 

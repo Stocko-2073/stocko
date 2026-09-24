@@ -9,7 +9,7 @@ dependencies = [
     "aiohttp>=3.10",
     "numpy",
     "pillow",
-    # Keep in step with opencv-spm in agentcam/Packages/AgentCamVision/Package.swift,
+    # Keep in sync with opencv-spm in agentcam/Packages/AgentCamVision/Package.swift,
     # so the phone and the Mac see the same detections.
     "opencv-python-headless==4.13.*",
 ]

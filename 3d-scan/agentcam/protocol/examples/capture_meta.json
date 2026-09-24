@@ -55,7 +55,7 @@
   }
  },
  "pose": {
-  "camera_to_page": [
+  "camera_to_mat": [
    [
     1,
     0,
@@ -111,8 +111,8 @@
  },
  "tracking": {
   "arkit": "normal",
-  "board_age_s": 0.2,
-  "board_generation": 1,
+  "mat_age_s": 0.2,
+  "mat_generation": 1,
   "tilt_deg": 1.1,
   "speed_mm_s": 4,
   "ang_speed_deg_s": 0.6

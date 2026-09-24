@@ -1,8 +1,8 @@
 import Foundation
 import simd
 
-// Guiding the phone to a requested camera pose. Poses here are camera_to_page
-// (OpenCV camera axes, page-frame mm) unless named otherwise.
+// Guiding the phone to a requested camera pose. Poses here are camera_to_mat
+// (OpenCV camera axes, mat-frame mm) unless named otherwise.
 
 /// The angle between two vectors, exact near zero (unlike acos of the dot).
 public func angleDeg(_ a: SIMD3<Double>, _ b: SIMD3<Double>) -> Double {
@@ -68,16 +68,16 @@ public enum Alignment {
 
 /// Getting to views the user can't reach, e.g. with the desk against a wall.
 public enum Reach {
-    /// How far to turn the page (degrees, counter-clockwise seen from above;
-    /// negative is clockwise), object and all, so the target's side of the page
+    /// How far to turn the mat (degrees, counterclockwise seen from above;
+    /// negative is clockwise), object and all, so the target's side of the mat
     /// faces where the user is now. nil when it already roughly does, or when
     /// the view is nearly straight down (reachable from anywhere).
-    public static func pageTurnDeg(targetEye: SIMD3<Double>, user: SIMD3<Double>) -> Double? {
+    public static func matTurnDeg(targetEye: SIMD3<Double>, user: SIMD3<Double>) -> Double? {
         let horizontal = simd_length(SIMD2(targetEye.x, targetEye.y))
         guard horizontal > 0.5 * max(targetEye.z, 1), simd_length(SIMD2(user.x, user.y)) > 1 else { return nil }
         let a = atan2(targetEye.y, targetEye.x) * 180 / .pi
         let u = atan2(user.y, user.x) * 180 / .pi
-        // Turning the page by t carries the target round by t; the user stays put.
+        // Turning the mat by t carries the target around by t; the user stays put.
         var t = u - a
         while t > 180 { t -= 360 }
         while t <= -180 { t += 360 }
@@ -85,8 +85,8 @@ public enum Reach {
         return (t / 45).rounded() * 45
     }
 
-    public static func describe(pageTurnDeg t: Double) -> String {
-        String(format: "Turn the page %.0f° %@, object and all", abs(t), t > 0 ? "↺" : "↻")
+    public static func describe(matTurnDeg t: Double) -> String {
+        String(format: "Turn the mat %.0f° %@, object and all", abs(t), t > 0 ? "↺" : "↻")
     }
 }
 
@@ -136,7 +136,7 @@ public enum GuidanceGeometry {
         d * imageHeightPx / fyPx / 3
     }
 
-    /// Corners of the cube in a camera's frame (OpenCV axes), centred on the
+    /// Corners of the cube in a camera's frame (OpenCV axes), centered on the
     /// optical axis at `distance`. Index bit 0: +x, bit 1: +y, bit 2: +z.
     public static func cubeCorners(sideMm s: Double, distanceMm d: Double) -> [SIMD3<Double>] {
         (0..<8).map { i in
@@ -151,31 +151,31 @@ public enum GuidanceGeometry {
     ]
 
     /// Edges on the camera's -x face: the top of the screen as the app is held
-    /// (portrait), so a matching coloured face means matching roll.
+    /// (portrait), so a matching colored face means matching roll.
     public static let topEdges: Set<Int> = [4, 6, 8, 10]
 }
 
-/// Freeform requests have no target: they're taken as soon as the whole page is in view (and the phone is steady).
-public enum PageFraming {
+/// Freeform requests have no target: they're taken as soon as the whole mat is in view (and the phone is steady).
+public enum MatFraming {
     public enum Fit: Equatable, Sendable {
-        /// Every corner of the page is in the image.
+        /// Every corner of the mat is in the image.
         case whole
-        /// Some of the page is out of the image (or behind the camera).
+        /// Some of the mat is out of the image (or behind the camera).
         case partly
-        /// The page is in front of the camera but bigger than the image: back up.
+        /// The mat is in front of the camera but bigger than the image: back up.
         case tooBig
     }
 
-    /// Where the page's outline (page frame) falls in an image with intrinsics
-    /// `k` and `imageSize` (sensor pixels), for a camera at `cameraToPage`.
+    /// Where the mat's outline (mat frame) falls in an image with intrinsics
+    /// `k` and `imageSize` (sensor pixels), for a camera at `cameraToMat`.
     /// A corner counts as in the image when it's at least `marginPx` from the edges.
-    public static func fit(outline: [SIMD3<Double>], cameraToPage: Pose, k: simd_double3x3, imageSize: SIMD2<Double>,
+    public static func fit(outline: [SIMD3<Double>], cameraToMat: Pose, k: simd_double3x3, imageSize: SIMD2<Double>,
                            marginPx: Double) -> Fit {
-        let cameraFromPage = cameraToPage.rigidInverse
+        let cameraFromMat = cameraToMat.rigidInverse
         let fx = k[0][0], fy = k[1][1], cx = k[2][0], cy = k[2][1]
         var pixels: [SIMD2<Double>] = []
         for corner in outline {
-            let p = cameraFromPage.transform(corner)
+            let p = cameraFromMat.transform(corner)
             guard p.z > 1 else { return .partly }
             pixels.append(SIMD2(fx * p.x / p.z + cx, fy * p.y / p.z + cy))
         }

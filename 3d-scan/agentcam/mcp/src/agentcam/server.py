@@ -38,10 +38,10 @@ class Runtime:
         self.error: str | None = None
         self.address = f"<this Mac>:{port}"
 
-    def write_board_file(self) -> Path:
-        b = self.hub.board
-        path = self.data / "board_page_frame.json"
-        write_json(path, {"frame": "page: mm, origin page centre, +x right, +y toward marker 0's edge, +z up; "
+    def write_mat_file(self) -> Path:
+        b = self.hub.mat
+        path = self.data / "mat_layout.json"
+        write_json(path, {"frame": "mat: mm, origin mat center, +x right, +y toward marker 0's edge, +z up; "
                                    "corners TL, TR, BR, BL as printed",
                           **b.describe(),
                           "markers": [{"id": i, "corners": c.round(4).tolist()} for i, c in sorted(b.corners.items())]})
@@ -83,7 +83,7 @@ class Runtime:
         self.address = f"{ad.host}:{self.port}"
         if self.advertise:
             await ad.start()
-        self.write_board_file()
+        self.write_mat_file()
         log.info("serving the phone on %s; data in %s", self.address, self.data)
         try:
             yield self

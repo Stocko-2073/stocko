@@ -1,4 +1,4 @@
-"""The printed marker page, in the page frame (see geometry.py)."""
+"""The printed marker mat, in the mat frame (see geometry.py)."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-# agentcam/protocol/boards, next to this package in the checkout.
-BOARDS_DIR = Path(__file__).resolve().parents[3] / "protocol" / "boards"
+# agentcam/protocol/mats, next to this package in the checkout.
+MATS_DIR = Path(__file__).resolve().parents[3] / "protocol" / "mats"
 LAYOUT_FILES = {
-    "DICT_4X4_100": "border_letter_aruco_4x4_10mm.json",
-    "DICT_APRILTAG_36h11": "border_letter_apriltag_36h11_10mm.json",
+    "DICT_4X4_100": "workmat_aruco_4x4_10mm.json",
+    "DICT_APRILTAG_36h11": "workmat_apriltag_36h11_10mm.json",
 }
 CV_DICTIONARIES = {
     "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -22,19 +22,19 @@ CV_DICTIONARIES = {
 
 
 @dataclass
-class Board:
+class MatLayout:
     dictionary: str
     marker_mm: float
-    page_mm: tuple[float, float]
-    # id -> 4x2 corners (TL, TR, BR, BL as printed) in page-frame mm, z = 0.
+    mat_mm: tuple[float, float]
+    # id -> 4x2 corners (TL, TR, BR, BL as printed) in mat-frame mm, z = 0.
     corners: dict[int, np.ndarray]
     scale: tuple[float, float] = (1.0, 1.0)
     nominal_span_mm: tuple[float, float] = field(default=(0.0, 0.0))
 
     @classmethod
-    def load(cls, dictionary: str = "DICT_4X4_100", scale: tuple[float, float] = (1.0, 1.0)) -> Board:
-        layout = json.loads((BOARDS_DIR / LAYOUT_FILES[dictionary]).read_text())
-        w, h = layout["page_mm"]
+    def load(cls, dictionary: str = "DICT_4X4_100", scale: tuple[float, float] = (1.0, 1.0)) -> MatLayout:
+        layout = json.loads((MATS_DIR / LAYOUT_FILES[dictionary]).read_text())
+        w, h = layout["mat_mm"]
         sx, sy = scale
         corners = {
             m["id"]: np.array([[(x - w / 2) * sx, (h / 2 - y) * sy] for x, y in m["corners"]])
@@ -51,7 +51,7 @@ class Board:
         return cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(CV_DICTIONARIES[self.dictionary]), params)
 
     def object_points(self, ids) -> np.ndarray:
-        """(4n, 3) page-frame corners for `ids`, in detection order."""
+        """(4n, 3) mat-frame corners for `ids`, in detection order."""
         pts = np.concatenate([self.corners[i] for i in ids])
         return np.c_[pts, np.zeros(len(pts))]
 
@@ -60,7 +60,7 @@ class Board:
         return {
             "dictionary": self.dictionary,
             "marker_mm": self.marker_mm,
-            "page_mm": list(self.page_mm),
+            "mat_mm": list(self.mat_mm),
             "markers": len(self.corners),
             "print_scale": list(self.scale),
             "marker_ring_extent_mm": {"x": [float(allpts[:, 0].min()), float(allpts[:, 0].max())],
