@@ -43,7 +43,7 @@ Only one Claude Code session can run the server at a time (it holds a lock on `c
 ## Build and install
 
 ```sh
-cd 3d-scan/agentcam/mcp && uv sync --group dev && uv run pytest -q          # server: 34 tests
+cd 3d-scan/agentcam/mcp && uv sync --group dev && uv run pytest -q          # server: 36 tests
 cd ../Packages/AgentCamCore && swift test                                # core: 31 tests
 cd ../AgentCamVision && swift test                                       # vision: 6 tests (downloads OpenCV, ~200 MB, once)
 cd ../.. && xcodegen generate
@@ -61,6 +61,10 @@ each queued request, renders the page from that pose, and uploads it through the
   Local Network). On the Mac, the application firewall must allow incoming connections to uv's Python
   (`~/.local/share/uv/python/cpython-3.12*/bin/python3.12`). `phone_status` reports "No phone has
   connected yet" in that case. You can also type the Mac's address in the app's settings.
+- **"Sending to the Mac stalled."** The phone found an advertisement but nothing answers on its port:
+  no server is running (start Claude Code in `3d-scan/`; `.mcp.json`'s paths are relative to it), or a
+  server from before the advertiser was tied to its process died and left its `dns-sd` behind. Clear
+  those with `pkill -f 'dns-sd -R AgentCam'`.
 - **"another program is already using port 47815".** Set `AGENTCAM_PORT` in `.mcp.json`. The server
   checks that its own health endpoint answers, because another program bound to 127.0.0.1 on the
   same port would otherwise silently take local traffic.
