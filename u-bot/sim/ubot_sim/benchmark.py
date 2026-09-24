@@ -29,10 +29,12 @@ def physics_run(env, diagnostics=False):
     start = time.perf_counter()
     for command in COMMANDS:
         env.data.ctrl[:] = command
+        if env.motor is not None:
+            env.command[:] = command
         if not diagnostics:
             # Batch pure contact models in C; canopy forces require per-tick
             # Python updates. Diagnostics are excluded in either case.
-            if env.canopy is None:
+            if env.canopy is None and env.motor is None:
                 mujoco.mj_step(env.model, env.data, nstep=step_count)
             else:
                 for _ in range(step_count):

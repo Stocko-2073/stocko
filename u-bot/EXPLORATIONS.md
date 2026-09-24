@@ -173,6 +173,7 @@ There are concrete limits to a voltage upgrade:
 - A nominal “24 V” battery is not a regulated 24 V supply. For example, an 8S
   LiFePO4 pack charged to 3.65 V/cell reaches 29.2 V, already above that chip
   operating limit before transients. Do not assume a direct pack swap works;
+  
   verify the exact carrier-board rating too.
 - The [power-board notes](firmware/protoboard/README.md) specify a 100 µF
   capacitor rated **25 V or higher**, with the installed rating unconfirmed.
@@ -379,6 +380,12 @@ before separately accounting for tool forces and acceleration; this candidate's
 stronger motor/driver combination may be appropriate if that becomes the target.
 
 ## Softer joystick response before hardware changes
+
+**Implemented 2026-09-21:** the native app now uses the proposed `expo=0.6`,
+`turnScale=1` response with independent physical knob tracking. See
+[app response notes](app/README.md#stick-response). The discussion below records
+the original proposal; acceleration, braking, current and robot settings were
+not changed with this implementation. Physical driving validation remains.
 
 The owner reports that a recent joystick change allowed a higher top speed
 but also made starts quick. This makes input response and acceleration a useful

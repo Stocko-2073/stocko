@@ -35,15 +35,18 @@ def coast_run(env):
     start = env.data.xpos[env.base, :2].copy()
     entry_speed = float(np.linalg.norm(env._state()[1][3:5]))
     gains, biases = env.model.actuator_gainprm.copy(), env.model.actuator_biasprm.copy()
+    motor_enabled = env.motor.enabled if env.motor is not None else None
     path_length, stopped_at = 0.0, None
     previous = start.copy()
     speeds = []
     try:
+        if env.motor is not None:
+            env.motor.enabled = False
         env.model.actuator_gainprm[:] = 0
         env.model.actuator_biasprm[:] = 0
         env.data.ctrl[:] = 0
         for step in range(150):
-            if env.canopy is None:
+            if env.canopy is None and env.motor is None:
                 mujoco.mj_step(env.model, env.data, nstep=env.frame_skip)
             else:
                 for _ in range(env.frame_skip):
@@ -66,6 +69,8 @@ def coast_run(env):
                 "finite": bool(np.isfinite(env.data.qpos).all() and np.isfinite(env.data.qvel).all()),
                 "warning_count": sum(int(w.number) for w in env.data.warning)}
     finally:
+        if env.motor is not None:
+            env.motor.enabled = motor_enabled
         env.model.actuator_gainprm[:] = gains
         env.model.actuator_biasprm[:] = biases
 

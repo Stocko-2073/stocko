@@ -101,6 +101,31 @@ this environment does not implement firmware deployment or sensor noise.
 
 ## Geometry and dynamics
 
+### Optional motor voltage model
+
+The default `drive="servo"` preserves the original estimated velocity servos.
+Use `drive="eiiev_12v"` for the current 12.8 V/TMC2209 setup or
+`drive="talentcell_24v"` for the planned 25.6 V/TMC2208 setup. These opt-in
+profiles integrate two-phase winding currents, back EMF, voltage-limited
+current regulation, rotor/command phase mismatch and encoder slip protection.
+They use ideal fixed supplies and provisional motor/driver parameters.
+
+```sh
+python -m ubot_sim.demo --drive eiiev_12v --episodes 1
+python -m ubot_sim.demo --drive talentcell_24v --supply-voltage 24 --episodes 1
+python -m ubot_sim.motor_benchmark
+```
+
+The stepper profiles reduce the physics timestep to at most 25 microseconds
+while retaining 50 Hz policy updates, so they are substantially slower than
+the default. Motor telemetry is returned in `info["motor"]`; a slip fault
+terminates the episode. The existing navigation controller can trigger this
+fault under aggressive acceleration. See [model assumptions and API](MOTOR_MODEL.md)
+and [voltage comparison results](benchmarks/motors.md). Battery sag, heating,
+replacement battery mass and hardware calibration are not yet modeled.
+
+### Base geometry
+
 `build_model.py` is the source for the base template `ubot_sim/assets/robot.xml`.
 `ubot_sim/contact_model.py` applies the selected wheel contacts and terrain
 when loading it; the default runtime model uses lugs. The template itself

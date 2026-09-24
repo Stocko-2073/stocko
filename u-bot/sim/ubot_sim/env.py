@@ -7,6 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from ubot_sim.contact_model import load_model
 from ubot_sim.elevation import TerrainElevation
+from ubot_sim.motor import StepperDrive, drive_config
 
 MODEL = Path(__file__).parent / "assets" / "robot.xml"
 WHEEL_RADIUS = 0.1075
@@ -24,7 +25,7 @@ class UBotNavigationEnv(gym.Env):
     def __init__(self, render_mode=None, max_steps=1500, randomize=False,
                  wheel_contact="lugs", terrain="flat", timestep=0.002,
                  terrain_contact=None, obstacles=(), surface=None, patches=(), regions=(),
-                 grass_canopy=None):
+                 grass_canopy=None, drive="servo", supply_voltage=None):
         if render_mode not in (None, *self.metadata["render_modes"]):
             raise ValueError(f"Unsupported render mode: {render_mode}")
         self.render_mode = render_mode
@@ -32,6 +33,24 @@ class UBotNavigationEnv(gym.Env):
         self.randomize = randomize
         self.model = load_model(MODEL, wheel_contact, terrain, timestep,
                                 terrain_contact, obstacles, surface, patches, regions)
+        if drive == "servo" and supply_voltage is not None:
+            raise ValueError("supply_voltage requires a stepper drive profile")
+        self.motor = None if drive == "servo" else StepperDrive(drive_config(drive, supply_voltage))
+        if self.motor is not None:
+            # Couple both mechanics and electrics at a fine timestep: electrical
+            # substeps with a frozen rotor at 2 ms would miss stepper resonance.
+            config = self.motor.config
+            subdivisions = int(np.ceil(timestep / config.max_timestep))
+            self.model.opt.timestep = timestep / subdivisions
+            self.model.actuator_gainprm[:] = 0
+            self.model.actuator_gainprm[:, 0] = 1
+            self.model.actuator_biasprm[:] = 0
+            self.model.actuator_biastype[:] = mujoco.mjtBias.mjBIAS_NONE
+            self.model.actuator_ctrllimited[:] = False
+            self.model.actuator_forcelimited[:] = False
+            for side in ("left", "right"):
+                dof = self.model.jnt_dofadr[self.model.joint(f"{side}_drive").id]
+                self.model.dof_armature[dof] = config.rotor_inertia * config.gear_ratio**2
         self.data = mujoco.MjData(self.model)
         self.elevation = TerrainElevation(self.model)
         from ubot_sim.canopy import CanopyModel, GrassCanopy
@@ -49,6 +68,7 @@ class UBotNavigationEnv(gym.Env):
         self.drive = [self.model.joint(f"{s}_drive").id for s in ("left", "right")]
         self.swivel = [self.model.joint(f"{s}_swivel").id for s in ("left", "right")]
         self.drive_dof = self.model.jnt_dofadr[self.drive]
+        self.drive_qpos = self.model.jnt_qposadr[self.drive]
         self.swivel_dof = self.model.jnt_dofadr[self.swivel]
         self.swivel_qpos = self.model.jnt_qposadr[self.swivel]
         self._friction = self.model.geom_friction.copy()
@@ -62,6 +82,10 @@ class UBotNavigationEnv(gym.Env):
         self.success_steps = 0
 
     def _physics_step(self):
+        if self.motor is not None:
+            self.data.ctrl[:] = self.motor.advance(
+                self.data.qpos[self.drive_qpos], self.data.qvel[self.drive_dof],
+                self.command, self.model.opt.timestep)
         if self.canopy is None:
             mujoco.mj_step(self.model, self.data)
             return
@@ -109,6 +133,10 @@ class UBotNavigationEnv(gym.Env):
         super().reset(seed=seed)
         options = options or {}
         mujoco.mj_resetData(self.model, self.data)
+        self.command[:] = 0
+        if self.motor is not None:
+            self.motor.reset(np.zeros(2))
+            self.motor.enabled = False
         self.model.geom_friction[:] = self._friction
         self.model.body_mass[:] = self._mass
         self.model.body_inertia[:] = self._inertia
@@ -142,6 +170,9 @@ class UBotNavigationEnv(gym.Env):
         for _ in range(round(0.3 / self.model.opt.timestep)):
             self._physics_step()
         self.data.time = 0
+        if self.motor is not None:
+            self.motor.reset(self.data.qpos[self.drive_qpos])
+            self.data.ctrl[:] = 0
         if self.canopy is not None:
             self.canopy.reset_visual()
         self.steps = 0
@@ -150,7 +181,10 @@ class UBotNavigationEnv(gym.Env):
         self.previous_distance = np.linalg.norm(self.goal - self.data.xpos[self.base, :2])
         if self.render_mode == "human":
             self.render()
-        return self._obs(), {"distance": float(self.previous_distance), "is_success": False}
+        info = {"distance": float(self.previous_distance), "is_success": False}
+        if self.motor is not None:
+            info["motor"] = self.motor.telemetry()
+        return self._obs(), info
 
     def step(self, action):
         action = np.asarray(action, dtype=float)
@@ -160,11 +194,14 @@ class UBotNavigationEnv(gym.Env):
         # Match StepperServo's velocity ramp at each physics tick. Reversals
         # brake through zero, then accelerate once command and target agree.
         for _ in range(self.frame_skip):
+            if self.motor is not None and np.any(self.motor.slip_fault):
+                target[:] = self.command[:] = 0
             slowing = (target * self.command < 0) | (np.abs(target) < np.abs(self.command))
             slew = np.where(slowing, WHEEL_DECEL, WHEEL_ACCEL) * self.model.opt.timestep
             self.command += np.clip(target - self.command, -slew, slew)
             self.command[(target == 0) & (np.abs(self.command) < WHEEL_SETTLE_SPEED)] = 0
-            self.data.ctrl[:] = self.command
+            if self.motor is None:
+                self.data.ctrl[:] = self.command
             self._physics_step()
         mujoco.mj_forward(self.model, self.data)
         if self.canopy is not None:
@@ -180,14 +217,18 @@ class UBotNavigationEnv(gym.Env):
         failed = (rotation[2, 2] < 0.5 or clearance < 0.05
                   or np.linalg.norm(self.data.xpos[self.base, :2]) > 6
                   or not np.isfinite(self.data.qpos).all())
+        motor_fault = self.motor is not None and bool(np.any(self.motor.slip_fault))
+        failed = failed or motor_fault
+        success = success and not failed
         reward = 10 * (self.previous_distance - distance) - 0.01 - 0.001 * float(np.square(np.clip(action, -1, 1)).sum())
         reward += 20.0 * success - 10.0 * failed
         self.previous_distance = distance
         if self.render_mode == "human":
             self.render()
-        return self._obs(), float(reward), bool(success or failed), self.steps >= self.max_steps, {
-            "distance": distance, "is_success": bool(success), "failed": bool(failed),
-        }
+        info = {"distance": distance, "is_success": bool(success), "failed": bool(failed)}
+        if self.motor is not None:
+            info.update(motor=self.motor.telemetry(), motor_fault=motor_fault)
+        return self._obs(), float(reward), bool(success or failed), self.steps >= self.max_steps, info
 
     def render(self):
         if self.render_mode == "rgb_array":

@@ -82,6 +82,18 @@ Treat initial preset values as estimates until measured on the robot.
 
 ## Validation and training
 
+- [x] Implement an initial voltage-aware stepper/driver model and compare both battery
+  voltages. [Motor model inputs](MOTOR_MODEL.md) records the current Eiiev
+  12.8 V / 8 Ah pack, planned Talentcell 25.6 V / 6 Ah pack, source provenance,
+  measurements needed and selected TMC2208 drivers for the 24 V setup.
+- [ ] Calibrate motor torque/speed and stall behavior, source sag, and driver
+  current settings against hardware. Add replacement pack mass/COM separately
+  from the voltage-only comparison. Thermal and BMS behavior remain unmodeled.
+- [ ] Reproduce the reported app-driving contrast: 12 V/TMC2209 success on
+  concrete/slight driveway hills versus stalls on grass hills and small sticks.
+  Match command histories and establish concrete success before fitting grass
+  resistance/obstacle effects; see [field observations](MOTOR_MODEL.md#field-observations-2026-09-22).
+
 - [x] Run the same waypoint routes across all presets and compare completion,
   travel time, tracking error, wheel slip, and stopping behavior.
   [Surface evaluation](benchmarks/surfaces.md): 72/72 completed across all three

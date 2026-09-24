@@ -6,6 +6,7 @@ import time
 from ubot_sim.contact_model import SURFACE_PRESETS
 from ubot_sim.env import UBotNavigationEnv, baseline_action
 from ubot_sim.waypoints import UBotWaypointsEnv
+from ubot_sim.motor import DRIVE_PROFILES
 
 
 def main():
@@ -18,10 +19,14 @@ def main():
     parser.add_argument("--route", help="JSON file containing a list of [x, y] waypoints")
     parser.add_argument("--wheel-contact", choices=["smooth", "lugs"], default="lugs")
     parser.add_argument("--terrain", choices=["flat", "bumps"], default="flat")
+    parser.add_argument("--drive", choices=["servo", *DRIVE_PROFILES], default="servo")
+    parser.add_argument("--supply-voltage", type=float, help="Override stepper profile's ideal supply voltage")
     parser.add_argument("--surface", choices=sorted(SURFACE_PRESETS), help="Estimated surface preset (selects its own terrain geometry)")
     args = parser.parse_args()
     if args.surface and args.terrain != "flat":
         parser.error("--surface selects terrain geometry; omit --terrain or leave it at flat")
+    if args.drive == "servo" and args.supply_voltage is not None:
+        parser.error("--supply-voltage requires a stepper --drive profile")
     policy = None
     if args.policy:
         from stable_baselines3 import PPO
@@ -32,10 +37,12 @@ def main():
             with open(args.route) as file:
                 route = json.load(file)
         env = UBotWaypointsEnv(waypoints=route, render_mode="human" if args.viewer else None,
-                              wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
+                              wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface,
+                              drive=args.drive, supply_voltage=args.supply_voltage)
     else:
         env = UBotNavigationEnv(render_mode="human" if args.viewer else None,
-                               wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface)
+                               wheel_contact=args.wheel_contact, terrain=args.terrain, surface=args.surface,
+                               drive=args.drive, supply_voltage=args.supply_voltage)
     try:
         for episode in range(1 if args.waypoints or args.route else args.episodes):
             obs, _ = env.reset(seed=args.seed + episode, options={"yaw": 0} if args.waypoints or args.route else None)

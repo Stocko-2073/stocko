@@ -1,0 +1,785 @@
+{
+  "recorded_at": "2026-09-23T03:02:24.480266+00:00",
+  "source_sha256": {
+    "motor.py": "635dfd43c1ddef05c59367fa35721544af5099072444da49157b1288f2e0dde0",
+    "env.py": "bfdabf47bd5f48b2215c2f65f9ef396e15d49fedcc0a194805a2adc2e4e10942",
+    "motor_benchmark.py": "7e130ab1a1f6c7884784af1091b86ccffbfb220fc8b915dea28e2513f7052401",
+    "contact_model.py": "02877eec4083040b095a3a9e0920cd3f8cc86754c1ddef4a04f38b20b157f456",
+    "elevation.py": "efbd5114658f83abb8bfa67cf715a49014799c3a8344d6824fa7234204d92e81",
+    "robot.xml": "5081b358b096d737dc91a2630313a82b075e639ef8f0f0221dd645970f617519"
+  },
+  "method": {
+    "supply": "ideal fixed voltage; no sag, BMS, SOC or thermal model",
+    "mechanics": "same robot mass and terrain for both profiles; ideal rigid gearing",
+    "electrical": "prescribed rotor speed, 90-degree electrical load angle, run current; not pull-out torque",
+    "speed_limit": "2 and 3 wheel turns/s exceed current firmware's 1 turn/s limit",
+    "robot": "seed 0, smooth wheels, flat terrain; up to 2 s or fault",
+    "gentle": "target increases by 0.01 wheel turns/s each 20 ms up to 0.3",
+    "firmware_ramp": "0.4 wheel turns/s target with 8 turns/s\u00b2 acceleration",
+    "calibration": "datasheet-based estimates; not hardware-validated"
+  },
+  "results": {
+    "eiiev_12v": {
+      "config": {
+        "driver": "tmc2209",
+        "supply_voltage": 12.8,
+        "resistance": 2.3,
+        "inductance": 0.0044,
+        "torque_constant": 0.21213203435596423,
+        "rotor_inertia": 5.4e-06,
+        "pole_pairs": 50,
+        "gear_ratio": 3.3333333333333335,
+        "sense_resistance": 0.11,
+        "run_current_rms": 1.1600970628841796,
+        "hold_current_rms": 0.5524271728019902,
+        "hold_delay": 0.5,
+        "hold_ramp": 2.0,
+        "max_timestep": 2.5e-05,
+        "slip_protection": true,
+        "slip_limit_steps": 200,
+        "microsteps": 8
+      },
+      "electrical": {
+        "2.5e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 14.804077148437552,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600881178182707,
+            "mean_two_motor_bus_power_w": 19.177354122286392,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.159997674554415,
+            "mean_two_motor_bus_power_w": 29.37934685661155,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 0.7485974978601919,
+            "mean_two_motor_bus_power_w": 25.252292754388353,
+            "voltage_saturation_fraction": 0.8
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 0.260978571762734,
+            "mean_two_motor_bus_power_w": 10.740843958869828,
+            "voltage_saturation_fraction": 0.975
+          }
+        ],
+        "1.25e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 14.804077148437587,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600948266155466,
+            "mean_two_motor_bus_power_w": 19.177493560699904,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.1600722155356438,
+            "mean_two_motor_bus_power_w": 29.381551782071323,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 0.7487673207167382,
+            "mean_two_motor_bus_power_w": 25.258844064691775,
+            "voltage_saturation_fraction": 0.8083333333333333
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 0.253224468651344,
+            "mean_two_motor_bus_power_w": 10.410889729450133,
+            "voltage_saturation_fraction": 0.9875
+          }
+        ]
+      },
+      "robot": {
+        "2.5e-05": {
+          "gentle": {
+            "seconds": 1.9999999999986735,
+            "policy_steps": 100,
+            "displacement_xy_m": [
+              0.3461943365803623,
+              -1.3508323566900829e-05
+            ],
+            "wheel_speed_rad_s": [
+              1.8855656526709355,
+              1.8856215620286383
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": false,
+            "motor": {
+              "driver": "tmc2209",
+              "supply_voltage": 12.8,
+              "phase_current_a": [
+                [
+                  -1.6074662810909615,
+                  0.32818066027813914
+                ],
+                [
+                  -1.607582045037264,
+                  0.3276131241247959
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.009093459502591338,
+                0.008995846417265725
+              ],
+              "bus_power_w": 14.838034023381846,
+              "bus_current_a": 1.1592214080767067,
+              "winding_copper_power_w": 12.381464505426827,
+              "net_energy_j": 29.800694147686198,
+              "slip_steps": [
+                0.5276912960742822,
+                0.5092170836547801
+              ],
+              "slip_fault": [
+                false,
+                false
+              ]
+            }
+          },
+          "firmware_ramp": {
+            "seconds": 0.17999999999998426,
+            "policy_steps": 9,
+            "displacement_xy_m": [
+              0.00629221855013242,
+              2.1958964271155527e-05
+            ],
+            "wheel_speed_rad_s": [
+              -0.0022329318699509278,
+              -0.31374238330511306
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": true,
+            "motor": {
+              "driver": "tmc2209",
+              "supply_voltage": 12.8,
+              "phase_current_a": [
+                [
+                  -0.8150014289593333,
+                  1.4238760695437105
+                ],
+                [
+                  -0.815504077373675,
+                  1.4235882446873154
+                ]
+              ],
+              "wheel_torque_nm": [
+                -0.4283462952570928,
+                -0.9282488645739049
+              ],
+              "bus_power_w": 15.09536908142686,
+              "bus_current_a": 1.1793257094864733,
+              "winding_copper_power_w": 12.381591796875004,
+              "net_energy_j": 2.693630305401195,
+              "slip_steps": [
+                196.99577390531354,
+                205.8424301815332
+              ],
+              "slip_fault": [
+                false,
+                true
+              ]
+            }
+          }
+        },
+        "1.25e-05": {
+          "gentle": {
+            "seconds": 1.9999999999970062,
+            "policy_steps": 100,
+            "displacement_xy_m": [
+              0.34619304611402363,
+              -1.3508551171090354e-05
+            ],
+            "wheel_speed_rad_s": [
+              1.8855861790591042,
+              1.8856435924953499
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": false,
+            "motor": {
+              "driver": "tmc2209",
+              "supply_voltage": 12.8,
+              "phase_current_a": [
+                [
+                  -1.6068190267596252,
+                  0.33133518658339295
+                ],
+                [
+                  -1.606935601923418,
+                  0.33076934848323364
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.009100027955054947,
+                0.008998445244219139
+              ],
+              "bus_power_w": 14.838165843711943,
+              "bus_current_a": 1.1592317065399955,
+              "winding_copper_power_w": 12.38155997369603,
+              "net_energy_j": 29.800884491056607,
+              "slip_steps": [
+                0.536602733312497,
+                0.5164548746518955
+              ],
+              "slip_fault": [
+                false,
+                false
+              ]
+            }
+          },
+          "firmware_ramp": {
+            "seconds": 0.17999999999998223,
+            "policy_steps": 9,
+            "displacement_xy_m": [
+              0.006552144097438694,
+              1.8301094089168914e-05
+            ],
+            "wheel_speed_rad_s": [
+              0.5397313745525842,
+              -0.27871589759649157
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": true,
+            "motor": {
+              "driver": "tmc2209",
+              "supply_voltage": 12.8,
+              "phase_current_a": [
+                [
+                  -0.8112719114142637,
+                  1.426004304472903
+                ],
+                [
+                  -0.8117740074428154,
+                  1.4257185386552398
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.9257798052558641,
+                -0.9253938701380763
+              ],
+              "bus_power_w": 15.560980798725575,
+              "bus_current_a": 1.2157016249004355,
+              "winding_copper_power_w": 12.381591796875004,
+              "net_energy_j": 2.7001739874001767,
+              "slip_steps": [
+                190.55117738401637,
+                205.86774640865136
+              ],
+              "slip_fault": [
+                false,
+                true
+              ]
+            }
+          }
+        }
+      }
+    },
+    "talentcell_24v": {
+      "config": {
+        "driver": "tmc2208",
+        "supply_voltage": 25.6,
+        "resistance": 2.3,
+        "inductance": 0.0044,
+        "torque_constant": 0.21213203435596423,
+        "rotor_inertia": 5.4e-06,
+        "pole_pairs": 50,
+        "gear_ratio": 3.3333333333333335,
+        "sense_resistance": 0.11,
+        "run_current_rms": 1.1600970628841796,
+        "hold_current_rms": 0.5524271728019902,
+        "hold_delay": 0.5,
+        "hold_ramp": 2.0,
+        "max_timestep": 2.5e-05,
+        "slip_protection": true,
+        "slip_limit_steps": 200,
+        "microsteps": 8
+      },
+      "electrical": {
+        "2.5e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328125057,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600881178182707,
+            "mean_two_motor_bus_power_w": 20.41550057306296,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.159997674554415,
+            "mean_two_motor_bus_power_w": 30.617364611306186,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 1.1596995265948,
+            "mean_two_motor_bus_power_w": 45.181336060681964,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 1.1131970770718496,
+            "mean_two_motor_bus_power_w": 56.773825577132506,
+            "voltage_saturation_fraction": 0.45
+          }
+        ],
+        "1.25e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328124936,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600948266155466,
+            "mean_two_motor_bus_power_w": 20.415649558084112,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.1600722155356438,
+            "mean_two_motor_bus_power_w": 30.619675603292812,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 1.1599976745544147,
+            "mean_two_motor_bus_power_w": 45.19432528841806,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 1.1137158319039224,
+            "mean_two_motor_bus_power_w": 56.80172821912742,
+            "voltage_saturation_fraction": 0.45
+          }
+        ]
+      },
+      "robot": {
+        "2.5e-05": {
+          "gentle": {
+            "seconds": 1.9999999999986735,
+            "policy_steps": 100,
+            "displacement_xy_m": [
+              0.34619433723537746,
+              -1.350849558121053e-05
+            ],
+            "wheel_speed_rad_s": [
+              1.8855657628695255,
+              1.8856216763048645
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": false,
+            "motor": {
+              "driver": "tmc2208",
+              "supply_voltage": 25.6,
+              "phase_current_a": [
+                [
+                  -1.6074662810909612,
+                  0.3281806602781391
+                ],
+                [
+                  -1.607582045037264,
+                  0.3276131241247959
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.0090934064273594,
+                0.0089957656038833
+              ],
+              "bus_power_w": 16.076180223729594,
+              "bus_current_a": 0.6279757899894373,
+              "winding_copper_power_w": 12.38146450560734,
+              "net_energy_j": 32.2802097722504,
+              "slip_steps": [
+                0.5276912960742822,
+                0.5092170836547801
+              ],
+              "slip_fault": [
+                false,
+                false
+              ]
+            }
+          },
+          "firmware_ramp": {
+            "seconds": 0.17999999999998426,
+            "policy_steps": 9,
+            "displacement_xy_m": [
+              0.006341513182789975,
+              2.0416948084357643e-05
+            ],
+            "wheel_speed_rad_s": [
+              0.08712151296431832,
+              -0.2771675290603105
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": true,
+            "motor": {
+              "driver": "tmc2208",
+              "supply_voltage": 25.6,
+              "phase_current_a": [
+                [
+                  -0.8150014289593333,
+                  1.4238760695437105
+                ],
+                [
+                  -0.815504077373675,
+                  1.4235882446873154
+                ]
+              ],
+              "wheel_torque_nm": [
+                -0.17623453538526043,
+                -0.8597473598926787
+              ],
+              "bus_power_w": 16.264561849383732,
+              "bus_current_a": 0.635334447241552,
+              "winding_copper_power_w": 12.381591796875004,
+              "net_energy_j": 2.9196844560311725,
+              "slip_steps": [
+                195.71934436920512,
+                205.83598470627277
+              ],
+              "slip_fault": [
+                false,
+                true
+              ]
+            }
+          }
+        },
+        "1.25e-05": {
+          "gentle": {
+            "seconds": 1.9999999999970062,
+            "policy_steps": 100,
+            "displacement_xy_m": [
+              0.34619304636361603,
+              -1.3508722211781142e-05
+            ],
+            "wheel_speed_rad_s": [
+              1.8855862943193986,
+              1.8856437119479106
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": false,
+            "motor": {
+              "driver": "tmc2208",
+              "supply_voltage": 25.6,
+              "phase_current_a": [
+                [
+                  -1.6068190267596252,
+                  0.33133518658339295
+                ],
+                [
+                  -1.606935601923418,
+                  0.3307693484832337
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.009099970522433293,
+                0.00899835869721056
+              ],
+              "bus_power_w": 16.076321571729697,
+              "bus_current_a": 0.6279813113956912,
+              "winding_copper_power_w": 12.381559973707319,
+              "net_energy_j": 32.28042136866893,
+              "slip_steps": [
+                0.536602733312497,
+                0.5164548746518955
+              ],
+              "slip_fault": [
+                false,
+                false
+              ]
+            }
+          },
+          "firmware_ramp": {
+            "seconds": 0.17999999999998223,
+            "policy_steps": 9,
+            "displacement_xy_m": [
+              0.006735904302086578,
+              -3.4760168557876874e-06
+            ],
+            "wheel_speed_rad_s": [
+              0.9070428308549294,
+              -0.5632562808813087
+            ],
+            "warning_count": 0,
+            "finite": true,
+            "motor_fault": true,
+            "motor": {
+              "driver": "tmc2208",
+              "supply_voltage": 25.6,
+              "phase_current_a": [
+                [
+                  -0.8112719114142637,
+                  1.426004304472903
+                ],
+                [
+                  -0.8117740074428154,
+                  1.4257185386552398
+                ]
+              ],
+              "wheel_torque_nm": [
+                0.9727655522181654,
+                -0.9538240660214
+              ],
+              "bus_power_w": 17.453956275510908,
+              "bus_current_a": 0.6817951670121448,
+              "winding_copper_power_w": 12.381591796875002,
+              "net_energy_j": 2.935899926662196,
+              "slip_steps": [
+                184.1180131295444,
+                205.89289698406324
+              ],
+              "slip_fault": [
+                false,
+                true
+              ]
+            }
+          }
+        }
+      }
+    },
+    "ideal_12v_tmc2208": {
+      "config": {
+        "driver": "tmc2208",
+        "supply_voltage": 12,
+        "resistance": 2.3,
+        "inductance": 0.0044,
+        "torque_constant": 0.21213203435596423,
+        "rotor_inertia": 5.4e-06,
+        "pole_pairs": 50,
+        "gear_ratio": 3.3333333333333335,
+        "sense_resistance": 0.11,
+        "run_current_rms": 1.1600970628841796,
+        "hold_current_rms": 0.5524271728019902,
+        "hold_delay": 0.5,
+        "hold_ramp": 2.0,
+        "max_timestep": 2.5e-05,
+        "slip_protection": true,
+        "slip_limit_steps": 200,
+        "microsteps": 8
+      },
+      "electrical": {
+        "2.5e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328125057,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600881178182707,
+            "mean_two_motor_bus_power_w": 20.41550057306296,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.1599955147390857,
+            "mean_two_motor_bus_power_w": 30.617277738573804,
+            "voltage_saturation_fraction": 0.03333333333333333
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 0.6502202542894233,
+            "mean_two_motor_bus_power_w": 21.686131118241402,
+            "voltage_saturation_fraction": 0.85
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 0.19044340521634354,
+            "mean_two_motor_bus_power_w": 7.735046258948529,
+            "voltage_saturation_fraction": 1.0
+          }
+        ],
+        "1.25e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328124936,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600948266155466,
+            "mean_two_motor_bus_power_w": 20.415649558084112,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.1600696347271655,
+            "mean_two_motor_bus_power_w": 30.619571797465298,
+            "voltage_saturation_fraction": 0.0375
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 0.6503230416049596,
+            "mean_two_motor_bus_power_w": 21.68958863631596,
+            "voltage_saturation_fraction": 0.8583333333333333
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 0.1904530768174327,
+            "mean_two_motor_bus_power_w": 7.735176856574168,
+            "voltage_saturation_fraction": 1.0
+          }
+        ]
+      },
+      "robot": {}
+    },
+    "ideal_24v_tmc2208": {
+      "config": {
+        "driver": "tmc2208",
+        "supply_voltage": 24,
+        "resistance": 2.3,
+        "inductance": 0.0044,
+        "torque_constant": 0.21213203435596423,
+        "rotor_inertia": 5.4e-06,
+        "pole_pairs": 50,
+        "gear_ratio": 3.3333333333333335,
+        "sense_resistance": 0.11,
+        "run_current_rms": 1.1600970628841796,
+        "hold_current_rms": 0.5524271728019902,
+        "hold_delay": 0.5,
+        "hold_ramp": 2.0,
+        "max_timestep": 2.5e-05,
+        "slip_protection": true,
+        "slip_limit_steps": 200,
+        "microsteps": 8
+      },
+      "electrical": {
+        "2.5e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328125057,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600881178182707,
+            "mean_two_motor_bus_power_w": 20.41550057306296,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.159997674554415,
+            "mean_two_motor_bus_power_w": 30.617364611306186,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 1.1596995265948,
+            "mean_two_motor_bus_power_w": 45.181336060681964,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 1.0602965139673681,
+            "mean_two_motor_bus_power_w": 53.459129355366784,
+            "voltage_saturation_fraction": 0.55
+          }
+        ],
+        "1.25e-05": [
+          {
+            "wheel_tps": 0,
+            "motor_rpm": 0.0,
+            "mean_wheel_torque_nm": 1.1600970628841796,
+            "mean_two_motor_bus_power_w": 16.042236328124936,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 0.3,
+            "motor_rpm": 60.0,
+            "mean_wheel_torque_nm": 1.1600948266155466,
+            "mean_two_motor_bus_power_w": 20.415649558084112,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 1,
+            "motor_rpm": 200.0,
+            "mean_wheel_torque_nm": 1.1600722155356438,
+            "mean_two_motor_bus_power_w": 30.619675603292812,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 2,
+            "motor_rpm": 400.0,
+            "mean_wheel_torque_nm": 1.1599976745544147,
+            "mean_two_motor_bus_power_w": 45.19432528841806,
+            "voltage_saturation_fraction": 0.0
+          },
+          {
+            "wheel_tps": 3,
+            "motor_rpm": 600.0,
+            "mean_wheel_torque_nm": 1.0610721552175628,
+            "mean_two_motor_bus_power_w": 53.50371584379236,
+            "voltage_saturation_fraction": 0.55
+          }
+        ]
+      },
+      "robot": {}
+    }
+  }
+}
