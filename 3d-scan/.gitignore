@@ -7,7 +7,7 @@ third_party/DSINE/
 checkpoints/dsine/
 # AgentCam: runtime data (photos would otherwise go to LFS), generated project, build output
 captures/
-app/AgentCam.xcodeproj/
-app/AgentCam/Info.plist
+agentcam/AgentCam.xcodeproj/
+agentcam/AgentCam/Info.plist
 .build/
 .swiftpm/
