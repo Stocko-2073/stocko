@@ -37,12 +37,29 @@ struct RobotSettingsTests {
 
     @Test func firmwareRanges() {
         for setting in DriveSetting.allCases {
-            #expect(setting.accepts(setting.range.lowerBound))
-            #expect(setting.accepts(setting.range.upperBound))
-            #expect(!setting.accepts(setting.range.lowerBound - 0.01))
-            #expect(!setting.accepts(setting.range.upperBound + 0.01))
+            #expect(setting.accepts(setting.maximum))
+            #expect(!setting.accepts(setting.minimum - 0.01))
+            #expect(!setting.accepts(setting.maximum + 0.01))
             #expect(!setting.accepts(.nan))
             #expect(!setting.accepts(.infinity))
+        }
+        #expect(DriveSetting.topSpeed.accepts(0.05))
+        #expect(DriveSetting.braking.accepts(0.2))
+        #expect(DriveSetting.topSpeed.allowed == "0.05–2 turns/s")
+    }
+
+    @Test func accelerationOnlyHasToBePositive() throws {
+        #expect(!DriveSetting.acceleration.accepts(0))
+        #expect(!DriveSetting.acceleration.accepts(-1))
+        #expect(DriveSetting.acceleration.accepts(0.1))
+        #expect(DriveSetting.acceleration.accepts(0.00001))
+        #expect(DriveSetting.acceleration.allowed == "above 0, up to 20 turns/s²")
+        // %g switches to exponent form below 0.0001.
+        let settings = try DriveSettings(output: "effective drive settings: vmax_tps=1 accel_tps2=1e-05 decel_tps2=2\n")
+        #expect(settings[.acceleration] == 0.00001)
+        #expect(DriveSetting.acceleration.matchesReadback(0.00001, requested: 0.00001))
+        #expect(throws: RobotSettingsError.invalidResponse) {
+            try DriveSettings(output: "effective drive settings: vmax_tps=1 accel_tps2=0 decel_tps2=2\n")
         }
     }
 

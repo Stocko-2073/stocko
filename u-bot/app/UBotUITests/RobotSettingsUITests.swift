@@ -13,7 +13,7 @@ final class RobotSettingsUITests: XCTestCase {
         acceleration.tap()
         let input = app.textFields["setting-value"]
         XCTAssertTrue(input.waitForExistence(timeout: 3))
-        replace(input, with: "0.1")
+        replace(input, with: "0")
         XCTAssertFalse(app.buttons["Save"].isEnabled)
         replace(input, with: "2")
         XCTAssertTrue(app.buttons["Save"].isEnabled)

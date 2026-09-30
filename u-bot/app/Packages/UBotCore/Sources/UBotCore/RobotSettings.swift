@@ -15,12 +15,19 @@ public enum DriveSetting: String, CaseIterable, Sendable, Identifiable {
     }
     public var unit: String { self == .topSpeed ? "turns/s" : "turns/s²" }
     // Matches drive_setting_set(), not the separate per-wheel tuning commands.
-    public var range: ClosedRange<Double> {
+    public var minimum: Double {
         switch self {
-        case .topSpeed: return 0.05...2
-        case .acceleration: return 0.5...20
-        case .braking: return 0.2...20
+        case .topSpeed: return 0.05
+        case .acceleration: return 0
+        case .braking: return 0.2
         }
+    }
+    public var maximum: Double { self == .topSpeed ? 2 : 20 }
+    /// Acceleration only has to be above zero; the other floors are allowed values.
+    private var minimumIsExclusive: Bool { self == .acceleration }
+    public var allowed: String {
+        minimumIsExclusive ? "above \(display(minimum)), up to \(display(maximum)) \(unit)"
+                           : "\(display(minimum))–\(display(maximum)) \(unit)"
     }
     public var detail: String {
         switch self {
@@ -29,7 +36,9 @@ public enum DriveSetting: String, CaseIterable, Sendable, Identifiable {
         case .braking: return "How quickly wheel speed decreases. Higher values stop more quickly."
         }
     }
-    public func accepts(_ value: Double) -> Bool { value.isFinite && range.contains(value) }
+    public func accepts(_ value: Double) -> Bool {
+        value.isFinite && value <= maximum && (minimumIsExclusive ? value > minimum : value >= minimum)
+    }
     public func display(_ value: Double) -> String {
         value.formatted(.number.precision(.significantDigits(1...6)).grouping(.never))
     }

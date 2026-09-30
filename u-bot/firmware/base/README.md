@@ -134,7 +134,7 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `sign_a`, `sign_b` | +1, -1 | robot-forward to wheel-encoder-positive. A is +1 by fiat; B is the mirror. See below. |
 | `a_left` | 0 | 1 if wheel A is the left wheel, 0 if the right (decides the sign of a turn). On this build A is on the right |
 | `track_m` | 0.263 | wheel centre to wheel centre, m. From the CAD; **measure it** |
-| `vmax_tps`, `accel_tps2` | 0.3, 1.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20) |
+| `vmax_tps`, `accel_tps2` | 0.3, 1.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20). `accel_tps2` must be above 0 |
 | `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
 | `gain_a`, `gain_b`, `inv_a`, `inv_b` | measured | written by `cal`, not by hand |
 | `run_ma`, `hold_ma` | 1200, 600 | requested RMS mA per phase, both wheels; 100..1500 with hold <= run. Rounded down to the driver's discrete scale. Change with drivers disabled |

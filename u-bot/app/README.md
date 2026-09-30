@@ -101,8 +101,11 @@ on the robot across restarts; reinstalling the phone app does not reset them.
 | Setting | Allowed range |
 | --- | --- |
 | Top speed | 0.05–2 wheel turns/s |
-| Acceleration | 0.5–20 wheel turns/s² |
+| Acceleration | above 0, up to 20 wheel turns/s² |
 | Braking | 0.2–20 wheel turns/s² |
+
+Acceleration below 0.5 needs firmware newer than 0.2.7. Older firmware saves
+0.5 instead, so the readback check reports a mismatch.
 
 Opening Settings releases the joystick and sends Stop. Current values can be
 read with motors on, but saving requires motors off and fresh connection
@@ -114,7 +117,7 @@ Both BLE and Wi-Fi use the existing firmware management interface (BLE
 characteristics 0004/0005, or the `/manage` WebSocket). BLE reuses the connected
 peripheral. Wi-Fi opens its management channel only when a setting is read or
 saved. Older firmware without this interface shows an unavailable message.
-There is no firmware update required on the current 0.2.7 robot.
+Firmware 0.2.7 supports everything else on this screen.
 
 Requests time out, reject incomplete responses, and are not replayed after
 connection loss. If a save cannot be confirmed, the screen clears the cached

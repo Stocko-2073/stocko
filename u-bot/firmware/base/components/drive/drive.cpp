@@ -572,7 +572,8 @@ void loadSettings() {
     S.aIsLeft = settings_get_i32("a_left", 0) != 0;
     S.trackM = settings_get_f32("track_m", 0.263f);
     float vmax = constrain(settings_get_f32("vmax_tps", 0.3f), 0.05f, VMAX_LIMIT);
-    float accel = constrain(settings_get_f32("accel_tps2", 1.0f), 0.5f, ACCEL_LIMIT);
+    float accel = settings_get_f32("accel_tps2", 1.0f);
+    accel = accel > 0.0f ? fminf(accel, ACCEL_LIMIT) : 1.0f;  // also catches NaN
     float decel = constrain(settings_get_f32("decel_tps2", 2.0f), 0.2f, ACCEL_LIMIT);
     // Measured 2026-08-30/31 on the two drivers this robot was built with.
     // Calibration overwrites these per chip; they are only the starting point.
@@ -1103,9 +1104,13 @@ esp_err_t drive_setting_set(const char *name, float value) {
         for (Wheel *w : wheels) w->servo.vmaxTps = v;
         err = settings_set_f32(name, v);
     } else if (!strcmp(name, "accel_tps2")) {
-        float v = constrain(value, 0.5f, ACCEL_LIMIT);
-        for (Wheel *w : wheels) w->servo.accelTps2 = v;
-        err = settings_set_f32(name, v);
+        // Any positive rate is usable, just slow; zero would never leave a standstill.
+        if (value <= 0.0f) err = ESP_ERR_INVALID_ARG;
+        else {
+            float v = fminf(value, ACCEL_LIMIT);
+            for (Wheel *w : wheels) w->servo.accelTps2 = v;
+            err = settings_set_f32(name, v);
+        }
     } else if (!strcmp(name, "decel_tps2")) {
         float v = constrain(value, 0.2f, ACCEL_LIMIT);
         for (Wheel *w : wheels) w->servo.decelTps2 = v;

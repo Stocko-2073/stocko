@@ -84,7 +84,7 @@ private struct DriveSettingEditor: View {
                     LabeledContent("On robot", value: "\(setting.display(current)) \(setting.unit)")
                 }
             } footer: {
-                Text("\(setting.detail) Allowed: \(setting.display(setting.range.lowerBound))–\(setting.display(setting.range.upperBound)) \(setting.unit).")
+                Text("\(setting.detail) Allowed: \(setting.allowed).")
             }
             if !valid {
                 Section { Text("Enter a number within the allowed range.").foregroundStyle(.red) }
