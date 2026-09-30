@@ -11,6 +11,16 @@ static const char *TAG = "settings";
 static const char *NS = "ubot";
 static nvs_handle_t s_nvs = 0;
 
+// The one check every getter and setter makes before NVS sees the key; see
+// settings.h for what each does with a bad one.
+static bool key_ok(const char *key) {
+    size_t n = key ? strnlen(key, SETTINGS_KEY_MAX + 1) : 0;
+    if (n >= 1 && n <= SETTINGS_KEY_MAX) return true;
+    ESP_LOGE(TAG, "key '%.*s%s' is not a setting key: NVS takes 1 to %d characters", SETTINGS_KEY_MAX,
+             key ? key : "(null)", n > SETTINGS_KEY_MAX ? "..." : "", SETTINGS_KEY_MAX);
+    return false;
+}
+
 esp_err_t settings_init(void) {
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -27,13 +37,14 @@ esp_err_t settings_init(void) {
 bool settings_get_str(const char *key, char *out, size_t len, const char *def) {
     if (!out || len == 0) return false;
     size_t n = len;
-    if (s_nvs && nvs_get_str(s_nvs, key, out, &n) == ESP_OK) return true;
+    if (s_nvs && key_ok(key) && nvs_get_str(s_nvs, key, out, &n) == ESP_OK) return true;
     if (def) { strncpy(out, def, len - 1); out[len - 1] = 0; }
     else out[0] = 0;
     return false;
 }
 
 esp_err_t settings_set_str(const char *key, const char *val) {
+    if (!key_ok(key)) return ESP_ERR_INVALID_ARG;
     if (!s_nvs) return ESP_ERR_INVALID_STATE;
     esp_err_t err = nvs_set_str(s_nvs, key, val ? val : "");
     return err == ESP_OK ? nvs_commit(s_nvs) : err;
@@ -41,7 +52,7 @@ esp_err_t settings_set_str(const char *key, const char *val) {
 
 float settings_get_f32(const char *key, float def) {
     uint32_t bits;
-    if (s_nvs && nvs_get_u32(s_nvs, key, &bits) == ESP_OK) {
+    if (s_nvs && key_ok(key) && nvs_get_u32(s_nvs, key, &bits) == ESP_OK) {
         float f;
         memcpy(&f, &bits, sizeof f);
         return f;
@@ -50,6 +61,7 @@ float settings_get_f32(const char *key, float def) {
 }
 
 esp_err_t settings_set_f32(const char *key, float v) {
+    if (!key_ok(key)) return ESP_ERR_INVALID_ARG;
     if (!s_nvs) return ESP_ERR_INVALID_STATE;
     uint32_t bits;
     memcpy(&bits, &v, sizeof bits);
@@ -59,23 +71,25 @@ esp_err_t settings_set_f32(const char *key, float v) {
 
 int32_t settings_get_i32(const char *key, int32_t def) {
     int32_t v;
-    if (s_nvs && nvs_get_i32(s_nvs, key, &v) == ESP_OK) return v;
+    if (s_nvs && key_ok(key) && nvs_get_i32(s_nvs, key, &v) == ESP_OK) return v;
     return def;
 }
 
 esp_err_t settings_set_i32(const char *key, int32_t v) {
+    if (!key_ok(key)) return ESP_ERR_INVALID_ARG;
     if (!s_nvs) return ESP_ERR_INVALID_STATE;
     esp_err_t err = nvs_set_i32(s_nvs, key, v);
     return err == ESP_OK ? nvs_commit(s_nvs) : err;
 }
 
 bool settings_exists(const char *key) {
-    if (!s_nvs) return false;
+    if (!s_nvs || !key_ok(key)) return false;
     nvs_type_t t;
     return nvs_find_key(s_nvs, key, &t) == ESP_OK;
 }
 
 esp_err_t settings_erase(const char *key) {
+    if (!key_ok(key)) return ESP_ERR_INVALID_ARG;
     if (!s_nvs) return ESP_ERR_INVALID_STATE;
     esp_err_t err = nvs_erase_key(s_nvs, key);
     if (err == ESP_ERR_NVS_NOT_FOUND) return ESP_OK;
@@ -127,9 +141,10 @@ void settings_dump(settings_visit_fn visit, void *arg) {
 
 bool settings_get_blob(const char *key,void *out,size_t len) {
     size_t actual=len;
-    return s_nvs && nvs_get_blob(s_nvs,key,out,&actual)==ESP_OK && actual==len;
+    return s_nvs && key_ok(key) && nvs_get_blob(s_nvs,key,out,&actual)==ESP_OK && actual==len;
 }
 esp_err_t settings_set_blob(const char *key,const void *value,size_t len) {
+    if(!key_ok(key))return ESP_ERR_INVALID_ARG;
     if(!s_nvs)return ESP_ERR_INVALID_STATE;
     esp_err_t err=nvs_set_blob(s_nvs,key,value,len);
     return err==ESP_OK?nvs_commit(s_nvs):err;

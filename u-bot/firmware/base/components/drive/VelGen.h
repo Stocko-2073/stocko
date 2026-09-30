@@ -62,6 +62,14 @@ class VelGen {
         _ok = true;
         if (!writeChecked(Tmc2209Uart::VACTUAL, 0)) return false;
         _lastVactual = 0;
+        // Two drivers share this wire, and the datasheet wants SENDDELAY of at
+        // least 2 on every node of such a bus: at its reset value (0, 8 bit
+        // times) a reply follows the read request so closely that the node NOT
+        // addressed may see a transmission error. 2 is 3 x 8 bit times, 64 us
+        // more per read at 250 kbaud. Right after VACTUAL, before the rest of
+        // the configuration, so all of that already runs on a clean bus. The
+        // register is write-only; IFCNT advancing is the only acknowledgement.
+        if (!writeChecked(Tmc2209Uart::NODECONF, 2UL << 8)) return false;
         if (!writeGconf() || !setMicrosteps(microsteps) || !writeCurrent() ||
             !writePwmThreshold() || !writeChecked(Tmc2209Uart::TPOWERDOWN, 20) ||
             !writeChecked(Tmc2209Uart::GSTAT, 7)) return false;

@@ -137,7 +137,11 @@ function lock(why){lockMsg=why;pad.classList.toggle('locked',!!why);if(why&&time
 function render(o){
   m=o;
   const b=o.batt,r=o.wifi.rssi,ota=o.ota||{};
-  if(b.present){vBatt.className='vital '+(b.pct<20?'bad':b.pct<50?'warn':'ok');vBatt.innerHTML='Battery <b>'+b.pct+'%</b> · '+b.v.toFixed(1)+' V';}
+  // The robot judges low and cutoff itself (pack, thresholds, sustain times);
+  // the percentage only colours an ok pack.
+  const cut=b.state==='cutoff';
+  if(b.present){vBatt.className='vital '+(cut?'bad':b.state==='low'?'warn':b.pct<20?'bad':b.pct<50?'warn':'ok');
+    vBatt.innerHTML='Battery <b>'+b.pct+'%'+(cut?' cut off':b.state==='low'?' low':'')+'</b> · '+b.v.toFixed(1)+' V';}
   else{vBatt.className='vital';vBatt.innerHTML='Battery <b>not sensed</b>';}
   vWifi.className='vital '+(r>-65?'ok':r>-78?'warn':'bad');
   vWifi.innerHTML='Wi-Fi <b>'+(r>-65?'good':r>-78?'fair':'weak')+'</b> · '+r+' dBm';
@@ -150,8 +154,12 @@ function render(o){
   const down=o.wheels.filter(x=>!x.driver).map(x=>x.name);
   let cls='',title,text,cl=null,cc=null,why=null;
   if(ota.busy){cls='warn';title='Installing update';text=ota.state+'. The robot restarts when it is done.';why='Updating firmware';}
-  else if(o.faulted){const[f,d]=faultParts(o.fault||'fault');cls='bad';title='Fault on wheel '+o.fault_wheel+': '+f;text=d;
-    if(o.enabled){cl='Clear fault';cc={t:'clear'};why='Clear the fault to drive';}else{text+=' Enabling the motors clears it.';why='Enable the motors to drive';}}
+  else if(o.faulted){const[f,d]=faultParts(o.fault||'fault');cls='bad';text=d;
+    // A robot-level fault (the battery) names no wheel: fault_wheel is "-".
+    title=o.fault_wheel==='-'?f[0].toUpperCase()+f.slice(1):'Fault on wheel '+o.fault_wheel+': '+f;
+    // Below the cutoff the robot refuses both clear and enable, so offer neither.
+    if(cut){if(o.fault_code!==6)text+=' The battery is below its cutoff too: charge or swap the pack first.';why='Charge or swap the pack';}
+    else if(o.enabled){cl='Clear fault';cc={t:'clear'};why='Clear the fault to drive';}else{text+=' Enabling the motors clears it.';why='Enable the motors to drive';}}
   else if(o.cal){cls='warn';title='Calibrating';text='A wheel is being measured. Driving is locked until it finishes.';cl='Abort calibration';cc={t:'stop'};why='Wait for the calibration to finish';}
   else if(o.demo){cls='warn';title='Demo running';text=o.demo;cl='Stop demo';cc={t:'stop'};why='Stop the demo to drive';}
   else if(o.enabled){cls='ok';title='Motors on';
@@ -162,7 +170,7 @@ function render(o){
 
   power.textContent=o.enabled?'Disable motors':'Enable motors';
   power.className='btn'+(o.enabled?'':' act');
-  power.disabled=o.cal||ota.busy;
+  power.disabled=o.cal||ota.busy||(cut&&!o.enabled);
   estop.disabled=false;
 
   lock(why);
@@ -171,8 +179,9 @@ function render(o){
 }
 function cell(t,c){return'<td'+(c?' class="'+c+'"':'')+'>'+t+'</td>';}
 function renderDetails(o){
-  const ota=o.ota||{};
+  const ota=o.ota||{},b=o.batt;
   sys.innerHTML=[['Name',o.name],['Hardware','rev '+o.hw],['Firmware',o.fw],['Uptime',fmtUp(o.up)],
+    ['Battery',(b.present?b.v.toFixed(2)+' V · '+b.pct+'% · '+b.state:'not sensed')+' · pack '+b.pack],
     ['Speed limits',o.limits.v.toFixed(2)+' m/s · '+o.limits.w.toFixed(2)+' rad/s'],
     ['Updates',ota.configured?(ota.state||'not checked'):'no update bucket set']]
     .map(r=>'<tr><th>'+r[0]+'</th>'+cell(r[1])+'</tr>').join('');

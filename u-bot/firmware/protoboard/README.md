@@ -87,7 +87,27 @@ show those pads; this layout does not assume a particular rear-pad arrangement.
 Confirm it produces 5 V with EN open. If it does not, identify the regulator
 and its enable requirements before strapping EN; the image supplies no EN
 voltage limits. Likewise, verify the module's input rating covers the pack's
-full charge voltage (the firmware uses a 4S LiFePO4 table).
+full charge voltage, 21 V on the 5S pack below.
+
+### Running on the 5S Li-ion pack (21 V full)
+
+Since 2026-09-30 the robot runs on a 5S Li-ion power-tool pack (Skil PWR CORE
+20): 21.0 V fully charged, 18 V nominal, 15.5 V at the firmware's cutoff. The
+board was drawn for the 12 V LiFePO4 pack, 13.6 V at most, so check these
+before running it at 21 V:
+
+- **C1.** A 25 V part has only 16% margin at 21 V, and none for braking: when
+  the motors slow the robot, downhill especially, the drivers push energy back
+  onto VM, and the bus rises above the pack. Fit a **35-50 V low-ESR**
+  electrolytic, and read the rating printed on the one fitted now.
+- **Buck module.** Its input rating must comfortably exceed 21 V. The
+  instructions image in this folder does not state one, so find it for the
+  actual module (its regulator's datasheet) before trusting it at 21 V.
+- **TMC2209 VM.** The drivers operate to 29 V (32 V absolute maximum), so
+  21 V is fine, with headroom for the same braking rise.
+- **Battery divider.** 100k over 10k puts 21 V / 11 = ~1.9 V on D1, well
+  inside the ADC's range. The firmware's `batt_pack` setting (`li5s`, the
+  default) chooses the 5S table; step 6 below still applies.
 
 ### USB and pack power
 
@@ -133,7 +153,7 @@ burned, but it is the only pad here with a boot-time role.
 | R4 / R5 | 4.7k, encoder B SDA / SCL pull-ups |
 | R6 | 4.7k, motor EN pull-up |
 | R7 / R8 | 100k / 10k battery divider; nominal ratio 11 |
-| C1 | 100 uF electrolytic, 25 V or higher; positive at row 22 |
+| C1 | 100 uF low-ESR electrolytic, 35-50 V for the 21 V 5S pack (see above); positive at row 22 |
 | PWR | 2-way 5.08 mm screw terminal; GND row 20, VM+ row 22 |
 | MOT A (MA) | 1×4: 1B, 1A, 2A, 2B from top to bottom |
 | MOT B (MB) | 1×4: 2B, 2A, 1A, 1B from top to bottom |
@@ -147,8 +167,14 @@ silkscreen -- and R2 through R6 are all 4.7k, so only their positions
 distinguish them.
 
 Driver B MS1 is strapped to 3V3 for UART address 1. Driver A MS1 and both MS2
-pins are open as in the existing build (address 0 / 1). TX, CLK, STEP and DIR
-are unused. Only GND1 is externally wired; GND2 is common inside each module.
+pins are open as in the existing build (address 0 / 1). TX and DIR are unused (DIR
+has an internal pull-down). **Tie STEP to GND on both modules**, directly or through
+~10 kΩ: it has no internal pull-down, and while VACTUAL is 0 the driver steps on
+whatever noise a floating STEP picks up. At 20 V a stopped wheel drove itself at up
+to 0.76 turns/s this way (see `base/components/drive/tests/RACK_TEST_2026-09-30.md`).
+The datasheet also asks for CLK to be tied to GND for the internal clock: check CLK
+to GND on the module with a meter and add a wire if it is open. Only GND1 is
+externally wired; GND2 is common inside each module.
 All inter-row connections are routed jumpers; this revision has no separately
 listed fixed links.
 

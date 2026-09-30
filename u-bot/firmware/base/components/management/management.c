@@ -20,6 +20,13 @@
 #define JOBS 4
 #define OUT_DEPTH 4
 #define RESULT_SIZE 4096
+/* One CSV telemetry line. Room for the columns later phases append; the stream
+ * event around a full line, {"type":"stream","id":0,"seq":N,"data":"...",
+ * "dropped":N} with both counters at their 10-digit worst, is 72 bytes more,
+ * and CSV never needs escaping. emit() drops a frame that does not fit. */
+#define STREAM_LINE 512
+_Static_assert(STREAM_LINE - 1 + 72 < MGMT_FRAME,
+               "a full stream line must fit one event frame");
 /* All state is protected by mu. No transport or drive calls while holding mu.
  */
 typedef struct {
@@ -544,7 +551,11 @@ static void worker(void *arg) {
         (!strcmp(argv[0], "faults") && argc == 1) ||
         (!strcmp(argv[0], "ota") && argc == 1) ||
         (!strcmp(argv[0], "cal") && argc == 2 && !strcmp(argv[1], "show"));
-    if (owned && !read_only) {
+    /* Bench fault injection is meant to land during a timed drive (wedge the
+     * loop with a wheel turning). Only bench builds register it, and the drive
+     * still refuses it during an update. */
+    bool during_motion = !strcmp(argv[0], "debug");
+    if (owned && !read_only && !during_motion) {
       command_printf(&ctx, "refused: maintenance motion owns robot\n");
       rc = 1;
       goto done;
@@ -710,7 +721,7 @@ static void monitor(void *arg) {
           c->dropped++;
           continue;
         }
-        char line[256];
+        char line[STREAM_LINE];
         drive_csv_line(line, sizeof line);
         cJSON *r = event("stream", 0, 0);
         cJSON_AddNumberToObject(r, "seq", c->sample_seq);

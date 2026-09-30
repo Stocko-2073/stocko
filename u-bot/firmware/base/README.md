@@ -31,8 +31,12 @@ protocol, Wi-Fi recovery, OTA confirmation, and acceptance results.
 - **BLE** peripheral (NimBLE): Device Information (firmware and hardware
   revision, serial), Battery Service, and a custom drive service for the phone
   app.
-- **Battery** voltage through a divider into ADC1, percentage from a 4S
-  LiFePO4 resting-voltage table (the pack is 12 V 8 Ah LiFePO4).
+- **Battery** voltage through a divider into ADC1, judged against the
+  configured pack: a percentage from its resting-voltage table and a state
+  (ok, low, cutoff) that the drive acts on. The default pack is `li5s`, the
+  5S Li-ion power-tool pack (Skil PWR CORE 20, 15.0 V empty to 21.0 V full)
+  the robot has run on since 2026-09-30; `lfp4s` keeps the original 12 V 8 Ah
+  LiFePO4 table.
 - **Firmware and hardware revision** from `version.txt` and NVS, reported the
   same way on console, WebSocket and BLE.
 
@@ -71,7 +75,8 @@ base/
     net/                   wifi.c (STA + mDNS), ws.c (HTTP + WebSocket + joystick
                            page), ota.c (HTTPS OTA)
     ble/                   NimBLE peripheral: DIS, BAS, U-BOT drive service
-    battery/               ADC sense
+    battery/               ADC sense; pack tables and the low/cutoff rules in
+                           battery_model.c, free of IDF so the host tests run it
     sysinfo/               versions, serial, reset reason, partition state
     ulog/                  async log printer, per-tag levels, WebSocket mirror
   monitor.sh               open the console (idf.py monitor)
@@ -83,21 +88,36 @@ base/
 
 ## Safety model
 
-- **EN is the killswitch** (GPIO20 / D9, active low, shared by both drivers, 4.7k
+- **EN is the killswitch** (GPIO8 / D9, active low, shared by both drivers, 4.7k
   pull-up). It is driven high before any other line of `app_main` runs, and it
   floats high through an MCU reset, a watchdog reset or a broken wire. `estop`
   writes it directly from any task without taking a lock.
 - **VACTUAL is zeroed before EN drops**, on every driver, every time. The
   register survives an MCU reset with the power stage off.
-- **The control task is on the task watchdog** (3 s). A wedged loop reboots the
-  chip and EN goes high on the way.
+- **The control task is on the task watchdog** (3 s), with panic on
+  (`CONFIG_ESP_TASK_WDT_PANIC`, since 0.2.9; before that it only logged). A
+  wedged loop resets the chip, and the reset is what lets EN float high: until
+  then a driver keeps stepping at its last VACTUAL. A bench build
+  (`CONFIG_UBOT_BENCH_FAULTS`, never for outdoors) adds `debug wedge <ms>` to
+  prove it on the stand.
+- **Battery cutoff.** A pack below its cutoff (`batt_cut_v`: 20 s under it, or
+  5 s of readings more than 1 V under it) latches a robot-level fault. Both
+  wheels ramp to a stop at `decel_tps2` and **hold with the drivers on** --
+  cutting EN would let the robot freewheel down the slope that drained the pack.
+  The hold is the one a released stick gets, so it is only as strong as
+  `hold_ma`: in the host plant, 552 mA holds 8 degrees but can slip at 10 and
+  more once the current has settled to it. `enable` and `faults clear` are
+  refused until the battery leaves cutoff (10 s at cut + hysteresis); then
+  clear it. A low pack (10 s under `batt_warn_v`) only warns, and a robot with
+  no battery sense is never stopped by it.
 - **Deadman.** `drive` commands hold for a given time (console default 2 s,
   WebSocket and BLE 500 ms). Keep sending or the robot stops.
 - **Fault propagation.** Slip on one wheel, an encoder that stops answering, or
   a magnet that disappears faults that wheel; the other wheel is stopped too,
   because on a differential drive a wheel holding while its partner drives
   pivots the robot. Motion is refused until `faults clear` (or the WebSocket /
-  BLE clear op) -- never cleared by a joystick.
+  BLE clear op) -- never cleared by a joystick. The battery fault above is the
+  one robot-level fault: it names no wheel.
 - **Drivers start disabled** and will not energise while either TMC2209 is not
   answering on the bus.
 
@@ -117,7 +137,10 @@ cal A / cal B                 measure shaft polarity and clock gain, ~23 s each;
                               stored in NVS, results in the log
 demo short                    both wheels, ~9 s, round-trip check as the outro
 faults / faults clear
-stream on [hz] / stream off   CSV telemetry, same columns as test_servo streamed
+stream on [hz] / stream off   CSV telemetry, test_servo's columns with more appended
+                              (batt_v, batt_st); 'on' first prints '# ' and the header
+stream header                 just the '# ' header line, so a capture names its columns
+batt                          voltage, percentage, state, pack and thresholds
 set / set <key> <value>       settings (below)
 wifi set <ssid> <password>    provisioning; wifi scan / wifi / wifi clear
 wifi ps on|off               runtime modem-sleep diagnostic; boot defaults off
@@ -125,6 +148,8 @@ ota <https://...>/firmware.bin   or: ota url <...> once, then ota start
 log drive debug               per-tag level: none error warn info debug verbose
 hw set B                      hardware revision
 stats / stats reset           control timing, bus health, dropped log lines
+debug wedge <ms>              bench builds only (CONFIG_UBOT_BENCH_FAULTS): stall the
+                              control loop to prove the watchdog reset, wheels clear
 ```
 
 ### Settings (`set`)
@@ -144,8 +169,14 @@ stats / stats reset           control timing, bus health, dropped log lines
 | `name` | `ubot` | mDNS host and BLE name (reboot to apply) |
 | `hw_rev` | `A` | hardware revision string |
 | `ota_url` | -- | default image URL for `ota start` |
-| `batt_div` | 11.0 | battery divider ratio, Vpack / Vpin; calibrate against a meter |
+| `batt_pack` | `li5s` | `li5s` 5S Li-ion (15.0-21.0 V) or `lfp4s` 4S LiFePO4 (10.0-13.6 V): the percentage table and the default thresholds. Setting it (or `unset batt_pack`) also erases the two overrides below, so a pack never inherits another's thresholds |
+| `batt_warn_v`, `batt_cut_v` | 16.5, 15.5 (`li5s`); 12.4, 11.6 (`lfp4s`) | overrides of the pack's low warning and cutoff, V, warn above cut. `li5s` cuts within 12.5..20.0 V and warns up to 20.5 V, `lfp4s` 10.0..13.0 and 13.4: wide on purpose, so a bench can force low (`set batt_warn_v 20.5`) and cutoff (`set batt_cut_v 20.0`) on a charged pack. `unset` returns to the pack's own |
+| `batt_div` | 11.0 | battery divider ratio, Vpack / Vpin, 1..100; calibrate against a meter |
 | `wifi_ssid`, `wifi_pass` | -- | via `wifi set` |
+
+The four `batt_` keys apply at once, not at the next boot, and `set` alone
+lists them on their own `effective battery settings:` line after the drive
+line (which is the one the app parses).
 
 ### Motor current and torque
 
@@ -202,6 +233,7 @@ Host fault-injection tests (no hardware):
 
 ```sh
 python3 components/drive/tests/run_host_tests.py
+python3 components/battery/tests/run_host_tests.py
 ```
 
 Rack checks: use short timed velocity commands in each direction, confirm
@@ -243,20 +275,30 @@ everything but `drive` (a `drive` is only acknowledged when refused), and
 `log` frames when subscribed.
 
 ```json
-{"t":"status","fw":"0.1.0","hw":"A","name":"ubot","up":64,
- "enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","cal":false,"demo":null,
+{"t":"status","fw":"0.2.9","hw":"A","name":"ubot","up":64,
+ "enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","fault_code":0,"cal":false,"demo":null,
  "cmd":{"v":0.2,"w":0.0,"active":true},"limits":{"v":0.675,"w":5.14},
- "batt":{"present":false,"v":0.0,"pct":-1},"wifi":{"rssi":-61},
+ "batt":{"present":true,"v":19.97,"pct":79,"state":"ok","pack":"li5s"},"wifi":{"rssi":-61},
  "ota":{"busy":false,"state":"update available: 0.1.2","available":"0.1.2","configured":true},
  "wheels":[{"name":"A","driver":true,"pos":0.588,"vel":0.296,"slip":1,"enc":true,
             "agc":128,"magnet":"ok","fault":0,"gain":1.0159,"loop":true}, {...}]}
 ```
 
+When a fault is latched, `fault` is its "name (reason)" and `fault_code` its
+`drive_fault_t` (always present since 0.2.9, 0 when nothing is latched). A
+wheel fault names its wheel in `fault_wheel`; the battery cutoff (code 6) is
+robot-level and sends `"fault_wheel":"-"`. A cutoff therefore reads
+`"enabled":true,"faulted":true,"fault_code":6` with `batt.state` `"cutoff"`.
+`batt.state` is `none`, `ok`, `low` or `cutoff`, the robot's own judgement;
+`batt.pack` is `batt_pack`. A status frame that would not fit its 3 KB buffer
+is logged and not sent, never sent cut short.
+
 The joystick page at `http://ubot.local/` speaks exactly this protocol and is
 the quickest way to check it from a laptop or a phone browser. Everything on it
 is driven by the status frame. A state card says what the robot is doing
-(motors off or on, a fault with the wheel and the reason, calibrating, a demo,
-installing an update, not connected); one power button toggles the drivers and
+(motors off or on, a fault with the wheel and the reason or the battery
+cutoff, calibrating, a demo, installing an update, not connected), and the
+battery chip shows low and cut off; one power button toggles the drivers and
 its label says what pressing it will do; the actions that only make sense in
 one state (clear fault, stop demo, abort calibration, stop a command from
 another controller) appear inside the card only in that state. The stick is
@@ -283,7 +325,7 @@ the advertisement, the drive service UUID in the scan response.
 | Battery `0x180F` | `2A19` level % | read, notify (1 Hz) |
 | U-BOT `7b1a0000-6f4b-4c2e-9d3a-2e5f1c8a9b01` | `7b1a0001` drive | write w/o response: `int16 v, int16 w` little-endian, thousandths of the limits. Held 500 ms |
 | | `7b1a0002` control | write: `0` stop `1` enable `2` disable `3` estop `4` clear faults |
-| | `7b1a0003` status | read, notify at 5 Hz: `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`. flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present |
+| | `7b1a0003` status | read, notify at 5 Hz, 18 bytes since 0.2.9 (13 before): `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`, then `u8 flags2, u8 heat_a, u8 heat_b, u8 recoveries` (all 0 in 0.2.9) and `u8 batt_state` (0 none, 1 ok, 2 low, 3 cutoff). flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present. `fault` is the latched `drive_fault_t`, the battery cutoff's 6 included. Only ever appended: 0.3.0 fills bytes 13-16 and adds 18 and 19, 20 bytes being what a default-MTU notification carries |
 
 ## OTA
 
@@ -357,13 +399,16 @@ reconnect promptly after a reboot.
 
 - **`track_m` 0.263** is read off `u-bot.scad` (body 250 wide, wheel plane
   3.35 mm outboard of the leg), not measured. It only scales the turn rate.
-- **Battery sense** is on GPIO2 (D1) with a weak internal pull-down so an unwired
-  pin reads "no sense", which is what the robot reports today: nothing is wired
-  yet. The pack is a 12 V 8 Ah LiFePO4, so the percentage uses a 4S
-  resting-voltage table (10.0 V empty, 12.9 V is 20%, 13.2 V is 70%, 13.6 V
-  full) rather than a linear window. `batt_div` is still the nominal 11.0 for a
-  100k over 10k divider; calibrate it against a meter once the divider is
-  wired, because the pin's pull-down loads the lower leg.
+- **Battery sense** is on GPIO2 (D1) through the 100k over 10k divider, with no
+  internal pull-down: the ~19k one measured on this S3 loaded the 10k leg and
+  made the pack read a third low. With nothing connected the divider's 10k
+  holds the pin near zero and the reports say "no sense". The pack is the 5S
+  Li-ion `li5s` (15.0 V empty, 19.97 V is 79%, 21.0 V full; warn 16.5 V, cut
+  15.5 V, 3.3 and 3.1 V a cell); `set batt_pack lfp4s` for the original 12 V
+  LiFePO4 (10.0 V empty, 13.6 V full). A full 5S pack puts ~1.9 V on the pin,
+  inside the ADC's range. Calibrate `batt_div` against a meter; a reading that
+  makes no sense for the configured pack comes with a hint naming the fix
+  (`batt`, and the log).
 - **Wheel B's magnet** still reads weak at AGC 128. The firmware
   warns before `cal` and `demo short`; the fix is mechanical.
 - **Flash is tight**: 1.76 MB image in a 1.92 MB slot (10% free). mbedTLS,

@@ -107,31 +107,42 @@ static const char *magnet_text(uint8_t st) {
     return "ok";
 }
 
+static size_t json_escape(const char *in, char *out, size_t n);
+
+// The whole frame's length, as snprintf counts it: n or more means it did not
+// fit and buf holds a truncated, invalid object.
 static int status_json(char *buf, size_t n) {
     drive_status_t s;
     drive_get_status(&s);
     net_status_t ns;
     net_get_status(&ns);
     char ota_url[200];
+    char pack[32], batt_state[16];
+    json_escape(battery_pack_name(), pack, sizeof pack);
+    json_escape(battery_state_name(battery_state()), batt_state, sizeof batt_state);
+    // The latched code rather than a wheel's own: a robot-level fault (the
+    // battery) belongs to no wheel, so fault_wheel is "-" for it, and
+    // fault_code is always there, 0 when nothing is latched.
     int len = snprintf(buf, n,
         "{\"t\":\"status\",\"fw\":\"%s\",\"hw\":\"%s\",\"name\":\"%s\",\"up\":%lu,"
-        "\"enabled\":%s,\"faulted\":%s,\"fault\":%s%s%s,\"fault_wheel\":\"%s\","
+        "\"enabled\":%s,\"faulted\":%s,\"fault\":%s%s%s,\"fault_wheel\":\"%s\",\"fault_code\":%u,"
         "\"cal\":%s,\"demo\":%s%s%s,"
         "\"cmd\":{\"v\":%.3f,\"w\":%.3f,\"active\":%s},"
         "\"limits\":{\"v\":%.3f,\"w\":%.3f},"
-        "\"batt\":{\"present\":%s,\"v\":%.2f,\"pct\":%d},"
+        "\"batt\":{\"present\":%s,\"v\":%.2f,\"pct\":%d,\"state\":\"%s\",\"pack\":\"%s\"},"
         "\"wifi\":{\"rssi\":%d},"
         "\"ota\":{\"busy\":%s,\"state\":\"%s\",\"available\":%s%s%s,\"configured\":%s},"
         "\"wheels\":[",
         sysinfo_fw_version(), sysinfo_hw_rev(), sysinfo_name(), (unsigned long)sysinfo_uptime_s(),
         s.enabled ? "true" : "false", s.faulted ? "true" : "false",
-        s.faulted ? "\"" : "", s.faulted ? drive_fault_name(s.wheel[s.fault_wheel].fault) : "null", s.faulted ? "\"" : "",
-        s.fault_wheel == 0 ? "A" : "B",
+        s.faulted ? "\"" : "", s.faulted ? drive_fault_name(s.fault) : "null", s.faulted ? "\"" : "",
+        s.fault == DRIVE_FAULT_BATTERY ? "-" : s.fault_wheel == 0 ? "A" : "B",
+        s.faulted ? (unsigned)s.fault : 0u,
         s.cal_busy ? "true" : "false",
         s.demo_running ? "\"" : "", s.demo_running ? s.demo_caption : "null", s.demo_running ? "\"" : "",
         s.v_mps, s.w_radps, s.cmd_active ? "true" : "false",
         s.vmax_mps, s.wmax_radps,
-        battery_present() ? "true" : "false", battery_voltage(), battery_percent(),
+        battery_present() ? "true" : "false", battery_voltage(), battery_percent(), batt_state, pack,
         ns.rssi,
         net_ota_busy() ? "true" : "false", net_ota_status(),
         net_ota_available()[0] ? "\"" : "", net_ota_available()[0] ? net_ota_available() : "null",
@@ -177,6 +188,25 @@ static size_t json_escape(const char *in, char *out, size_t n) {
     return o;
 }
 
+// Every status frame is built here: the 5 Hz broadcast, a client's "status"
+// request and the greeting on connect all run on the httpd task, one at a
+// time, so they share one buffer. A frame that does not fit is not sent:
+// half a JSON object would fail to parse on every client, where a missing
+// one is simply the next broadcast's to replace. The log says so, at most
+// every 10 s so the broadcast cannot flood it.
+static const char *status_frame(void) {
+    static char buf[3072];
+    static int64_t last_complaint;
+    int len = status_json(buf, sizeof buf);
+    if (len >= 0 && len < (int)sizeof buf) return buf;
+    int64_t now = esp_timer_get_time();
+    if (!last_complaint || now - last_complaint > 10000000) {
+        last_complaint = now;
+        ESP_LOGE(TAG, "status frame needs %d bytes, the buffer holds %u -- not sent", len, (unsigned)sizeof buf);
+    }
+    return NULL;
+}
+
 // ------------------------------------------------------------------- sending
 
 static esp_err_t send_text(httpd_req_t *req, const char *text) {
@@ -211,14 +241,13 @@ static void ack(httpd_req_t *req, const char *cmd, esp_err_t err) {
 // Runs on the httpd task at 5 Hz: a status frame to every client, and the
 // mirrored log to those that asked for it.
 static void broadcast_work(void *arg) {
-    static char status[2048];
-    status_json(status, sizeof status);
+    const char *status = status_frame();
     int fds[MAX_CLIENTS];
     int n = 0;
     portENTER_CRITICAL(&s_mux);
     for (int i = 0; i < MAX_CLIENTS; i++) if (s_clients[i].fd >= 0) fds[n++] = s_clients[i].fd;
     portEXIT_CRITICAL(&s_mux);
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; status && i < n; i++) {
         if (httpd_ws_get_fd_info(s_httpd, fds[i]) != HTTPD_WS_CLIENT_WEBSOCKET) continue;
         send_text_async(fds[i], status);
     }
@@ -274,9 +303,8 @@ static void handle_message(httpd_req_t *req, const char *text) {
     else if (!strcmp(t, "ota_check")) ack(req, t, net_ota_check(false));   // compare only; status.ota says
     else if (!strcmp(t, "ota_update")) ack(req, t, net_ota_start(NULL));   // install <bucket>/firmware.bin
     else if (!strcmp(t, "status")) {
-        static char buf[2048];
-        status_json(buf, sizeof buf);
-        send_text(req, buf);
+        const char *frame = status_frame();
+        if (frame) send_text(req, frame);
     } else if (!strcmp(t, "log")) {
         cJSON *on = cJSON_GetObjectItem(root, "on");
         client_t *c = client_find(httpd_req_to_sockfd(req));
@@ -297,9 +325,8 @@ static esp_err_t ws_open(httpd_req_t *req) {
     int fd = httpd_req_to_sockfd(req);
     client_add(fd);
     ESP_LOGI(TAG, "client fd %d connected (%d total)", fd, ws_client_count());
-    static char buf[2048];
-    status_json(buf, sizeof buf);
-    return send_text(req, buf);
+    const char *frame = status_frame();
+    return frame ? send_text(req, frame) : ESP_OK;   // the first broadcast greets it instead
 }
 
 // Called for every data frame after that.

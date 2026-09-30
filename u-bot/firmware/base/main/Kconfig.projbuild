@@ -54,9 +54,11 @@ menu "U-BOT base"
         default 2
         help
             Battery voltage through a divider. D1 is GPIO2 on the S3, which is
-            ADC1 channel 1. The divider ratio is a runtime setting (batt_div);
-            the percentage curve is the 4S LiFePO4 table in
-            components/battery/battery.c.
+            ADC1 channel 1. Everything else is a runtime setting: the divider
+            ratio (batt_div), and the pack (batt_pack), which chooses the
+            percentage table and the warn and cutoff thresholds -- li5s, the
+            5S Li-ion power-tool pack, by default, or lfp4s, the original 4S
+            LiFePO4. Tables and rules are in components/battery/battery_model.c.
 
     config UBOT_CONTROL_HZ
         int "Servo control rate, Hz"
@@ -85,5 +87,16 @@ menu "U-BOT base"
             Disable temporarily for Wi-Fi-only coexistence diagnostics. This
             skips Bluetooth controller and host initialization, including
             advertising; USB console and Wi-Fi remain available.
+
+    config UBOT_BENCH_FAULTS
+        bool "Bench fault injection (debug commands)"
+        default n
+        help
+            Bench-only fault injection. Never in a build that drives outdoors.
+
+            Adds the console command 'debug wedge <ms>', which stalls the
+            control loop without feeding the task watchdog, to prove on the
+            stand that a wedged loop resets the chip and EN floats high. Such
+            a build says "BENCH FAULT INJECTION BUILD" at boot and in 'version'.
 
 endmenu

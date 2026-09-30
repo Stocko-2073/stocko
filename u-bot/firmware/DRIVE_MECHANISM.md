@@ -318,6 +318,18 @@ Two rules that follow:
   already does, so the driver is disabled from the first instruction.
 
 
+## VACTUAL = 0 hands the motor back to the STEP pin (2026-09-30)
+
+Zero velocity is not "ignore everything": with `VACTUAL` at 0 the TMC2209 returns to
+normal Step/Dir operation and steps on every STEP edge. The board leaves STEP
+unconnected, and STEP -- unlike DIR -- has no internal pull-down. On the 20 V pack a
+stopped wheel picked up enough noise on it to drive itself forward at up to 0.76 turns/s
+while the firmware commanded exactly zero; only EN stopped it. Driving is unaffected,
+because a nonzero `VACTUAL` ignores STEP. **STEP must be tied to GND on both modules**
+(and CLK too, unless the module already grounds it). Evidence and captures:
+`base/components/drive/tests/RACK_TEST_2026-09-30.md`.
+
+
 ## Encoder magnets, and what a knock does
 
 Both wheels read **AGC 128** -- maximum gain on 3V3, meaning the weakest field

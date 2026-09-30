@@ -2,36 +2,17 @@
 #include <cstdio>
 #include <initializer_list>
 #include "VelGen.h"
+#include "fake_tmc.h"
 
-// Driver simulator: accepted writes increment IFCNT, including wraparound.
-static uint32_t regs[128];
-static int dropReg = -1, failRead = -1, corruptReg = -1;
-static bool badEcho = false;
-static void resetChip(bool spreadPin = false) {
-    memset(regs, 0, sizeof regs);
-    regs[Tmc2209Uart::IOIN] = 0x21000001 | (spreadPin ? 256 : 0);
-    regs[Tmc2209Uart::CHOPCONF] = 0x10000053 | (1UL << 17); // force vsense correction
-    regs[Tmc2209Uart::GSTAT] = 1;
-    regs[Tmc2209Uart::IFCNT] = 254;
-    dropReg = failRead = corruptReg = -1;
-    badEcho = false;
-}
-Tmc2209Uart::Result Tmc2209Uart::read(uint8_t, uint8_t reg, uint32_t) {
-    Result r = {};
-    r.st = reg == failRead ? NO_REPLY : OK;
-    r.value = regs[reg] ^ (reg == corruptReg ? 1 : 0);
-    return r;
-}
-Tmc2209Uart::Result Tmc2209Uart::write(uint8_t, uint8_t reg, uint32_t value) {
-    Result r = {};
-    r.st = badEcho ? BAD_ECHO : OK;
-    if (reg != dropReg && !badEcho) {
-        if (reg == GSTAT) regs[reg] &= ~value;
-        else regs[reg] = value;
-        regs[IFCNT] = (regs[IFCNT] + 1) & 255;
-    }
-    return r;
-}
+// The driver at address 0, under the names the checks below were written
+// against. Accepted writes increment IFCNT, including wraparound.
+static uint32_t *const regs = FakeTmc::node(0).regs;
+static int &dropReg = FakeTmc::node(0).dropReg;
+static int &failRead = FakeTmc::node(0).failRead;
+static int &corruptReg = FakeTmc::node(0).corruptReg;
+static bool &badEcho = FakeTmc::node(0).badEcho;
+static void resetChip(bool spreadPin = false) { FakeTmc::resetChip(0, spreadPin); }
+
 int main() {
     for (int ma = 100; ma <= 1500; ++ma) {
         auto actual = MotorCurrent::milliamps(MotorCurrent::scale(ma));
@@ -99,5 +80,18 @@ int main() {
     resetChip(); assert(gen.begin()); gen.setEnabled(true);
     badEcho = true; gen.setRate(1200);
     assert(!gen.ok());
-    puts("PASS: current limits/quantization, register verification, lost writes, reset recovery, thresholds, fault refusal");
+    // NODECONF: SENDDELAY 2 (3 x 8 bit times), the minimum for two nodes on
+    // one wire, written first after VACTUAL = 0. The chip never reads it back,
+    // so a write it threw away is caught by IFCNT alone.
+    resetChip(); FakeTmc::clearLog();
+    assert(gen.begin());
+    assert(regs[Tmc2209Uart::NODECONF] == 0x200);
+    const auto &writes = FakeTmc::log();
+    assert(writes.size() >= 2);
+    assert(writes[0].reg == Tmc2209Uart::VACTUAL && writes[0].value == 0 && writes[0].accepted);
+    assert(writes[1].reg == Tmc2209Uart::NODECONF && writes[1].value == 0x200 && writes[1].accepted);
+    resetChip(); dropReg = Tmc2209Uart::NODECONF;
+    assert(!gen.begin());
+    assert(!gen.ok());
+    puts("PASS: current limits/quantization, register verification, lost writes, reset recovery, thresholds, fault refusal, NODECONF");
 }

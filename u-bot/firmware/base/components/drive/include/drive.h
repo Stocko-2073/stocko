@@ -22,7 +22,10 @@ extern "C" {
 
 typedef enum { DRIVE_WHEEL_A = 0, DRIVE_WHEEL_B = 1, DRIVE_NWHEELS = 2, DRIVE_WHEEL_BOTH = 2 } drive_wheel_t;
 
-// Mirrors StepperServo::Fault.
+// Codes 1 to 5 mirror StepperServo::Fault: each wheel reports its own, and the
+// first to fault is also the latched drive_status_t.fault. DRIVE_FAULT_BATTERY
+// is robot-level: it belongs to no wheel, so it only ever appears as
+// drive_status_t.fault, with every wheel's own fault left at NONE.
 typedef enum {
     DRIVE_FAULT_NONE = 0,
     DRIVE_FAULT_SLIP,      // shaft did not follow the commanded velocity
@@ -30,6 +33,7 @@ typedef enum {
     DRIVE_FAULT_MAGNET,    // encoder says there is no magnet
     DRIVE_FAULT_PEER,      // stopped because the other wheel faulted
     DRIVE_FAULT_DRIVER,    // reset, UART, temperature warning/shutdown, short or undervoltage
+    DRIVE_FAULT_BATTERY = 6,  // robot-level: the pack is below its cutoff; both wheels hold, drivers on
 } drive_fault_t;
 
 typedef struct {
@@ -63,7 +67,8 @@ typedef struct {
     bool cal_busy;
     bool demo_running;
     bool cmd_active;       // a timed robot-frame command is in force
-    uint8_t fault_wheel;   // which wheel faulted first
+    uint8_t fault;         // the latched drive_fault_t, of any kind; 0 when none
+    uint8_t fault_wheel;   // which wheel faulted first; stale for a robot-level fault
     float v_mps, w_radps;  // robot-frame command in force (0 when none)
     float vmax_mps, wmax_radps;  // current limits
     float track_m, wheel_circ_m;
@@ -102,8 +107,9 @@ void drive_maintenance_cancel(void);
 // --- power -------------------------------------------------------------------
 
 // Energise both drivers (VACTUAL zeroed on each BEFORE the shared EN drops) or
-// cut both. Refuses to enable while a driver is not answering or a calibration
-// is running. Enabling also clears any latched fault.
+// cut both. Refuses to enable while a driver is not answering, a calibration
+// is running, or the battery is below its cutoff. Enabling also clears any
+// latched fault.
 esp_err_t drive_enable(bool on);
 bool drive_enabled(void);
 
@@ -140,7 +146,12 @@ const char *drive_refusal(void);
 
 // --- faults ---------------------------------------------------------------------
 
+// A pack below its cutoff (battery.h) latches DRIVE_FAULT_BATTERY: both wheels
+// ramp to a stop at decel_tps2 and hold there with the drivers still on, since
+// cutting them would let the robot freewheel down a slope. Clearing, like
+// enabling, is refused until the battery has left cutoff.
 esp_err_t drive_clear_faults(void);
+// "name (reason)", or just "none"; web clients split the two at " (".
 const char *drive_fault_name(uint8_t fault);
 
 // --- calibration ------------------------------------------------------------------
@@ -182,6 +193,15 @@ esp_err_t drive_wheel_set_invert(drive_wheel_t w, bool inv);
 // Read a TMC2209 register on a wheel's driver. Returns false if it did not answer.
 bool drive_wheel_read_reg(drive_wheel_t w, uint8_t reg, uint32_t *value);
 
+// --- bench fault injection (CONFIG_UBOT_BENCH_FAULTS) ---------------------------------
+
+// The next control tick busy-waits `ms` (1..10000) without feeding the task
+// watchdog: proof that a wedged control loop resets the chip and EN floats
+// high, instead of a driver stepping on at its last VACTUAL. Refused during an
+// OTA or while another task's maintenance motion owns the robot.
+// ESP_ERR_NOT_SUPPORTED in a build without CONFIG_UBOT_BENCH_FAULTS.
+esp_err_t drive_debug_wedge(uint32_t ms);
+
 // --- observation ----------------------------------------------------------------------
 
 // Lock-free snapshot, refreshed every control tick (and every ~50 ms during a
@@ -192,7 +212,8 @@ void drive_get_status(drive_status_t *out);
 void drive_reset_stats(void);
 
 // Telemetry, same columns as the bench sketch streamed so the existing scope
-// can replay a capture.
+// can replay a capture. New columns are only ever appended (batt_v, batt_st
+// since 0.2.9); the scope finds them by name from the header.
 const char *drive_csv_header(void);
 int drive_csv_line(char *buf, size_t n);
 

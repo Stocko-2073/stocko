@@ -45,14 +45,28 @@ void ble_store_config_init(void);
 
 // -------------------------------------------------------------------- status
 
+// Bytes 0-12 have never changed, and the app reads the length to know what
+// else a frame carries, so fields are only ever appended. 0.2.9 sends 18
+// bytes: the battery state is real, and 13-16 are zero placeholders for the
+// torque work to fill (flags2 bit 7 will say when 14-16 mean something);
+// 0.3.0 also appends 18 (derate) and 19 (reserved).
 typedef struct __attribute__((packed)) {
     uint8_t flags;
-    uint8_t fault;
+    uint8_t fault;          // the latched drive_fault_t, robot-level ones included; 0 when none
     uint16_t batt_mv;
     uint8_t batt_pct;
     int16_t vel_a, vel_b;
     int16_t v_mmps, w_mradps;
+    uint8_t flags2;         // 13: boost/derate/heat/OTPW/recovery bits, 0 for now
+    uint8_t heat_a, heat_b; // 14, 15: motor heat x100, 0 for now
+    uint8_t recoveries;     // 16: stall recovery counter, 0 for now
+    uint8_t batt_state;     // 17: battery_state(): 0 none, 1 ok, 2 low, 3 cutoff
 } status_packet_t;
+
+// One notification at the default ATT MTU carries 20 bytes, and a phone that
+// has not negotiated more gets no more; past that the frame would be cut off.
+_Static_assert(sizeof(status_packet_t) == 18 && sizeof(status_packet_t) <= BLE_ATT_MTU_DFLT - 3,
+               "status is 18 bytes in 0.2.9, within one default-MTU notification");
 
 static int16_t clamp16(float v) {
     if (v > 32767.0f) return 32767;
@@ -70,7 +84,7 @@ static void build_status(status_packet_t *p) {
     if (s.wheel[0].encoder_ok) p->flags |= 1 << 3;
     if (s.wheel[1].encoder_ok) p->flags |= 1 << 4;
     if (battery_present()) p->flags |= 1 << 5;
-    p->fault = s.faulted ? s.wheel[s.fault_wheel].fault : 0;
+    p->fault = s.faulted ? s.fault : 0;
     p->batt_mv = (uint16_t)(battery_voltage() * 1000.0f);
     int pct = battery_percent();
     p->batt_pct = pct < 0 ? 0 : (uint8_t)pct;
@@ -78,6 +92,8 @@ static void build_status(status_packet_t *p) {
     p->vel_b = clamp16(s.wheel[1].vel_tps * 1000.0f);
     p->v_mmps = clamp16(s.v_mps * 1000.0f);
     p->w_mradps = clamp16(s.w_radps * 1000.0f);
+    // flags2, heat and recoveries stay as memset left them until 0.3.0.
+    p->batt_state = (uint8_t)battery_state();
 }
 
 // ---------------------------------------------------------------------- gatt

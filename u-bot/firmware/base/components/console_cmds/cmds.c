@@ -61,6 +61,14 @@ static const char *magnet_text(uint8_t st) {
     return "ok";
 }
 
+// What is latched, in the words 'status' and 'faults' share. A robot-level
+// fault names no wheel.
+static const char *latched_text(const drive_status_t *s) {
+    if (!s->faulted) return "none";
+    if (s->fault == DRIVE_FAULT_BATTERY) return "LATCHED: battery below cutoff";
+    return s->fault_wheel == 0 ? "LATCHED on wheel A" : "LATCHED on wheel B";
+}
+
 // ------------------------------------------------------------------- status
 
 static void print_wheel(command_context_t *ctx, const drive_status_t *s, int i) {
@@ -90,10 +98,9 @@ static void print_wheel(command_context_t *ctx, const drive_status_t *s, int i) 
 static void print_drive(command_context_t *ctx) {
     drive_status_t s;
     drive_get_status(&s);
-    command_printf(ctx, "drive: drivers %s, faults %s%s%s, control worst %lu us of %d us, bus writes %lu, echo faults %lu\n",
+    command_printf(ctx, "drive: drivers %s, faults %s%s, control worst %lu us of %d us, bus writes %lu, echo faults %lu\n",
            s.enabled ? "ENABLED" : "disabled",
-           s.faulted ? "LATCHED on wheel " : "none",
-           s.faulted ? wheel_name(s.fault_wheel) : "",
+           latched_text(&s),
            s.cal_busy ? ", CALIBRATING" : s.demo_running ? ", demo running" : "",
            (unsigned long)s.tick_worst_us, 1000000 / CONFIG_UBOT_CONTROL_HZ,
            (unsigned long)s.bus_writes, (unsigned long)s.bus_echo_faults);
@@ -105,9 +112,18 @@ static void print_drive(command_context_t *ctx) {
     for (int i = 0; i < DRIVE_NWHEELS; i++) print_wheel(ctx, &s, i);
 }
 
+// The state the drive acts on, and the pack and thresholds it was judged
+// against, so a cutoff is never a mystery.
 static void print_batt(command_context_t *ctx) {
-    if (!battery_present()) command_printf(ctx, "battery: no sense (pin at %d mV)\n", battery_pin_mv());
-    else command_printf(ctx, "battery: %.2f V, %d%% (pin %d mV)\n", battery_voltage(), battery_percent(), battery_pin_mv());
+    const batt_pack_t *pack = batt_pack_find(battery_pack_name());
+    const char *state = battery_state_name(battery_state());
+    if (!battery_present()) command_printf(ctx, "battery: no sense (pin at %d mV), %s", battery_pin_mv(), state);
+    else command_printf(ctx, "battery: %.2f V, %d%%, %s (pin %d mV)", battery_voltage(), battery_percent(), state,
+                        battery_pin_mv());
+    command_printf(ctx, "; pack %s (%s), warn %.2f V, cut %.2f V\n", battery_pack_name(), pack ? pack->label : "?",
+                   battery_warn_v(), battery_cut_v());
+    const char *hint = battery_hint();   // a static buffer: print it before anything else asks
+    if (*hint) command_printf(ctx, "  %s\n", hint);
 }
 
 static void print_net(command_context_t *ctx) {
@@ -132,6 +148,10 @@ static int cmd_version(command_context_t *ctx, int argc, char **argv) {
     command_printf(ctx, "hardware rev %s, serial %s, mac %s, name %s\n", sysinfo_hw_rev(), sysinfo_serial(), sysinfo_mac(), sysinfo_name());
     command_printf(ctx, "running %s (%s), reset: %s, up %lu s\n", sysinfo_partition(), sysinfo_ota_state(),
            sysinfo_reset_reason(), (unsigned long)sysinfo_uptime_s());
+#if CONFIG_UBOT_BENCH_FAULTS
+    // Same version number as the release build, so say it where 'diagnostics' shows it.
+    command_printf(ctx, "BENCH FAULT INJECTION BUILD -- never drive it outdoors\n");
+#endif
     return 0;
 }
 
@@ -257,11 +277,13 @@ static int cmd_faults(command_context_t *ctx, int argc, char **argv) {
     if (argc >= 2 && !strcmp(argv[1], "clear")) return report(ctx, drive_clear_faults());
     drive_status_t s;
     drive_get_status(&s);
-    command_printf(ctx, "faults: %s\n", s.faulted ? "LATCHED" : "none");
+    command_printf(ctx, "faults: %s\n", latched_text(&s));
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
         command_printf(ctx, "  wheel %s: %s\n", wheel_name(i), drive_fault_name(s.wheel[i].fault));
     }
-    if (s.faulted) command_printf(ctx, "'faults clear' to resume\n");
+    if (s.faulted && battery_state() == BATT_CUTOFF)
+        command_printf(ctx, "charge or swap the pack; 'faults clear' is refused until the battery leaves cutoff\n");
+    else if (s.faulted) command_printf(ctx, "'faults clear' to resume\n");
     return 0;
 }
 
@@ -302,9 +324,14 @@ static int cmd_demo(command_context_t *ctx, int argc, char **argv) {
 
 static int cmd_stream(command_context_t *ctx, int argc, char **argv) {
     float hz = 20;
-    if (argc < 2) { command_printf(ctx, "stream on [hz] | off\n"); return 0; }
+    if (argc < 2) { command_printf(ctx, "stream on [hz] | off | header\n"); return 0; }
     if (!strcmp(argv[1], "off")) return management_stream(ctx->client, 0);
+    // The column names as a '#' line, which plot.py takes as the header and
+    // other CSV readers skip, so a capture always says what it holds. 'on'
+    // prints it first, before any sample can arrive.
+    if (!strcmp(argv[1], "header")) { command_printf(ctx, "# %s\n", drive_csv_header()); return 0; }
     if (strcmp(argv[1], "on") || (argc > 2 && !parse_f(argv[2], &hz))) return 2;
+    command_printf(ctx, "# %s\n", drive_csv_header());
     return management_stream(ctx->client, hz);
 }
 
@@ -314,6 +341,37 @@ static void dump_visit(const char *key, char type, const char *value, void *arg)
     command_context_t *ctx = arg;
     if ((!strcmp(key, "wifi_pass") || !strcmp(key, "wifi_ssid"))) value = "********";
     command_printf(ctx, "  %-12s %s\n", key, value);
+}
+
+// The battery component owns every batt_ key, applies it at once, and parses
+// its own values (batt_pack is a name, not a number).
+static bool battery_key(const char *key) { return !strncmp(key, "batt_", 5); }
+
+static void print_batt_settings(command_context_t *ctx) {
+    char line[160];
+    battery_settings_line(line, sizeof line);
+    command_printf(ctx, "%s\n", line);
+}
+
+// battery_setting_set() logs why it refused; a remote client may not be
+// reading the log, so say it here too, with the ranges of the pack in force.
+static void batt_refused(command_context_t *ctx, const char *key, const char *val) {
+    if (!strcmp(key, "batt_pack")) {
+        command_printf(ctx, "refused: '%s' is not a pack; batt_pack takes", val);
+        for (size_t i = 0; batt_pack_at(i); i++)
+            command_printf(ctx, "%s %s (%s)", i ? "," : "", batt_pack_at(i)->name, batt_pack_at(i)->label);
+        command_printf(ctx, "\n");
+        return;
+    }
+    if (!strcmp(key, "batt_div")) {   // battery.c's DIV_MIN..DIV_MAX
+        command_printf(ctx, "refused: batt_div is Vpack / Vpin, a ratio from 1 to 100 (nominal 11.0, 100k over 10k)\n");
+        return;
+    }
+    const batt_pack_t *p = batt_pack_find(battery_pack_name());
+    if (!p) { command_printf(ctx, "refused: %s '%s'\n", key, val); return; }
+    command_printf(ctx, "refused: %s '%s' -- %s cuts within %.1f..%.1f V and warns at most %.1f V, warn above cut; "
+                   "in force now: warn %.2f V, cut %.2f V\n", key, val, p->name, p->min_cut_v, p->max_cut_v,
+                   p->max_warn_v, battery_warn_v(), battery_cut_v());
 }
 
 static int cmd_set(command_context_t *ctx, int argc, char **argv) {
@@ -327,22 +385,30 @@ static int cmd_set(command_context_t *ctx, int argc, char **argv) {
             float v;
             if (drive_setting_get(names[i], &v) == ESP_OK) command_printf(ctx, " %s=%g", names[i], v);
         }
-        command_printf(ctx, "\nothers: name hw_rev ota_url ota_auto batt_div\n");
+        // A line of its own: the app parses the drive line and nothing else.
+        command_printf(ctx, "\n");
+        print_batt_settings(ctx);
+        command_printf(ctx, "others: name hw_rev ota_url ota_auto\n");
         return 0;
     }
     if (argc < 3) { command_printf(ctx, "usage: set <key> <value>   (set alone lists)\n"); return 1; }
     const char *key = argv[1], *val = argv[2];
     float f;
     esp_err_t err;
+    if (battery_key(key)) {
+        err = battery_setting_set(key, val);
+        if (err == ESP_ERR_NOT_FOUND) { command_printf(ctx, "unknown setting '%s'\n", key); return 1; }
+        if (err == ESP_ERR_INVALID_ARG) { batt_refused(ctx, key, val); return 1; }
+        if (err != ESP_OK) { command_printf(ctx, "error: %s\n", esp_err_to_name(err)); return 1; }
+        command_printf(ctx, "%s = %s\n", key, val);
+        print_batt_settings(ctx);
+        return 0;
+    }
     if (!strcmp(key, "name")) err = sysinfo_set_name(val);
     else if (!strcmp(key, "hw_rev")) err = sysinfo_set_hw_rev(val);
     else if (!strcmp(key, "ota_url")) err = net_ota_set_url(val);
     else if (!strcmp(key, "ota_auto")) err = atoi(val) ? ESP_ERR_NOT_SUPPORTED : settings_set_i32(key, 0);
-    else if (!strcmp(key, "batt_div")) {
-        if (!parse_f(val, &f)) { command_printf(ctx, "needs a number\n"); return 1; }
-        err = settings_set_f32(key, f);
-        battery_reload_settings();
-    } else {
+    else {
         if (!parse_f(val, &f)) { command_printf(ctx, "needs a number\n"); return 1; }
         err = drive_setting_set(key, f);
         if (err == ESP_ERR_NOT_FOUND) { command_printf(ctx, "unknown setting '%s'\n", key); return 1; }
@@ -355,6 +421,18 @@ static int cmd_set(command_context_t *ctx, int argc, char **argv) {
 
 static int cmd_unset(command_context_t *ctx, int argc, char **argv) {
     if (argc < 2) { command_printf(ctx, "usage: unset <key>\n"); return 1; }
+    // Through the battery component, which applies the default at once and
+    // treats batt_pack as a set does. A plain erase of batt_pack would leave
+    // the old pack's overrides behind, and they can still pass for the new
+    // pack's: an lfp4s cut of 13.0 V is a valid li5s cut, at 2.6 V a cell.
+    if (battery_key(argv[1])) {
+        esp_err_t err = battery_setting_unset(argv[1]);
+        if (err == ESP_ERR_NOT_FOUND) { command_printf(ctx, "unknown setting '%s'\n", argv[1]); return 1; }
+        if (err != ESP_OK) { command_printf(ctx, "error: %s\n", esp_err_to_name(err)); return 1; }
+        command_printf(ctx, "%s erased -- the default applies now\n", argv[1]);
+        print_batt_settings(ctx);
+        return 0;
+    }
     esp_err_t err = settings_erase(argv[1]);
     if (err != ESP_OK) return report(ctx, err);
     command_printf(ctx, "%s erased -- the default applies after a reboot\n", argv[1]);
@@ -467,6 +545,22 @@ static int cmd_free(command_context_t *ctx, int argc, char **argv) {
     return 0;
 }
 
+#if CONFIG_UBOT_BENCH_FAULTS
+// Bench-only fault injection. It exists to prove a safety path on the stand,
+// wheels clear; the build announces itself at boot and in 'version'.
+static int cmd_debug(command_context_t *ctx, int argc, char **argv) {
+    float ms;
+    if (argc != 3 || strcmp(argv[1], "wedge") || !parse_f(argv[2], &ms) || ms < 1 || ms > 10000 || truncf(ms) != ms) {
+        command_printf(ctx, "usage: debug wedge <ms>   1..10000: the next control tick spins that long without\n"
+                            "       feeding the task watchdog; past its 3 s the chip resets and EN floats high\n");
+        return 1;
+    }
+    int rc = report(ctx, drive_debug_wedge((uint32_t)ms));
+    if (!rc) command_printf(ctx, "wedging the control loop for %.0f ms\n", ms);
+    return rc;
+}
+#endif
+
 static void reboot_task(void *arg) { vTaskDelay(pdMS_TO_TICKS(1000)); esp_restart(); }
 static int cmd_reboot(command_context_t *ctx, int argc, char **argv) {
     drive_estop();
@@ -478,7 +572,7 @@ static int cmd_reboot(command_context_t *ctx, int argc, char **argv) {
 // ------------------------------------------------------------------- setup
 
 typedef struct { const char *name, *help; command_handler_t fn; } entry_t;
-static entry_t entries[32];
+static entry_t entries[40];
 static int entry_count;
 static mgmt_client_t serial_client;
 static unsigned serial_id;
@@ -517,6 +611,10 @@ static int execute(command_context_t *ctx, int argc, char **argv) {
     return 2;
 }
 static void reg(const char *cmd, const char *help, const char *hint, command_handler_t fn) {
+    if (entry_count >= (int)(sizeof entries / sizeof entries[0])) {
+        ESP_LOGE(TAG, "no room to register '%s' -- grow entries[] in cmds.c", cmd);
+        return;
+    }
     entries[entry_count++] = (entry_t){cmd, help, fn};
     const esp_console_cmd_t c = { .command = cmd, .help = help, .hint = hint, .func = serial_dispatch };
     ESP_ERROR_CHECK(esp_console_cmd_register(&c));
@@ -545,17 +643,20 @@ esp_err_t console_start(void) {
     reg("faults",  "show faults | faults clear", NULL, cmd_faults);
     reg("cal",     "calibrate a wheel's shaft polarity and clock gain: cal <A|B>", "<A|B>|abort|show", cmd_cal);
     reg("demo",    "scripted runs: demo short | demo bench <A|B> | demo stop", NULL, cmd_demo);
-    reg("stream",  "CSV telemetry: stream on [hz] | stream off", NULL, cmd_stream);
+    reg("stream",  "CSV telemetry: stream on [hz] | stream off | stream header", NULL, cmd_stream);
     reg("set",     "settings: set | set <key> <value>", NULL, cmd_set);
     reg("unset",   "erase a stored setting", "<key>", cmd_unset);
     reg("wifi",    "wifi | wifi set <ssid> [pass] | wifi clear | wifi scan | wifi reconnect", NULL, cmd_wifi);
     reg("ota",     "ota | ota check | ota start [url] | ota url <bucket> | ota confirm", NULL, cmd_ota);
-    reg("batt",    "battery voltage and charge", NULL, cmd_batt);
+    reg("batt",    "battery voltage, charge, state, pack and thresholds", NULL, cmd_batt);
     reg("ble",     "BLE state", NULL, cmd_ble);
     reg("log",     "log <tag|*> <level>", "<tag> <level>", cmd_log);
     reg("stats",   "control timing: stats | stats reset", NULL, cmd_stats);
     reg("free",    "heap", NULL, cmd_free);
     reg("reboot",  "cut the drivers and restart", NULL, cmd_reboot);
+#if CONFIG_UBOT_BENCH_FAULTS
+    reg("debug",   "BENCH ONLY: debug wedge <ms> stalls the control loop to prove the watchdog reset", "wedge <ms>", cmd_debug);
+#endif
 
     esp_console_dev_usb_serial_jtag_config_t hw = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
     esp_err_t err = esp_console_new_repl_usb_serial_jtag(&hw, &rc, &repl);

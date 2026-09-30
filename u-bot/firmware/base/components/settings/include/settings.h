@@ -4,9 +4,16 @@
 // (per-chip clock gains, shaft polarity), the robot-frame signs, WiFi
 // credentials, the hardware revision, the OTA URL.
 //
-// Keys are at most 15 characters (an NVS limit). Floats are stored as their
-// 32-bit pattern. Getters take a default and never fail; setters report NVS
-// errors. Every store is committed immediately.
+// Keys are 1 to SETTINGS_KEY_MAX characters (an NVS limit). Floats are stored
+// as their 32-bit pattern. Getters take a default and never fail; setters
+// report NVS errors. Every store is committed immediately.
+//
+// A key outside that length is a bug in the caller that NVS barely notices: it
+// checks the length only when storing, and a read compares just the first 15
+// characters, so a getter would quietly find nothing -- or another key's
+// value. So every call checks the key first. A getter with a bad key logs an
+// error and returns its default (false for the bool ones); a setter or an
+// erase returns ESP_ERR_INVALID_ARG.
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -16,6 +23,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// NVS_KEY_NAME_MAX_SIZE less its terminator. A macro so callers can check
+// their own key tables at compile time (drive.cpp does).
+#define SETTINGS_KEY_MAX 15
 
 // Initialise NVS (erasing and retrying if the partition is from an older
 // layout) and open the namespace.

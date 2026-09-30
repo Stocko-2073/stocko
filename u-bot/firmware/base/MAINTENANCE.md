@@ -33,7 +33,10 @@ a renewable one-second session lease. The CLI renews it every 300 ms. A lost
 connection ends renewal; a late or replayed renewal cannot restart motion.
 Calibration, demos, timed velocity and bounded position jobs survive disconnect.
 Only one maintenance motion owns the robot; all other motor mutations are
-refused until it finishes. Any client may stop it. Motors start disabled.
+refused until it finishes, and any client may stop it. The one exception is
+`debug`, which only a bench build (`CONFIG_UBOT_BENCH_FAULTS`) has: fault
+injection is meant to land during a timed drive, and the drive still refuses
+it during an update. Motors start disabled.
 
 All existing command handlers receive an explicit output context. USB, Wi-Fi
 and BLE use the same bounded worker; no global stdout redirection is involved.
@@ -144,6 +147,7 @@ Run software checks from the firmware root:
 
 ```sh
 python3 base/components/drive/tests/run_host_tests.py
+python3 base/components/battery/tests/run_host_tests.py
 python3 base/tests/run_management_tests.py
 cc -std=c11 -fsanitize=address,undefined -I base/components/management/include \
   base/tests/test_fragment.c -o /tmp/ubot-fragment-tests

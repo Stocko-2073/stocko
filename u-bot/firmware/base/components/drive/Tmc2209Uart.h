@@ -40,6 +40,7 @@ class Tmc2209Uart {
     static const uint8_t GCONF      = 0x00;
     static const uint8_t GSTAT      = 0x01;
     static const uint8_t IFCNT      = 0x02;
+    static const uint8_t NODECONF   = 0x03;   // write-only
     static const uint8_t IOIN       = 0x06;
     static const uint8_t IHOLD_IRUN = 0x10;
     static const uint8_t TPOWERDOWN = 0x11;

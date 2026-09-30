@@ -31,12 +31,16 @@ CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED=y
 CONFIG_FREERTOS_HZ=1000
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 
-# The control task is on the task watchdog. If it wedges, the WDT resets the
-# chip and the EN pull-up disables both drivers -- which matters under UART
-# velocity mode, where a driver keeps stepping without anyone talking to it.
+# The control task is on the task watchdog, and a wedged control loop must
+# RESET the chip, which is what PANIC buys: without it the watchdog only logs.
+# Only a reset lets EN float high on its pull-up and disable both drivers;
+# until then a TMC2209 in UART velocity mode keeps stepping at the last VACTUAL
+# it was sent, with nobody talking to it -- a runaway. Any 3 s stall of a
+# watched task (the control task, IDLE on CPU1) now reboots.
 CONFIG_ESP_TASK_WDT_EN=y
 CONFIG_ESP_TASK_WDT_INIT=y
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=3
+CONFIG_ESP_TASK_WDT_PANIC=y
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=n
 
 # --- logging ------------------------------------------------------------------

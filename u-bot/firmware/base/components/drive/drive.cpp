@@ -18,6 +18,7 @@
 #include "StepperServo.h"
 #include "Tmc2209Uart.h"
 #include "VelGen.h"
+#include "battery.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
@@ -118,7 +119,11 @@ struct State {
     bool driversOn = false;
     bool faultLatched = false;
     uint8_t faultWheel = 0;
+    uint8_t faultCode = DRIVE_FAULT_NONE;   // what latched: the wheel's fault, or a robot-level one
     volatile bool pendingEstop = false;
+#if CONFIG_UBOT_BENCH_FAULTS
+    volatile uint32_t wedgeMs = 0;          // drive_debug_wedge(), taken by the next tick
+#endif
 
     // The robot-frame command in force and when it lapses (0 = never).
     bool cmdActive = false;
@@ -153,6 +158,14 @@ struct State {
 
     const char *refusal = "";
 } S;
+
+// The same words wherever a flat pack is the reason: enable, clear and motion.
+const char *const BATTERY_REFUSAL = "battery below its cutoff -- charge or swap the pack; clear once it recovers";
+
+// drive.h's wheel codes are StepperServo's own, and the robot-level ones must
+// never land on top of a wheel's.
+static_assert(DRIVE_FAULT_DRIVER == (int)StepperServo::FAULT_DRIVER && DRIVE_FAULT_BATTERY > DRIVE_FAULT_DRIVER,
+              "drive_fault_t no longer lines up with StepperServo::Fault");
 
 portMUX_TYPE snapMux = portMUX_INITIALIZER_UNLOCKED;
 drive_status_t snap = {};
@@ -300,16 +313,23 @@ void pollHealthStep() {
     S.healthIdx = (S.healthIdx + 1) % 4;
 }
 
-void latchFault(uint8_t idx) {
-    Wheel &w = *wheels[idx];
-    S.faultLatched = true;
-    S.faultWheel = idx;
+// Freeze each driver's latest health sample as the fault-time copy the
+// status reports show next to the live one.
+void snapshotDriverSamples() {
     for (Wheel *o : wheels) {
         o->faultDriverStatusOk = o->driverStatusOk;
         o->faultDrvStatus = o->drvStatus;
         o->faultGstat = o->gstat;
         o->faultDriverAgeMs = millis() - o->driverSampleMs;
     }
+}
+
+void latchFault(uint8_t idx) {
+    Wheel &w = *wheels[idx];
+    S.faultLatched = true;
+    S.faultWheel = idx;
+    S.faultCode = w.servo.fault();
+    snapshotDriverSamples();
     ESP_LOGE(TAG, "FAULT wheel %s: %s (slip %ld steps) -- both wheels stopped, 'faults clear' to resume",
              w.name, w.servo.faultName(), (long)w.servo.slipSteps());
     // One wheel holding while the other drives pivots a differential drive
@@ -351,10 +371,38 @@ void checkFaults() {
     }
 }
 
+// A pack below its cutoff latches a robot-level fault, and unlike a wheel
+// fault it keeps the power stage on: both wheels ramp to a stop at decel_tps2
+// and hold there with EN low. Cutting EN would let the robot freewheel down
+// the slope that probably drained the pack. Holding costs ~5 W until the
+// pack's own BMS acts, which is its job, not ours.
+//
+// Polled, not called back: battery_state() copies one field under the
+// battery's spinlock, cheap enough for every tick (never from an ISR). Until
+// battery_init() has run it says NONE, which never stops the robot.
+void checkSupply() {
+    if (S.faultLatched || battery_state() != BATT_CUTOFF) return;
+    S.faultLatched = true;
+    S.faultCode = DRIVE_FAULT_BATTERY;   // faultWheel keeps whatever it was: no wheel did this
+    snapshotDriverSamples();
+    demo.stop();
+    cancelCommands();
+    for (Wheel *w : wheels) {
+        // A closed loop brakes through the servo's own velocity ramp and then
+        // holds; an open-loop spin has no ramp to use and stops where it is.
+        if (w->servo.servoOn()) w->servo.setVelocityTps(0);
+        else w->servo.spin(0);
+    }
+    ESP_LOGE(TAG, "FAULT battery: %.2f V is below the %.2f V %s cutoff -- both wheels ramping to a stop and "
+                  "holding with the drivers on; charge or swap the pack, 'faults clear' once it recovers",
+             battery_voltage(), battery_cut_v(), battery_pack_name());
+}
+
 void updateSnapshot() {
     drive_status_t s = {};
     s.enabled = S.driversOn;
     s.faulted = S.faultLatched;
+    s.fault = S.faultLatched ? S.faultCode : (uint8_t)DRIVE_FAULT_NONE;
     s.fault_wheel = S.faultWheel;
     s.cal_busy = S.calBusy;
     s.demo_running = demo.running();
@@ -430,6 +478,7 @@ bool calAbortFn() {
             pollHealthStep();
             checkFaults();
         }
+        checkSupply();   // a cutoff latches here too, and the latch aborts the run
         updateSnapshot();
     }
     return S.calAbort || S.pendingEstop || S.faultLatched;
@@ -512,6 +561,22 @@ void controlTask(void *) {
 
         xSemaphoreTake(S.mtx, portMAX_DELAY);
 
+#if CONFIG_UBOT_BENCH_FAULTS
+        if (S.wedgeMs) {
+            // A loop stuck in a computation or a bus spin: busy, holding the
+            // mutex, not feeding the watchdog, and not yielding either. Past
+            // CONFIG_ESP_TASK_WDT_TIMEOUT_S the watchdog panics and resets the
+            // chip, and only that lets EN float high -- until then a driver
+            // keeps stepping at its last VACTUAL.
+            uint32_t ms = S.wedgeMs;
+            S.wedgeMs = 0;
+            ESP_LOGW(TAG, "BENCH: wedging the control loop for %lu ms, not feeding the task watchdog", (unsigned long)ms);
+            int64_t until = esp_timer_get_time() + (int64_t)ms * 1000;
+            while (esp_timer_get_time() < until) {
+            }
+        }
+#endif
+
         if (S.pendingEstop) {
             S.pendingEstop = false;
             demo.stop();
@@ -538,6 +603,7 @@ void controlTask(void *) {
         for (Wheel *w : wheels) w->servo.update(dt);
         checkFaults();
         demo.update();
+        checkSupply();
 
         if (millis() - S.lastHealth >= HEALTH_MS) {
             S.lastHealth = millis();
@@ -613,8 +679,24 @@ Wheel *wheelArg(drive_wheel_t w) {
 }
 
 const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "decel", "vmin", "tol", "maxslip", "ratio", "gain", "micro"};
-const char *const SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2", "decel_tps2",
-                                     "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs"};
+// Each is also its NVS key. constexpr so the check below runs at compile time:
+// otherwise a key NVS cannot hold only fails on the robot, when someone first
+// tries to store it, and until then its reads quietly come back empty (or,
+// NVS comparing only 15 characters, with another key's value).
+constexpr const char *SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2",
+                                         "decel_tps2", "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs"};
+
+constexpr size_t keyLength(const char *s) {
+    size_t n = 0;
+    while (s[n]) n++;
+    return n;
+}
+constexpr bool settingKeysFit() {
+    for (const char *k : SETTING_NAMES)
+        if (keyLength(k) < 1 || keyLength(k) > SETTINGS_KEY_MAX) return false;
+    return true;
+}
+static_assert(settingKeysFit(), "every SETTING_NAMES entry is an NVS key: 1 to 15 characters");
 
 }  // namespace
 
@@ -641,6 +723,10 @@ void drive_park_en(void) {
 
 esp_err_t drive_init(void) {
     drive_park_en();
+#if CONFIG_UBOT_BENCH_FAULTS
+    ESP_LOGW(TAG, "BENCH FAULT INJECTION BUILD -- 'debug wedge' stalls the control loop on purpose; "
+                  "never drive this build outdoors");
+#endif
     if (!S.mtx) S.mtx = xSemaphoreCreateMutex();
     if (!S.mtx) return ESP_ERR_NO_MEM;
 
@@ -743,6 +829,9 @@ void drive_maintenance_cancel(void) { maintenanceCancelled = true; }
 esp_err_t drive_enable(bool on) {
     if (!lock()) return refuse("drive is busy (calibrating)");
     if (on && interlocked()) { unlock(); return interlockRefusal(); }
+    // Enabling clears a latched fault, so it has to wait for the pack as a
+    // clear does. Disabling is never refused.
+    if (on && battery_state() == BATT_CUTOFF) { unlock(); return refuse(BATTERY_REFUSAL); }
     if (on) {
         if (S.driversOn) { unlock(); return ESP_OK; }
         gpio_set_level(PIN_EN, 1);
@@ -759,6 +848,7 @@ esp_err_t drive_enable(bool on) {
         }
         for (Wheel *w : wheels) w->servo.clearFault();
         S.faultLatched = false;
+        S.faultCode = DRIVE_FAULT_NONE;
         if (!enableDrivers(true)) {
             unlock();
             return refuse("could not verify zero velocity before enabling");
@@ -802,7 +892,9 @@ void drive_estop(void) {
 
 static esp_err_t motionPrecheck() {
     if (!S.driversOn) return refuse("drivers are disabled -- 'enable' first");
-    if (S.faultLatched) return refuse("a fault is latched -- 'faults clear' first");
+    // While the pack is cut off, 'faults clear' is refused too; say what is.
+    if (S.faultLatched)
+        return refuse(battery_state() == BATT_CUTOFF ? BATTERY_REFUSAL : "a fault is latched -- 'faults clear' first");
     if (demo.running()) return refuse("a demo is running -- 'demo stop' first");
     return ESP_OK;
 }
@@ -882,6 +974,9 @@ esp_err_t drive_wheel_spin(drive_wheel_t wi, float sps) {
     if (interlocked()) { unlock(); return interlockRefusal(); }
     if (!S.driversOn) { unlock(); return refuse("drivers are disabled -- 'enable' first"); }
     if (demo.running()) { unlock(); return refuse("a demo is running -- 'demo stop' first"); }
+    // The one motion path without motionPrecheck(), so the pack is checked
+    // here: nothing moves on a pack below its cutoff.
+    if (battery_state() == BATT_CUTOFF) { unlock(); return refuse(BATTERY_REFUSAL); }
     w->servo.spin(sps);
     S.whActive[wi] = false;
     unlock();
@@ -916,11 +1011,15 @@ const char *drive_refusal(void) { return S.refusal; }
 esp_err_t drive_clear_faults(void) {
     if (!lock()) return refuse("drive is busy (calibrating)");
     if (interlocked()) { unlock(); return interlockRefusal(); }
+    // Whatever latched, clearing now would hand a flat pack straight back to
+    // the stick; checkSupply() would only latch it again a tick later.
+    if (battery_state() == BATT_CUTOFF) { unlock(); return refuse(BATTERY_REFUSAL); }
     for (Wheel *w : wheels) {
         w->servo.clearFault();
         w->servo.resyncSlip();
     }
     S.faultLatched = false;
+    S.faultCode = DRIVE_FAULT_NONE;
     updateSnapshot();
     unlock();
     ESP_LOGI(TAG, "faults cleared");
@@ -928,6 +1027,10 @@ esp_err_t drive_clear_faults(void) {
 }
 
 const char *drive_fault_name(uint8_t fault) {
+    // Robot-level, so StepperServo has no name for it; same "name (reason)"
+    // shape as the wheel faults.
+    if (fault == DRIVE_FAULT_BATTERY)
+        return "battery below cutoff (charge or swap the pack; clear it once the voltage recovers)";
     return StepperServo::faultName((StepperServo::Fault)fault);
 }
 
@@ -1209,6 +1312,26 @@ bool drive_wheel_read_reg(drive_wheel_t wi, uint8_t reg, uint32_t *value) {
     return ok;
 }
 
+// --- bench fault injection ---
+
+esp_err_t drive_debug_wedge(uint32_t ms) {
+#if CONFIG_UBOT_BENCH_FAULTS
+    // Longer proves nothing more: the watchdog fires at 3 s.
+    if (ms < 1 || ms > 10000) return ESP_ERR_INVALID_ARG;
+    if (!lock()) return refuse("drive is busy (calibrating)");
+    // Refused as any other mutation is: never during an update, where a
+    // reset is the one thing that must not happen, and while a maintenance
+    // job owns the robot, only from that job's own task.
+    if (interlocked()) { unlock(); return interlockRefusal(); }
+    S.wedgeMs = ms;
+    unlock();
+    return ESP_OK;
+#else
+    (void)ms;
+    return ESP_ERR_NOT_SUPPORTED;
+#endif
+}
+
 // --- observation ---
 
 void drive_get_status(drive_status_t *out) {
@@ -1225,7 +1348,8 @@ void drive_reset_stats(void) {
 
 const char *drive_csv_header(void) {
     return "t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
-           "bpos,btarget,berr,bvel,bsteps,brate,bslip,benc,bagc,bstatus,busus";
+           "bpos,btarget,berr,bvel,bsteps,brate,bslip,benc,bagc,bstatus,busus,"
+           "batt_v,batt_st";
 }
 
 int drive_csv_line(char *buf, size_t n) {
@@ -1242,15 +1366,19 @@ int drive_csv_line(char *buf, size_t n) {
     if (b.encoder_ok) flags |= 0x20;
     if (s.demo_running) flags |= 0x40;
     if (b.fault != DRIVE_FAULT_NONE) flags |= 0x80;
+    // batt_st is battery_state()'s number, 0 none .. 3 cutoff, so a capture
+    // shows the sag that led up to a cutoff next to the wheels that caused it.
     return snprintf(buf, n,
                     "%lu,%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,0x%02X,"
-                    "%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,%lu",
+                    "%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,%lu,"
+                    "%.2f,%d",
                     (unsigned long)millis(),
                     a.pos_turns, a.target_turns, (long)a.err_counts, a.vel_tps, a.cmd_steps,
                     a.rate_sps, (long)a.slip_steps, a.raw_angle, a.agc, a.magnet_status, flags,
                     b.pos_turns, b.target_turns, (long)b.err_counts, b.vel_tps, b.cmd_steps,
                     b.rate_sps, (long)b.slip_steps, b.raw_angle, b.agc, b.magnet_status,
-                    (unsigned long)b.worst_read_us);
+                    (unsigned long)b.worst_read_us,
+                    battery_voltage(), battery_state());
 }
 
 }  // extern "C"
