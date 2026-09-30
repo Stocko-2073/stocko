@@ -59,6 +59,9 @@ public final class WiFiRobotLink: RobotLink {
     private var sentAt: TimeInterval = 0
     private var command: DriveCommand = .zero
     private var driving = false
+    /// The operator is holding Boost. Frames keep flowing while it is held,
+    /// stick or not; every path that stops driving clears it too.
+    private var boosting = false
     private var zeros = 0
     private var controls: [ControlOp] = []
     private var pending: (op: ControlOp, time: TimeInterval)?
@@ -115,7 +118,7 @@ public final class WiFiRobotLink: RobotLink {
         management.close()
         generation += 1
         ready = false
-        driving = false; command = .zero; zeros = 0
+        driving = false; boosting = false; command = .zero; zeros = 0
         controls.removeAll(); pending = nil; sending = false
         lastStatus = nil
         socket?.close(); socket = nil
@@ -169,12 +172,12 @@ public final class WiFiRobotLink: RobotLink {
             if !ready { ready = true; emit(.state(.ready(name: robotName))) }
             emit(.firmware(frame.fw)); emit(.status(status))
             if !status.isEnabled || status.isFaulted || status.busyReason != nil {
-                driving = false; command = .zero; zeros = 0
+                driving = false; boosting = false; command = .zero; zeros = 0
             }
         } else if header.t == "ack" {
             guard let envelope = try? JSONDecoder().decode(WiFiProtocol.Envelope.self, from: data) else { return }
             if envelope.cmd == "drive", envelope.ok == false {
-                driving = false; command = .zero; zeros = 0
+                driving = false; boosting = false; command = .zero; zeros = 0
                 emit(.message("Drive refused: " + (envelope.err ?? "Robot refused the command.")))
             } else if let p = pending, envelope.cmd == WiFiProtocol.command(p.op), let ok = envelope.ok {
                 pending = nil
@@ -198,7 +201,23 @@ public final class WiFiRobotLink: RobotLink {
         queue.async { [self] in
             driving = false; command = .zero
             guard ready else { return }
-            zeros = 3
+            // With Boost held, the boosted zeros that keep coming are the
+            // stop. Plain zeros here would end the robot's manual boost.
+            zeros = boosting ? 0 : 3
+            pump()
+        }
+    }
+    public func setBoost(_ on: Bool) {
+        queue.async { [self] in
+            if on {
+                guard ready, !boosting else { return }
+                boosting = true; zeros = 0
+            } else {
+                guard boosting else { return }
+                boosting = false
+                // Let go with no stick held: the same tail as a stick release.
+                if !driving { command = .zero; zeros = 3 }
+            }
             pump()
         }
     }
@@ -206,7 +225,7 @@ public final class WiFiRobotLink: RobotLink {
         queue.async { [self] in
             guard ready else { emit(.controlRefused(op, "Not connected to the robot.")); return }
             if op == .stop || op == .disable || op == .estop {
-                driving = false; command = .zero; zeros = 0
+                driving = false; boosting = false; command = .zero; zeros = 0
             }
             if op == .estop {
                 controls.removeAll()
@@ -224,7 +243,7 @@ public final class WiFiRobotLink: RobotLink {
         guard running, socket != nil else { return }
         let time = now()
         if let lastStatus, time - lastStatus > 1.5 {
-            driving = false; command = .zero; zeros = 1
+            driving = false; boosting = false; command = .zero; zeros = 1
             pump()
             emit(.state(.stalled(name: robotName)))
             fail("Robot telemetry stopped.")
@@ -246,8 +265,10 @@ public final class WiFiRobotLink: RobotLink {
         } else if zeros > 0 {
             zeros -= 1
             text = WiFiProtocol.drive(.zero)
-        } else if driving {
-            text = WiFiProtocol.drive(command)
+        } else if driving || boosting {
+            // Boost without the stick is zero frames carrying the flag: the
+            // robot holds its place at boost current.
+            text = WiFiProtocol.drive(driving ? command : .zero, boost: boosting)
         } else { return }
         sending = true; sentAt = now()
         let id = generation

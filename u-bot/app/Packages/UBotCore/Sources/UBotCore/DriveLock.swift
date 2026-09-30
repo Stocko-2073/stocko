@@ -26,10 +26,10 @@ public struct DriveLock: Equatable, Sendable {
 
     /// Derive the lock from the link state and the latest status frame.
     ///
-    /// Adapted honestly to what BLE actually carries: the 13-byte frame has no
-    /// `cal_busy`, no `demo_running`, no per-wheel `driver_ok` and no
-    /// `fault_wheel`, all of which the WebSocket status has and the web page
-    /// locks on. So a calibration or a demo cannot be locked out proactively
+    /// Adapted honestly to what BLE actually carries: the status frame, even at
+    /// 20 bytes, has no `cal_busy`, no `demo_running`, no per-wheel `driver_ok`
+    /// and no `fault_wheel`, all of which the WebSocket status has and the web
+    /// page locks on. So a calibration or a demo cannot be locked out proactively
     /// here -- an `enable` during one comes back as ATT 0x0E instead, and the
     /// refusal is surfaced reactively.
     public static func derive(linkState: LinkState, status: UBotStatus?) -> DriveLock? {
@@ -58,6 +58,16 @@ public struct DriveLock: Equatable, Sendable {
 
         guard let s = status else {
             return .init(reason: "Waiting for status")
+        }
+
+        // Below the battery cutoff the firmware refuses enable and clear
+        // alike, so there is no button worth offering -- only the reason.
+        // Checked before busy and before the fault itself: it outranks both,
+        // and it holds whether or not the battery fault has latched yet.
+        // Once the voltage recovers, the fault branch below takes over and
+        // offers Clear or Enable as for any other fault.
+        if s.batteryState == .cutoff {
+            return .init(reason: "Battery empty: charge or swap the pack")
         }
 
         if let reason = s.busyReason { return .init(reason: reason) }

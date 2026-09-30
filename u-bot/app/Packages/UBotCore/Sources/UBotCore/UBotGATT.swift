@@ -21,8 +21,11 @@ public enum UBotGATT {
     /// `BLERobotLink`.
     public static let service = CBUUID(string: "7B1A0000-6F4B-4C2E-9D3A-2E5F1C8A9B01")
 
-    /// Write / write-without-response. Exactly 4 bytes; anything else is
-    /// rejected with `BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN`.
+    /// Write / write-without-response. 4 bytes, `[i16 v][i16 w]`. From 0.3.0
+    /// an optional fifth, `[u8 flags]` with bit 0 boost, is also accepted.
+    /// Older firmware rejects anything but 4 with
+    /// `BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN`, so the ticker only sends 5 after
+    /// a status frame has set flags2 bit 7.
     public static let drive = CBUUID(string: "7B1A0001-6F4B-4C2E-9D3A-2E5F1C8A9B01")
 
     /// Write with response. Exactly 1 byte. Returns `BLE_ATT_ERR_UNLIKELY`
@@ -30,7 +33,8 @@ public enum UBotGATT {
     /// robot tells us "no".
     public static let control = CBUUID(string: "7B1A0002-6F4B-4C2E-9D3A-2E5F1C8A9B01")
 
-    /// Read / notify at 5 Hz. 13 bytes, packed little-endian.
+    /// Read / notify at 5 Hz, packed little-endian: 13 bytes before 0.2.9,
+    /// 18 from 0.2.9, 20 from 0.3.0. See `UBotStatus` for the layout.
     public static let status = CBUUID(string: "7B1A0003-6F4B-4C2E-9D3A-2E5F1C8A9B01")
 
     public static let managementRequest = CBUUID(string: "7B1A0004-6F4B-4C2E-9D3A-2E5F1C8A9B01")

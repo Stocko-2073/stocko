@@ -22,7 +22,13 @@ struct UBotApp: App {
         let factory: (ConnectionTransport, String) -> RobotLink = { transport, address in
             if transport == .wifi { return WiFiRobotLink(address: address) }
             #if targetEnvironment(simulator)
-            return MockRobotLink()
+            // `-mockScenario boosting` (any `MockRobotLink.Scenario` name) on
+            // the launch arguments starts the fake robot in that state, which
+            // is how the UI tests reach boost, heat and battery screens. Launch
+            // arguments land in UserDefaults' argument domain, never on disk.
+            let scenario = UserDefaults.standard.string(forKey: "mockScenario")
+                .flatMap(MockRobotLink.Scenario.init(rawValue:)) ?? .motorsOff
+            return MockRobotLink(scenario: scenario)
             #else
             return BLERobotLink(nameFilter: settings.robotName)
             #endif

@@ -12,7 +12,8 @@ import UBotCore
 //   ubotctl scan                  list matching peripherals
 //   ubotctl status                stream the 5 Hz status table
 //   ubotctl enable | disable | estop | clear | stop
-//   ubotctl drive <v> <w> <secs>  run the real ticker, then release
+//   ubotctl drive <v> <w> <secs> [--boost]
+//                                 run the real ticker, then release
 
 // stdout is block-buffered when it is not a terminal, so piping this to a file
 // or a log would swallow the status table for seconds at a time. The bracketed
@@ -46,7 +47,10 @@ func usage() -> Never {
       stop                  ramp to a stop
       estop                 cut EN immediately
       clear                 clear latched faults
-      drive <v> <w> <secs>  drive at v,w in -1..1 for <secs>, then release
+      drive <v> <w> <secs> [--boost]
+                            drive at v,w in -1..1 for <secs>, then release;
+                            --boost holds Boost on the frames it streams
+                            (firmware 0.3.0 or later; ignored before that)
 
     """.utf8))
     exit(2)
@@ -91,9 +95,42 @@ func selftest() -> Never {
     let sliced = Data([0xFF, 0xFF] + frame).dropFirst(2)
     check(UBotStatus(sliced)?.wheelATurnsPerSec == 1.0, "sliced Data decodes")
 
+    print("status decode, 0.2.9 (18 bytes)")
+    // flags2 with bit 7 clear, junk in bytes 14-16, battery state 2 (low).
+    // Without bit 7 the heat and recovery bytes mean nothing; byte 17 always
+    // does once the frame is long enough to hold it.
+    guard let s18 = UBotStatus(Data(frame + [0x00, 0x6E, 0x37, 0x05, 0x02])) else {
+        print("  FAIL  18 bytes did not decode"); exit(1)
+    }
+    check(s18.frameLength == 18, "frame length 18")
+    check(s18.batteryState == .low, "byte 17 is the battery state (2 = low)")
+    check(!s18.acceptsBoost, "no bit 7, no boost")
+    check(s18.heatA == nil && s18.heatB == nil && s18.recoveryCount == nil,
+          "heat and recovery bytes ignored without bit 7")
+    check(s18.wheelATurnsPerSec == 1.0 && s18.commandedMetersPerSec == -0.250,
+          "bytes 0-12 unchanged")
+    check(UBotStatus(Data(frame))?.batteryState == nil,
+          "13 bytes: battery state unknown, not \"none\"")
+
+    print("status decode, 0.3.0 (20 bytes)")
+    // flags2 = accepts boost | heat-limited | boost active = 0x89; heat A 1.10,
+    // heat B 0.55, 7 recovery attempts, battery ok, derate A 2 and B 1.
+    guard let s20 = UBotStatus(Data(frame + [0x89, 110, 55, 7, 0x01, 0b0110, 0x00])) else {
+        print("  FAIL  20 bytes did not decode"); exit(1)
+    }
+    check(s20.frameLength == 20, "frame length 20")
+    check(s20.acceptsBoost, "flags2 bit 7: 5-byte drive frames accepted")
+    check(s20.isBoosting && s20.isHeatLimited && !s20.isDerated, "flags2 bits 0 and 3")
+    check(s20.heatA == 1.10 && s20.heatB == 0.55, "heat is h x 100")
+    check(s20.recoveryCount == 7, "recovery counter")
+    check(s20.derateA == 2 && s20.derateB == 1, "derate: A in bits 0-1, B in bits 2-3")
+    check(s20.batteryState == .ok, "battery state 1 = ok")
+
     print("fault enum")
     check(DriveFault(rawValue: 1) == .slip, "1 is slip")
     check(DriveFault(rawValue: 4) == .peer, "4 is peer")
+    check(DriveFault(rawValue: 6) == .battery, "6 is battery (robot-level)")
+    check(DriveFault(rawValue: 7) == .blocked, "7 is blocked")
     check(UBotStatus(Data([0, 99] + frame.dropFirst(2)))?.fault == DriveFault.unknown,
           "unknown fault byte remains visible")
 
@@ -104,6 +141,14 @@ func selftest() -> Never {
     check(DriveCommand(v: 0, w: 1).frame == Data([0x00, 0x00, 0xE8, 0x03]), "w lands in bytes 2-3")
     check(DriveCommand(v: 5, w: -5).frame == Data([0xE8, 0x03, 0x18, 0xFC]), "out of range clamps")
     check(DriveCommand(v: 0, w: 0).frame.count == 4, "always exactly 4 bytes")
+
+    print("drive encode, boost (0.3.0 and later only)")
+    check(DriveCommand(v: 1, w: 0).frame(boost: true) == Data([0xE8, 0x03, 0x00, 0x00, 0x01]),
+          "boost is a fifth byte, bit 0")
+    check(DriveCommand(v: 1, w: 0).frame(boost: false) == Data([0xE8, 0x03, 0x00, 0x00, 0x00]),
+          "the 5-byte form without boost has flags 0")
+    check(DriveCommand.zero.frame(boost: true) == Data([0, 0, 0, 0, 1]),
+          "boosted zero holds position at boost current")
 
     print("stick math (joystick.html: v = -y, w = -x, clamped to the unit disc)")
     let up = DriveCommand(stickX: 0, stickY: -1)
@@ -141,6 +186,14 @@ func selftest() -> Never {
     check(DriveLock.derive(linkState: .ready(name: "ubot"),
                            status: UBotStatus(flags: [.enabled, .commandActive])) == nil,
           "another controller driving does not lock us out")
+    var cutoff = UBotStatus(flags: [.enabled, .faulted, .batteryPresent], fault: .battery)
+    cutoff.batteryState = .cutoff
+    check(DriveLock.derive(linkState: .ready(name: "ubot"), status: cutoff)?.remedy == DriveLock.Remedy.none,
+          "battery cutoff -> no remedy (the robot refuses enable and clear)")
+    var recovered = cutoff
+    recovered.batteryState = .low
+    check(DriveLock.derive(linkState: .ready(name: "ubot"), status: recovered)?.remedy == .clearFaults,
+          "battery recovered -> Clear, as for any fault")
 
     print("")
     if failures == 0 {
@@ -168,7 +221,10 @@ final class Runner: @unchecked Sendable {
     var firmware = "?"
     var rowCount = 0
     var announced = false
+    var boostWarned = false
     let finite = !["scan", "status"].contains(command)
+    /// `drive ... --boost`: hold Boost for the whole drive.
+    let boost = command == "drive" && args.contains("--boost")
 
     func begin(_ onReady: @escaping () -> Void) {
         if finite {
@@ -193,6 +249,14 @@ final class Runner: @unchecked Sendable {
                 if command == "drive" && (!s.isEnabled || s.isFaulted) {
                     FileHandle.standardError.write(Data("drive refused: drivers disabled or faulted\n".utf8))
                     exit(1)
+                }
+                // The link keeps sending the 4-byte frame to firmware that has
+                // not advertised the 5-byte one, so this drive goes ahead
+                // without boost. Say so rather than let it pass as boosted.
+                if boost && !s.acceptsBoost && !boostWarned {
+                    boostWarned = true
+                    FileHandle.standardError.write(Data(
+                        "boost: this firmware does not accept it (needs 0.3.0); driving without\n".utf8))
                 }
             case .firmware(let f):
                 firmware = f
@@ -229,7 +293,9 @@ final class Runner: @unchecked Sendable {
         }
         if rowCount % 20 == 0 {
             print(pad("state", 9) + pad("flags", 8) + pad("fault", 8) + pad("battery", 13)
-                  + pad("velA", 9) + pad("velB", 9) + pad("cmd m/s", 9) + "cmd rad/s")
+                  + pad("bstate", 8)
+                  + pad("velA", 9) + pad("velB", 9) + pad("cmd m/s", 9) + pad("cmd rad/s", 11)
+                  + pad("boost", 7) + pad("heat A/B", 15) + "derate A/B")
         }
         rowCount += 1
         let state = s.isEnabled ? (s.isCommandActive ? "driving" : "on") : "off"
@@ -243,10 +309,22 @@ final class Runner: @unchecked Sendable {
         let flags = [("E", s.isEnabled), ("F", s.isFaulted), ("C", s.isCommandActive),
                      ("A", s.encoderAOK), ("B", s.encoderBOK), ("P", s.batteryIsSensed)]
             .map { $0.1 ? $0.0 : "\u{00B7}" }.joined()
+        // "-" throughout means the firmware does not report the field, which
+        // is a different thing from reporting it as zero or none.
+        let batteryState = s.batteryState?.name ?? "-"
+        // "req" is Boost asked for but not granted: heat or derate holding it.
+        let boost = !s.acceptsBoost ? "-"
+            : s.isBoosting ? "on"
+            : s.flags2.contains(.boostRequested) ? "req" : "off"
+        let heat = s.heatA.flatMap { a in s.heatB.map { b in String(format: "%.2f/%.2f", a, b) } }
+            .map { s.isHeatLimited ? $0 + " hot" : $0 } ?? "-"
+        let derate = s.derateA.flatMap { a in s.derateB.map { b in "\(a)/\(b)" } }
+            .map { s.flags2.contains(.otpw) ? $0 + " otpw" : $0 } ?? "-"
         print(pad(state, 9) + pad(flags, 8) + pad(s.isFaulted ? s.fault.title : "-", 8)
-              + pad(battery, 13)
+              + pad(battery, 13) + pad(batteryState, 8)
               + num(s.wheelATurnsPerSec) + num(s.wheelBTurnsPerSec)
-              + num(s.commandedMetersPerSec) + String(format: "%.3f", s.commandedRadiansPerSec))
+              + num(s.commandedMetersPerSec) + pad(String(format: "%.3f", s.commandedRadiansPerSec), 11)
+              + pad(boost, 7) + pad(heat, 15) + derate)
     }
 }
 
@@ -284,14 +362,19 @@ case "enable", "disable", "stop", "estop", "clear":
     }
 
 case "drive":
-    guard args.count >= 4,
-          let v = Double(args[1]), let w = Double(args[2]), let secs = Double(args[3]),
+    // `--boost` may sit anywhere after the command; the numbers are positional.
+    let words = args.filter { $0 != "--boost" }
+    guard words.count >= 4,
+          let v = Double(words[1]), let w = Double(words[2]), let secs = Double(words[3]),
           v.isFinite, w.isFinite, secs.isFinite, secs > 0, secs <= 3600
     else { usage() }
-    print("driving v=\(v) w=\(w) for \(secs)s -- ^C releases")
+    print("driving v=\(v) w=\(w) for \(secs)s\(runner.boost ? " with boost" : "") -- ^C releases")
     runner.begin {
         let c = DriveCommand(v: v, w: w)
         runner.link.engage(c)
+        // The same call the app's Boost button makes. Over BLE the ticker
+        // holds the 5-byte frame back until a status frame has advertised it.
+        if runner.boost { runner.link.setBoost(true) }
         let t = DispatchSource.makeTimerSource(queue: .main)
         t.schedule(deadline: .now() + 0.2, repeating: 0.2)
         t.setEventHandler { runner.printStatusLine() }
@@ -299,6 +382,9 @@ case "drive":
         DispatchQueue.main.asyncAfter(deadline: .now() + secs) {
             t.cancel()
             runner.link.releaseStick()
+            // After the stick, so the stop itself is braced; letting go with
+            // no stick then ends on the usual zero tail.
+            if runner.boost { runner.link.setBoost(false) }
             print("released; the robot ramps to a stop")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { exit(0) }
         }

@@ -8,8 +8,27 @@ The app is portrait-locked and records its whole screen, so the clip you get out
 of it has the camera view of the robot on top and a live joystick underneath, in
 one 19.5:9 vertical video.
 
-There are no firmware changes. The base firmware has served a BLE drive service
-since 0.1.4; this is the phone app its header comment was written for.
+The base firmware has served a BLE drive service since 0.1.4; this is the phone
+app its header comment was written for. Driving needs nothing newer. Later
+firmware adds to what the app can show and do, listed below.
+
+
+## Firmware requirements
+
+Driving, the lock model and the five control ops work on any firmware from
+0.1.4. Everything else is read only where the robot reports it, so an older
+robot simply shows less:
+
+| Firmware | Adds | How the app knows |
+| --- | --- | --- |
+| 0.2.9 | Battery state (ok, low, cutoff) and the robot-level battery fault (6) | 18-byte BLE status; `batt.state` and `fault_code` over Wi-Fi |
+| 0.3.0 | Boost, motor heat, OTPW derate | flags2 bit 7 in the 20-byte BLE status; `"caps":["boost"]` over Wi-Fi |
+| 0.3.1 | Stall recovery reporting | the BLE recovery counter and flags2 bit 5; `rec` over Wi-Fi |
+| 0.4.0 | The "Wheel blocked" fault (7) | the fault code |
+
+Before 0.3.0 the Boost button is greyed, and a tap says the firmware is too old.
+The BLE link never sends a 5-byte drive frame until a status frame on the same
+connection has set flags2 bit 7, because older firmware rejects the length.
 
 
 ## Layout
@@ -19,7 +38,7 @@ since 0.1.4; this is the phone app its header comment was written for.
     Packages/UBotCore/     BLE and Wi-Fi transports, as a plain SPM package.
       Sources/UBotCore/    Protocol, transport, drive ticker, lock model, stick feel.
       Sources/ubotctl/     A macOS bench harness that speaks the same protocol.
-      Tests/               Protocol, connection lifecycle, and lock-model tests (Swift Testing).
+      Tests/               Protocol, ticker, connection lifecycle, and lock-model tests (Swift Testing).
 
 `UBotCore` builds for macOS as well as iOS, and that is deliberate rather than
 incidental. `ubotctl` drives a real robot from a Mac terminal using the exact
@@ -35,13 +54,18 @@ The app needs Xcode. The core does not.
     # The core, today, with only the Command Line Tools:
     cd Packages/UBotCore
     swift build
-    swift run ubotctl selftest      # 39 checks, no radio, no robot
-    swift test                      # 57 tests
+    swift run ubotctl selftest      # 57 checks, no radio, no robot
+    swift test                      # 102 tests
 
     # The app, once Xcode is installed:
     brew install xcodegen
     xcodegen generate
     open UBot.xcodeproj
+
+    # Its tests: 32 unit tests and 7 UI tests (the camera test skips in the
+    # Simulator). Any available iPhone simulator will do.
+    xcodebuild test -project UBot.xcodeproj -scheme UBot \
+        -destination 'platform=iOS Simulator,name=iPhone 16e'
 
 Do the first device run from the Xcode GUI: team selection and the "trust this
 developer" step in Settings > General > VPN & Device Management are GUI flows.
@@ -57,7 +81,11 @@ Neither Bluetooth nor the camera exists in the Simulator. The Simulator build
 uses `MockRobotLink` for BLE and the real Wi-Fi transport when Wi-Fi is selected.
 The mock emits synthetic status at the same 5 Hz the
 firmware does and honours the control ops, so every screen state can be reached
-and screenshotted without hardware.
+and screenshotted without hardware. It reports firmware 0.3.0 and starts with
+the motors off. Pass `-mockScenario <name>` as a launch argument to start it in
+another state: `healthy`, `faultedSlip`, `faultedMagnet`, `foreignCommand`,
+`stalled`, `linkLost`, `boosting`, `derated`, `motorsHot`, `batteryLow`,
+`batteryCutoff`, or `oldFirmware` (0.2.9, no boost). The UI tests use these.
 
 
 ## Wi-Fi and connection selection
@@ -136,10 +164,13 @@ drivetrain. Three independent things stop it, listed slowest to fastest to
 fail:
 
 1. **The gesture.** Lifting your thumb releases the stick, which sends a zero
-   immediately plus a ~200 ms tail of zeros.
-2. **The scene phase.** Anything that takes the app off screen zeroes the drive;
-   actually backgrounding also sends an explicit stop. `isIdleTimerDisabled` is
-   set while the app is active so the phone cannot auto-lock mid-drive.
+   immediately plus a ~200 ms tail of zeros. With Boost held, the zeros keep
+   coming, carrying the boost flag, until Boost is let go: the command is still
+   zero, so the robot still stops, then holds.
+2. **The scene phase.** Anything that takes the app off screen zeroes the drive
+   and lets go of Boost; actually backgrounding also sends an explicit stop.
+   `isIdleTimerDisabled` is set while the app is active so the phone cannot
+   auto-lock mid-drive.
 3. **The firmware's 500 ms deadman.** `DRIVE_HOLD_MS` in `ble.c`. If drive
    packets stop arriving for any reason -- app crash, flat phone, out of range,
    a thumb through the antenna -- the robot ramps itself to a stop.
@@ -183,6 +214,79 @@ Actual speed and acceleration are saved robot settings (`vmax_tps` and
 reference, 1.0 wheel turns/s is approximately 0.675 m/s straight ahead.
 
 
+## Boost
+
+Hold **Boost**, the bolt at the pad's bottom left opposite Clear, for extra
+motor current. It needs firmware 0.3.0. It is a hold, not a toggle, and it
+works with the stick or without it:
+
+- **With the stick**, drive frames carry the boost flag while both are held.
+- **Without the stick**, the app keeps sending zero frames that carry the flag,
+  so the robot holds where it stands at boost current: a brace on a hill.
+  Letting go of the stick while Boost is held does the same.
+- **Letting go of Boost** with the stick released ends with the usual zero tail.
+
+The robot decides whether to grant boost, not the app. It refuses while its
+thermal model has paused boost or a driver is derated, and its own start boost
+can be on without the button. The chip says what the robot is actually doing.
+
+The button is greyed, but still takes a tap that says why, when:
+
+- the firmware is older than 0.3.0,
+- the stick is locked (not connected, motors off, a fault, busy),
+- a motor driver is derated, or
+- the motors are too warm to boost.
+
+Boost is released on every path that releases the stick: a lock, leaving the
+app, a transport switch, opening Settings, a lost link, Stop, E-STOP and Clear.
+Heat or a derate arriving while it is held releases it too, with a toast. A
+hold taken away like that needs a fresh press; a thumb left on the button does
+not bring it back. The stick and Boost each track their own touch, so two
+thumbs work together.
+
+On the wire, over BLE, the 5-byte drive frame is sent only while Boost is held
+*and* a status frame on the current connection has set flags2 bit 7. Every
+other frame is the 4-byte one, unchanged. Over Wi-Fi the drive message carries
+`"boost":true` only while boosting, and older firmware ignores it.
+
+`ubotctl drive <v> <w> <secs> --boost` holds Boost for a bench drive, and
+`ubotctl status` shows boost, heat, derate and battery state columns.
+
+
+## Robot status: chips, cards and battery
+
+The top bar shows at most one chip about the robot, the most pressing first:
+
+| Chip | Meaning |
+| --- | --- |
+| Motor derate | A driver reached its 120 C pre-warning; current is reduced and boost is off |
+| Motor heat | The motors' thermal model has paused boost until they cool |
+| Boost | Boost is granted, whether the operator's or the robot's own start boost |
+| Battery low | The robot reports its battery low |
+
+The phone's own "Warm" and "Too hot" chips are separate and unchanged. On a
+narrow phone the battery reading shortens to its percentage while a chip shows.
+With the motors on, the state card says the same thing in a sentence: "Motor
+driver hot: current reduced (level 2 of 3); boost off", "Motors warm: boost
+paused until they cool", or "Battery low: charge or swap the pack soon".
+
+The battery state comes from the robot, which knows its pack (`batt_pack`) and
+thresholds and filters the voltage. The app never works it out from volts.
+
+- **Low**: the battery reading turns amber whatever the percentage, and the
+  chip shows.
+- **Cutoff**: the robot ramps to a stop and holds. The reading turns red and the
+  stick locks with "Battery empty: charge or swap the pack". Neither Clear nor
+  Enable is offered, because the robot refuses both until the voltage recovers.
+- **Recovered**: back above the cutoff, the battery fault is still latched.
+  Clear, or Enable with the motors off, clears it as it does any other fault.
+
+From firmware 0.3.1, when the robot recovers from a stall by itself the app
+toasts "Recovered a slip" once the recovery is over. Over Wi-Fi the toast names
+the wheel. A recovery that ends in a slip fault shows the fault card instead.
+The first status after connecting only sets the baseline.
+
+
 ## BLE
 
 A mirror of the table in `firmware/base/README.md`, so the two can be diffed.
@@ -197,9 +301,11 @@ betting on undocumented behaviour.
 
     service  7B1A0000-6F4B-4C2E-9D3A-2E5F1C8A9B01
       drive    ...0001  write, write-no-rsp   4 B: i16 v, i16 w, LE, thousandths
+                                              5 B from 0.3.0: + u8 flags, bit 0 boost
       control  ...0002  write                 1 B: 0 stop 1 enable 2 disable
                                                    3 estop 4 clear
-      status   ...0003  read, notify 5 Hz     13 B packed LE
+      status   ...0003  read, notify 5 Hz     13 B packed LE; 18 B from 0.2.9,
+                                              20 B from 0.3.0 (see UBotStatus.swift)
     battery  0x180F / 0x2A19  level %, notify 1 Hz
     devinfo  0x180A          manufacturer, model, serial, fw rev, hw rev
 
@@ -232,10 +338,11 @@ accepts both.
 
 ## Known items and assumptions
 
-- **Battery reads "not sensed."** The 11:1 divider on GPIO1 is not wired on this
-  build, so flag bit 5 is clear and the millivolts and percent are meaningless.
+- **Battery can read "not sensed."** On a build without the 11:1 divider on
+  GPIO1, flag bit 5 is clear and the millivolts and percent are meaningless.
   The app renders "not sensed" as a first-class state and never a scary 0%. This
-  is expected, not an app bug.
+  is expected, not an app bug. With the divider fitted, the robot's own battery
+  state (0.2.9 on) drives the low and cutoff warnings, not the percentage.
 - **Wheel B trips `MAGNET_LOW`** on current hardware -- both encoder magnets read
   at maximum AGC because the CAD magnet is 4x2 mm against the AS5600's reference
   6x2.5 mm. A `MAGNET` fault during testing is a known mechanical issue.
@@ -358,3 +465,19 @@ The actual URLSession WebSocket adapter also passed a localhost integration
 check against a synthetic server: connection, telemetry, acknowledged control,
 10 Hz drive frames with a 500 ms hold, and zero frames on release. This is not
 a substitute for the outstanding live robot test.
+
+
+**Boost, heat and battery in the app, 2026-09-30.** Written to the Phase 0 and
+Phase 1 wire formats in the torque plan while the firmware was built in
+parallel, so none of it has met a 0.2.9 or 0.3.0 robot yet. `swift build`,
+`ubotctl selftest` (57 checks) and `swift test` (102 tests) pass on the
+Command Line Tools. They cover 13-, 18- and 20-byte status vectors with the bit
+7 gating, 4- and 5-byte drive frames, Wi-Fi decoding with and without the new
+fields, the ticker never sending 5 bytes without the capability, the Wi-Fi
+boost paths and the battery lock cases. On an iPhone 16e simulator (iOS 26.3),
+32 unit tests and 6 UI tests passed, with the camera test skipped. A throwaway
+two-finger test, using XCTest's private event synthesis and not kept, held
+Boost and dragged the stick at the same time. Mid-gesture, Boost read Held, the
+chip read Boost and the readout showed the command. Lifting the stick left the
+brace, and lifting Boost released it. Still to do: live BLE and Wi-Fi against
+0.2.9 and 0.3.0 firmware, haptics and two thumbs on a real phone, and the yard.

@@ -283,3 +283,231 @@ private final class SettingsResults: @unchecked Sendable {
     var values: [Result<String, RobotSettingsError>] { lock.withLock { storage } }
     func append(_ result: Result<String, RobotSettingsError>) { lock.withLock { storage.append(result) } }
 }
+
+// MARK: - 0.2.9 / 0.3.0 status fields and Boost
+
+/// A 0.3.0-and-later status: capability, battery state, torque on both wheels,
+/// a recovery in progress, and a load estimate on wheel B only.
+private let torqueStatusJSON = #"{"t":"status","name":"ubot","fw":"0.3.1","enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","fault_code":0,"caps":["boost"],"cmd":{"v":0,"w":0,"active":false},"batt":{"present":true,"v":19.97,"pct":79,"state":"ok","pack":"li5s"},"wheels":[{"name":"A","vel":0,"enc":true,"fault":0,"torque":{"run":1160,"hold":552,"boost":2,"act":true,"h":0.83,"hot":false,"derate":0,"otpw":false},"lag":3,"trips":0,"load":null,"lim":false},{"name":"B","vel":0,"enc":true,"fault":0,"torque":{"run":1160,"hold":552,"boost":0,"act":false,"h":1.12,"hot":true,"derate":2,"otpw":true},"lag":-2,"trips":1,"load":41.5,"lim":false}],"rec":{"on":true,"state":"ramp","try":2,"wheels":2,"n":9,"ok":6,"fail":1}}"#
+
+private func decode(_ json: String) throws -> UBotStatus {
+    try #require(JSONDecoder().decode(WiFiProtocol.Status.self, from: Data(json.utf8)).model())
+}
+
+@Suite("Wi-Fi status, newer fields")
+struct WiFiStatusFieldTests {
+
+    @Test("firmware without the new fields decodes exactly as before")
+    func withoutNewFields() throws {
+        let s = try decode(statusJSON)
+        #expect(s.flags2 == [])
+        #expect(!s.acceptsBoost)
+        #expect(s.batteryState == nil && s.batteryPack == nil)
+        #expect(s.heatA == nil && s.heatB == nil && s.derateLevel == nil)
+        #expect(s.recoveryCount == nil && s.recoveryWheels == nil)
+        #expect(s.frameLength == nil)
+        #expect(s.fault == .none && s.batteryPercent == 75)
+    }
+
+    @Test("caps, battery, torque and recovery rebuild the BLE fields")
+    func withNewFields() throws {
+        let s = try decode(torqueStatusJSON)
+        #expect(s.acceptsBoost)
+        #expect(s.isBoosting)                                   // A granted a start boost
+        #expect(!s.flags2.contains(.boostRequested))            // nobody asked: reason 2 is START
+        #expect(s.isDerated && s.flags2.contains(.otpw))        // B at level 2
+        #expect(s.isHeatLimited)                                // B is hot
+        #expect(s.isRecovering)                                 // "ramp"
+        #expect(s.flags2.contains(.loadValid))                  // B has an estimate
+        #expect(s.heatA == 0.83 && s.heatB == 1.12)
+        #expect(s.derateA == 0 && s.derateB == 2 && s.derateLevel == 2)
+        #expect(s.recoveryCount == 9)
+        #expect(s.recoveryWheels == 2)
+        #expect(s.batteryState == .ok && s.batteryPack == "li5s")
+        #expect(s.fault == .none)
+    }
+
+    @Test("manual boost shows as requested; an idle recovery is not recovering")
+    func requestedAndIdle() throws {
+        let json = torqueStatusJSON
+            .replacingOccurrences(of: #""boost":0,"act":false"#, with: #""boost":9,"act":false"#)
+            .replacingOccurrences(of: #""state":"ramp""#, with: #""state":"idle""#)
+            .replacingOccurrences(of: #""load":41.5"#, with: #""load":null"#)
+        let s = try decode(json)
+        #expect(s.flags2.contains(.boostRequested))
+        #expect(!s.isRecovering)
+        #expect(!s.flags2.contains(.loadValid))
+    }
+
+    @Test(arguments: [("none", BatteryState.none), ("ok", .ok), ("low", .low),
+                      ("cutoff", .cutoff), ("flat", .unknown)])
+    func batteryStateNames(name: String, expected: BatteryState) throws {
+        let s = try decode(torqueStatusJSON.replacingOccurrences(of: #""state":"ok""#, with: "\"state\":\"\(name)\""))
+        #expect(s.batteryState == expected)
+    }
+
+    @Test("fault_code wins over the faulting wheel's own code")
+    func faultCodeWins() throws {
+        let faulted = torqueStatusJSON.replacingOccurrences(of: #""faulted":false"#, with: #""faulted":true"#)
+        // Robot-level: no wheel to look up, and both wheels report 0.
+        let battery = faulted
+            .replacingOccurrences(of: #""fault_wheel":"A""#, with: #""fault_wheel":"-""#)
+            .replacingOccurrences(of: #""fault_code":0"#, with: #""fault_code":6"#)
+        #expect(try decode(battery).fault == .battery)
+        // A wheel-level code that disagrees with the wheel: the code wins.
+        let blocked = faulted
+            .replacingOccurrences(of: #""fault_code":0"#, with: #""fault_code":7"#)
+            .replacingOccurrences(of: #""enc":true,"fault":0,"torque":{"run":1160,"hold":552,"boost":2"#,
+                                  with: #""enc":true,"fault":1,"torque":{"run":1160,"hold":552,"boost":2"#)
+        #expect(try decode(blocked).fault == .blocked)
+        // Not faulted means no fault, whatever the code says.
+        #expect(try decode(battery.replacingOccurrences(of: #""faulted":true"#, with: #""faulted":false"#)).fault
+                == .none)
+    }
+
+    @Test("without fault_code, a wheel is still looked up by name, and \"-\" names none")
+    func faultWithoutCode() throws {
+        let faulted = statusJSON.replacingOccurrences(of: #""faulted":false"#, with: #""faulted":true"#)
+        let onB = faulted
+            .replacingOccurrences(of: #""fault_wheel":"A""#, with: #""fault_wheel":"B""#)
+            .replacingOccurrences(of: #""vel":-0.2,"enc":true,"fault":0"#, with: #""vel":-0.2,"enc":true,"fault":3"#)
+        #expect(try decode(onB).fault == .magnet)
+        let robot = faulted.replacingOccurrences(of: #""fault_wheel":"A""#, with: #""fault_wheel":"-""#)
+        #expect(try decode(robot).fault == .unknown)
+    }
+
+    @Test("a malformed newer field costs that field, never the frame")
+    func lenient() throws {
+        let broken = torqueStatusJSON
+            .replacingOccurrences(of: #""caps":["boost"]"#, with: #""caps":"boost""#)
+            .replacingOccurrences(of: #""h":1.12"#, with: #""h":"warm""#)
+            .replacingOccurrences(of: #""rec":{"on":true"#, with: #""rec":[1],"old":{"on":true"#)
+            .replacingOccurrences(of: #""fault_code":0"#, with: #""fault_code":"none""#)
+            .replacingOccurrences(of: #""state":"ok""#, with: #""state":2"#)
+        let s = try decode(broken)
+        #expect(!s.acceptsBoost)
+        #expect(s.heatA == 0.83)                    // wheel A's torque object is intact
+        #expect(s.heatB == nil && s.derateB == nil) // wheel B's is dropped whole
+        #expect(s.recoveryCount == nil && !s.isRecovering)
+        #expect(s.batteryState == nil)
+        #expect(s.fault == .none)
+        #expect(s.isEnabled && s.batteryPercent == 79)
+    }
+
+    @Test("drive frames: the boost key only while boosting, and zero byte-identical to before")
+    func driveJSON() throws {
+        #expect(WiFiProtocol.drive(.zero) == #"{"t":"drive","v":0.0,"w":0.0,"hold":500}"#)
+        let c = DriveCommand(v: 0.5, w: -0.2)
+        #expect(WiFiProtocol.drive(c, boost: false) == WiFiProtocol.drive(c))
+        let plain = try #require(JSONSerialization.jsonObject(with: Data(WiFiProtocol.drive(c).utf8)) as? [String: Any])
+        #expect(plain["boost"] == nil)
+        let boosted = try #require(JSONSerialization.jsonObject(
+            with: Data(WiFiProtocol.drive(c, boost: true).utf8)) as? [String: Any])
+        #expect(boosted["boost"] as? Bool == true)
+        #expect(boosted["v"] as? Double == 0.5 && boosted["w"] as? Double == -0.2)
+        #expect(boosted["hold"] as? Int == 500)
+    }
+}
+
+@Suite("Wi-Fi Boost")
+struct WiFiBoostTests {
+    private let boostedZero = WiFiProtocol.drive(.zero, boost: true)
+
+    private func connected(_ socket: FakeSocket) -> WiFiRobotLink {
+        let link = WiFiRobotLink(address: "ubot.local", makeSocket: { _ in socket })
+        link.start(); flush(link)
+        socket.deliver(torqueStatusJSON); flush(link)
+        return link
+    }
+
+    @Test("with the stick, frames carry the command and the flag until Boost is let go")
+    func withStick() {
+        let socket = FakeSocket()
+        let link = connected(socket)
+        let c = DriveCommand(v: 0.3, w: 0)
+        link.engage(c); link.setBoost(true); flush(link); link.checkTimers()
+        #expect(socket.sent.last == WiFiProtocol.drive(c, boost: true))
+        link.setBoost(false); flush(link); link.checkTimers()
+        #expect(socket.sent.last == WiFiProtocol.drive(c))
+        link.stop(); flush(link)
+    }
+
+    @Test("without the stick, Boost keeps zero frames with the flag flowing")
+    func withoutStick() {
+        let socket = FakeSocket()
+        let link = connected(socket)
+        link.setBoost(true); flush(link)
+        for _ in 0..<4 { link.checkTimers(); flush(link) }
+        #expect(socket.sent.count >= 4)
+        #expect(socket.sent.allSatisfy { $0 == boostedZero })
+        link.stop(); flush(link)
+    }
+
+    @Test("a stick release while boosting braces with no plain zeros; letting go then ends on the tail")
+    func release() {
+        let socket = FakeSocket()
+        let link = connected(socket)
+        let c = DriveCommand(v: 0.3, w: 0)
+        link.engage(c); link.setBoost(true); flush(link); link.checkTimers()
+        // The link's own 10 Hz timer may slip one more frame of the previous
+        // kind in between reading a mark and the next call landing.
+        let released = socket.sent.count
+        link.releaseStick(); flush(link)
+        for _ in 0..<4 { link.checkTimers(); flush(link) }
+        let brace = Array(socket.sent.dropFirst(released).drop { $0 == WiFiProtocol.drive(c, boost: true) })
+        #expect(!brace.isEmpty)
+        #expect(brace.allSatisfy { $0 == boostedZero })
+        let letGo = socket.sent.count
+        link.setBoost(false); flush(link)
+        for _ in 0..<6 { link.checkTimers(); flush(link) }
+        let tail = Array(socket.sent.dropFirst(letGo).drop { $0 == boostedZero })
+        #expect(tail == Array(repeating: WiFiProtocol.drive(.zero), count: 3))
+        link.stop(); flush(link)
+    }
+
+    @Test("a faulted status stops the brace at once")
+    func faultStops() {
+        let socket = FakeSocket()
+        let link = connected(socket)
+        link.setBoost(true); flush(link); link.checkTimers()
+        socket.deliver(torqueStatusJSON.replacingOccurrences(of: #""faulted":false"#, with: #""faulted":true"#))
+        flush(link)
+        let count = socket.sent.count
+        for _ in 0..<3 { link.checkTimers(); flush(link) }
+        #expect(socket.sent.count == count)
+        link.stop(); flush(link)
+    }
+
+    @Test("stop, disable and E-STOP each clear Boost")
+    func controlsClear() {
+        for op in [ControlOp.stop, .disable, .estop] {
+            let socket = FakeSocket()
+            let link = connected(socket)
+            link.setBoost(true); flush(link); link.checkTimers()
+            link.send(op); flush(link)
+            socket.deliver("{\"t\":\"ack\",\"cmd\":\"\(WiFiProtocol.command(op))\",\"ok\":true}"); flush(link)
+            let count = socket.sent.count
+            for _ in 0..<3 { link.checkTimers(); flush(link) }
+            #expect(socket.sent.count == count, "\(op) left Boost running")
+            link.stop(); flush(link)
+        }
+    }
+
+    @Test("Boost needs a connection, and never survives a reconnect")
+    func connectionBound() {
+        let first = FakeSocket(), second = FakeSocket()
+        var sockets = [first, second]
+        let link = WiFiRobotLink(address: "ubot.local", makeSocket: { _ in sockets.removeFirst() })
+        link.start(); flush(link)
+        link.setBoost(true); flush(link)            // before any status: ignored
+        first.deliver(torqueStatusJSON); flush(link); link.checkTimers()
+        #expect(first.sent.isEmpty)
+        link.setBoost(true); flush(link); link.checkTimers()
+        #expect(first.sent.last == boostedZero)
+        link.stop(); flush(link); link.start(); flush(link)
+        second.deliver(torqueStatusJSON); flush(link)
+        for _ in 0..<3 { link.checkTimers(); flush(link) }
+        #expect(second.sent.isEmpty)
+        link.stop(); flush(link)
+    }
+}

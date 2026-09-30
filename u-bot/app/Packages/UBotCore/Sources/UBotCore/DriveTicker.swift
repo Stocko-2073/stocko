@@ -1,26 +1,72 @@
 import CoreBluetooth
 import Foundation
 
-/// Keeps the robot's 500 ms deadman fed while the stick is held, and guarantees
-/// a zero on the way out.
+/// Where the ticker's frames go. In the app this is always
+/// `PeripheralDriveWriter`; the seam exists so the cadence and the framing
+/// rules can be tested without a radio.
+protocol DriveWriter: AnyObject {
+    var isConnected: Bool { get }
+    var canSendWriteWithoutResponse: Bool { get }
+    func write(_ frame: Data, acknowledged: Bool)
+}
+
+/// The drive characteristic on a connected peripheral. Holds the peripheral
+/// strongly, as the ticker always has: CoreBluetooth does not retain one, and
+/// a deallocated `CBPeripheral` silently stops delivering callbacks.
+final class PeripheralDriveWriter: DriveWriter {
+    private let peripheral: CBPeripheral
+    private let characteristic: CBCharacteristic
+
+    init(peripheral: CBPeripheral, characteristic: CBCharacteristic) {
+        self.peripheral = peripheral
+        self.characteristic = characteristic
+    }
+
+    var isConnected: Bool { peripheral.state == .connected }
+    var canSendWriteWithoutResponse: Bool { peripheral.canSendWriteWithoutResponse }
+
+    func write(_ frame: Data, acknowledged: Bool) {
+        peripheral.writeValue(frame, for: characteristic,
+                              type: acknowledged ? .withResponse : .withoutResponse)
+    }
+}
+
+/// Keeps the robot's 500 ms deadman fed while the stick or Boost is held, and
+/// guarantees a zero on the way out.
 ///
 /// Everything here runs on the BLE serial queue -- the same queue as the
 /// `CBCentralManager` delegate callbacks, so the ticker and the connection
 /// state can never be observed inconsistently and no lock is needed anywhere.
 /// `dispatchPrecondition` keeps that true as the code grows.
 ///
-/// The ticker runs only while the stick is held, plus a short zero tail. A
-/// permanently running tick would hold the robot's `cmd_active` flag true
-/// forever, which would destroy the app's ability to notice that *another*
-/// controller is driving.
+/// The ticker runs only while the stick or Boost is held, plus a short zero
+/// tail. A permanently running tick would hold the robot's `cmd_active` flag
+/// true forever, which would destroy the app's ability to notice that
+/// *another* controller is driving.
+///
+/// Boost adds two rules. Held without the stick, it keeps the ticker sending
+/// zero frames that carry the flag, so the robot holds its place at boost
+/// current -- the stop on a hill. And the flag only exists in the 5-byte
+/// frame, which firmware before 0.3.0 rejects outright, so that frame goes out
+/// only while the latest status on this connection says the robot takes it.
+/// Every other frame is the 4-byte one, byte for byte what it always was.
 final class DriveTicker {
 
     private let queue: DispatchQueue
+    private let interval: TimeInterval
     private var timer: DispatchSourceTimer?
 
     private var command: DriveCommand = .zero
+    private var stickHeld = false
     private var zeroTailRemaining = 0
     private var lastWriteAt = Date.distantPast
+
+    /// The operator is holding Boost.
+    private(set) var boost = false
+
+    /// The robot accepts 5-byte drive frames: status flags2 bit 7. Refreshed
+    /// from every status frame and forgotten with the connection.
+    private(set) var extendedFrames = false
 
     /// Set when a tick could not be sent because the queue was shut, cleared
     /// when it is made good. Without it, `peripheralIsReady` turns into a
@@ -32,20 +78,26 @@ final class DriveTicker {
     private var owesResend = false
 
     /// Set once the drive characteristic is discovered, cleared on disconnect.
-    var target: (peripheral: CBPeripheral, characteristic: CBCharacteristic)?
+    var target: DriveWriter?
 
     /// Rolling counters, drained once a second into a `.linkQuality` event.
     private(set) var written = 0
     private(set) var dropped = 0
     private(set) var escalated = 0
 
-    init(queue: DispatchQueue) { self.queue = queue }
+    /// `interval` is the tick period. Tests pass something long and call
+    /// `tick()` themselves, so no real timer ever fires under them.
+    init(queue: DispatchQueue, interval: TimeInterval = UBotGATT.tickInterval) {
+        self.queue = queue
+        self.interval = interval
+    }
 
     // MARK: - BLE queue only
 
     /// Finger down. Sends immediately rather than waiting a whole tick.
     func engage(_ c: DriveCommand) {
         dispatchPrecondition(condition: .onQueue(queue))
+        stickHeld = true
         command = c
         zeroTailRemaining = 0
         if timer == nil { startTimer() }
@@ -54,9 +106,11 @@ final class DriveTicker {
 
     /// Finger moved. Coalesced: the next tick sends whatever the newest value
     /// is. A drive command is a latest-value signal, never a stream, so there
-    /// is nothing to queue.
+    /// is nothing to queue. Ignored once the finger is up, so a late update
+    /// can never put motion back into a zero tail or a Boost brace.
     func update(_ c: DriveCommand) {
         dispatchPrecondition(condition: .onQueue(queue))
+        guard stickHeld else { return }
         command = c
     }
 
@@ -67,20 +121,63 @@ final class DriveTicker {
     /// deadman period. If every one of those is lost, the firmware's 500 ms
     /// deadman still stops it -- two independent mechanisms, neither relying on
     /// the other.
+    ///
+    /// With Boost held there is no tail: the boosted zeros that keep coming
+    /// are the stop, and a tail would count down and end the brace.
     func release() {
         dispatchPrecondition(condition: .onQueue(queue))
+        stickHeld = false
         command = .zero
-        zeroTailRemaining = 4
+        zeroTailRemaining = boost ? 0 : 4
         if timer == nil { startTimer() }
         send()
     }
 
+    /// Boost pressed or let go. Sent at once, so the robot hears the change
+    /// now rather than a tick later. Let go with no stick held, it ends with
+    /// the same zero tail as a stick release.
+    func setBoost(_ on: Bool) {
+        dispatchPrecondition(condition: .onQueue(queue))
+        guard on != boost else { return }
+        boost = on
+        if on {
+            zeroTailRemaining = 0
+        } else if !stickHeld {
+            command = .zero
+            zeroTailRemaining = 4
+        }
+        if timer == nil { startTimer() }
+        send()
+    }
+
+    /// Stop or E-STOP. The operator's intent is void as a whole: the stick
+    /// and Boost go together, with the usual zero tail.
+    func cancel() {
+        dispatchPrecondition(condition: .onQueue(queue))
+        boost = false
+        release()
+    }
+
+    /// Every decoded status frame, notified or polled.
+    func statusReceived(_ s: UBotStatus) {
+        dispatchPrecondition(condition: .onQueue(queue))
+        extendedFrames = s.acceptsBoost
+        // Motors off or a latched fault: there is nothing left to brace, and
+        // the robot refuses the frames anyway. The app lets go of Boost for
+        // the same reason from the same frame; this does not wait for it.
+        if boost, !s.isEnabled || s.isFaulted { setBoost(false) }
+    }
+
     /// The link is gone. There is nothing left to write and nothing to be done
     /// about it -- the robot's deadman handles it. This is exactly the case the
-    /// deadman exists for.
+    /// deadman exists for. Boost and the capability go with the connection: a
+    /// reconnect starts from 4-byte frames until a status says otherwise.
     func abandon() {
         dispatchPrecondition(condition: .onQueue(queue))
         command = .zero
+        stickHeld = false
+        boost = false
+        extendedFrames = false
         zeroTailRemaining = 0
         owesResend = false
         target = nil
@@ -103,12 +200,25 @@ final class DriveTicker {
         return (written, dropped, escalated)
     }
 
+    /// True while the timer is feeding the deadman.
+    var isRunning: Bool { timer != nil }
+
+    /// One timer period. Internal so tests can step the cadence themselves.
+    func tick() {
+        dispatchPrecondition(condition: .onQueue(queue))
+        send()
+        if zeroTailRemaining > 0 {
+            zeroTailRemaining -= 1
+            if zeroTailRemaining == 0 { stopTimer() }
+        }
+    }
+
     // MARK: - Internals
 
     private func startTimer() {
         let t = DispatchSource.makeTimerSource(queue: queue)
-        t.schedule(deadline: .now() + UBotGATT.tickInterval,
-                   repeating: UBotGATT.tickInterval,
+        t.schedule(deadline: .now() + interval,
+                   repeating: interval,
                    leeway: .milliseconds(5))
         t.setEventHandler { [weak self] in self?.tick() }
         timer = t
@@ -120,21 +230,13 @@ final class DriveTicker {
         timer = nil
     }
 
-    private func tick() {
-        send()
-        if zeroTailRemaining > 0 {
-            zeroTailRemaining -= 1
-            if zeroTailRemaining == 0 { stopTimer() }
-        }
-    }
-
     private func send() {
-        guard let (p, ch) = target, p.state == .connected else { return }
-        let frame = command.frame
+        guard let target, target.isConnected else { return }
+        let frame = boost && extendedFrames ? command.frame(boost: true) : command.frame
         let now = Date()
 
-        if p.canSendWriteWithoutResponse {
-            p.writeValue(frame, for: ch, type: .withoutResponse)
+        if target.canSendWriteWithoutResponse {
+            target.write(frame, acknowledged: false)
             lastWriteAt = now
             written += 1
             owesResend = false
@@ -151,7 +253,7 @@ final class DriveTicker {
         // acknowledged write -- the characteristic is declared
         // WRITE_NO_RSP | WRITE in ble.c and the handler returns 0 either way.
         if now.timeIntervalSince(lastWriteAt) > UBotGATT.backpressureEscapeAfter {
-            p.writeValue(frame, for: ch, type: .withResponse)
+            target.write(frame, acknowledged: true)
             lastWriteAt = now
             escalated += 1
             owesResend = false

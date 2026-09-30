@@ -2,18 +2,23 @@ import XCTest
 import UBotCore
 @testable import UBot
 
-private final class TestLink: RobotLink {
+/// Records what the controller asks of its link. Shared with the Boost tests.
+final class TestLink: RobotLink {
     var onEvent: (@Sendable (LinkEvent) -> Void)?
     var starts = 0
     var stops = 0
     var releases = 0
     var commands: [ControlOp] = []
     var drives: [DriveCommand] = []
+    /// Every `setBoost` call, in order. Reached through the `RobotLink`
+    /// requirement, which is what proves dispatch is dynamic.
+    var boosts: [Bool] = []
     func start() { starts += 1 }
     func stop() { stops += 1 }
     func engage(_ command: DriveCommand) { drives.append(command) }
     func update(_ command: DriveCommand) { drives.append(command) }
     func releaseStick() { releases += 1 }
+    func setBoost(_ on: Bool) { boosts.append(on) }
     func send(_ op: ControlOp) { commands.append(op) }
 }
 

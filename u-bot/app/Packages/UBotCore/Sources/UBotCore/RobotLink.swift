@@ -79,8 +79,24 @@ public protocol RobotLink: AnyObject {
     /// Finger moved. Coalesced -- the next tick sends the newest value.
     func update(_ command: DriveCommand)
     /// Finger up, lock engaged, app resigned active, telemetry went stale.
-    /// Sends a zero immediately plus a short tail.
+    /// Sends a zero immediately plus a short tail. Boost, if held, stays held.
     func releaseStick()
+
+    /// Boost held (`true`) or let go (`false`).
+    ///
+    /// While held, drive frames carry the boost flag, stick or no stick: with
+    /// the stick released they are zero frames, so the robot holds its place
+    /// at boost current -- bracing on a hill. Letting go with no stick held
+    /// ends with the usual zero tail.
+    ///
+    /// Only engaged once the status says the robot accepts it; on BLE the
+    /// link also refuses to put the 5-byte frame on the wire before then.
+    /// Stop, E-STOP and link loss clear it inside the transport as well as in
+    /// the app, so a Boost can never outlive the link that carried it.
+    ///
+    /// A requirement rather than only an extension method, so calls through
+    /// `RobotLink` reach the conforming type's own implementation.
+    func setBoost(_ on: Bool)
 
     func send(_ op: ControlOp)
     func executeManagement(_ args: [String], completion: @escaping ManagementCompletion)
@@ -90,4 +106,8 @@ public extension RobotLink {
     func executeManagement(_ args: [String], completion: @escaping ManagementCompletion) {
         completion(.failure(.unavailable))
     }
+
+    /// A link that cannot carry the flag ignores it. The robot then drives at
+    /// its normal current, which is always safe.
+    func setBoost(_ on: Bool) {}
 }

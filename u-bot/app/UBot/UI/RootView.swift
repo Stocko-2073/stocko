@@ -9,6 +9,7 @@ struct RootView: View {
     @Environment(CameraSession.self) private var camera
 
     @State private var surface = ControlSurfaceModel()
+    @State private var boost = BoostButtonModel()
     @State private var thermal = ProcessInfo.processInfo.thermalState
 
     var body: some View {
@@ -44,16 +45,29 @@ struct RootView: View {
         .task { bootstrap() }
         .onChange(of: controller.lock) { old, new in
             // joystick.html does `if (why && timer) release(false)`. A fault or
-            // a disable must not leave the last non-zero command on the wire.
+            // a disable must not leave the last non-zero command on the wire,
+            // nor a Boost held behind it.
             if old == nil, let new {
                 surface.forceRelease()
+                boost.forceRelease()
                 controller.emergencyRelease(alsoStop: false)
                 controller.show(new.reason, kind: .warning)
             }
             surface.lock = new
         }
         .onChange(of: controller.isDriving) { _, driving in
+            // Not Boost: letting go of the stick with Boost held braces the
+            // robot where it stands, which is the point of holding it.
             if !driving { surface.forceRelease() }
+        }
+        .onChange(of: controller.isBoosting) { _, boosting in
+            // The controller let go -- a stop, E-STOP, leaving the app, a lost
+            // link, a transport switch, settings. The button follows.
+            if !boosting { boost.forceRelease() }
+        }
+        .onChange(of: controller.boostBlockReason) { _, reason in
+            boost.blockReason = reason
+            if reason != nil { boost.forceRelease() }
         }
         .onReceive(NotificationCenter.default.publisher(
             for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
@@ -124,11 +138,20 @@ struct RootView: View {
             // it costs nothing at full deflection.
             JoystickPad(model: surface)
                 .frame(maxWidth: 250)
+                .overlay(alignment: .bottomLeading) {
+                    // Opposite Clear, for the other thumb. Always present --
+                    // greyed when unavailable -- so it never moves under a
+                    // thumb that is reaching for it.
+                    BoostButton(model: boost)
+                        .offset(x: -24)
+                }
                 .overlay(alignment: .bottomTrailing) {
                     if controller.stateCard.action?.op == .clearFaults {
                         Button {
                             surface.forceRelease()
+                            boost.forceRelease()
                             controller.releaseStick()
+                            controller.releaseBoost()
                             controller.send(.clearFaults)
                         } label: {
                             VStack(spacing: 3) {
@@ -189,6 +212,11 @@ struct RootView: View {
         surface.onUpdate  = { controller.update($0) }
         surface.onRelease = { controller.releaseStick() }
         surface.onBlocked = { controller.show($0.reason, kind: .warning) }
+
+        boost.blockReason = controller.boostBlockReason
+        boost.onPress     = { controller.engageBoost() }
+        boost.onRelease   = { controller.releaseBoost() }
+        boost.onBlocked   = { controller.show($0, kind: .warning) }
 
         recorder.microphoneEnabled = settings.microphoneEnabled
         controller.start()

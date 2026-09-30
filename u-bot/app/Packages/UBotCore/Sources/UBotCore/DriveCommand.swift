@@ -36,9 +36,9 @@ public struct DriveCommand: Equatable, Sendable {
         self.init(v: -y, w: -x)
     }
 
-    /// `int16 v, int16 w`, little-endian, thousandths. Exactly 4 bytes -- the
-    /// firmware returns `BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN` for any other
-    /// length.
+    /// `int16 v, int16 w`, little-endian, thousandths. Exactly 4 bytes, which
+    /// every firmware accepts -- before 0.3.0 the firmware returns
+    /// `BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN` for any other length.
     public var frame: Data {
         let vi = Int16(clamping: Int((v * 1000).rounded()))
         let wi = Int16(clamping: Int((w * 1000).rounded()))
@@ -46,6 +46,20 @@ public struct DriveCommand: Equatable, Sendable {
             UInt8(truncatingIfNeeded: vi), UInt8(truncatingIfNeeded: vi >> 8),
             UInt8(truncatingIfNeeded: wi), UInt8(truncatingIfNeeded: wi >> 8),
         ])
+    }
+
+    /// Bit 0 of the optional fifth byte. The other bits are reserved and zero.
+    public static let boostFlag: UInt8 = 1 << 0
+
+    /// `frame` plus a flags byte: 5 bytes, for firmware 0.3.0 and later only.
+    ///
+    /// Older firmware rejects the length, so this is sent only while Boost is
+    /// held *and* the robot has advertised it accepts the frame (status flags2
+    /// bit 7). Everything else goes out as the 4-byte `frame`, which the
+    /// firmware also reads as "no boost" -- a frame without the flag is what
+    /// ends a manual boost.
+    public func frame(boost: Bool) -> Data {
+        frame + [boost ? Self.boostFlag : 0]
     }
 
     public var isZero: Bool { v == 0 && w == 0 }

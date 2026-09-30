@@ -14,6 +14,15 @@ struct TopHUD: View {
         HStack(spacing: 8) {
             pill
             Spacer(minLength: 4)
+            // The robot's torque and supply, one chip at most. It takes its
+            // space before the pill does, so the pill drops the name or the
+            // firmware version rather than the chip losing letters.
+            if let robot = controller.robotChip {
+                chip(robot.text, tone: tone(robot.tone))
+                    .fixedSize()
+                    .layoutPriority(1)
+                    .accessibilityIdentifier("robot-chip")
+            }
             if thermal == .serious || thermal == .critical {
                 chip(thermal == .critical ? "Too hot" : "Warm",
                      tone: thermal == .critical ? UBotPalette.bad : UBotPalette.warn)
@@ -65,19 +74,24 @@ struct TopHUD: View {
             statusPill(showName: true, showFirmware: true)
             statusPill(showName: true, showFirmware: false)
             statusPill(showName: false, showFirmware: false)
+            // Last resort, with a robot chip beside it on a narrow phone:
+            // the percentage whole rather than the full reading cut short.
+            statusPill(showName: false, showFirmware: false, compactBattery: true)
         }
     }
 
-    private func statusPill(showName: Bool, showFirmware: Bool) -> some View {
+    private func statusPill(showName: Bool, showFirmware: Bool,
+                            compactBattery: Bool = false) -> some View {
         HStack(spacing: 7) {
             Circle().fill(dotColor).frame(width: 9, height: 9)
             if showName {
                 Text(controller.linkState.robotName ?? controller.linkState.summary)
                     .foregroundStyle(UBotPalette.fg)
             }
-            Text(controller.batteryText)
+            Text(compactBattery ? controller.batteryShortText : controller.batteryText)
                 .telemetryDigits()
                 .foregroundStyle(controller.batteryTone)
+                .accessibilityLabel(controller.batteryText)
             if showFirmware, let fw = controller.firmware {
                 Text("fw \(fw)").foregroundStyle(UBotPalette.mute)
             }
@@ -91,6 +105,14 @@ struct TopHUD: View {
         case .stalled, .scanning,
              .connecting, .discovering:     return UBotPalette.warn
         default:                            return UBotPalette.bad
+        }
+    }
+
+    private func tone(_ tone: RobotController.RobotChip.Tone) -> Color {
+        switch tone {
+        case .active: return UBotPalette.act
+        case .warn:   return UBotPalette.warn
+        case .bad:    return UBotPalette.bad
         }
     }
 

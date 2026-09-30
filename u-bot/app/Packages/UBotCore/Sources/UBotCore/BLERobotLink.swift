@@ -119,15 +119,25 @@ public final class BLERobotLink: NSObject, RobotLink {
         queue.async { [self] in ticker.release() }
     }
 
+    public func setBoost(_ on: Bool) {
+        queue.async { [self] in
+            // Letting go always gets through; taking hold needs a live link,
+            // the same as the stick.
+            guard !on || (running && state.isReady) else { return }
+            ticker.setBoost(on)
+            if on, qualityTimer == nil { startQualityTimer() }
+        }
+    }
+
     public func send(_ op: ControlOp) {
         queue.async { [self] in
             guard running, let p = peripheral, let ch = controlChr, p.state == .connected else {
                 emit(.controlRefused(op, "Not connected to the robot."))
                 return
             }
-            // An E-STOP also drops the stick: there is no sense in a zero-tail
-            // fighting a hardware kill.
-            if op == .estop || op == .stop { ticker.release() }
+            // An E-STOP also drops the stick and Boost: there is no sense in a
+            // zero-tail, let alone a boosted brace, fighting a hardware kill.
+            if op == .estop || op == .stop { ticker.cancel() }
             pendingControl.append(op)
             p.writeValue(op.frame, for: ch, type: .withResponse)
         }
@@ -250,7 +260,7 @@ public final class BLERobotLink: NSObject, RobotLink {
             log.warning("status stale, re-arming CCCD and polling")
             state = .stalled(name: p.name ?? nameFilter)
         }
-        ticker.release()                        // never drive on stale telemetry
+        ticker.cancel()                         // never drive, or brace, on stale telemetry
         if !ch.isNotifying { p.setNotifyValue(true, for: ch) }
         p.readValue(for: ch)                    // the characteristic is READ | NOTIFY
     }
@@ -400,7 +410,7 @@ extension BLERobotLink: CBPeripheralDelegate {
             switch ch.uuid {
             case UBotGATT.drive:
                 driveChr = ch
-                ticker.target = (p, ch)
+                ticker.target = PeripheralDriveWriter(peripheral: p, characteristic: ch)
             case UBotGATT.control:
                 controlChr = ch
             case UBotGATT.status:
@@ -436,11 +446,14 @@ extension BLERobotLink: CBPeripheralDelegate {
         switch ch.uuid {
         case UBotGATT.status:
             guard let s = UBotStatus(data) else {
-                log.error("status frame was \(data.count) bytes, expected \(UBotStatus.byteCount)")
+                log.error("status frame was \(data.count) bytes, expected at least \(UBotStatus.byteCount)")
                 return
             }
             lastStatusAt = Date()
             if case .stalled = state { state = .ready(name: p.name ?? nameFilter) }
+            // Before the app hears of it: this frame decides whether the next
+            // drive write may be the 5-byte one.
+            ticker.statusReceived(s)
             emit(.status(s))
         case UBotGATT.managementResponse:
             do {
