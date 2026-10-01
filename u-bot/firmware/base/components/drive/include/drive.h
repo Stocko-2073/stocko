@@ -55,6 +55,29 @@ typedef enum {
 #define DRIVE_BOOST_LIMIT_SUPPLY 4u   // the battery is low (or cut off)
 #define DRIVE_BOOST_LIMIT_OFF    8u   // boost_ma is 0, or not above run_ma
 
+// Stall recovery (0.3.1): drive_status_t.rec_state. Anything but IDLE is one
+// episode, from the first trip until it recovers, is cancelled or gives up;
+// it never passes through IDLE between its attempts.
+typedef enum {
+    DRIVE_REC_IDLE = 0,
+    DRIVE_REC_LOCK,   // both wheels held: the tripped one at its rotor's speed, waiting for it to lock
+    DRIVE_REC_RAMP,   // holds released, re-ramping toward the stick until it has made progress
+} drive_rec_state_t;
+
+// drive_status_t.rec_last_event: what the recovery did last, each logged on
+// the "rec" tag as it happens.
+typedef enum {
+    DRIVE_REC_EV_NONE = 0,       // nothing yet since boot
+    DRIVE_REC_EV_FAULT_DIRECT,   // a trip it may not handle (recover 0, no live stick, a lead): faulted
+    DRIVE_REC_EV_ATTEMPT,        // froze both wheels and started an attempt
+    DRIVE_REC_EV_JOINED,         // the partner slipped during the lock and joined the attempt
+    DRIVE_REC_EV_LOCKED,         // the rotors matched their holds: ramping back to the stick
+    DRIVE_REC_EV_LOCK_FAILED,    // a rotor did not lock: froze again, as the next attempt
+    DRIVE_REC_EV_RECOVERED,      // every involved wheel made rec_prog: done, no fault
+    DRIVE_REC_EV_CANCELLED,      // stick released, stopped or reversed, or a setting changed: no fault
+    DRIVE_REC_EV_GAVE_UP,        // out of attempts, too many in a minute, or an encoder lost: FAULT_SLIP
+} drive_rec_event_t;
+
 typedef struct {
     bool driver_ok;        // configuration verified; invalidated by driver faults/settings
     bool driver_status_ok;
@@ -96,9 +119,19 @@ typedef struct {
     uint8_t cs_actual;         // CS_ACTUAL in the last DRV_STATUS sample
     uint32_t cs_mismatch;      // moving samples whose CS_ACTUAL was not the live IRUN, since stats reset
 
-    // Reserved for later phases, not fields yet: rec_state and rec_count
-    // (0.3.1, stall recovery), lag (0.3.1, the stall detector's lag),
-    // load_deg and limiter (0.4.0, load-angle estimate and lead limiter).
+    // --- stall detection (0.3.1) ---
+    // lag is the stall detector's: commanded minus encoder, in microsteps,
+    // against a reference that leaks by distance, + with the rotor behind.
+    // It trips past lag_trip (a lead past -lag_trip). 0 while not armed:
+    // stopped, in position mode, or within lag_rev of a start or reversal.
+    float lag_steps;           // this tick's
+    float lag_worst;           // the largest |lag| while armed, since stats reset
+    bool lag_armed;
+    bool rec_held;             // stall recovery is holding this wheel's velocity command
+    uint32_t stall_trips;      // detector trips since boot, lag and lead
+
+    // Reserved for later phases, not fields yet: load_deg and limiter
+    // (0.4.0, load-angle estimate and lead limiter).
 } drive_wheel_status_t;
 
 typedef struct {
@@ -124,6 +157,15 @@ typedef struct {
     uint32_t slot_deferred;    // ticks the budget put off a due group
     uint32_t uart_read_worst_us, uart_write_worst_us;   // bus lock held, per transaction
     float heat_limit, heat_resume;   // therm_lim, and where boost comes back
+
+    // --- stall recovery (0.3.1) ---
+    bool rec_enabled;          // the recover setting
+    uint8_t rec_state;         // drive_rec_state_t
+    uint8_t rec_attempt;       // this episode's attempt, 1..rec_tries; 0 when idle
+    uint8_t rec_wheels;        // wheels in this episode: bit 0 A, bit 1 B; 0 when idle
+    uint8_t rec_last_event;    // drive_rec_event_t
+    uint32_t rec_last_age_ms;  // since that event; 0 before the first
+    uint32_t rec_attempts, rec_recoveries, rec_giveups;   // since boot; BLE byte 16 is rec_attempts' low byte
 } drive_status_t;
 
 // One duration, from a log histogram: p50 and p99 are the top of the bucket
@@ -173,7 +215,8 @@ void drive_maintenance_cancel(void);
 esp_err_t drive_enable(bool on);
 bool drive_enabled(void);
 
-// Ramp every wheel to zero and cancel any timed command. Drivers stay on.
+// Ramp every wheel to zero and cancel any timed command, and a stall recovery
+// in progress. Drivers stay on.
 void drive_stop(void);
 
 // Emergency stop: EN high immediately, from any task, without taking any lock.
@@ -259,9 +302,19 @@ const char *const *drive_param_names(size_t *n);
 // run_ma above a nonzero boost_ma is refused. Torque settings apply at once,
 // drivers on or off: boost_ma (0 = off, else run_ma..1768), boost_start_ms
 // (0..5000, 0 = no start boost), therm_tau_s (60..3600), therm_lim (0.5..1.3).
+// Stall settings apply at once too, and start the detectors over and cancel a
+// recovery in progress: recover (1 retry a stall, 0 fault on the first trip),
+// rec_tries (1..10), rec_lock_ms (50..2000), rec_prog (0.05..2 output turns),
+// and in microsteps lag_trip (0 = detector off, else 16..0.8 x lag_leak),
+// lag_leak (100..4000) and lag_rev (0..400).
 esp_err_t drive_setting_set(const char *name, float value);
 esp_err_t drive_setting_get(const char *name, float *value);
 const char *const *drive_setting_names(size_t *n);
+
+// "idle" "lock" "ramp", and "attempt", "gave up" and so on: the names the
+// status reports and the "rec" log lines use.
+const char *drive_rec_state_name(uint8_t state);
+const char *drive_rec_event_name(uint8_t event);
 
 // Force a wheel's shaft polarity (normally calibration decides). Persisted.
 esp_err_t drive_wheel_set_invert(drive_wheel_t w, bool inv);
@@ -291,8 +344,9 @@ esp_err_t drive_debug_inject_otpw(drive_wheel_t w, uint32_t ms);
 void drive_get_status(drive_status_t *out);
 
 // Start the statistics over: worst tick, worst encoder read, the timing
-// histograms, slot and UART timing, live-write counts and CS_ACTUAL
-// mismatches. Bus write and echo-fault totals stay counts since boot.
+// histograms, slot and UART timing, live-write counts, CS_ACTUAL mismatches
+// and each wheel's worst stall-detector lag. Bus write and echo-fault totals,
+// detector trips and the recovery counters stay counts since boot.
 void drive_reset_stats(void);
 
 // p50/p99/max of the control tick, each wheel's encoder read and the slot's
@@ -302,7 +356,9 @@ void drive_get_timings(drive_timings_t *out);
 // Telemetry, same columns as the bench sketch streamed so the existing scope
 // can replay a capture. New columns are only ever appended (batt_v, batt_st
 // since 0.2.9; since 0.3.0 per wheel the live run/hold mA, boost reasons,
-// heat, derate level and OTPW); the scope finds them by name from the header.
+// heat, derate level and OTPW; since 0.3.1 each wheel's stall-detector lag
+// and the recovery's state and attempt); the scope finds them by name from
+// the header.
 const char *drive_csv_header(void);
 int drive_csv_line(char *buf, size_t n);
 

@@ -19,9 +19,13 @@
 //       "caps":["boost"] says drive frames may carry "boost", and each wheel
 //       has "torque":{"run","hold" (live mA),"boost" (DRIVE_BOOST_* reasons),
 //       "act" (granted),"h" (heat),"hot" (heat-limited),"derate" (0-3),"otpw"}
+//       and, since 0.3.1, "lag" (stall detector, microsteps) and "trips";
+//       "rec":{"on","state" (idle|lock|ramp),"try","wheels" (bit 0 A, bit 1
+//       B),"n" (attempts, BLE byte 16's count),"ok" (recovered),"fail"}
 //   {"t":"ack","cmd":"enable","ok":true}    for everything but "drive"
 //   {"t":"ack","cmd":"drive","ok":false,"err":"..."}   only when a drive was refused
 //   {"t":"log","m":"..."}                   when subscribed
+#include <math.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -127,7 +131,9 @@ static int status_json(char *buf, size_t n) {
     json_escape(battery_state_name(battery_state()), batt_state, sizeof batt_state);
     // The latched code rather than a wheel's own: a robot-level fault (the
     // battery) belongs to no wheel, so fault_wheel is "-" for it, and
-    // fault_code is always there, 0 when nothing is latched.
+    // fault_code is always there, 0 when nothing is latched. A stall recovery
+    // has its own "rec" object and never shows through cal, demo or ota,
+    // which lock the app's stick: the operator keeps it throughout.
     int len = snprintf(buf, n,
         "{\"t\":\"status\",\"fw\":\"%s\",\"hw\":\"%s\",\"name\":\"%s\",\"up\":%lu,"
         "\"enabled\":%s,\"faulted\":%s,\"fault\":%s%s%s,\"fault_wheel\":\"%s\",\"fault_code\":%u,"
@@ -135,6 +141,7 @@ static int status_json(char *buf, size_t n) {
         "\"cal\":%s,\"demo\":%s%s%s,"
         "\"cmd\":{\"v\":%.3f,\"w\":%.3f,\"active\":%s},"
         "\"limits\":{\"v\":%.3f,\"w\":%.3f},"
+        "\"rec\":{\"on\":%s,\"state\":\"%s\",\"try\":%u,\"wheels\":%u,\"n\":%lu,\"ok\":%lu,\"fail\":%lu},"
         "\"batt\":{\"present\":%s,\"v\":%.2f,\"pct\":%d,\"state\":\"%s\",\"pack\":\"%s\"},"
         "\"wifi\":{\"rssi\":%d},"
         "\"ota\":{\"busy\":%s,\"state\":\"%s\",\"available\":%s%s%s,\"configured\":%s},"
@@ -148,6 +155,9 @@ static int status_json(char *buf, size_t n) {
         s.demo_running ? "\"" : "", s.demo_running ? s.demo_caption : "null", s.demo_running ? "\"" : "",
         s.v_mps, s.w_radps, s.cmd_active ? "true" : "false",
         s.vmax_mps, s.wmax_radps,
+        s.rec_enabled ? "true" : "false", drive_rec_state_name(s.rec_state), (unsigned)s.rec_attempt,
+        (unsigned)s.rec_wheels, (unsigned long)s.rec_attempts, (unsigned long)s.rec_recoveries,
+        (unsigned long)s.rec_giveups,
         battery_present() ? "true" : "false", battery_voltage(), battery_percent(), batt_state, pack,
         ns.rssi,
         net_ota_busy() ? "true" : "false", net_ota_status(),
@@ -157,9 +167,11 @@ static int status_json(char *buf, size_t n) {
     for (int i = 0; i < DRIVE_NWHEELS && len < (int)n; i++) {
         const drive_wheel_status_t *w = &s.wheel[i];
         // run_ma/hold_ma are the base pair, "torque" the live one. "h" is the
-        // thermal model's heat, 1.0 at the motor's rated steady state.
+        // thermal model's heat, 1.0 at the motor's rated steady state. "lag"
+        // is the stall detector's, whole microsteps, 0 while it is not armed.
         len += snprintf(buf + len, n - len,
             "%s{\"name\":\"%s\",\"driver\":%s,\"pos\":%.4f,\"vel\":%.3f,\"slip\":%ld,"
+            "\"lag\":%ld,\"trips\":%lu,"
             "\"enc\":%s,\"agc\":%u,\"magnet\":\"%s\",\"fault\":%u,\"gain\":%.4f,\"loop\":%s,"
             "\"run_ma\":%.0f,\"hold_ma\":%.0f,\"driver_status_ok\":%s,"
             "\"drv_status\":%lu,\"gstat\":%lu,\"driver_age_ms\":%lu,"
@@ -168,6 +180,7 @@ static int status_json(char *buf, size_t n) {
             "\"derate\":%u,\"otpw\":%s}}",
             i ? "," : "", i == 0 ? "A" : "B", w->driver_ok ? "true" : "false",
             w->pos_turns, w->vel_tps, (long)w->slip_steps,
+            lroundf(w->lag_steps), (unsigned long)w->stall_trips,
             w->encoder_ok ? "true" : "false", w->agc, magnet_text(w->magnet_status),
             w->fault, w->clock_gain, w->loop_closed ? "true" : "false",
             w->run_ma, w->hold_ma, w->driver_status_ok ? "true" : "false",

@@ -16,6 +16,9 @@ protocol, Wi-Fi recovery, OTA confirmation, and acceptance results.
   closed-loop stepper servo at 200 Hz with slip detection. Every motion
   command carries a hold time; when it lapses the wheels ramp to a stop. A
   fault on one wheel stops both. EN is one shared, fail-safe pin.
+- **Stall recovery.** A stall caught at any speed, crawl included, and retried
+  -- freeze both wheels, boost, re-lock, re-ramp -- up to three times before it
+  latches the slip fault (below).
 - **Torque.** The motor current changes while driving: a boost to IRUN 31
   (1768 mA) on the operator's request and for 1.5 s after each standstill,
   paced by a per-motor thermal model, and a derate instead of a shutdown when
@@ -121,7 +124,32 @@ base/
   because on a differential drive a wheel holding while its partner drives
   pivots the robot. Motion is refused until `faults clear` (or the WebSocket /
   BLE clear op) -- never cleared by a joystick. The battery fault above is the
-  one robot-level fault: it names no wheel.
+  one robot-level fault: it names no wheel. Slip is found two ways since
+  0.3.1. In velocity mode each wheel's **stall detector** measures lag against
+  a reference that leaks by distance, so a full stall trips ~42 microsteps
+  into it at any speed: 0.4 s at a 0.02 turns/s crawl, which the old check
+  never caught. Behind it, and alone in position mode and the demo, the
+  servo's own **1 s slip check** (200 steps against a reference that leaks
+  over a second) stays as the backstop. Both wait out an encoder gap (a
+  failed read backs the encoder off for 100 ms) and judge it on the next good
+  read, so a stall inside the gap still faults. Before 0.3.1 the 1 s check
+  counted the command against the frozen read, and a single failed read
+  above ~0.4 turns/s faulted as slip.
+- **Stall recovery** (0.3.1, `recover 1`). A stall-detector trip during a live,
+  deadman-refreshed stick command, with both wheels driving, is retried before
+  it is a fault: both wheels freeze (the tripped one's field snaps to the speed
+  its rotor is actually doing, the partner slews to the same fraction of its
+  own command at `decel_tps2`), both get the recovery boost, the field follows
+  the rotor until it is locked again (`rec_lock_ms`), and then the normal ramp
+  takes both back to whatever the stick says. `rec_tries` attempts without
+  `rec_prog` of progress, or 10 inside a minute, latch FAULT_SLIP exactly as
+  before, the peer stopped in the same tick. It never goes faster than the
+  command (backwards included), never clears a fault, and is cancelled -- no
+  fault -- by releasing the stick, `stop`, the deadman, a stick reversal on
+  either wheel, or a setting change. With `recover 0`, with no live stick (the
+  bench's `wheel X vel`), in a demo or for a lead (the wheel pushed ahead of its
+  field), a trip latches FAULT_SLIP at once. Recovery is never shown as
+  calibrating, a demo or an update, so the app's stick stays live through it.
 - **Driver faults.** A driver that stops answering on the UART, resets, reports
   a short, undervoltage (GSTAT), an overtemperature shutdown (OT) or 143 C and
   up cuts EN for both wheels and latches FAULT_DRIVER, as always. The ~120 C
@@ -164,7 +192,9 @@ demo short                    both wheels, ~9 s, round-trip check as the outro
 faults / faults clear
 stream on [hz] / stream off   CSV telemetry, test_servo's columns with more appended
                               (batt_v, batt_st; then per wheel run, hold, boost, heat,
-                              derate, otpw as arun..aotpw, brun..botpw); 'on' first
+                              derate, otpw as arun..aotpw, brun..botpw; then alag, blag,
+                              rec, rtry: each wheel's stall lag in steps, the recovery
+                              state 0 idle 1 lock 2 ramp and its attempt); 'on' first
                               prints '# ' and the header
 stream header                 just the '# ' header line, so a capture names its columns
                               (ubotctl stream sends it first, then subscribes)
@@ -173,7 +203,8 @@ set / set <key> <value>       settings (below)
 wifi set <ssid> <password>    provisioning; wifi scan / wifi / wifi clear
 wifi ps on|off               runtime modem-sleep diagnostic; boot defaults off
 ota <https://...>/firmware.bin   or: ota url <...> once, then ota start
-log drive debug               per-tag level: none error warn info debug verbose
+log drive debug               per-tag level: none error warn info debug verbose; 'rec'
+                              is stall recovery, one line per event
 hw set B                      hardware revision
 stats / stats reset           control tick and encoder read p50/p99/max, the tick's
                               extra bus group, live current writes, UART timing,
@@ -188,6 +219,19 @@ debug otpw <A|B> [s]          bench builds only: that wheel's DRV_STATUS samples
 `status` has a `torque:` line per wheel: the live run/hold pair, whether boost
 is on and why (or what refused it), the heat, the derate level, OTPW, the last
 CS_ACTUAL and how many CS_ACTUAL samples disagreed with the written IRUN.
+Since 0.3.1 each wheel also has a `stall:` line -- the detector's lag now
+(steps, + behind; "not armed" while stopped, in position mode or crossing the
+gear play after a start or reversal), the worst since `stats reset`, its trips
+since boot, and HELD while a recovery holds it -- and the drive a `recovery:`
+line: on or off, idle or LOCK/RAMP with the wheels and the attempt, the
+attempts, recoveries and give-ups since boot, and the last event and how long
+ago. Each event is logged on the `rec` tag as it happens, e.g.
+
+```
+W (61234) rec: attempt: wheel A cmd +0.300 rotor +0.036 turns/s, lag +43 steps, attempt 1/3 -- froze at k +0.12: field snapped to the rotor, partner slewing to match, boost
+I (61465) rec: locked: wheel A cmd -0.099 rotor -0.101 turns/s, lag +0 steps, attempt 1/3 -- rotors on their holds: ramping back to the stick under boost
+I (63126) rec: recovered: wheel A cmd +0.300 rotor +0.302 turns/s, lag +2 steps, attempt 1/3 -- made 0.25 turn: recovered in 1.9 s, no fault
+```
 
 ### Settings (`set`)
 
@@ -204,6 +248,13 @@ CS_ACTUAL and how many CS_ACTUAL samples disagreed with the written IRUN.
 | `boost_start_ms` | 1500 | how long a START boost lasts after leaving a standstill of 0.5 s or more; 0..5000, 0 = no start boost. Live |
 | `therm_tau_s` | 600 | the thermal model's heating time constant, s (cooling is twice it); 60..3600. The real motor's is estimated at ~1000 s, so 600 errs hot. Live |
 | `therm_lim` | 1.10 | the heat at which boost pauses, 1.0 being the steady state at the rated 1.5 A; it resumes 0.10 below. 0.5..1.30. Live |
+| `recover` | 1 | 1: a stall during a live stick command is retried (freeze, boost, re-lock, re-ramp) before it faults; 0: the stall detector faults on its first trip. Live, like all the stall settings below; a change starts the detectors over and cancels a recovery in progress |
+| `rec_tries` | 3 | attempts without progress before the slip fault latches; 1..10 |
+| `rec_lock_ms` | 200 | the shortest lock: how long both wheels are held, the tripped one following its rotor, before the ramp; 50..2000 |
+| `rec_prog` | 0.25 | output turns every involved wheel must make toward the stick before an episode counts as recovered (and the attempt count starts over); 0.05..2 |
+| `lag_trip` | 40 | stall detector trip level, microsteps of lag (5333 to the output turn at 1/8 microstepping): a full stall trips after ~42 steps of commanded travel at any speed. 0 turns the detector off and leaves only the servos' 1 s check; else 16 up to 0.8 x `lag_leak` |
+| `lag_leak` | 400 | the commanded travel, microsteps, over which the detector's reference forgets: it high-passes the encoder's error and the clock's. 100..4000 |
+| `lag_rev` | 48 | microsteps of commanded travel ignored after a start or a reversal, for the gear play; set it to the backlash measured on the stand plus 24. 0..400 |
 | `iholddly` | 8 | how gradually current decays to hold current; 0..15, change disabled |
 | `spread` | 1 | 1 SpreadCycle, 0 StealthChop; change disabled |
 | `pwmthrs` | 0 | selected-microstep steps/s above which StealthChop hands over to SpreadCycle; only applies with `spread 0`, change disabled |
@@ -257,7 +308,9 @@ the pair in force:
   so a robot stopped on a slope holds at boost current too. Reasons, each with
   its own expiry: *manual* (drive commands carrying the boost flag, `boost on`),
   *start* (`boost_start_ms` after leaving a standstill of 0.5 s or more,
-  including the first move after `enable`), and later *recovery* and *load*.
+  including the first move after `enable`), *recovery* (0.3.1: from a stall
+  recovery's freeze, renewed through its ramp until it has made progress, at
+  most 5 s an episode) and later *load*.
   Up is instant; down is one CS step per 100 ms on run and hold, so at
   `run_ma` 1500 a lapsed boost is back at IRUN 26 in 0.5 s, and a stationary
   one ramps to IHOLD 9 over 2.2 s.
@@ -318,7 +371,11 @@ An older or unavailable sample must not be treated as the exact fault-time state
 to inspect run current and active chopper. GCONF (00) and CHOPCONF (6C) are also
 readable. See the [TMC2209 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf).
 
-Host fault-injection tests (no hardware), among them the live current path on
+Host fault-injection tests (no hardware), among them stall detection and
+recovery on the plant rig (`test_recovery_rig`: in sync at 0.02-1.5 turns/s, a
+stall caught within 100 steps at every speed, a ridge and a hill recovered, a
+wall given up after 3 attempts, boost before the snap, encoder gaps without a
+false slip fault), the live current path on
 the plant rig (`test_torque`), the slot scheduler (`test_uartslot`) and the
 live-write retry and soft/hard masks (`test_velgen`):
 
@@ -368,13 +425,14 @@ everything but `drive` (a `drive` is only acknowledged when refused), and
 `log` frames when subscribed.
 
 ```json
-{"t":"status","fw":"0.3.0","hw":"A","name":"ubot","up":64,
+{"t":"status","fw":"0.3.1","hw":"A","name":"ubot","up":64,
  "enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","fault_code":0,"caps":["boost"],
  "cal":false,"demo":null,
  "cmd":{"v":0.2,"w":0.0,"active":true},"limits":{"v":0.675,"w":5.14},
+ "rec":{"on":true,"state":"idle","try":0,"wheels":0,"n":4,"ok":3,"fail":0},
  "batt":{"present":true,"v":19.97,"pct":79,"state":"ok","pack":"li5s"},"wifi":{"rssi":-61},
  "ota":{"busy":false,"state":"update available: 0.1.2","available":"0.1.2","configured":true},
- "wheels":[{"name":"A","driver":true,"pos":0.588,"vel":0.296,"slip":1,"enc":true,
+ "wheels":[{"name":"A","driver":true,"pos":0.588,"vel":0.296,"slip":1,"lag":-3,"trips":4,"enc":true,
             "agc":128,"magnet":"ok","fault":0,"gain":1.0159,"loop":true,"run_ma":1160,"hold_ma":552,...,
             "torque":{"run":1768,"hold":1768,"boost":2,"act":true,"h":0.84,"hot":false,
                       "derate":0,"otpw":false}}, {...}]}
@@ -387,6 +445,16 @@ active reasons (1 manual, 2 start, 4 recovery, 8 load, granted or not), `act`
 whether boost is granted, `h` the thermal model's heat (1.0 = rated steady
 state), `hot` whether it is in its limited band (from `therm_lim` down to the
 resume point), `derate` the OTPW level 0-3 and `otpw` the driver's last sample.
+Also per wheel since 0.3.1, `lag` is the stall detector's lag in whole
+microsteps (0 while it is not armed) and `trips` its trips since boot.
+
+`rec` (0.3.1) is stall recovery: `on` the `recover` setting, `state` `idle`,
+`lock` or `ramp` -- anything but `idle` is one episode, from the first trip until
+it recovers, is cancelled or gives up, never `idle` between its retries --
+`try` the episode's attempt (0 when idle), `wheels` the wheels in it (bit 0 A,
+bit 1 B), and since boot `n` attempts (BLE status byte 16 is its low byte),
+`ok` recoveries and `fail` give-ups. A recovery never shows as `cal`, `demo` or
+`ota`, which lock the app's stick.
 
 When a fault is latched, `fault` is its "name (reason)" and `fault_code` its
 `drive_fault_t` (always present since 0.2.9, 0 when nothing is latched). A
@@ -429,7 +497,7 @@ the advertisement, the drive service UUID in the scan response.
 | Battery `0x180F` | `2A19` level % | read, notify (1 Hz) |
 | U-BOT `7b1a0000-6f4b-4c2e-9d3a-2e5f1c8a9b01` | `7b1a0001` drive | write w/o response: `int16 v, int16 w` little-endian, thousandths of the limits, plus since 0.3.0 an optional `u8 flags` (bit 0 boost while held; other bits ignored). 4 or 5 bytes, any other length is refused; send 5 only after status flags2 bit 7, since older firmware refuses them. Held 500 ms |
 | | `7b1a0002` control | write: `0` stop `1` enable `2` disable `3` estop `4` clear faults |
-| | `7b1a0003` status | read, notify at 5 Hz, 20 bytes since 0.3.0 (18 in 0.2.9, 13 before): `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`, then `u8 flags2, u8 heat_a, u8 heat_b, u8 recoveries, u8 batt_state, u8 derate, u8 reserved`. flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present. `fault` is the latched `drive_fault_t`, the battery cutoff's 6 included. flags2, each "on either wheel": b0 boost granted (START included), b1 manual boost asked, b2 derate level 1+, b3 heat-limited (the whole limited band), b4 OTPW, b5 recovering (0 until 0.3.1), b6 load estimate valid (0 until 0.4.0), b7 set: 5-byte drive frames accepted and bytes 14-16 and 18 valid. heat = round(h x 100), saturating at 255. recoveries: the low byte of the recovery attempt counter, 0 until 0.3.1. batt_state 0 none, 1 ok, 2 low, 3 cutoff. derate: wheel A's level in bits 0-1, B's in bits 2-3. 20 bytes is all a default-MTU notification carries |
+| | `7b1a0003` status | read, notify at 5 Hz, 20 bytes since 0.3.0 (18 in 0.2.9, 13 before): `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`, then `u8 flags2, u8 heat_a, u8 heat_b, u8 recoveries, u8 batt_state, u8 derate, u8 reserved`. flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present. `fault` is the latched `drive_fault_t`, the battery cutoff's 6 included. flags2, each "on either wheel": b0 boost granted (START included), b1 manual boost asked, b2 derate level 1+, b3 heat-limited (the whole limited band), b4 OTPW, b5 recovering (0.3.1: from a stall recovery's first trip until it recovers, is cancelled or gives up, set throughout its retries), b6 load estimate valid (0 until 0.4.0), b7 set: 5-byte drive frames accepted and bytes 14-16 and 18 valid. heat = round(h x 100), saturating at 255. recoveries: the low byte of the stall recovery attempt counter since boot (WebSocket `rec.n`), wrapping; 0 before 0.3.1. batt_state 0 none, 1 ok, 2 low, 3 cutoff. derate: wheel A's level in bits 0-1, B's in bits 2-3. 20 bytes is all a default-MTU notification carries |
 
 ## OTA
 
@@ -524,3 +592,11 @@ reconnect promptly after a reboot.
   control task above WiFi is the first thing to try.
 - **Deadman on the console** defaults to 2 s per `drive`; `drive v w 0` holds
   until `stop`, for bench use only.
+- **Stall recovery is tuned on the host plant, not yet on the robot.** On the
+  plant (`test_recovery_rig`) a ridge or a hill between base and boosted
+  pull-out is recovered in one attempt at 0.2-0.5 turns/s, but at a crawl (0.1
+  turns/s) a wheel that slips under a load pushing back rolls back faster than
+  it was asked to go forward. The hold never goes faster than the command, so it
+  cannot catch it and those end in the ordinary latch. The plant's rotor-on-robot
+  mode is barely damped and its friction is a guess, so the stand and the yard
+  decide; `lag_rev` wants the backlash measured first.

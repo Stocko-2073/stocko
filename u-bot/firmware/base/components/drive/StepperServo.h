@@ -71,8 +71,10 @@ class StepperServo {
         _encPos = 0;
         _target = 0;
         _gen.zero(0);
+        _slipCmd = 0;
         _slipRef = 0;
         _slipRaw = 0;
+        _resyncs++;
     }
 
     // The EN pin itself is shared and belongs to the drive layer; this is only
@@ -99,6 +101,7 @@ class StepperServo {
             _vgoal = 0;
             _velMode = false;
         }
+        releaseHold();
         _servo = on;
     }
     bool servoOn() const { return _servo; }
@@ -106,10 +109,14 @@ class StepperServo {
 
     // Call this the moment anything makes the commanded integral and the
     // encoder disagree on purpose (zeroing, calibrating, open-loop jogging).
+    // Counted, because the stall detector has to start over after every one
+    // and there are a dozen call sites to miss.
     void resyncSlip() {
         _gen.zero((double)_encPos * (double)stepsPerCount);
+        _slipCmd = _gen.position();
         _slipRaw = 0;
         _slipRef = 0;
+        _resyncs++;
     }
 
     // Redefine here as position zero.
@@ -132,6 +139,7 @@ class StepperServo {
         _vgoal = 0;
         _velMode = false;
         _servo = false;
+        releaseHold();
     }
 
     // --- commands ---
@@ -142,6 +150,7 @@ class StepperServo {
         _velMode = false;
         _vgoal = 0;
         _target = c;
+        releaseHold();
         if (_fault == FAULT_NONE) return;
         _fault = FAULT_NONE;  // a fresh command is an implicit acknowledgement
         resyncSlip();
@@ -156,6 +165,27 @@ class StepperServo {
         _vgoal = tps * COUNTS_PER_REV;
     }
     float velocityGoalTps() const { return _vgoal / COUNTS_PER_REV; }
+
+    // Stall recovery (Recovery.h) holds the velocity command at cps, counts/s,
+    // in place of the stick's goal. The stick keeps moving the goal
+    // underneath, so a release slews from the hold to whatever it says by
+    // then. snap = the command jumps there at the next update(), so the field
+    // meets a rotor that has fallen behind it instead of running away from
+    // it; otherwise the normal slew takes it there. Only state: update()
+    // writes VACTUAL, so a boost asked for in the same tick gets its current
+    // write in first. Recovery reports a hold every tick it is in force, so
+    // this is idempotent, and it is ignored unless the loop is closed in
+    // velocity mode without a fault -- a hold never brings a stopped wheel
+    // back. servoOn(), raiseFault() and a position command all release it.
+    void holdVelocity(float cps, bool snap) {
+        if (_fault != FAULT_NONE || !velocityMode() || !isfinite(cps)) return;
+        const float vmax = vmaxTps * COUNTS_PER_REV;
+        _holdCps = constrain(cps, -vmax, vmax);
+        _holding = true;
+        if (snap) _snapHold = true;
+    }
+    void releaseHold() { _holding = _snapHold = false; }
+    bool holding() const { return _holding; }
 
     // --- state ---
 
@@ -175,6 +205,17 @@ class StepperServo {
     uint32_t lastReadUs() const { return _lastReadUs; }
     uint32_t readCount() const { return _reads; }
     int32_t slipSteps() const { return (int32_t)lroundf(_slipRaw - _slipRef); }
+    // What the stall detector samples after each update(): the raw slip
+    // (commanded integral minus encoder x stepsPerCount, no leak) and the
+    // commanded integral it was taken from, latched together -- setRate()
+    // accrues the integral again after the encoder read, so position() read
+    // later is no longer the value raw was measured against. The velocities
+    // are counts/s: the stick's goal and the slew-limited command in force.
+    float slipRawSteps() const { return _slipRaw; }
+    double commandedSteps() const { return _slipCmd; }
+    float goalCps() const { return _vgoal; }
+    float commandedCps() const { return _vcmd; }
+    uint32_t resyncCount() const { return _resyncs; }   // resyncSlip() and begin() since boot
     bool atTarget() const { return labs((long)(_target - _encPos)) <= tolCounts; }
     uint8_t fault() const { return _fault; }
     const char *faultName() const { return faultName((Fault)_fault); }
@@ -201,12 +242,21 @@ class StepperServo {
         // is high-passed with a leak so a steady gain error -- an uncalibrated
         // clock, a few tenths of a percent in stepsPerCount -- drifts off
         // harmlessly, while a real stall still trips.
-        _slipRaw = (float)(_gen.position() - (double)_encPos * (double)stepsPerCount);
-        if (_fault == FAULT_NONE) _slipRef += (_slipRaw - _slipRef) * (dt / SLIP_TAU);
+        //
+        // While the encoder is not answering, _encPos is the last good read,
+        // not the shaft, so raw grows with the command whether the wheel
+        // follows it or not: one failed read above ~0.4 turns/s used to fault
+        // as slip. So the check and its leak wait for the next good read,
+        // which catches up on the whole gap and measures whatever the wheel
+        // did in it. An encoder that stays quiet is FAULT_ENCODER (drive.cpp,
+        // 250 ms), as before.
+        _slipCmd = _gen.position();
+        _slipRaw = (float)(_slipCmd - (double)_encPos * (double)stepsPerCount);
+        if (_fault == FAULT_NONE && _encOk) _slipRef += (_slipRaw - _slipRef) * (dt / SLIP_TAU);
 
         if (!_servo) return;
 
-        if (fabsf(_slipRaw - _slipRef) > (float)slipLimit) {
+        if (_encOk && fabsf(_slipRaw - _slipRef) > (float)slipLimit) {
             raiseFault(FAULT_SLIP);
             return;
         }
@@ -220,13 +270,19 @@ class StepperServo {
             // starts from wherever the wheel actually is, not from a stale
             // setpoint left over from before the drive.
             _target = _encPos;
-            float vdes = constrain(_vgoal, -vmax, vmax);
-            // Slowing -- toward zero, or through it on a reversal -- uses the
-            // gentler decel; speeding up keeps accel. Once a reversal crosses
-            // zero the sign matches again and accel takes over.
-            bool slowing = vdes * _vcmd < 0 || fabsf(vdes) < fabsf(_vcmd);
-            float vslew = slowing ? decelTps2 * COUNTS_PER_REV * dt : slew;
-            _vcmd += constrain(vdes - _vcmd, -vslew, vslew);
+            // A stall recovery's hold stands in for the goal while it lasts.
+            float vdes = constrain(_holding ? _holdCps : _vgoal, -vmax, vmax);
+            if (_snapHold) {
+                _vcmd = vdes;
+                _snapHold = false;
+            } else {
+                // Slowing -- toward zero, or through it on a reversal -- uses
+                // the gentler decel; speeding up keeps accel. Once a reversal
+                // crosses zero the sign matches again and accel takes over.
+                bool slowing = vdes * _vcmd < 0 || fabsf(vdes) < fabsf(_vcmd);
+                float vslew = slowing ? decelTps2 * COUNTS_PER_REV * dt : slew;
+                _vcmd += constrain(vdes - _vcmd, -vslew, vslew);
+            }
             // Snap the tail of a deceleration to a true standstill. VACTUAL of
             // zero is a real stop, not an absence of pulses, so the chopper
             // holds position properly.
@@ -486,8 +542,13 @@ class StepperServo {
     float _vcmd = 0;       // counts/s, slew-limited command
     float _vgoal = 0;      // counts/s, velocity-mode goal
     bool _velMode = false;
+    float _holdCps = 0;       // counts/s, a stall recovery's hold
+    bool _holding = false;    // _holdCps replaces _vgoal in the velocity branch
+    bool _snapHold = false;   // ...and the next update() jumps _vcmd to it
+    double _slipCmd = 0;      // commanded integral as _slipRaw was taken from it
     float _slipRaw = 0;
     float _slipRef = 0;
+    uint32_t _resyncs = 0;
     bool _servo = false;
     uint8_t _fault = FAULT_NONE;
     bool _encOk = true;

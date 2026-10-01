@@ -87,6 +87,61 @@ int main() {
         assert(is(t.next(10, 0, live(true, true, false, true)), U::LIVE, 1));
     }
 
+    {   // A stall recovery's raise: past the write gap, ahead of a lowering
+        // write and of the turn, the snapping wheel before its partner.
+        U s;
+        s.reset(0);
+        assert(is(s.next(5, 0, live(true, true, false, false)), U::LIVE, 0));    // A ramping down...
+        assert(is(s.next(10, 0, live(true, true, false, false)), U::LIVE, 1));   // ...and B
+        // 20 ms later B trips. Both are in their gaps, A lowers and it is A's
+        // turn: B's raise goes all the same, and A's lowering waits.
+        U::Request r = live(true, true, false, true);
+        r.urgent[1] = U::URGENT_SNAP;
+        assert(is(s.next(30, 0, r), U::LIVE, 1));
+        // The partner's raise in the next tick, still inside its own gap.
+        r = live(true, false, true, false);
+        r.urgent[0] = U::URGENT_PARTNER;
+        assert(is(s.next(35, 0, r), U::LIVE, 0));
+        // Both urgent at once: the snapping wheel first, whoever wrote last.
+        U t;
+        t.reset(0);
+        assert(is(t.next(5, 0, live(false, true)), U::LIVE, 1));
+        r = live(true, true, true, true);
+        r.urgent[0] = U::URGENT_PARTNER;
+        r.urgent[1] = U::URGENT_SNAP;
+        assert(is(t.next(10, 0, r), U::LIVE, 1));
+        r.urgent[1] = 0;   // written; B's next write is an ordinary one again
+        assert(is(t.next(15, 0, r), U::LIVE, 0));
+        // Both snapping (a double trip): the turn decides, as for any tie.
+        U d;
+        d.reset(0);
+        assert(is(d.next(5, 0, live(true, false)), U::LIVE, 0));
+        r = live(true, true, true, true);
+        r.urgent[0] = r.urgent[1] = U::URGENT_SNAP;
+        assert(is(d.next(10, 0, r), U::LIVE, 1));
+        assert(is(d.next(15, 0, r), U::LIVE, 0));
+        // Only a raise is urgent: a lowering write keeps its gap.
+        U g;
+        g.reset(0);
+        assert(is(g.next(5, 0, live(true, false)), U::LIVE, 0));
+        r = live(true, false, false, false);
+        r.urgent[0] = U::URGENT_SNAP;
+        assert(g.next(10, 0, r).group == U::NONE);
+        // It goes before a due health step...
+        U h;
+        h.reset(0);
+        r = live(true, false, true, false);
+        r.urgent[0] = U::URGENT_SNAP;
+        assert(is(h.next(125, 0, r), U::LIVE, 0) && h.runs(U::HEALTH) == 0);
+        assert(is(h.next(130, 0, U::Request()), U::HEALTH));
+        // ...but not past the budget, nor ahead of an overdue one.
+        U b;
+        b.reset(0);
+        assert(b.next(10, U::BUDGET_US + 1, r).group == U::NONE && b.deferred() == 1);
+        assert(is(b.next(175, U::BUDGET_US + 1, r), U::HEALTH) && b.forced() == 1);
+        assert(is(b.next(180, 0, r), U::LIVE, 0));
+    }
+
     {   // Live writes go before a due health step, and MSCNT goes last of all.
         U s;
         s.reset(0);
@@ -177,21 +232,28 @@ int main() {
         assert(s.runs(U::LIVE) > 2 * 5000 && s.runs(U::HEALTH) > 4000);
     }
 
-    {   // Invariants under arbitrary input, late ticks and a busy budget included:
-        // one group a tick; each wheel written at least 100 ms apart; nothing
-        // but health past the budget; health never left more than 50 ms late;
-        // a raise going first only when the other wheel's write is a raise too
-        // or has to wait.
+    {   // Invariants under arbitrary input, late ticks, a busy budget and the
+        // odd urgent raise included: one group a tick; each wheel written at
+        // least 100 ms apart unless the write is an urgent raise; nothing but
+        // health past the budget; health never left more than 50 ms late; the
+        // write that goes ranks at least as high as the other wheel's, if that
+        // one could have gone (urgent raises by level, then lowering, then
+        // raising).
         uint32_t seed = 11;
         auto rnd = [&seed](uint32_t n) {
             seed = seed * 1664525u + 1013904223u;
             return (seed >> 8) % n;
+        };
+        auto rank = [](const U::Request &r, int w) {
+            const int u = r.raise[w] ? r.urgent[w] : 0;
+            return u ? 1 + u : (r.raise[w] ? 0 : 1);
         };
         U s;
         uint32_t now = 0xFFF00000u;   // wraps part way through
         s.reset(now);
         uint32_t lastHealth = now, lastWrite[2] = {0, 0};
         bool wrote[2] = {false, false}, pending[2] = {false, false};
+        int urgentWrites = 0;
         for (int i = 0; i < 400000; i++) {
             now += TICK + (rnd(20) == 0 ? rnd(4) : 0);   // mostly on time, sometimes late
             U::Request r;
@@ -199,6 +261,7 @@ int main() {
                 if (rnd(50) == 0) pending[w] = !pending[w];
                 r.live[w] = pending[w];
                 r.raise[w] = rnd(3) == 0;
+                if (rnd(200) == 0) r.urgent[w] = (uint8_t)(1 + rnd(2));
             }
             r.mscnt = rnd(4) == 0;
             const uint32_t servo = rnd(10) == 0 ? U::BUDGET_US + 1 + rnd(3000) : rnd(U::BUDGET_US + 1);
@@ -210,21 +273,25 @@ int main() {
             if (c.group == U::MSCNT) assert(r.mscnt);
             if (c.group == U::LIVE) {
                 const int w = c.wheel, o = 1 - w;
+                const bool urgent = r.raise[w] && r.urgent[w];
                 assert(r.live[w]);
-                assert(!wrote[w] || now - lastWrite[w] >= U::WRITE_GAP_MS);
-                const bool otherReady = r.live[o] && (!wrote[o] || now - lastWrite[o] >= U::WRITE_GAP_MS);
-                if (r.raise[w] && otherReady) assert(r.raise[o]);
+                assert(urgent || !wrote[w] || now - lastWrite[w] >= U::WRITE_GAP_MS);
+                const bool otherReady = r.live[o] && ((r.raise[o] && r.urgent[o]) || !wrote[o] ||
+                                                      now - lastWrite[o] >= U::WRITE_GAP_MS);
+                if (otherReady) assert(rank(r, w) >= rank(r, o));
+                urgentWrites += urgent;
                 wrote[w] = true;
                 lastWrite[w] = now;
             }
         }
         // forced() stays 0 here: a 10% budget miss almost never puts off ten
         // ticks in a row. The overdue path has its own checks above.
-        assert(s.runs(U::LIVE) && s.runs(U::HEALTH) && s.runs(U::MSCNT) && s.deferred());
+        assert(s.runs(U::LIVE) && s.runs(U::HEALTH) && s.runs(U::MSCNT) && s.deferred() && urgentWrites);
     }
 
     puts("PASS: uart slot: health every 125 ms, live writes first with a 100 ms gap per wheel, alternation, "
-         "down before up, MSCNT last, 3 ms budget, health never > 50 ms late, no starvation, 2^32 wrap, "
-         "randomized invariants");
+         "down before up, a recovery's raise past the gap and the turn (snapping wheel first, budget and "
+         "overdue health still first), MSCNT last, 3 ms budget, health never > 50 ms late, no starvation, "
+         "2^32 wrap, randomized invariants");
     return 0;
 }

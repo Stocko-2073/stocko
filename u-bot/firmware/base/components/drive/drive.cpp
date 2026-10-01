@@ -16,6 +16,7 @@
 #include "BoostPolicy.h"
 #include "Demo.h"
 #include "I2cBus.h"
+#include "Recovery.h"
 #include "StepperServo.h"
 #include "ThermalModel.h"
 #include "TimingHistogram.h"
@@ -37,6 +38,7 @@
 #include "settings.h"
 
 static const char *TAG = "drive";
+static const char *REC_TAG = "rec";   // stall detection and recovery: 'log rec info' and so on
 
 namespace {
 
@@ -83,6 +85,15 @@ constexpr float    INFER_MARGIN  = 1.1f;   // the thermal model believes in the 
 constexpr int      BOOST_START_DEFAULT_MS = 1500;
 constexpr float    THERM_TAU_DEFAULT_S = 600.0f;
 constexpr float    THERM_LIM_DEFAULT   = 1.10f;
+
+// Stall detection and recovery: the defaults of the settings below, and their
+// limits. The lag settings are motor microsteps, 5333 to the output turn at
+// 1/8; rec_prog is output turns.
+constexpr int   REC_TRIES_DEFAULT = 3, REC_TRIES_MAX = 10;
+constexpr int   REC_LOCK_MS_DEFAULT = 200, REC_LOCK_MS_MIN = 50, REC_LOCK_MS_MAX = 2000;
+constexpr float REC_PROG_DEFAULT = 0.25f, REC_PROG_MIN = 0.05f, REC_PROG_MAX = 2.0f;
+constexpr float LAG_TRIP_DEFAULT = 40, LAG_LEAK_DEFAULT = 400, LAG_REV_DEFAULT = 48;
+constexpr float LAG_LEAK_MAX = 4000, LAG_REV_MAX = 400;
 
 float stepsPerOutRev(uint16_t micro) { return MOTOR_FULL_STEPS * micro * GEAR_RATIO; }
 float nominalStepsPerCount(uint16_t micro) { return stepsPerOutRev(micro) / StepperServo::COUNTS_PER_REV; }
@@ -149,6 +160,15 @@ Wheel *const wheels[DRIVE_NWHEELS] = {&wheelA, &wheelB};
 
 Demo demo;
 
+// Stall detection and recovery: a detector per wheel, and one Recovery for the
+// robot, because on a differential drive nothing one wheel does about a slip
+// is private. st holds each detector's latest sample for the status; servos is
+// the shape recoveryTick() takes them in.
+StallDetector det[DRIVE_NWHEELS];
+StallSample st[DRIVE_NWHEELS];
+Recovery rec;
+StepperServo *servos[DRIVE_NWHEELS] = {&wheelA.servo, &wheelB.servo};
+
 // --------------------------------------------------------------------- state
 
 struct State {
@@ -196,6 +216,18 @@ struct State {
     int boostStartMs = BOOST_START_DEFAULT_MS;
     float thermTauS = THERM_TAU_DEFAULT_S;
     float thermLim = THERM_LIM_DEFAULT;
+
+    // Stall settings (recover, rec_tries, rec_lock_ms, rec_prog; lag_trip,
+    // lag_leak, lag_rev), what Recovery did this tick, and its last event.
+    bool recover = true;
+    int recTries = REC_TRIES_DEFAULT;
+    int recLockMs = REC_LOCK_MS_DEFAULT;
+    float recProg = REC_PROG_DEFAULT;
+    float lagTrip = LAG_TRIP_DEFAULT, lagLeak = LAG_LEAK_DEFAULT, lagRev = LAG_REV_DEFAULT;
+    RecoveryOut recOut = {};
+    uint8_t recLastEvent = REV_NONE;
+    uint32_t recLastMs = 0;
+    uint32_t recEpisodeMs = 0;   // the first trip of the episode in progress
 
     uint32_t tickWorst = 0;
     uint32_t tickCount = 0;
@@ -251,7 +283,16 @@ static_assert(DRIVE_BOOST_MANUAL == BoostPolicy::MANUAL && DRIVE_BOOST_START == 
 static_assert(DRIVE_BOOST_LIMIT_HEAT == BoostPolicy::LIMIT_HEAT && DRIVE_BOOST_LIMIT_DERATE == BoostPolicy::LIMIT_DERATE &&
                   DRIVE_BOOST_LIMIT_SUPPLY == BoostPolicy::LIMIT_SUPPLY && DRIVE_BOOST_LIMIT_OFF == BoostPolicy::LIMIT_OFF,
               "DRIVE_BOOST_LIMIT_* no longer lines up with BoostPolicy::Limit");
-static_assert(DRIVE_NWHEELS == 2, "the retained heat and the slot scheduler are written for two wheels");
+static_assert(DRIVE_NWHEELS == 2, "the retained heat, the slot scheduler and Recovery are written for two wheels");
+// The status reports Recovery's state and events by their own numbers.
+static_assert(DRIVE_REC_IDLE == (int)REC_IDLE && DRIVE_REC_LOCK == (int)REC_LOCK && DRIVE_REC_RAMP == (int)REC_RAMP,
+              "drive_rec_state_t no longer lines up with RecoveryState");
+static_assert(DRIVE_REC_EV_NONE == (int)REV_NONE && DRIVE_REC_EV_FAULT_DIRECT == (int)REV_FAULT_DIRECT &&
+                  DRIVE_REC_EV_ATTEMPT == (int)REV_ATTEMPT && DRIVE_REC_EV_JOINED == (int)REV_JOINED &&
+                  DRIVE_REC_EV_LOCKED == (int)REV_LOCKED && DRIVE_REC_EV_LOCK_FAILED == (int)REV_LOCK_FAILED &&
+                  DRIVE_REC_EV_RECOVERED == (int)REV_RECOVERED && DRIVE_REC_EV_CANCELLED == (int)REV_CANCELLED &&
+                  DRIVE_REC_EV_GAVE_UP == (int)REV_GAVE_UP,
+              "drive_rec_event_t no longer lines up with RecoveryEvent");
 
 portMUX_TYPE snapMux = portMUX_INITIALIZER_UNLOCKED;
 drive_status_t snap = {};
@@ -269,13 +310,23 @@ esp_err_t refuse(const char *why) {
     return ESP_ERR_INVALID_STATE;
 }
 
+// The stick taken away from a stall recovery: the next tick reports the
+// episode cancelled, and the holds go now, so a stop brakes from wherever the
+// wheels are rather than from a hold.
+void cancelRecovery() {
+    rec.cancel();
+    for (Wheel *w : wheels) w->servo.releaseHold();
+}
+
 // A manual boost belongs to the command that asked for it, so it ends with
 // every command: stop, a fault, a cutoff, a demo or a calibration starting.
+// So does a stall recovery, which only ever acts for a live command.
 void cancelCommands() {
     S.cmdActive = false;
     S.cmdV = S.cmdW = 0;
     for (int i = 0; i < DRIVE_NWHEELS; i++) S.whActive[i] = false;
     for (Wheel *w : wheels) w->boost.cancel(BoostPolicy::MANUAL);
+    cancelRecovery();
 }
 
 // EN is one pin for both drivers, so energising is all-or-nothing in hardware.
@@ -490,8 +541,8 @@ void latchFault(uint8_t idx) {
     S.faultWheel = idx;
     S.faultCode = w.servo.fault();
     snapshotDriverSamples();
-    ESP_LOGE(TAG, "FAULT wheel %s: %s (slip %ld steps) -- both wheels stopped, 'faults clear' to resume",
-             w.name, w.servo.faultName(), (long)w.servo.slipSteps());
+    ESP_LOGE(TAG, "FAULT wheel %s: %s (slip %ld steps, stall lag %+.0f) -- both wheels stopped, 'faults clear' to resume",
+             w.name, w.servo.faultName(), (long)w.servo.slipSteps(), st[idx].lag);
     // One wheel holding while the other drives pivots a differential drive
     // rather than stopping it, so the healthy wheel is stopped too.
     for (int j = 0; j < DRIVE_NWHEELS; j++) {
@@ -556,6 +607,145 @@ void checkSupply() {
     ESP_LOGE(TAG, "FAULT battery: %.2f V is below the %.2f V %s cutoff -- both wheels ramping to a stop and "
                   "holding with the drivers on; charge or swap the pack, 'faults clear' once it recovers",
              battery_voltage(), battery_cut_v(), battery_pack_name());
+}
+
+// ------------------------------------------------------ stall detection and recovery
+//
+// The servos' own slip check leaks over a second of time, so a stall at a
+// crawl never reaches its limit and chatters forever. Each wheel's
+// StallDetector leaks over distance instead and trips ~42 microsteps into a
+// full stall at any speed; Recovery decides what a trip means for the robot
+// (Recovery.h has the whole story). The 1 s check stays behind them all, in
+// position mode as everywhere else.
+
+// lag_trip, lag_leak and lag_rev only make sense together: StallConfig's own
+// rule, and ceilings that keep a stall from going unseen for long.
+bool lagValid(float trip, float leak, float rev) {
+    return StallConfig{trip, leak, rev}.valid() && leak <= LAG_LEAK_MAX && rev <= LAG_REV_MAX;
+}
+
+// The detectors and Recovery, from the settings. Both start over: a new level
+// or leak makes a reference meaningless, and Recovery::configure() cancels an
+// episode in progress -- reported by the next tick, the holds released now.
+// rec_prog is output turns and Recovery counts progress in the servo's
+// microsteps (encoder counts x stepsPerCount); both wheels share the gearing.
+void configureRecovery() {
+    StallConfig sc;
+    sc.tripSteps = S.lagTrip;
+    sc.leakSteps = S.lagLeak;
+    sc.settleSteps = S.lagRev;
+    for (StallDetector &d : det) d.configure(sc);
+    RecoveryConfig rc;
+    rc.enabled = S.recover;
+    rc.tries = (uint8_t)S.recTries;
+    rc.lockMs = (uint16_t)S.recLockMs;
+    rc.stepsPerCount = wheelA.servo.stepsPerCount;
+    rc.progressSteps = S.recProg * StepperServo::COUNTS_PER_REV * rc.stepsPerCount;
+    // A locking wheel whose raw slip passes the trip level has let go again.
+    // With the detector off (0) nothing ever trips, so no lock ever runs.
+    rc.lockLagSteps = S.lagTrip;
+    rec.configure(rc);
+    for (Wheel *w : wheels) w->servo.releaseHold();
+}
+
+void logRecoverySettings() {
+    if (S.lagTrip <= 0) {
+        ESP_LOGI(REC_TAG, "stall detector off (lag_trip 0): only the servos' 1 s slip check");
+        return;
+    }
+    char how[96];
+    if (S.recover) snprintf(how, sizeof how, "on: %d tries, %d ms lock, %.2f turn of progress", S.recTries,
+                            S.recLockMs, S.recProg);
+    else snprintf(how, sizeof how, "off (recover 0): the first trip faults");
+    ESP_LOGI(REC_TAG, "stall detector trips at %.0f steps of lag (leak over %.0f, %.0f ignored after a start or "
+                      "reversal); recovery %s", S.lagTrip, S.lagLeak, S.lagRev, how);
+}
+
+// Why a trip faulted at once instead of being retried, for the log.
+const char *directReason(uint8_t i) {
+    if (st[i].trip < 0) return "a lead (pushed past its field): never retried";
+    if (!S.recover) return "recover 0";
+    if (!S.cmdActive) return "no live stick command";
+    return "not eligible here (bench wheel, demo, or the other wheel not driving)";
+}
+
+// One line per event, on its own tag: which wheel, its command and its
+// rotor, the lag, the attempt, and what happens next. attemptBefore is the
+// attempt before this tick, for the events that end an episode (and so
+// reset it).
+void noteRecovery(const RecoveryOut &o, uint8_t attemptBefore, uint32_t now) {
+    const uint8_t i = o.wheel;
+    const StepperServo &v = wheels[i]->servo;
+    const uint8_t attempt = rec.attempt() ? rec.attempt() : attemptBefore;
+    if (o.event == REV_ATTEMPT && !attemptBefore) S.recEpisodeMs = now;
+    S.recLastEvent = o.event;
+    S.recLastMs = now;
+
+    // Static: the control task is the only caller, and its stack is 6 KB.
+    static char next[128];
+    bool warn = true;
+    switch (o.event) {
+        case REV_FAULT_DIRECT:
+            snprintf(next, sizeof next, "%s: FAULT_SLIP", directReason(i));
+            break;
+        case REV_ATTEMPT:
+            snprintf(next, sizeof next, "froze at k %+.2f: field snapped to the rotor, partner slewing to match, boost",
+                     o.k);
+            break;
+        case REV_JOINED:
+            snprintf(next, sizeof next, "slipped as well: snapped to its own rotor, the lock starts over");
+            break;
+        case REV_LOCKED:
+            warn = false;
+            snprintf(next, sizeof next, "rotors on their holds: ramping back to the stick under boost");
+            break;
+        case REV_LOCK_FAILED:
+            snprintf(next, sizeof next, "did not lock: froze again at k %+.2f", o.k);
+            break;
+        case REV_RECOVERED:
+            warn = false;
+            snprintf(next, sizeof next, "made %.2f turn: recovered in %.1f s, no fault", S.recProg,
+                     (now - S.recEpisodeMs) * 1e-3f);
+            break;
+        case REV_CANCELLED:
+            warn = false;
+            snprintf(next, sizeof next,
+                     "cancelled (stick released, stopped or reversed, a setting, or a fault elsewhere): holds released");
+            break;
+        case REV_GAVE_UP:
+            if (!v.encoderOk()) snprintf(next, sizeof next, "gave up: its encoder stopped answering: FAULT_SLIP");
+            else if (attemptBefore >= S.recTries)
+                snprintf(next, sizeof next, "gave up: no progress in %u attempts: FAULT_SLIP", attemptBefore);
+            else snprintf(next, sizeof next, "gave up: %u attempts inside %lu s, a hill past the limit: FAULT_SLIP",
+                          rec.config().rateAttempts, (unsigned long)(rec.config().rateWindowMs / 1000));
+            break;
+        default:
+            return;
+    }
+    const float lag = st[i].armed ? st[i].lag : v.slipRawSteps();
+    static char line[256];
+    snprintf(line, sizeof line, "%s: wheel %s cmd %+.3f rotor %+.3f turns/s, lag %+.0f steps, attempt %u/%d -- %s",
+             Recovery::name(o.event), wheels[i]->name, v.commandedCps() / StepperServo::COUNTS_PER_REV,
+             st[i].rotorCps / StepperServo::COUNTS_PER_REV, lag, attempt, S.recTries, next);
+    if (warn) ESP_LOGW(REC_TAG, "%s", line);
+    else ESP_LOGI(REC_TAG, "%s", line);
+}
+
+// Once a tick, after both servos' update() and before checkFaults(): both
+// detectors sample this tick's encoder reads, and Recovery acts on them. A
+// fault it raises -- a give-up, or a trip it may not handle -- is latched by
+// the checkFaults() right after, in this tick, which stops the peer as for any
+// fault. The boost it asks for is written by torqueUpdate() and uartSlot() in
+// this tick too, ahead of the queue (UartSlot's urgent): a snap only reaches
+// VACTUAL in the next tick's update(), so the current is up first.
+void recoveryStep(float dt) {
+    const uint32_t now = millis();
+    const bool eligible = S.driversOn && !S.faultLatched && !demo.running() && !S.calBusy && S.calReq < 0;
+    const uint8_t attempt = rec.attempt();
+    S.recOut = recoveryTick(rec, det, st, servos, S.cmdActive, eligible, now, dt, [now](uint8_t i, uint32_t ms) {
+        wheels[i]->boost.request(BoostPolicy::RECOVERY, now, ms);
+    });
+    if (S.recOut.event != REV_NONE) noteRecovery(S.recOut, attempt, now);
 }
 
 // -------------------------------------------------------------------- torque
@@ -763,6 +953,11 @@ void uartSlot(uint32_t servoUs) {
         const Wheel &w = *wheels[i];
         rq.live[i] = w.livePending;
         rq.raise[i] = w.torque.run > w.gen.liveRun() || w.torque.hold > w.gen.liveHold();
+        // A stall recovery's raise jumps the queue: the wheel whose field
+        // snaps in the next update() first, its partner after.
+        if (w.torque.reasons & BoostPolicy::RECOVERY)
+            rq.urgent[i] = S.recOut.w[i].hold == RecoveryWheelOut::HOLD_SNAP ? UartSlot::URGENT_SNAP
+                                                                            : UartSlot::URGENT_PARTNER;
     }
     // Phase 3 (0.4.0): rq.mscnt = the load-angle tracker wants its MSCNT read.
     const UartSlot::Choice c = S.slot.next(now, servoUs, rq);
@@ -818,6 +1013,15 @@ void updateSnapshot() {
     s.heat_limit = wheelA.thermal.params().limit;
     s.heat_resume = wheelA.thermal.params().limit - wheelA.thermal.params().hysteresis;
     const uint32_t now = millis();
+    s.rec_enabled = S.recover;
+    s.rec_state = rec.state();
+    s.rec_attempt = rec.attempt();
+    s.rec_wheels = rec.involved();
+    s.rec_last_event = S.recLastEvent;
+    s.rec_last_age_ms = S.recLastEvent != REV_NONE ? now - S.recLastMs : 0;
+    s.rec_attempts = rec.attempts();
+    s.rec_recoveries = rec.recoveries();
+    s.rec_giveups = rec.giveups();
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
         Wheel &w = *wheels[i];
         drive_wheel_status_t &d = s.wheel[i];
@@ -874,6 +1078,11 @@ void updateSnapshot() {
         d.otpw_events = w.derate.events();
         d.cs_actual = w.csActual;
         d.cs_mismatch = w.csMismatch;
+        d.lag_steps = st[i].lag;
+        d.lag_worst = det[i].worstLag();
+        d.lag_armed = st[i].armed;
+        d.rec_held = w.servo.holding();
+        d.stall_trips = det[i].trips();
     }
     portENTER_CRITICAL(&snapMux);
     snap = s;
@@ -905,6 +1114,9 @@ void runCalibration() {
     xSemaphoreTake(S.mtx, portMAX_DELAY);
     S.calBusy = true;
     S.calAbort = false;
+    // No ticks while it runs, so no lag either; the resync at its end starts
+    // the detector over.
+    for (StallSample &s : st) s = StallSample{};
     updateSnapshot();
     ESP_LOGI(TAG, "calibrating wheel %s: %d output turns out and back at %.0f steps/s, ~%.0f s",
              w.name, CAL_OUT_REVS, CAL_SPS,
@@ -1010,6 +1222,7 @@ void controlTask(void *) {
             S.cmdActive = false;
             S.cmdV = S.cmdW = 0;
             applyRobotVelocity(0, 0);
+            cancelRecovery();
             if (moving) ESP_LOGW(TAG, "deadman: no fresh drive command, ramping to a stop");
         }
         for (int i = 0; i < DRIVE_NWHEELS; i++) {
@@ -1024,13 +1237,7 @@ void controlTask(void *) {
             w->servo.update(dt);
             noteEncoderRead(*w);
         }
-        // Phase 2 (0.3.1): recoveryTick() goes here, after both servos and
-        // before checkFaults(). It samples the stall detectors on this tick's
-        // encoder reads; a trip it may not handle raises FAULT_SLIP for
-        // checkFaults() to latch in the same tick. Its boost hook is
-        //   wheels[i]->boost.request(BoostPolicy::RECOVERY, millis(), ms)
-        // so torqueUpdate() and uartSlot() below raise the current in this
-        // tick, before the servos' next update() writes the snapped VACTUAL.
+        recoveryStep(dt);   // the stall detectors on these reads; a fault it raises latches just below
         checkFaults();
         demo.update();
         checkSupply();
@@ -1110,6 +1317,26 @@ void loadSettings() {
     if (!(S.thermTauS >= 60.0f && S.thermTauS <= 3600.0f)) S.thermTauS = THERM_TAU_DEFAULT_S;   // NaN too
     S.thermLim = settings_get_f32("therm_lim", THERM_LIM_DEFAULT);
     if (!(S.thermLim >= 0.5f && S.thermLim <= 1.30f)) S.thermLim = THERM_LIM_DEFAULT;
+    // Stall detection and recovery, the same way. The three lag settings are
+    // only valid together, so a stored combination that is not falls back as
+    // a whole. configureRecovery() applies them once the servos are set up.
+    S.recover = settings_get_i32("recover", 1) != 0;
+    S.recTries = settings_get_i32("rec_tries", REC_TRIES_DEFAULT);
+    if (S.recTries < 1 || S.recTries > REC_TRIES_MAX) S.recTries = REC_TRIES_DEFAULT;
+    S.recLockMs = settings_get_i32("rec_lock_ms", REC_LOCK_MS_DEFAULT);
+    if (S.recLockMs < REC_LOCK_MS_MIN || S.recLockMs > REC_LOCK_MS_MAX) S.recLockMs = REC_LOCK_MS_DEFAULT;
+    S.recProg = settings_get_f32("rec_prog", REC_PROG_DEFAULT);
+    if (!(S.recProg >= REC_PROG_MIN && S.recProg <= REC_PROG_MAX)) S.recProg = REC_PROG_DEFAULT;
+    S.lagTrip = settings_get_f32("lag_trip", LAG_TRIP_DEFAULT);
+    S.lagLeak = settings_get_f32("lag_leak", LAG_LEAK_DEFAULT);
+    S.lagRev = settings_get_f32("lag_rev", LAG_REV_DEFAULT);
+    if (!lagValid(S.lagTrip, S.lagLeak, S.lagRev)) {
+        ESP_LOGW(TAG, "stored lag_trip %.0f / lag_leak %.0f / lag_rev %.0f do not fit together; using %.0f/%.0f/%.0f",
+                 S.lagTrip, S.lagLeak, S.lagRev, LAG_TRIP_DEFAULT, LAG_LEAK_DEFAULT, LAG_REV_DEFAULT);
+        S.lagTrip = LAG_TRIP_DEFAULT;
+        S.lagLeak = LAG_LEAK_DEFAULT;
+        S.lagRev = LAG_REV_DEFAULT;
+    }
     for (Wheel *w : wheels) {
         w->servo.vmaxTps = vmax;
         w->servo.accelTps2 = accel;
@@ -1136,7 +1363,9 @@ const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "decel", "vmin", "tol"
 // NVS comparing only 15 characters, with another key's value).
 constexpr const char *SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2",
                                          "decel_tps2", "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs",
-                                         "boost_ma", "boost_start_ms", "therm_tau_s", "therm_lim"};
+                                         "boost_ma", "boost_start_ms", "therm_tau_s", "therm_lim",
+                                         "recover", "rec_tries", "rec_lock_ms", "rec_prog",
+                                         "lag_trip", "lag_leak", "lag_rev"};
 
 constexpr size_t keyLength(const char *s) {
     size_t n = 0;
@@ -1233,6 +1462,8 @@ esp_err_t drive_init(void) {
         pollDriver(*w);
         pollHealth(*w);
     }
+    configureRecovery();   // needs the servos' stepsPerCount
+    logRecoverySettings();
 
     ESP_LOGI(TAG, "EN=GPIO%d shared, UART %d baud, control %d Hz, %.1f steps/out-rev, %.6f steps/count",
              CONFIG_UBOT_PIN_EN, CONFIG_UBOT_TMC_BAUD, CONFIG_UBOT_CONTROL_HZ,
@@ -1620,7 +1851,11 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
     else if (!strcmp(name, "vmin")) { w.servo.vminSps = fabsf(v); }
     else if (!strcmp(name, "tol")) { w.servo.tolCounts = (int32_t)fabsf(v); }
     else if (!strcmp(name, "maxslip")) { w.servo.slipLimit = (int32_t)fabsf(v); }
-    else if (!strcmp(name, "ratio")) { w.servo.stepsPerCount = v; w.servo.resyncSlip(); }
+    else if (!strcmp(name, "ratio")) {
+        w.servo.stepsPerCount = v;
+        w.servo.resyncSlip();
+        configureRecovery();   // rec_prog's turns are converted with it
+    }
     else if (!strcmp(name, "gain")) { w.gen.setClockGain(v); w.servo.resyncSlip(); }
     else if (!strcmp(name, "micro")) {
         if (S.driversOn) return refuse("disable drivers before changing microsteps");
@@ -1629,6 +1864,7 @@ static esp_err_t paramSetOne(Wheel &w, const char *name, float v) {
         w.microsteps = (uint16_t)v;
         w.servo.stepsPerCount = nominalStepsPerCount(w.microsteps);
         w.servo.resyncSlip();
+        configureRecovery();
     }
     else return ESP_ERR_NOT_FOUND;
     return ESP_OK;
@@ -1779,6 +2015,50 @@ esp_err_t drive_setting_set(const char *name, float value) {
             configureTorque();
             logCurrent();
         }
+    } else if (!strcmp(name, "recover") || !strcmp(name, "rec_tries") || !strcmp(name, "rec_lock_ms") ||
+               !strcmp(name, "rec_prog") || !strcmp(name, "lag_trip") || !strcmp(name, "lag_leak") ||
+               !strcmp(name, "lag_rev")) {
+        // Live, drivers on or off: both detectors start over and a recovery in
+        // progress is cancelled, never left running on rules that changed
+        // under it.
+        const char *range = nullptr;
+        float trip = S.lagTrip, leak = S.lagLeak, rev = S.lagRev;
+        const bool whole = !strcmp(name, "recover") || !strcmp(name, "rec_tries") || !strcmp(name, "rec_lock_ms");
+        if (!strcmp(name, "recover")) {
+            if (value != 0 && value != 1) range = "recover takes 1 (retry a stall) or 0 (fault on the first trip)";
+        } else if (!strcmp(name, "rec_tries")) {
+            if (truncf(value) != value || value < 1 || value > REC_TRIES_MAX) range = "rec_tries takes 1 to 10 attempts";
+        } else if (!strcmp(name, "rec_lock_ms")) {
+            if (truncf(value) != value || value < REC_LOCK_MS_MIN || value > REC_LOCK_MS_MAX)
+                range = "rec_lock_ms takes 50 to 2000 ms";
+        } else if (!strcmp(name, "rec_prog")) {
+            if (value < REC_PROG_MIN || value > REC_PROG_MAX) range = "rec_prog takes 0.05 to 2 output turns";
+        } else {
+            if (!strcmp(name, "lag_trip")) trip = value;
+            else if (!strcmp(name, "lag_leak")) leak = value;
+            else rev = value;
+            if (!lagValid(trip, leak, rev))
+                range = "lag_trip takes 0 (detector off) or 16 up to 0.8 x lag_leak; lag_leak 100 to 4000; "
+                        "lag_rev 0 to 400 (microsteps) -- 'set' shows the ones in force";
+        }
+        if (range) {
+            unlock();
+            return refuse(range);
+        }
+        err = whole ? settings_set_i32(name, (int32_t)value) : settings_set_f32(name, value);
+        if (err == ESP_OK) {
+            if (!strcmp(name, "recover")) S.recover = value != 0;
+            else if (!strcmp(name, "rec_tries")) S.recTries = (int)value;
+            else if (!strcmp(name, "rec_lock_ms")) S.recLockMs = (int)value;
+            else if (!strcmp(name, "rec_prog")) S.recProg = value;
+            else {
+                S.lagTrip = trip;
+                S.lagLeak = leak;
+                S.lagRev = rev;
+            }
+            configureRecovery();
+            logRecoverySettings();
+        }
     } else if (!strcmp(name, "irun") || !strcmp(name, "ihold") ||
                !strcmp(name, "iscale") || !strcmp(name, "rsense")) {
         unlock();
@@ -1809,9 +2089,19 @@ esp_err_t drive_setting_get(const char *name, float *value) {
     else if (!strcmp(name, "boost_start_ms")) *value = (float)S.boostStartMs;
     else if (!strcmp(name, "therm_tau_s")) *value = S.thermTauS;
     else if (!strcmp(name, "therm_lim")) *value = S.thermLim;
+    else if (!strcmp(name, "recover")) *value = S.recover ? 1 : 0;
+    else if (!strcmp(name, "rec_tries")) *value = (float)S.recTries;
+    else if (!strcmp(name, "rec_lock_ms")) *value = (float)S.recLockMs;
+    else if (!strcmp(name, "rec_prog")) *value = S.recProg;
+    else if (!strcmp(name, "lag_trip")) *value = S.lagTrip;
+    else if (!strcmp(name, "lag_leak")) *value = S.lagLeak;
+    else if (!strcmp(name, "lag_rev")) *value = S.lagRev;
     else return ESP_ERR_NOT_FOUND;
     return ESP_OK;
 }
+
+const char *drive_rec_state_name(uint8_t state) { return Recovery::stateName((RecoveryState)state); }
+const char *drive_rec_event_name(uint8_t event) { return Recovery::name((RecoveryEvent)event); }
 
 esp_err_t drive_wheel_set_invert(drive_wheel_t wi, bool inv) {
     Wheel *w = wheelArg(wi);
@@ -1903,6 +2193,7 @@ void drive_reset_stats(void) {
         w->readHist.reset();
         w->csMismatch = 0;
     }
+    for (StallDetector &d : det) d.resetWorst();
     if (locked) unlock();
 }
 
@@ -1924,7 +2215,8 @@ const char *drive_csv_header(void) {
     return "t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
            "bpos,btarget,berr,bvel,bsteps,brate,bslip,benc,bagc,bstatus,busus,"
            "batt_v,batt_st,"
-           "arun,ahold,aboost,aheat,ader,aotpw,brun,bhold,bboost,bheat,bder,botpw";
+           "arun,ahold,aboost,aheat,ader,aotpw,brun,bhold,bboost,bheat,bder,botpw,"
+           "alag,blag,rec,rtry";
 }
 
 int drive_csv_line(char *buf, size_t n) {
@@ -1945,11 +2237,14 @@ int drive_csv_line(char *buf, size_t n) {
     // shows the sag that led up to a cutoff next to the wheels that caused it.
     // Then per wheel the live run/hold mA, the boost reasons (DRIVE_BOOST_*,
     // granted or not: the mA say whether), the heat, the derate level and OTPW.
+    // Then each wheel's stall-detector lag (microsteps, 0 unless armed), and
+    // the recovery's state (drive_rec_state_t) and attempt (0 when idle).
     return snprintf(buf, n,
                     "%lu,%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,0x%02X,"
                     "%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,%lu,"
                     "%.2f,%d,"
-                    "%.0f,%.0f,%u,%.3f,%u,%u,%.0f,%.0f,%u,%.3f,%u,%u",
+                    "%.0f,%.0f,%u,%.3f,%u,%u,%.0f,%.0f,%u,%.3f,%u,%u,"
+                    "%.0f,%.0f,%u,%u",
                     (unsigned long)millis(),
                     a.pos_turns, a.target_turns, (long)a.err_counts, a.vel_tps, a.cmd_steps,
                     a.rate_sps, (long)a.slip_steps, a.raw_angle, a.agc, a.magnet_status, flags,
@@ -1958,7 +2253,8 @@ int drive_csv_line(char *buf, size_t n) {
                     (unsigned long)b.worst_read_us,
                     battery_voltage(), battery_state(),
                     a.live_run_ma, a.live_hold_ma, a.boost_reasons, a.heat, a.derate, a.otpw ? 1u : 0u,
-                    b.live_run_ma, b.live_hold_ma, b.boost_reasons, b.heat, b.derate, b.otpw ? 1u : 0u);
+                    b.live_run_ma, b.live_hold_ma, b.boost_reasons, b.heat, b.derate, b.otpw ? 1u : 0u,
+                    a.lag_steps, b.lag_steps, s.rec_state, s.rec_attempt);
 }
 
 }  // extern "C"

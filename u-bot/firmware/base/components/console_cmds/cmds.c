@@ -122,6 +122,28 @@ static void print_wheel(command_context_t *ctx, const drive_status_t *s, int i) 
            w->heat, w->heat_limited ? " (LIMITED)" : "", w->derate,
            w->otpw ? (w->otpw_injected ? ", OTPW (injected)" : ", OTPW") : "",
            w->cs_actual, (unsigned long)w->cs_mismatch);
+    command_printf(ctx, "    stall: lag %+.0f steps%s, worst %.0f since stats reset, %lu trip%s since boot%s\n",
+           w->lag_steps, w->lag_armed ? "" : " (not armed)", w->lag_worst, (unsigned long)w->stall_trips,
+           w->stall_trips == 1 ? "" : "s", w->rec_held ? "; HELD by stall recovery" : "");
+}
+
+// "on, idle", or "on, LOCK on wheel A, attempt 1/3", then the counts since
+// boot and the last thing it did.
+static void print_recovery(command_context_t *ctx, const drive_status_t *s) {
+    float tries = 0;
+    drive_setting_get("rec_tries", &tries);
+    char now[64];
+    if (s->rec_state == DRIVE_REC_IDLE) snprintf(now, sizeof now, "idle");
+    else snprintf(now, sizeof now, "%s on wheel%s %s, attempt %u/%.0f", s->rec_state == DRIVE_REC_LOCK ? "LOCK" : "RAMP",
+                  s->rec_wheels == 3 ? "s" : "", s->rec_wheels == 3 ? "A+B" : s->rec_wheels == 2 ? "B" : "A",
+                  s->rec_attempt, tries);
+    command_printf(ctx, "  recovery: %s, %s; %lu attempt%s, %lu recovered, %lu gave up since boot",
+           s->rec_enabled ? "on" : "off (recover 0: a stall faults at once)", now,
+           (unsigned long)s->rec_attempts, s->rec_attempts == 1 ? "" : "s",
+           (unsigned long)s->rec_recoveries, (unsigned long)s->rec_giveups);
+    if (s->rec_last_event != DRIVE_REC_EV_NONE)
+        command_printf(ctx, "; last '%s' %.1f s ago", drive_rec_event_name(s->rec_last_event), s->rec_last_age_ms * 1e-3f);
+    command_printf(ctx, "\n");
 }
 
 static void print_drive(command_context_t *ctx) {
@@ -137,6 +159,7 @@ static void print_drive(command_context_t *ctx) {
            s.cmd_active ? "active" : "idle", s.v_mps, s.w_radps, s.vmax_mps, s.wmax_radps);
     command_printf(ctx, "  frame: sign_a %+d sign_b %+d, wheel A is %s, track %.3f m, wheel %.4f m/turn\n",
            s.sign_a, s.sign_b, s.a_is_left ? "left" : "right", s.track_m, s.wheel_circ_m);
+    print_recovery(ctx, &s);
     if (s.demo_running) command_printf(ctx, "  demo: %s\n", s.demo_caption);
     for (int i = 0; i < DRIVE_NWHEELS; i++) print_wheel(ctx, &s, i);
 }
@@ -595,7 +618,7 @@ static int cmd_ble(command_context_t *ctx, int argc, char **argv) { print_ble(ct
 static int cmd_log(command_context_t *ctx, int argc, char **argv) {
     if (argc < 3) {
         command_printf(ctx, "usage: log <tag|*> <none|error|warn|info|debug|verbose>\n"
-               "tags: drive demo wifi ws ota ble batt console settings ...\n");
+               "tags: drive rec demo wifi ws ota ble batt console settings ...\n");
         return 1;
     }
     esp_err_t err = ulog_set_level(argv[1], argv[2]);

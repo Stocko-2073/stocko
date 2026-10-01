@@ -59,6 +59,8 @@ struct StallSample {
     int8_t dir;          // sign of this tick's commanded travel (0 on a resync tick)
     bool armed;          // lag is live and may trip
     int8_t trip;         // +1 LAG, -1 LEAD, 0 none: an edge, at most once per anchor
+    bool velValid;       // rotorCps is measured: two reads at least since the ring last
+                         // restarted (a resync, a failed read); else it reads 0 for want of one
 };
 
 struct StallConfig {
@@ -101,7 +103,7 @@ class StallDetector {
     }
 
     StallSample update(const StallInput &in) {
-        StallSample s = {0.0f, 0.0f, 0, false, 0};
+        StallSample s = {0.0f, 0.0f, 0, false, 0, false};
 
         // A resync moves raw on purpose, so whatever the reference was is
         // stale. The servo counts its resyncs rather than telling us, because
@@ -129,6 +131,7 @@ class StallDetector {
         if (in.encOk) pushRotor(in.encCounts, in.dt);
         else _n = 0;   // never difference across a gap
         s.rotorCps = rotorCps();
+        s.velValid = _n >= 2;
 
         if (_cfg.tripSteps == 0) {   // off: inert, never trips
             reanchor();

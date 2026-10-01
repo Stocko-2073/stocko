@@ -102,6 +102,22 @@ failure comes before choosing the remedy.
 
 ## A possible boost design
 
+**Implemented 2026-09-30, in two firmware phases:** 0.3.0 changes current
+while driving -- a manual Boost button, a start boost after each standstill, a
+per-motor thermal model that bounds every burst, and an OTPW derate instead of a
+shutdown. 0.3.1 adds the automatic part: a stall detector whose reference leaks
+by distance rather than time, so a stall at a crawl is caught too, and a
+recovery that freezes both wheels, boosts, re-locks the slipped wheel and
+re-ramps, three times without progress at most, before it latches the
+same slip fault as before. The rules below hold: healthy encoder data, starts
+and reversals settled for backlash, bursts bounded, a latched fault never
+cleared or motion restarted automatically, deadman and the other protections
+authoritative, and both wheels acting together so a recovery cannot pivot the
+robot. See [stall detection and recovery](firmware/DRIVE_MECHANISM.md#stall-detection-and-recovery-031)
+and the [base firmware safety model](firmware/base/README.md#safety-model).
+The yard comparison (recover on vs off on the same hill) is still to do. The
+proposal as discussed follows.
+
 This is a proposal to investigate, not an implementation specification.
 
 - Begin with a deliberately requested, time-limited boost to establish whether
@@ -587,6 +603,14 @@ power faults or missed control deadlines. If extra current adds heat without
 improving clearance, prioritize traction, caster geometry or gearing instead.
 
 ## Questions to carry forward
+
+**Since these notes:** firmware 0.2.9 (battery gauge and cutoff for the 5S
+pack), 0.3.0 (boost, thermal model, OTPW derate) and 0.3.1 (stall detection that
+also catches a crawl, and automatic recovery) are built; see
+[stall detection and recovery](firmware/DRIVE_MECHANISM.md#stall-detection-and-recovery-031).
+Still open from them: the gear backlash and the rolling resistance on grass,
+which set `lag_rev` and decide how well recovery works, and the yard runs with
+`recover 1` against `recover 0`.
 
 - Did a reported fault accompany the chatter, and did both wheels stall or
   only one? Did stopping and retrying at a lower speed restore motion?

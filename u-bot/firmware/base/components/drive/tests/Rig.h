@@ -91,6 +91,7 @@ class Rig {
     bool driversOn = false;   // the shared EN pin is low
     bool cmdActive = false;   // a live drive command, as drive.cpp's S.cmdActive
     uint32_t ticks = 0;
+    float dt = DT;            // the servos' dt this tick, for hooks that need it too (recoveryTick)
 
     // --- extension points, in drive.cpp's tick order ---
     //
@@ -192,8 +193,9 @@ class Rig {
     // servos see it as their dt, as drive.cpp measures it.
     void tick(int64_t us = TICK_US) {
         FakeClock::advance(us);
+        dt = us == TICK_US ? DT : (float)us * 1e-6f;
         if (onDeadman) onDeadman(*this);
-        for (Wheel *w : wheels) w->servo.update(us == TICK_US ? DT : (float)us * 1e-6f);
+        for (Wheel *w : wheels) w->servo.update(dt);
         if (onDetect) onDetect(*this);
         if (onRecovery) onRecovery(*this);
         if (onFaults) onFaults(*this);

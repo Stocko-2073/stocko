@@ -292,9 +292,11 @@ int main() {
     {
         StallDetector d;
         StallInput in = {0, 0, 0, 0, true, true, DT};
-        assert(d.update(in).rotorCps == 0);   // one sample is no velocity
+        StallSample s0 = d.update(in);
+        assert(s0.rotorCps == 0 && !s0.velValid);   // one sample is no velocity
         in.encCounts += 5;
-        assert(d.update(in).rotorCps == 1000.0f);
+        s0 = d.update(in);
+        assert(s0.rotorCps == 1000.0f && s0.velValid);
         for (int i = 0; i < 8; i++) {
             in.encCounts += 5;
             in.dt = (i & 1) ? 0.004f : 0.006f;   // jitter: still 5 counts per 5 ms on average
@@ -311,11 +313,18 @@ int main() {
         assert(fabsf(c - 2000.0f) < 0.5f);   // the whole window has moved over
         in.encCounts -= 60;   // backwards, and a partial window after a gap
         in.encOk = false;
-        assert(d.update(in).rotorCps == 0);
+        s0 = d.update(in);
+        assert(s0.rotorCps == 0 && !s0.velValid);
         in.encOk = true;
-        d.update(in);
+        assert(!d.update(in).velValid);   // one read since the gap: still none
         in.encCounts -= 6;
-        assert(fabsf(d.update(in).rotorCps + 1200.0f) < 0.5f);
+        s0 = d.update(in);
+        assert(fabsf(s0.rotorCps + 1200.0f) < 0.5f && s0.velValid);
+        in.epoch++;   // a resync restarts the ring too: zeroHere() moves the encoder under it
+        s0 = d.update(in);
+        assert(s0.rotorCps == 0 && !s0.velValid);
+        in.encCounts -= 6;
+        assert(d.update(in).velValid);
     }
 
     // --- configuration ---

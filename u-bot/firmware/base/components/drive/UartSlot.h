@@ -19,6 +19,14 @@
 //            neither starves. Each wheel is written at most once per
 //            WRITE_GAP_MS, the step of BoostPolicy's ramp down, which the
 //            writes keep pace with.
+//
+//            The exception is a stall recovery's raise (Request::urgent). The
+//            tripped wheel's field snaps to its rotor's speed in the servos'
+//            next update(), and its boost has to be on the driver before
+//            that, so its raise goes now: past the write gap, ahead of a
+//            lowering write and of the other wheel's turn. The partner's
+//            follows in the next tick. At most one such write per wheel per
+//            trip, so nothing it jumps ahead of waits for long.
 //   HEALTH   the next step of the four-phase health poll (A encoder, A driver,
 //            B encoder, B driver), one due every HEALTH_MS, so each encoder and
 //            driver is looked at every 500 ms.
@@ -30,7 +38,10 @@
 // made worse. The health poll is the exception. It is how a reset, a short, a
 // lost encoder or an OTPW is found, so it is never put off for more than
 // HEALTH_DEFER_MS past its due time, by the budget or by live writes: from
-// then on it runs first, whatever else is waiting.
+// then on it runs first, whatever else is waiting. Both still hold for an
+// urgent raise: in the rare tick that is over budget, or owes an overdue
+// health step, the raise lands a tick after the snap rather than the tick
+// overrunning or the health guarantee bending.
 //
 // Pure: times are the caller's and nothing here touches a bus. next() books
 // what it returns -- the write gap, the alternation, the health cadence -- so
@@ -47,8 +58,13 @@ class UartSlot {
     struct Request {
         bool live[2] = {false, false};    // wheel i has a live-current write pending
         bool raise[2] = {false, false};   // ...and it raises IRUN or IHOLD
+        // ...and that raise is a stall recovery's: 0 not, URGENT_SNAP for the
+        // wheel whose field is about to snap, URGENT_PARTNER for its partner.
+        // Ignored on a write that does not raise.
+        uint8_t urgent[2] = {0, 0};
         bool mscnt = false;               // an MSCNT read is wanted (Phase 3)
     };
+    static constexpr uint8_t URGENT_PARTNER = 1, URGENT_SNAP = 2;   // higher goes first
 
     struct Choice {
         Group group = NONE;
@@ -126,15 +142,22 @@ class UartSlot {
 
     // The wheel whose pending write goes now, or -1. The wheel not written
     // last is looked at first and wins a tie; a lowering write beats a
-    // raising one.
+    // raising one, and an urgent raise beats both and needs no gap.
     int pickLive(uint32_t now, const Request &rq) const {
         int best = -1;
         for (int k = 0; k < 2; k++) {
             const int i = (_lastWheel + 1 + k) & 1;
-            if (!rq.live[i] || (_wrote[i] && !elapsed(_lastWrite[i], now, WRITE_GAP_MS))) continue;
-            if (best < 0 || (rq.raise[best] && !rq.raise[i])) best = i;
+            if (!rq.live[i]) continue;
+            if (!urgency(rq, i) && _wrote[i] && !elapsed(_lastWrite[i], now, WRITE_GAP_MS)) continue;
+            if (best < 0 || rank(rq, i) > rank(rq, best)) best = i;
         }
         return best;
+    }
+
+    static uint8_t urgency(const Request &rq, int i) { return rq.raise[i] ? rq.urgent[i] : 0; }
+    // Raising 0, lowering 1, urgent raises above both.
+    static int rank(const Request &rq, int i) {
+        return urgency(rq, i) ? 1 + urgency(rq, i) : (rq.raise[i] ? 0 : 1);
     }
 
     uint32_t _lastHealth = 0;

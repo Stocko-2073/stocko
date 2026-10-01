@@ -60,7 +60,7 @@ typedef struct __attribute__((packed)) {
     int16_t v_mmps, w_mradps;
     uint8_t flags2;         // 13: FLAGS2_* below
     uint8_t heat_a, heat_b; // 14, 15: motor heat, round(h x 100) saturating at 255
-    uint8_t recoveries;     // 16: stall recovery attempts, low byte, wraps (0 until 0.3.1)
+    uint8_t recoveries;     // 16: stall recovery attempts since boot, low byte, wraps (0 before 0.3.1)
     uint8_t batt_state;     // 17: battery_state(): 0 none, 1 ok, 2 low, 3 cutoff
     uint8_t derate;         // 18: OTPW derate level, wheel A in bits 0-1, B in bits 2-3
     uint8_t reserved;       // 19: 0
@@ -73,7 +73,7 @@ enum {
     FLAGS2_DERATED = 1 << 2,      // either at derate level 1 or more
     FLAGS2_HEAT = 1 << 3,         // either in its thermal model's limited band, the whole of it
     FLAGS2_OTPW = 1 << 4,         // either driver's last sample says OTPW
-    FLAGS2_RECOVERING = 1 << 5,   // a stall recovery episode is running (0.3.1; 0 until then)
+    FLAGS2_RECOVERING = 1 << 5,   // a stall recovery episode, retries included (0.3.1; 0 before)
     FLAGS2_LOAD_VALID = 1 << 6,   // the load-angle estimate is trusted (0.4.0; 0 until then)
     FLAGS2_TORQUE = 1 << 7,       // 5-byte drive frames accepted; bytes 14-16 and 18 valid
 };
@@ -126,8 +126,13 @@ static void build_status(status_packet_t *p) {
         if (w->otpw) p->flags2 |= FLAGS2_OTPW;
         p->derate |= (uint8_t)((w->derate & 3) << (2 * i));
     }
-    // FLAGS2_RECOVERING, FLAGS2_LOAD_VALID and the recovery counter stay as
-    // memset left them until the phases that fill them.
+    // Recovering from the first trip of an episode until it recovers, is
+    // cancelled or gives up: Recovery never passes through idle between its
+    // attempts, so the app's banner does not flicker. The counter is the same
+    // one WS sends as rec.n, cut to a byte; the app watches it change.
+    if (s.rec_state != DRIVE_REC_IDLE) p->flags2 |= FLAGS2_RECOVERING;
+    p->recoveries = (uint8_t)s.rec_attempts;
+    // FLAGS2_LOAD_VALID stays as memset left it until 0.4.0 fills it.
     p->heat_a = heat_byte(s.wheel[0].heat);
     p->heat_b = heat_byte(s.wheel[1].heat);
     p->batt_state = (uint8_t)battery_state();

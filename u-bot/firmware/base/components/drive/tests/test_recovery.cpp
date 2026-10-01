@@ -328,6 +328,85 @@ int main() {
         assert(o.w[0].holdCps == 0 && o.k == 0);
     }
 
+    // --- a re-freeze measures k against the command the hold began from ---
+    {
+        Bench b;
+        b.trip(0, 350);   // hold 350: k 0.35 of the 1000 it was asked for
+        b.tick();         // the resync
+        b.stalled[0] = true;
+        b.in.w[0].stall.rotorCps = -700;   // rolling back, twice as fast as its hold
+        b.in.w[0].rawLag = 41;
+        RecoveryOut o = b.tick();
+        // Against the hold that would have been k -2, clamped to -1: a hold of
+        // -350 the rotor would leave behind. Against the 1000 it is -0.7.
+        assert(o.event == REV_LOCK_FAILED && near(o.k, -0.7f));
+        assert(near(o.w[0].holdCps, -700) && near(o.w[1].holdCps, -700));   // the partner: -0.7 of its 1000
+        b.in.w[0].stall.rotorCps = -1500;  // faster backwards than it was ever asked forwards
+        b.tick();
+        b.in.w[0].rawLag = -45;
+        o = b.tick();
+        assert(o.event == REV_LOCK_FAILED && o.k == -1.0f && o.w[0].holdCps == -1000);   // the clamp still holds
+    }
+
+    // --- through the lock the snapped hold follows its rotor, the partner at the new k ---
+    {
+        Bench b;
+        for (RecoveryWheelIn &w : b.in.w) w.stall.velValid = true;
+        RecoveryOut o = b.trip(0, 600);
+        assert(near(o.w[0].holdCps, 600) && near(o.w[1].holdCps, 600));
+        b.stalled[0] = true;
+        b.in.w[0].stall.velValid = false;   // the detector's ring restarts at the resync...
+        b.in.w[0].stall.rotorCps = 0;       // ...and reads 0 until it has two reads
+        b.tick();                           // the resync
+        o = b.tick();
+        assert(o.event == REV_NONE && near(o.w[0].holdCps, 600) && near(o.k, 0.6f));   // nothing to follow yet
+        b.in.w[0].stall.velValid = true;
+        for (float r : {300.0f, 100.0f, -50.0f, -200.0f}) {   // slowing, then rolling back
+            b.in.w[0].stall.rotorCps = r;
+            o = b.tick();
+            assert(o.event == REV_NONE && o.w[0].hold == W::HOLD_SNAP && near(o.w[0].holdCps, r));
+            assert(near(o.k, r / 1000) && o.w[1].hold == W::HOLD_SLEW && near(o.w[1].holdCps, r));
+        }
+        b.in.w[0].stall.rotorCps = -1500;   // never past what it was asked: the clamp, as at the freeze
+        o = b.tick();
+        assert(o.w[0].holdCps == -1000 && o.k == -1.0f && o.w[1].holdCps == -1000);
+        b.in.w[0].stall.rotorCps = -200;    // settled: it locks there once the partner has slewed round
+        uint32_t t0 = b.now();
+        o = b.until(REV_LOCKED);
+        assert(near(o.k, -0.2f) && b.now() - t0 < 1000);   // well inside the partner's wait: it got there
+        assert(o.w[0].hold == W::HOLD_NONE && o.w[1].hold == W::HOLD_NONE && o.w[0].resync);
+    }
+    {
+        Bench b;   // a rotor that stops dead is followed to a standstill and locks there, on time
+        for (RecoveryWheelIn &w : b.in.w) w.stall.velValid = true;
+        b.trip(0, 350);
+        b.stalled[0] = true;
+        b.in.w[0].stall.rotorCps = 0;
+        b.tick();
+        uint32_t t0 = b.now() - 5;
+        b.until(REV_LOCKED);
+        assert(b.now() - 5 - t0 == 200 && b.rec.attempt() == 1);
+    }
+    {
+        Bench b;   // a braking partner stays at 0 through the follow and through a re-freeze,
+        for (RecoveryWheelIn &w : b.in.w) w.stall.velValid = true;   // even once it has come to rest
+        b.in.w[1].goalCps = -1000;
+        b.in.w[1].cmdCps = b.in.w[1].stall.rotorCps = 600;
+        RecoveryOut o = b.trip(0, 350);
+        assert(o.w[1].holdCps == 0);
+        b.tick();
+        b.stalled[0] = true;
+        b.in.w[0].stall.rotorCps = 200;
+        for (int i = 0; i < 20; i++) {
+            o = b.tick();
+            assert(o.event == REV_NONE && o.w[1].holdCps == 0 && near(o.w[0].holdCps, 200));
+        }
+        assert(b.in.w[1].cmdCps == 0);   // braked to a stop: no longer looks like a reversal
+        b.in.w[0].rawLag = 50;
+        o = b.tick();
+        assert(o.event == REV_LOCK_FAILED && o.w[1].hold == W::HOLD_SLEW && o.w[1].holdCps == 0);
+    }
+
     // --- progress ends the episode and resets the count ---
     {
         Bench b;
@@ -685,7 +764,8 @@ int main() {
     }
 
     puts("PASS: recovery k clamp, freeze/lock/ramp timing, same-tick double trip, JOINED, LOCK_FAILED, "
-         "progress reset, cancels (either wheel's goal reversing in lock or ramp, stick, eligibility, "
+         "re-freeze k against the command the hold began from, the lock following its rotor (partner at the "
+         "new k, braking partner held at 0, clamp kept), progress reset, cancels (either wheel's goal reversing in lock or ramp, stick, eligibility, "
          "cancel(), settings), FAULT_DIRECT (recover off, LEAD, bench wheel), exactly 3 attempts, rate guard, "
          "boost timing, encoder give-up, recoveryTick call order through the real detectors, "
          "no latched detector after an early cancel, partner mid-reversal brakes to 0");

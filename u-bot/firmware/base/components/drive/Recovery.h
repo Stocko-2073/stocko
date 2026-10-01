@@ -29,6 +29,17 @@
 //            ~15 Hz rotor-on-robot mode and well before the driver's ~0.5 s drop
 //            to hold current, until each rotor matches its hold. A partner that
 //            trips meanwhile joins the attempt.
+//
+//            The snapped holds FOLLOW their rotors through the lock, from the
+//            first tick the detector has a speed again, and the partner keeps
+//            the arc at the new k. A slipped rotor under a load that pushes
+//            back -- a bump, a hill -- is still decelerating when it trips, and
+//            the speed the snap took from a 20 ms average is already behind
+//            it: a field held there only catches it by luck, and on the host
+//            plant mostly did not. A field that follows it keeps the slip slow,
+//            so the load angle walks into the holding half of the field and
+//            settles there. Never past the clamp below: it can only follow a
+//            rotor rolling back as fast as it was asked to go forward.
 //   ramp     release the holds; the servo's normal slew re-ramps toward whatever
 //            the stick says now. Boost is renewed until every involved wheel
 //            has made progressSteps in its goal direction, or boostMaxMs.
@@ -223,12 +234,19 @@ class Recovery {
     static uint8_t first(uint8_t mask) { return (mask & 1) ? 0 : ((mask & 2) ? 1 : 0); }
     static int8_t sign(float v) { return v > 0 ? 1 : (v < 0 ? -1 : 0); }
 
+    // What a wheel's hold is measured against: the command in force when the
+    // hold began, kept for the attempt. Taking a re-freeze's k against the
+    // hold itself would let each one only shrink the hold, never catch a
+    // rotor rolling back faster than it.
+    float refCps(const RecoveryWheelIn &w, int i) const { return _held[i] ? _refCps[i] : w.cmdCps; }
+
     // What the rotor is really doing as a fraction of what was asked. Clamped
     // so a hold is never faster than the command, nor further backwards than
     // it was forwards; below a count a second there is no ratio to take.
-    static float ratio(const RecoveryWheelIn &w) {
-        if (!(fabsf(w.cmdCps) >= 1.0f)) return 0.0f;
-        float k = w.stall.rotorCps / w.cmdCps;
+    float ratio(const RecoveryWheelIn &w, int i) const {
+        const float ref = refCps(w, i);
+        if (!(fabsf(ref) >= 1.0f)) return 0.0f;
+        float k = w.stall.rotorCps / ref;
         return k > 1.0f ? 1.0f : (k < -1.0f ? -1.0f : k);
     }
 
@@ -279,10 +297,15 @@ class Recovery {
         _resyncDue = false;
         _k = 0;
         for (int i = 0; i < 2; i++) {
-            _hold[i] = RecoveryWheelOut::HOLD_NONE;
-            _holdCps[i] = 0;
+            release(i);
             _goalSign[i] = 0;
         }
+    }
+
+    void release(int i) {
+        _hold[i] = RecoveryWheelOut::HOLD_NONE;
+        _holdCps[i] = 0;
+        _held[i] = _brake[i] = false;
     }
 
     void giveUp(RecoveryOut &out, uint8_t wheel) {
@@ -322,18 +345,27 @@ class Recovery {
         _attempts++;
         _involved |= mask;
         _locking = mask;
-        _k = ratio(in.w[first(mask)]);
+        _k = ratio(in.w[first(mask)], first(mask));
         for (int i = 0; i < 2; i++) {
             const RecoveryWheelIn &w = in.w[i];
             if (_goalSign[i] == 0) _goalSign[i] = sign(w.goalCps);
+            const float ref = refCps(w, i);
             if (mask & bit(i)) {
                 _hold[i] = RecoveryWheelOut::HOLD_SNAP;
-                _holdCps[i] = ratio(w) * w.cmdCps;
+                _holdCps[i] = ratio(w, i) * ref;
+                _brake[i] = false;
             } else {
                 // A partner mid-reversal brakes to a stop instead of keeping the
                 // arc: the ramp after the lock takes it on into the new direction.
+                // Once braking it stays so for the attempt, even after its
+                // command has come to rest and no longer looks like a reversal.
                 _hold[i] = RecoveryWheelOut::HOLD_SLEW;
-                _holdCps[i] = reversing(w) ? 0.0f : _k * w.cmdCps;
+                _brake[i] = _brake[i] || reversing(w);
+                _holdCps[i] = _brake[i] ? 0.0f : _k * ref;
+            }
+            if (!_held[i]) {
+                _refCps[i] = w.cmdCps;
+                _held[i] = true;
             }
         }
         _state = REC_LOCK;
@@ -349,7 +381,8 @@ class Recovery {
             if (!(mask & bit(i))) continue;
             const RecoveryWheelIn &w = in.w[i];
             _hold[i] = RecoveryWheelOut::HOLD_SNAP;
-            _holdCps[i] = ratio(w) * w.cmdCps;
+            _holdCps[i] = ratio(w, i) * refCps(w, i);
+            _brake[i] = false;
         }
         _locking |= mask;
         _involved |= mask;
@@ -382,6 +415,7 @@ class Recovery {
             if (joining) join(out, in, joining);
             return;
         }
+        follow(in);
 
         uint8_t failing = lag & _locking;
         uint8_t unmatched = 0;
@@ -415,11 +449,28 @@ class Recovery {
         }
     }
 
+    // The lock's holds track the rotors: each snapped wheel's from its own
+    // rotor's speed, the partner's at the first one's k, as freeze() set them,
+    // whenever the detector has a speed to give (its ring restarts at every
+    // resync, and reads 0 until it has two reads). A braking partner stays at
+    // 0. Whatever comes next this tick -- a join, a failed lock, the ramp --
+    // starts from these.
+    void follow(const RecoveryIn &in) {
+        for (int i = 0; i < 2; i++) {
+            if ((_locking & bit(i)) && in.w[i].stall.velValid) _holdCps[i] = ratio(in.w[i], i) * _refCps[i];
+        }
+        const uint8_t f = first(_locking);
+        if (!in.w[f].stall.velValid) return;
+        _k = ratio(in.w[f], f);
+        for (int i = 0; i < 2; i++) {
+            if (!(_locking & bit(i)) && !_brake[i]) _holdCps[i] = _k * _refCps[i];
+        }
+    }
+
     void locked(RecoveryOut &out, const RecoveryIn &in) {
         resyncBoth(out);
         for (int i = 0; i < 2; i++) {
-            _hold[i] = RecoveryWheelOut::HOLD_NONE;
-            _holdCps[i] = 0;
+            release(i);
             _anchor[i] = in.w[i].encCounts;
         }
         _state = REC_RAMP;
@@ -484,6 +535,9 @@ class Recovery {
     float _k = 0;
     Hold _hold[2] = {RecoveryWheelOut::HOLD_NONE, RecoveryWheelOut::HOLD_NONE};
     float _holdCps[2] = {0, 0};
+    float _refCps[2] = {0, 0};          // the command each hold is measured against
+    bool _held[2] = {false, false};     // _refCps is set: the wheel has a hold this attempt
+    bool _brake[2] = {false, false};    // a partner braking through a reversal: held at 0
     int8_t _goalSign[2] = {0, 0};
     int32_t _anchor[2] = {0, 0};
     uint32_t _episodeMs = 0, _lockStartMs = 0, _nextRenewMs = 0;

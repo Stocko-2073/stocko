@@ -152,7 +152,8 @@ values for them are ignored. SpreadCycle remains the default.
 Change current and chopper settings while disabled. Each enable reapplies and
 verifies configuration and zero velocity before energizing. Periodic driver
 status polling detects reset, communications failure and electrical/thermal
-faults. OTPW is only a chip warning; firmware responds by disabling both motors.
+faults. OTPW is only a chip warning; since 0.3.0 the firmware derates that wheel
+instead of disabling both motors (before, it disabled both).
 See [base firmware current controls and validation](base/README.md#motor-current-and-torque).
 
 The 3⅓:1 reduction gives an ideal 1.50 N·m holding torque at each wheel at
@@ -391,6 +392,153 @@ Three mitigations worth building, none a substitute for the mechanical fix:
 fault when `MAGNET_DETECT` clears (the encoder declaring it does not know where
 it is); track AGC min/max since boot and report drift, since AGC moves well
 before a status bit latches; and propagate a fault across wheels.
+
+
+## Stall detection and recovery (0.3.1)
+
+The servo's slip check (above) references raw slip -- the commanded integral
+minus encoder x steps/count -- against a reference that leaks over **one second
+of time**. That forgets at the same rate whatever the speed, so it cannot see a
+slow stall: crawling at 0.02 turns/s a stalled wheel falls behind by 107
+microsteps a second, the leak settles the gap at v x tau = 107, under the 200
+limit, and the wheel chatters forever. That is the blind spot the grass hill
+found.
+
+### The detector: a leak over distance
+
+`StallDetector.h`, one per wheel, velocity mode only, samples each tick right
+after the servo's update:
+
+    ref += (raw - ref) * travel / (D + travel)      travel = |commanded change|, D = lag_leak 400
+    lag  = (raw - ref) * dir                        + means the rotor is behind
+
+A full stall grows raw by exactly the commanded travel, so lag(x) =
+D (1 - e^(-x/D)), and it crosses the trip level L = `lag_trip` 40 after
+x = -D ln(1 - L/D) = **42.1 microsteps** of commanded travel -- at any speed.
+On the host plant, into an unbreakable wall (30% rolling friction), recover 0:
+
+| turns/s | 0.02 | 0.05 | 0.1 | 0.2 | 0.5 | 1.0 |
+|---|---|---|---|---|---|---|
+| steps of travel from contact to the latch | 43 | 43 | 36 | 40 | 57 | 83 |
+| time from contact | 402 ms | 160 ms | 67 ms | 38 ms | 21 ms | 15 ms |
+| the 1 s check, for comparison | never | 1.3 s | | 0.2 s | | |
+
+Below 42 the wall's spring threw the rotor back, which counts as lag too; above,
+the rotor carries its momentum into the wall before it stops.
+
+The leak is there for everything that is not a stall:
+
+- **clock gain error** e: lag settles at -e x D, 1.2 microsteps for the 0.3% a
+  calibrated clock drifts;
+- **encoder INL** is a fixed function of shaft angle, a sine in distance, and the
+  leak is a high-pass in distance: gain 0.43 for the once-a-turn term, 0.69 for
+  twice, so the AS5600's ~20 counts p-p shows as ~7 microsteps;
+- **backlash**: a start or a reversal re-anchors, then ignores `lag_rev` 48
+  microsteps of travel while the motor crosses the gear play -- which, with the
+  output standing still, looks exactly like the first steps of a stall.
+
+The in-sync budget is therefore load angle (up to 16 microsteps, at pull-out),
+INL ~7, clock ~1, filter and latency up to 4, quantization under 1: ~29
+typical-worst against 40. The host rig, with INL, the chips 0.3% off their
+stored gains, 30% friction, late ticks and ramps, saw a worst lag of 9.9 at
+0.02-1.5 turns/s, and 6 through square-wave reversals with 0, 8 and 24 counts
+of backlash.
+
+Blind on purpose: a steady partial slip under ~10% drifts off like a clock
+error, and position mode (moves, the demo) is left to the 1 s check -- the demo
+rewrites the servo's tuning every beat, so no detector state lives there. The
+detector freezes while the encoder fails and carries on afterwards, so a rotor
+that stalled inside a gap is still caught. Since 0.3.1 the 1 s check does the
+same; before, it kept counting the command against the frozen read, and a
+single failed read (100 ms blind) above ~0.4 turns/s faulted as slip.
+`lag_trip 0` is the old detector behaviour, exactly.
+
+### Recovery: freeze, lock, ramp, and only then the fault
+
+`Recovery.h`, one for the robot, because on a differential drive nothing one
+wheel does about a slip is private. Once slipped, a stepper gives almost no
+average torque, and the robot's reflected inertia (~500x the rotor's) means the
+rotor never catches a field that keeps moving away from it. So a trip during a
+live stick command, with both wheels driving, runs an episode:
+
+1. **Freeze.** The tripped wheel's field snaps to the speed its rotor is doing,
+   k = rotor/command from a 20 ms boxcar, clamped to [-1, 1]. The partner slews
+   to k x its own command at `decel_tps2` -- it is still in sync and carries the
+   robot's momentum, so it is never snapped; same k, same arc. Boost (IRUN 31)
+   is asked for on both, and its write goes out in the trip tick, past the slot
+   scheduler's 100 ms write gap, before the snapped VACTUAL leaves in the next
+   tick's update; the partner's follows a tick later.
+2. **Lock.** Next tick both slip references resync. The snapped wheel's hold
+   then **follows its rotor** every tick, and the partner keeps the arc at the
+   new k. This is what the host rig taught: a slipped rotor under a load that
+   pushes back is still decelerating when it trips, the boxcar speed is already
+   behind it, and a field held at that speed caught it by luck -- on a ridge or
+   a hill above base pull-out mostly not. A field that follows the rotor keeps
+   the slip slow, the load angle walks into the holding half of the field and
+   settles there. The lock lasts `rec_lock_ms` 200 at least (~3 periods of the
+   ~15 Hz rotor-on-robot mode, before the driver's ~0.5 s drop to hold
+   current), until the rotors run steady and the partner has arrived. Raw slip
+   past `lag_trip` during it is a failed lock: freeze again, as the next
+   attempt, the k still measured against the command the hold began from. A
+   partner that slips meanwhile joins.
+3. **Ramp.** The holds release and the servos' ordinary ramp takes both wheels
+   back to whatever the stick says now, under boost renewed until every
+   involved wheel has made `rec_prog` (0.25 turn) toward the stick, or 5 s from
+   the first trip. Then the episode is over and the attempt count starts again.
+4. **Give up.** `rec_tries` (3) attempts without that progress, more than 10
+   inside a minute, or an involved wheel's encoder going quiet, and the next
+   trip latches FAULT_SLIP through the ordinary `latchFault()`: the peer stops
+   in the same tick, both VACTUAL 0, `faults clear` to go on.
+
+The operator can always take it back: releasing the stick, `stop`, the deadman,
+either wheel's goal reversing (a new decision, a spin turn say) or a settings
+change cancels the episode, holds released, no fault.
+
+**The rule from EXPLORATIONS.md holds.** Recovery acts only on a live,
+deadman-refreshed operator command (not on the bench's `wheel X vel`, a demo or
+a released stick), only before any fault latches, never faster than the command
+-- k is clamped against the command in force when the hold began, so a hold
+neither outruns the stick nor goes further backwards than it was going forwards
+-- and it never clears a fault: what it cannot fix ends in today's latched slip.
+A lead (the wheel pushed ahead of its field: gravity would need a slope over 33
+degrees to overhaul this robot) is never retried. `recover 0` keeps the new
+detector and latches on its first trip, which alone closes the crawl blind
+spot.
+
+### What the host rig says, and does not
+
+On the plant at 0.3 turns/s and 30% rolling friction, a ridge whose peak puts
+105-135% of base pull-out on one wheel (69-89% of boosted) is cleared in one
+attempt with no rollback; a hill under both wheels at 110-130% (26-33 degrees on
+this model) rolls back 0.014-0.025 turn and climbs on, in one attempt; an
+unbreakable wall gets exactly three attempts, then the latch. At 0.2 and 0.5
+turns/s the ridges recover too. Two limits showed:
+
+- **At a crawl** (0.1 turns/s) a wheel that slips under a load pushing back
+  rolls back faster than it was asked to go forward, and the clamp keeps the
+  hold from following it, so those end in the ordinary latch. Letting the hold
+  follow backwards past the command, to catch and brake, would recover them in
+  the plant (with up to ~0.25 turn of rollback); it is the owner's call, since
+  the rule above says never faster than the command.
+- **A hill held past base pull-out** saws: each recovery's boost lapses, the
+  base current slips again, and a fresh episode follows, until one runs out of
+  attempts (in the plant three recoveries, 1.64 turns, then the latch). Holding
+  Boost on the app, or Phase 3's load-angle limiter, is the answer there.
+
+The plant's rotor-on-robot mode is all but undamped and its friction is a
+guess, and recovery's success is sensitive to both; the stand (a mass between
+base and boosted pull-out, and one above it) and the yard are what count.
+`lag_rev` should be set from the backlash measured on the stand: the measured
+play plus 24.
+
+### Seeing it
+
+`status` has a `stall:` line per wheel (lag now, worst since `stats reset`,
+trips) and a `recovery:` line; each event is logged on the `rec` tag with the
+wheel, its command and rotor speed, the lag and the attempt. WebSocket status
+carries per-wheel `lag` and `trips` and a `rec` object; BLE status sets flags2
+bit 5 for the whole of an episode and byte 16 counts attempts; the CSV stream
+appends `alag,blag,rec,rtry`.
 
 
 ## Free-wheeling and recovery (not built yet)
