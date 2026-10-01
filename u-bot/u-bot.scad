@@ -844,7 +844,7 @@ module robot() {
         }
         // nop();// 
         caster(caster_leg_len);
-        color("#444") cuboid([150,94,65],anchor=BOT+FWD); // battery
+        color("#444") cuboid([152,97,65],anchor=BOT+FWD); // battery
         body_tray();
         union() {
             body_lid() board_mount() {
@@ -879,7 +879,7 @@ module robot() {
 // !body(); // print
 // !yrot(180) body_lid(); // print
 // !xrot(90) board_mount(); // print
-!board_mount_lid();
+// !board_mount_lid();
 // !body_tray();
 
 // zrot($t*360) render()
@@ -889,14 +889,14 @@ module robot() {
 
 // yview() fwd(59) left(112.75-15)
 // xview()
-// robot();
+robot();
 
 // xview()
-body_lid() board_mount() {
-    m3_8() down(1.5+$slop) m3_nut();
-    board_mount_lid();
-    board();
-}
+// body_lid() board_mount() {
+//     m3_8() down(1.5+$slop) m3_nut();
+//     board_mount_lid();
+//     board();
+// }
 /*
 up(300) {
     measure([-75,50,0],[75,50,0]);
