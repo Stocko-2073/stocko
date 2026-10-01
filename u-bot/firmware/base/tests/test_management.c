@@ -83,6 +83,9 @@ int main(void){
     send(a,2,"\"op\":\"exec\",\"args\":[\"drive\",\"0.1\",\"0\",\"0.4\"]");int jid=accepted(a,2);usleep(70000);assert(moving);
     send(b,1,"\"op\":\"exec\",\"args\":[\"drive\",\"0.1\",\"0\",\"1\"]");accepted(b,1);assert(code(b,1)==1);
     send(b,2,"\"op\":\"exec\",\"args\":[\"wheel\",\"A\",\"zero\"]");accepted(b,2);assert(code(b,2)==1);
+    // A manual boost, like bench fault injection, may land while another job's drive owns motion.
+    previous=calls;send(b,3,"\"op\":\"exec\",\"args\":[\"boost\",\"on\",\"5000\"]");accepted(b,3);assert(code(b,3)==0);assert(calls==previous+1);
+    send(b,4,"\"op\":\"exec\",\"args\":[\"boost\",\"status\"]");accepted(b,4);assert(code(b,4)==0);
     management_close(a);assert(moving);usleep(500000);assert(!moving);
     a=management_open();cJSON_Delete(wait_event(a,"hello",0));char body[256];snprintf(body,sizeof body,"\"op\":\"result\",\"job\":%d",jid);send(a,1,body);cJSON*r=wait_event(a,"result",1);assert(cJSON_IsTrue(cJSON_GetObjectItem(r,"done")));assert(cJSON_GetObjectItem(r,"code")->valueint==0);cJSON_Delete(r);
     send(a,2,"\"op\":\"exec\",\"args\":[\"drive\",\"0.1\",\"0\",\"0\"]");jid=accepted(a,2);usleep(70000);assert(moving);
@@ -94,6 +97,15 @@ int main(void){
     blocked=true;send(a,8,"\"op\":\"exec\",\"args\":[\"block\"]");accepted(a,8);while(!entered)usleep(1000);
     int before=stops;send(a,9,"\"op\":\"exec\",\"args\":[\"estop\"]");assert(code(a,9)==0);assert(stops>before);
     blocked=false;usleep(100000);
-    puts("PASS: real command service: malformed/replay refusal, motion ownership, disconnected completion, lease expiry/replay, position deadline, slow subscriber isolation, urgent stop bypass");
+    // 'drive v w [secs] [boost]': the flag is not the seconds. A timed drive
+    // finishes on its own (0), where an untimed one would need a lease and
+    // lapse with 124 after 1 s; without the seconds it is the default 2 s.
+    int64_t began=esp_timer_get_time();
+    send(a,10,"\"op\":\"exec\",\"args\":[\"drive\",\"0.1\",\"0\",\"0.3\",\"boost\"]");accepted(a,10);assert(code(a,10)==0);
+    int64_t took=esp_timer_get_time()-began;assert(took>=250000&&took<900000);assert(!moving);
+    began=esp_timer_get_time();
+    send(a,11,"\"op\":\"exec\",\"args\":[\"drive\",\"0.1\",\"0\",\"boost\"]");accepted(a,11);assert(code(a,11)==0);
+    took=esp_timer_get_time()-began;assert(took>=1900000&&took<3000000);assert(!moving);
+    puts("PASS: real command service: malformed/replay refusal, motion ownership, disconnected completion, lease expiry/replay, position deadline, slow subscriber isolation, urgent stop bypass, boost during another job's motion, drive [secs] [boost] timing");
     return 0;
 }

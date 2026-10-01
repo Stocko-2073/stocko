@@ -1,5 +1,6 @@
 #include "ble.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -46,10 +47,10 @@ void ble_store_config_init(void);
 // -------------------------------------------------------------------- status
 
 // Bytes 0-12 have never changed, and the app reads the length to know what
-// else a frame carries, so fields are only ever appended. 0.2.9 sends 18
-// bytes: the battery state is real, and 13-16 are zero placeholders for the
-// torque work to fill (flags2 bit 7 will say when 14-16 mean something);
-// 0.3.0 also appends 18 (derate) and 19 (reserved).
+// else a frame carries, so fields are only ever appended: 13 bytes before
+// 0.2.9, 18 in 0.2.9 (the battery state real, 13-16 zero), 20 since 0.3.0.
+// flags2 bit 7 is what tells the app that bytes 14-16 and 18 mean something
+// and that the drive characteristic takes 5-byte frames.
 typedef struct __attribute__((packed)) {
     uint8_t flags;
     uint8_t fault;          // the latched drive_fault_t, robot-level ones included; 0 when none
@@ -57,21 +58,44 @@ typedef struct __attribute__((packed)) {
     uint8_t batt_pct;
     int16_t vel_a, vel_b;
     int16_t v_mmps, w_mradps;
-    uint8_t flags2;         // 13: boost/derate/heat/OTPW/recovery bits, 0 for now
-    uint8_t heat_a, heat_b; // 14, 15: motor heat x100, 0 for now
-    uint8_t recoveries;     // 16: stall recovery counter, 0 for now
+    uint8_t flags2;         // 13: FLAGS2_* below
+    uint8_t heat_a, heat_b; // 14, 15: motor heat, round(h x 100) saturating at 255
+    uint8_t recoveries;     // 16: stall recovery attempts, low byte, wraps (0 until 0.3.1)
     uint8_t batt_state;     // 17: battery_state(): 0 none, 1 ok, 2 low, 3 cutoff
+    uint8_t derate;         // 18: OTPW derate level, wheel A in bits 0-1, B in bits 2-3
+    uint8_t reserved;       // 19: 0
 } status_packet_t;
+
+// flags2, byte 13. "Either" means either wheel.
+enum {
+    FLAGS2_BOOST = 1 << 0,        // boost granted on either, for any reason (START included)
+    FLAGS2_MANUAL = 1 << 1,       // a manual boost is being asked for, granted or not
+    FLAGS2_DERATED = 1 << 2,      // either at derate level 1 or more
+    FLAGS2_HEAT = 1 << 3,         // either in its thermal model's limited band, the whole of it
+    FLAGS2_OTPW = 1 << 4,         // either driver's last sample says OTPW
+    FLAGS2_RECOVERING = 1 << 5,   // a stall recovery episode is running (0.3.1; 0 until then)
+    FLAGS2_LOAD_VALID = 1 << 6,   // the load-angle estimate is trusted (0.4.0; 0 until then)
+    FLAGS2_TORQUE = 1 << 7,       // 5-byte drive frames accepted; bytes 14-16 and 18 valid
+};
 
 // One notification at the default ATT MTU carries 20 bytes, and a phone that
 // has not negotiated more gets no more; past that the frame would be cut off.
-_Static_assert(sizeof(status_packet_t) == 18 && sizeof(status_packet_t) <= BLE_ATT_MTU_DFLT - 3,
-               "status is 18 bytes in 0.2.9, within one default-MTU notification");
+_Static_assert(sizeof(status_packet_t) == 20 && sizeof(status_packet_t) <= BLE_ATT_MTU_DFLT - 3,
+               "status is 20 bytes since 0.3.0, all of one default-MTU notification");
 
 static int16_t clamp16(float v) {
     if (v > 32767.0f) return 32767;
     if (v < -32768.0f) return -32768;
     return (int16_t)v;
+}
+
+// h x 100 in a byte: 2.55 and up read 2.55, and nothing below zero (or NaN,
+// which fails both comparisons) reads as anything but 0.
+static uint8_t heat_byte(float h) {
+    float x = roundf(h * 100.0f);
+    if (x >= 255.0f) return 255;
+    if (!(x > 0.0f)) return 0;
+    return (uint8_t)x;
 }
 
 static void build_status(status_packet_t *p) {
@@ -92,7 +116,20 @@ static void build_status(status_packet_t *p) {
     p->vel_b = clamp16(s.wheel[1].vel_tps * 1000.0f);
     p->v_mmps = clamp16(s.v_mps * 1000.0f);
     p->w_mradps = clamp16(s.w_radps * 1000.0f);
-    // flags2, heat and recoveries stay as memset left them until 0.3.0.
+    p->flags2 = FLAGS2_TORQUE;
+    for (int i = 0; i < DRIVE_NWHEELS; i++) {
+        const drive_wheel_status_t *w = &s.wheel[i];
+        if (w->boost_active) p->flags2 |= FLAGS2_BOOST;
+        if (w->boost_reasons & DRIVE_BOOST_MANUAL) p->flags2 |= FLAGS2_MANUAL;
+        if (w->derate >= 1) p->flags2 |= FLAGS2_DERATED;
+        if (w->heat_limited) p->flags2 |= FLAGS2_HEAT;
+        if (w->otpw) p->flags2 |= FLAGS2_OTPW;
+        p->derate |= (uint8_t)((w->derate & 3) << (2 * i));
+    }
+    // FLAGS2_RECOVERING, FLAGS2_LOAD_VALID and the recovery counter stay as
+    // memset left them until the phases that fill them.
+    p->heat_a = heat_byte(s.wheel[0].heat);
+    p->heat_b = heat_byte(s.wheel[1].heat);
     p->batt_state = (uint8_t)battery_state();
 }
 
@@ -107,12 +144,21 @@ static int gatt_access(uint16_t conn_handle, uint16_t attr_handle,
         return os_mbuf_append(ctxt->om, &p, sizeof p) == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
     }
     if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR && attr_handle == s_drive_handle) {
-        int16_t vw[2];
+        // [i16 v][i16 w], and since 0.3.0 optionally [u8 flags]: bit 0 boost,
+        // the rest reserved and ignored. An app sends 5 bytes only after the
+        // status has shown FLAGS2_TORQUE; any other length is refused, as
+        // anything but 4 always was. Copied flat and decoded byte by byte:
+        // little-endian whatever the host, and no 16-bit load from an odd
+        // address.
+        uint8_t b[5];
         uint16_t len = 0;
-        if (ble_hs_mbuf_to_flat(ctxt->om, vw, sizeof vw, &len) != 0 || len != sizeof vw) {
+        if (ble_hs_mbuf_to_flat(ctxt->om, b, sizeof b, &len) != 0 || (len != 4 && len != 5)) {
             return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
         }
-        esp_err_t err = drive_set_normalized(vw[0] / 1000.0f, vw[1] / 1000.0f, DRIVE_HOLD_MS);
+        int16_t v = (int16_t)(uint16_t)(b[0] | (b[1] << 8));
+        int16_t w = (int16_t)(uint16_t)(b[2] | (b[3] << 8));
+        uint32_t flags = len == 5 && (b[4] & 1) ? DRIVE_CMD_BOOST : 0;
+        esp_err_t err = drive_set_normalized_ex(v / 1000.0f, w / 1000.0f, DRIVE_HOLD_MS, flags);
         if (err != ESP_OK) ESP_LOGD(TAG, "drive write refused: %s", drive_refusal());
         return 0;   // write-without-response: nothing to say back; status carries the fault
     }

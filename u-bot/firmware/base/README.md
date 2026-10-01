@@ -16,6 +16,10 @@ protocol, Wi-Fi recovery, OTA confirmation, and acceptance results.
   closed-loop stepper servo at 200 Hz with slip detection. Every motion
   command carries a hold time; when it lapses the wheels ramp to a stop. A
   fault on one wheel stops both. EN is one shared, fail-safe pin.
+- **Torque.** The motor current changes while driving: a boost to IRUN 31
+  (1768 mA) on the operator's request and for 1.5 s after each standstill,
+  paced by a per-motor thermal model, and a derate instead of a shutdown when
+  a driver warns it is hot (below).
 - **Console** over the USB port: linenoise line editing, history, tab
   completion. Calibration, tuning, WiFi provisioning, settings, OTA, logging
   levels, CSV telemetry. `help` lists everything.
@@ -118,8 +122,24 @@ base/
   pivots the robot. Motion is refused until `faults clear` (or the WebSocket /
   BLE clear op) -- never cleared by a joystick. The battery fault above is the
   one robot-level fault: it names no wheel.
+- **Driver faults.** A driver that stops answering on the UART, resets, reports
+  a short, undervoltage (GSTAT), an overtemperature shutdown (OT) or 143 C and
+  up cuts EN for both wheels and latches FAULT_DRIVER, as always. The ~120 C
+  pre-warning (OTPW, or t120) no longer does, since 0.3.0: cutting EN at the
+  warning let the wheels freewheel down whatever hill heated the driver, and
+  the datasheet names OTPW as the cue to reduce current. That driver's wheel
+  derates instead: no boost at once, base current to 75% after 10 s and 50%
+  after 20 s while OTPW persists, one level back per 30 s clear. There are at
+  least 23 C between OTPW and OT, and OT is still fatal.
+- **Boost limits.** Boost (IRUN 31, 1768 mA, above the motor's 1.5 A rating) is
+  only ever granted with the drivers on, while the thermal model has headroom,
+  the driver is not derating and the battery is not low. A manual boost lasts
+  as long as the drive command carrying it (at most 60 s per request) and ends
+  with the first command without the flag, with `stop`, a fault or a cutoff.
+  The current comes back down one step per 100 ms.
 - **Drivers start disabled** and will not energise while either TMC2209 is not
-  answering on the bus.
+  answering on the bus, or reports a hard fault. A hot one (OTPW) is
+  energised, derated from level 2.
 
 ## Console
 
@@ -130,7 +150,12 @@ The prompt is `ubot> `. A few worth knowing:
 status                        everything on one screen
 enable / disable              power stage on / off (both drivers, shared EN)
 stop / estop                  ramp to zero / EN high right now
-drive <v m/s> <w rad/s> [s]   robot frame; positive w is anticlockwise from above
+drive <v m/s> <w rad/s> [s] [boost]
+                              robot frame; positive w is anticlockwise from above;
+                              'boost' asks for boost current while it holds
+boost on [ms] / boost off     manual boost on both wheels (default 2000 ms, at most
+                              60000); 'boost' alone: reasons, live and base mA, heat,
+                              limit and resume point, derate, OTPW, CS_ACTUAL, settings
 wheel A goto 0.5              bench: position move on one wheel (also move, vel,
                               spin, zero, loop on|off, invert, reg, kp vmax ...)
 cal A / cal B                 measure shaft polarity and clock gain, ~23 s each;
@@ -138,8 +163,11 @@ cal A / cal B                 measure shaft polarity and clock gain, ~23 s each;
 demo short                    both wheels, ~9 s, round-trip check as the outro
 faults / faults clear
 stream on [hz] / stream off   CSV telemetry, test_servo's columns with more appended
-                              (batt_v, batt_st); 'on' first prints '# ' and the header
+                              (batt_v, batt_st; then per wheel run, hold, boost, heat,
+                              derate, otpw as arun..aotpw, brun..botpw); 'on' first
+                              prints '# ' and the header
 stream header                 just the '# ' header line, so a capture names its columns
+                              (ubotctl stream sends it first, then subscribes)
 batt                          voltage, percentage, state, pack and thresholds
 set / set <key> <value>       settings (below)
 wifi set <ssid> <password>    provisioning; wifi scan / wifi / wifi clear
@@ -147,10 +175,19 @@ wifi ps on|off               runtime modem-sleep diagnostic; boot defaults off
 ota <https://...>/firmware.bin   or: ota url <...> once, then ota start
 log drive debug               per-tag level: none error warn info debug verbose
 hw set B                      hardware revision
-stats / stats reset           control timing, bus health, dropped log lines
+stats / stats reset           control tick and encoder read p50/p99/max, the tick's
+                              extra bus group, live current writes, UART timing,
+                              bus health, dropped log lines
 debug wedge <ms>              bench builds only (CONFIG_UBOT_BENCH_FAULTS): stall the
                               control loop to prove the watchdog reset, wheels clear
+debug otpw <A|B> [s]          bench builds only: that wheel's DRV_STATUS samples read
+                              OTPW for s seconds (default 40, at most 120, 0 ends it),
+                              so the derate runs as for a hot driver
 ```
+
+`status` has a `torque:` line per wheel: the live run/hold pair, whether boost
+is on and why (or what refused it), the heat, the derate level, OTPW, the last
+CS_ACTUAL and how many CS_ACTUAL samples disagreed with the written IRUN.
 
 ### Settings (`set`)
 
@@ -162,7 +199,11 @@ debug wedge <ms>              bench builds only (CONFIG_UBOT_BENCH_FAULTS): stal
 | `vmax_tps`, `accel_tps2` | 0.3, 1.0 | output turns/s ceiling and turns/s^2 speeding up, both wheels; clamped to the measured envelope (2.0, 20). `accel_tps2` must be above 0 |
 | `decel_tps2` | 2.0 | turns/s^2 slowing down in velocity mode: a released stick, `stop`, and the deadman all brake at this rate. Gentler than `accel_tps2` on purpose; raise it for a sharper stop |
 | `gain_a`, `gain_b`, `inv_a`, `inv_b` | measured | written by `cal`, not by hand |
-| `run_ma`, `hold_ma` | 1200, 600 | requested RMS mA per phase, both wheels; 100..1500 with hold <= run. Rounded down to the driver's discrete scale. Change with drivers disabled |
+| `run_ma`, `hold_ma` | 1200, 600 | requested RMS mA per phase, both wheels; 100..1500 with hold <= run. Rounded down to the driver's discrete scale. Change with drivers disabled. `run_ma` above a nonzero `boost_ma` is refused |
+| `boost_ma` | 1768 | boost current, mA: 0 turns boost off, else `run_ma`..1768 (1768 is IRUN 31, the most R110 gives). Live |
+| `boost_start_ms` | 1500 | how long a START boost lasts after leaving a standstill of 0.5 s or more; 0..5000, 0 = no start boost. Live |
+| `therm_tau_s` | 600 | the thermal model's heating time constant, s (cooling is twice it); 60..3600. The real motor's is estimated at ~1000 s, so 600 errs hot. Live |
+| `therm_lim` | 1.10 | the heat at which boost pauses, 1.0 being the steady state at the rated 1.5 A; it resumes 0.10 below. 0.5..1.30. Live |
 | `iholddly` | 8 | how gradually current decays to hold current; 0..15, change disabled |
 | `spread` | 1 | 1 SpreadCycle, 0 StealthChop; change disabled |
 | `pwmthrs` | 0 | selected-microstep steps/s above which StealthChop hands over to SpreadCycle; only applies with `spread 0`, change disabled |
@@ -190,7 +231,9 @@ Current is entirely digital: `I_scale_analog=0`, `internal_Rsense=0`,
 `vsense=0`, with the BTT TMC2209 V1.3's external 0.11 Ω sense resistors.
 The VREF pots are ignored. These board constants live in `MotorCurrent.h`;
 a replacement module with different resistors requires updating that profile.
-The 1500 mA ceiling is nominal; component tolerances and cooling still matter.
+The 1500 mA ceiling on `run_ma` is the motor's rating and is nominal;
+component tolerances and cooling still matter. Only boost goes above it, to
+IRUN 31 (1768 mA, all R110 gives), and only in bursts the thermal model allows.
 
 ```
 disable
@@ -206,6 +249,51 @@ The default requests program approximately **1160 mA run / 552 mA hold**
 `status` reports the programmed nominal current, not a current measurement.
 `CS_ACTUAL` is the driver's scale, also not a measurement of coil current.
 
+**Live current (0.3.0).** That pair is the base. With the drivers on, the
+firmware rewrites IHOLD_IRUN as it goes, and `status`'s `torque:` line shows
+the pair in force:
+
+- **Boost** raises IRUN and IHOLD together to `boost_ma` (1768 mA, IRUN 31),
+  so a robot stopped on a slope holds at boost current too. Reasons, each with
+  its own expiry: *manual* (drive commands carrying the boost flag, `boost on`),
+  *start* (`boost_start_ms` after leaving a standstill of 0.5 s or more,
+  including the first move after `enable`), and later *recovery* and *load*.
+  Up is instant; down is one CS step per 100 ms on run and hold, so at
+  `run_ma` 1500 a lapsed boost is back at IRUN 26 in 0.5 s, and a stationary
+  one ramps to IHOLD 9 over 2.2 s.
+- **Thermal model** (`ThermalModel.h`), one per motor, in normalized heat: 1.0
+  is the steady state at the rated 1.5 A RMS, and a current I settles at
+  (I / 1.5 A)². It heats with `therm_tau_s` (600 s) and cools twice as slowly,
+  erring hot both ways against the motor's estimated ~1000 s. The current it
+  integrates is inferred from the pair last written, following the driver's
+  own standstill reduction, or the last CS_ACTUAL when that is higher and
+  recent. Boost pauses at `therm_lim` (1.10, allowed by the PETG housings) and
+  comes back at 1.00. Power-on assumes 0.80; a warm reset carries the heat over
+  in RTC memory. From warm at 1160 mA cruise there are ~10 minutes of boost,
+  from power-on ~7; a recharge takes ~4.4 min cruising, ~2.2 parked.
+- **OTPW derate** (`OtpwDerate` in `BoostPolicy.h`) per driver, from its
+  DRV_STATUS samples: level 1 no boost, 2 base at 75%, 3 at 50% (see Safety
+  model). A driver already hot when it is configured starts at level 2.
+- **Battery low** (and cutoff) refuses boost: no extra draw from a sagging pack.
+
+Writes go out through the control tick's one spare bus slot: current going
+down before current going up, the two wheels alternating, each at most once per
+100 ms, IFCNT-verified with one retry before the driver is declared lost (EN
+cut, as for any driver fault). The slot also carries the health poll, which it
+never delays by more than 50 ms, and it waits when the servos have already
+used 3 ms of the 5 ms tick. While a wheel runs in SpreadCycle its CS_ACTUAL
+must equal the written IRUN; `stats` and `boost` count the samples that did
+not (`cs_mismatch`), with a warning at most every 10 s. Every boost on/off
+(with reasons and duration), heat pause/resume and derate level change is
+logged.
+
+The UART now waits 3 idle symbol times rather than the driver's default 10
+before it hands a reply over (120 us instead of 400 us at 250 kbaud, per read
+and per write echo) and has no TX ring buffer, so a datagram starts inside the
+write call: an IFCNT-verified write is estimated at ~2.0 ms rather than ~2.8.
+`stats` shows the longest read and write the bus has actually taken, lock
+held.
+
 Legacy NVS `irun`, `ihold`, `iscale`, and `rsense` values are ignored; attempts
 to set them are refused. Old motion settings remain effective if saved in NVS.
 Fresh defaults are 0.3 wheel turns/s (~0.20 m/s) and 1 turn/s² acceleration.
@@ -218,8 +306,9 @@ re-enabling; the firmware never resumes motion automatically.
 
 Both drivers are polled for health, each approximately every 500 ms, including
 during calibration. A communication failure, reset, undervoltage, short,
-overtemperature shutdown, or **OTPW warning** disables both drivers and latches
-a driver fault. OTPW does not automatically reduce current in the chip.
+overtemperature shutdown or a t143/t150/t157 flag disables both drivers and
+latches a driver fault. The **OTPW warning** (and t120) derates that wheel
+instead, since 0.3.0; the chip itself never reduces current for it.
 Open-load bits are reported but do not fault: they can appear at standstill.
 The console and WebSocket status include raw driver status, its age/validity,
 and a frozen copy of the most recent sample when a motion fault latches.
@@ -229,7 +318,9 @@ An older or unavailable sample must not be treated as the exact fault-time state
 to inspect run current and active chopper. GCONF (00) and CHOPCONF (6C) are also
 readable. See the [TMC2209 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf).
 
-Host fault-injection tests (no hardware):
+Host fault-injection tests (no hardware), among them the live current path on
+the plant rig (`test_torque`), the slot scheduler (`test_uartslot`) and the
+live-write retry and soft/hard masks (`test_velgen`):
 
 ```sh
 python3 components/drive/tests/run_host_tests.py
@@ -263,6 +354,8 @@ One JSON object per text frame. Client to robot:
 ```json
 {"t":"drive","v":0.5,"w":-0.2}            normalised, -1..1 of the current limits
 {"t":"drive","v_mps":0.3,"w_radps":0.0}   or physical units; optional "hold" in ms
+{"t":"drive","v":0,"w":0,"boost":true}    optional "boost": boost while this command holds;
+                                          a drive without it ends a boost (0.3.0)
 {"t":"stop"}  {"t":"enable"}  {"t":"disable"}  {"t":"estop"}  {"t":"clear"}
 {"t":"status"}                            a status frame now
 {"t":"log","on":true}                     mirror the log to this client
@@ -275,14 +368,25 @@ everything but `drive` (a `drive` is only acknowledged when refused), and
 `log` frames when subscribed.
 
 ```json
-{"t":"status","fw":"0.2.9","hw":"A","name":"ubot","up":64,
- "enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","fault_code":0,"cal":false,"demo":null,
+{"t":"status","fw":"0.3.0","hw":"A","name":"ubot","up":64,
+ "enabled":true,"faulted":false,"fault":null,"fault_wheel":"A","fault_code":0,"caps":["boost"],
+ "cal":false,"demo":null,
  "cmd":{"v":0.2,"w":0.0,"active":true},"limits":{"v":0.675,"w":5.14},
  "batt":{"present":true,"v":19.97,"pct":79,"state":"ok","pack":"li5s"},"wifi":{"rssi":-61},
  "ota":{"busy":false,"state":"update available: 0.1.2","available":"0.1.2","configured":true},
  "wheels":[{"name":"A","driver":true,"pos":0.588,"vel":0.296,"slip":1,"enc":true,
-            "agc":128,"magnet":"ok","fault":0,"gain":1.0159,"loop":true}, {...}]}
+            "agc":128,"magnet":"ok","fault":0,"gain":1.0159,"loop":true,"run_ma":1160,"hold_ma":552,...,
+            "torque":{"run":1768,"hold":1768,"boost":2,"act":true,"h":0.84,"hot":false,
+                      "derate":0,"otpw":false}}, {...}]}
 ```
+
+`caps` lists what this firmware accepts beyond the basics; `"boost"` (0.3.0)
+means drive frames may carry `"boost":true`. Per wheel, `run_ma`/`hold_ma` are
+the base pair and `torque` the live one: `run` and `hold` in mA, `boost` the
+active reasons (1 manual, 2 start, 4 recovery, 8 load, granted or not), `act`
+whether boost is granted, `h` the thermal model's heat (1.0 = rated steady
+state), `hot` whether it is in its limited band (from `therm_lim` down to the
+resume point), `derate` the OTPW level 0-3 and `otpw` the driver's last sample.
 
 When a fault is latched, `fault` is its "name (reason)" and `fault_code` its
 `drive_fault_t` (always present since 0.2.9, 0 when nothing is latched). A
@@ -323,9 +427,9 @@ the advertisement, the drive service UUID in the scan response.
 |---|---|---|
 | Device Information `0x180A` | `2A29` manufacturer, `2A24` model, `2A25` serial, `2A26` firmware rev, `2A27` hardware rev | read |
 | Battery `0x180F` | `2A19` level % | read, notify (1 Hz) |
-| U-BOT `7b1a0000-6f4b-4c2e-9d3a-2e5f1c8a9b01` | `7b1a0001` drive | write w/o response: `int16 v, int16 w` little-endian, thousandths of the limits. Held 500 ms |
+| U-BOT `7b1a0000-6f4b-4c2e-9d3a-2e5f1c8a9b01` | `7b1a0001` drive | write w/o response: `int16 v, int16 w` little-endian, thousandths of the limits, plus since 0.3.0 an optional `u8 flags` (bit 0 boost while held; other bits ignored). 4 or 5 bytes, any other length is refused; send 5 only after status flags2 bit 7, since older firmware refuses them. Held 500 ms |
 | | `7b1a0002` control | write: `0` stop `1` enable `2` disable `3` estop `4` clear faults |
-| | `7b1a0003` status | read, notify at 5 Hz, 18 bytes since 0.2.9 (13 before): `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`, then `u8 flags2, u8 heat_a, u8 heat_b, u8 recoveries` (all 0 in 0.2.9) and `u8 batt_state` (0 none, 1 ok, 2 low, 3 cutoff). flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present. `fault` is the latched `drive_fault_t`, the battery cutoff's 6 included. Only ever appended: 0.3.0 fills bytes 13-16 and adds 18 and 19, 20 bytes being what a default-MTU notification carries |
+| | `7b1a0003` status | read, notify at 5 Hz, 20 bytes since 0.3.0 (18 in 0.2.9, 13 before): `u8 flags, u8 fault, u16 batt_mV, u8 batt_pct, i16 velA, i16 velB (thousandths turn/s), i16 v_mm/s, i16 w_mrad/s`, then `u8 flags2, u8 heat_a, u8 heat_b, u8 recoveries, u8 batt_state, u8 derate, u8 reserved`. flags: b0 enabled, b1 faulted, b2 cmd active, b3 enc A ok, b4 enc B ok, b5 battery present. `fault` is the latched `drive_fault_t`, the battery cutoff's 6 included. flags2, each "on either wheel": b0 boost granted (START included), b1 manual boost asked, b2 derate level 1+, b3 heat-limited (the whole limited band), b4 OTPW, b5 recovering (0 until 0.3.1), b6 load estimate valid (0 until 0.4.0), b7 set: 5-byte drive frames accepted and bytes 14-16 and 18 valid. heat = round(h x 100), saturating at 255. recoveries: the low byte of the recovery attempt counter, 0 until 0.3.1. batt_state 0 none, 1 ok, 2 low, 3 cutoff. derate: wheel A's level in bits 0-1, B's in bits 2-3. 20 bytes is all a default-MTU notification carries |
 
 ## OTA
 

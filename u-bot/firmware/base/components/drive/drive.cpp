@@ -13,14 +13,20 @@
 #include <string.h>
 
 #include "AS5600.h"
+#include "BoostPolicy.h"
 #include "Demo.h"
 #include "I2cBus.h"
 #include "StepperServo.h"
+#include "ThermalModel.h"
+#include "TimingHistogram.h"
 #include "Tmc2209Uart.h"
+#include "UartSlot.h"
 #include "VelGen.h"
 #include "battery.h"
 #include "driver/gpio.h"
+#include "esp_attr.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -61,10 +67,22 @@ constexpr float CAL_SPS      = 1500.0f;
 constexpr int32_t IHOLD_DELAY_DEFAULT = 8;
 
 constexpr uint32_t CONTROL_US       = 1000000UL / CONFIG_UBOT_CONTROL_HZ;
-constexpr uint32_t HEALTH_MS        = 125;   // A encoder, A driver, B encoder, B driver: each 500 ms
 constexpr uint32_t ENCODER_FAULT_MS = 250;   // encoder silent this long with the loop closed
 constexpr uint32_t LOCK_MS          = 200;   // how long an API call waits for the servo mutex
 constexpr gpio_num_t PIN_EN         = (gpio_num_t)CONFIG_UBOT_PIN_EN;
+
+// Torque. Boost is at most IRUN 31 for at most a minute per request, and the
+// thermal model decides whether it may run at all.
+constexpr uint32_t BOOST_MANUAL_MAX_MS = 60000;   // one manual request, or one drive command's share
+constexpr uint32_t OTPW_INJECT_MAX_MS  = 120000;  // bench: longest debug otpw
+constexpr uint32_t CS_FRESH_MS   = 600;    // a DRV_STATUS sample this recent tells the thermal model CS_ACTUAL
+constexpr uint32_t CS_SETTLE_MS  = 20;     // after a live write, before CS_ACTUAL has to agree with it
+constexpr uint32_t CS_WARN_MS    = 10000;  // at most one CS_ACTUAL warning per wheel per this
+constexpr uint32_t HEAT_SAVE_MS  = 1000;   // heat copied to RTC memory this often
+constexpr float    INFER_MARGIN  = 1.1f;   // the thermal model believes in the higher current 10% longer
+constexpr int      BOOST_START_DEFAULT_MS = 1500;
+constexpr float    THERM_TAU_DEFAULT_S = 600.0f;
+constexpr float    THERM_LIM_DEFAULT   = 1.10f;
 
 float stepsPerOutRev(uint16_t micro) { return MOTOR_FULL_STEPS * micro * GEAR_RATIO; }
 float nominalStepsPerCount(uint16_t micro) { return stepsPerOutRev(micro) / StepperServo::COUNTS_PER_REV; }
@@ -94,10 +112,32 @@ struct Wheel {
     bool statusOk = false;
     uint32_t encDownSince = 0;
     bool driverStatusOk = false;
+    bool haveDriverSample = false;
     uint32_t drvStatus = 0, gstat = 0, driverSampleMs = 0;
     bool faultDriverStatusOk = false;
     uint32_t faultDrvStatus = 0, faultGstat = 0, faultDriverAgeMs = 0;
 
+    // Torque: the motor's heat budget, what boost is asked for and granted,
+    // and the driver's temperature derate. torqueUpdate() runs all three every
+    // tick and leaves the pair they settle on in `torque`; uartSlot() writes it
+    // to the driver when it differs from what the driver has.
+    ThermalModel thermal;
+    BoostPolicy boost;
+    OtpwDerate derate;
+    BoostPolicy::Output torque;   // this tick's
+    bool livePending = false;     // `torque` is not what the driver holds
+    uint32_t lastMovingMs = 0;    // the step generator last ran, for the standstill reduction
+    uint32_t lastLiveWriteMs = 0;
+    uint8_t csActual = 0;         // DRV_STATUS CS_ACTUAL, last good sample
+    uint32_t csMismatch = 0;
+    bool csWarned = false;
+    uint32_t csWarnMs = 0;
+    bool otpw = false;            // last good sample, injection included
+    bool heatLimited = false;     // as last logged
+    bool otpwInjecting = false;   // bench: drive_debug_inject_otpw()
+    uint32_t otpwInjectUntil = 0;
+    TimingHistogram readHist;     // encoder reads
+    uint32_t readsSeen = 0;
 
     Wheel(const char *n, const char *gk, const char *ik, uint8_t addr, AS5600 &e)
         : name(n), gainKey(gk), invKey(ik), gen(tmc, addr), servo(e, gen), enc(e) {}
@@ -151,13 +191,51 @@ struct State {
     int runMa = MotorCurrent::DEFAULT_RUN_MA;
     int holdMa = MotorCurrent::DEFAULT_HOLD_MA;
 
+    // Torque settings (boost_ma, boost_start_ms, therm_tau_s, therm_lim).
+    int boostMa = MotorCurrent::BOOST_MAX_MA;
+    int boostStartMs = BOOST_START_DEFAULT_MS;
+    float thermTauS = THERM_TAU_DEFAULT_S;
+    float thermLim = THERM_LIM_DEFAULT;
+
     uint32_t tickWorst = 0;
     uint32_t tickCount = 0;
-    uint32_t lastHealth = 0;
     uint8_t healthIdx = 0;
+    TimingHistogram tickHist;
+
+    // The tick's extra bus group, and what it has done.
+    UartSlot slot;
+    TimingHistogram slotHist;
+    uint32_t slotWorst = 0;
+    uint32_t liveWrites = 0, liveFailures = 0, liveRetries = 0;
+
+    int64_t heatUs = 0;          // the thermal models last accumulated
+    uint32_t heatSavedMs = 0;
+    bool boosting = false;       // either wheel granted, as last logged
+    uint32_t boostSinceMs = 0;
 
     const char *refusal = "";
 } S;
+
+// Both motors' heat, carried across a warm reset in memory the boot does not
+// clear, as ulog carries its log. A reset is seconds, not the minutes the
+// motors take to cool, so starting over from BOOT_H after one would undersell
+// a hot motor. The check word catches a power-on's random contents and a copy
+// the reset cut in half; either way the model starts from BOOT_H.
+struct RetainedHeat {
+    uint32_t magic;
+    float h[DRIVE_NWHEELS];
+    uint32_t check;
+};
+constexpr uint32_t HEAT_MAGIC = 0x48454154;   // "HEAT"
+
+uint32_t heatCheck(const RetainedHeat &r) {
+    uint32_t a, b;
+    memcpy(&a, &r.h[0], sizeof a);
+    memcpy(&b, &r.h[1], sizeof b);
+    return ~(r.magic ^ a ^ ((b << 13) | (b >> 19)));
+}
+
+RTC_NOINIT_ATTR RetainedHeat retainedHeat;
 
 // The same words wherever a flat pack is the reason: enable, clear and motion.
 const char *const BATTERY_REFUSAL = "battery below its cutoff -- charge or swap the pack; clear once it recovers";
@@ -166,6 +244,14 @@ const char *const BATTERY_REFUSAL = "battery below its cutoff -- charge or swap 
 // never land on top of a wheel's.
 static_assert(DRIVE_FAULT_DRIVER == (int)StepperServo::FAULT_DRIVER && DRIVE_FAULT_BATTERY > DRIVE_FAULT_DRIVER,
               "drive_fault_t no longer lines up with StepperServo::Fault");
+// The status and the transports report BoostPolicy's bits as they are.
+static_assert(DRIVE_BOOST_MANUAL == BoostPolicy::MANUAL && DRIVE_BOOST_START == BoostPolicy::START &&
+                  DRIVE_BOOST_RECOVERY == BoostPolicy::RECOVERY && DRIVE_BOOST_LOAD == BoostPolicy::LOAD,
+              "DRIVE_BOOST_* no longer lines up with BoostPolicy::Reason");
+static_assert(DRIVE_BOOST_LIMIT_HEAT == BoostPolicy::LIMIT_HEAT && DRIVE_BOOST_LIMIT_DERATE == BoostPolicy::LIMIT_DERATE &&
+                  DRIVE_BOOST_LIMIT_SUPPLY == BoostPolicy::LIMIT_SUPPLY && DRIVE_BOOST_LIMIT_OFF == BoostPolicy::LIMIT_OFF,
+              "DRIVE_BOOST_LIMIT_* no longer lines up with BoostPolicy::Limit");
+static_assert(DRIVE_NWHEELS == 2, "the retained heat and the slot scheduler are written for two wheels");
 
 portMUX_TYPE snapMux = portMUX_INITIALIZER_UNLOCKED;
 drive_status_t snap = {};
@@ -183,10 +269,13 @@ esp_err_t refuse(const char *why) {
     return ESP_ERR_INVALID_STATE;
 }
 
+// A manual boost belongs to the command that asked for it, so it ends with
+// every command: stop, a fault, a cutoff, a demo or a calibration starting.
 void cancelCommands() {
     S.cmdActive = false;
     S.cmdV = S.cmdW = 0;
     for (int i = 0; i < DRIVE_NWHEELS; i++) S.whActive[i] = false;
+    for (Wheel *w : wheels) w->boost.cancel(BoostPolicy::MANUAL);
 }
 
 // EN is one pin for both drivers, so energising is all-or-nothing in hardware.
@@ -194,6 +283,12 @@ void cancelCommands() {
 // an MCU reset even though the power stage was off, and one live velocity would
 // lurch the whole robot the instant it is energised. Disabling runs the other
 // way round -- cut the power stage first, tidy up after.
+//
+// The torque policies start over each time. begin() has just programmed the
+// base pair; BoostPolicy starts there too, with the standstill it looks for
+// already long enough, so the first move after an enable gets its START
+// boost. The derate keeps its level -- a driver does not cool by being
+// re-enabled -- and one still hot at begin() starts at level 2 at least.
 bool enableDrivers(bool on) {
     if (on) {
         for (Wheel *w : wheels) w->gen.setEnabled(true);
@@ -206,12 +301,24 @@ bool enableDrivers(bool on) {
         gpio_set_level(PIN_EN, 0);
         S.driversOn = true;
         delayMs(20);   // let the TMC2209s come out of standby
-        for (Wheel *w : wheels) w->servo.resyncSlip();
+        const uint32_t now = millis();
+        for (Wheel *w : wheels) {
+            w->servo.resyncSlip();
+            w->boost.reset(now - BoostPolicy::START_STILL_MS);
+            const uint8_t level = w->derate.level();
+            w->derate.reset(w->gen.hot() && level < 2 ? 2 : level);
+            w->lastMovingMs = now;   // as if just stopped: the thermal model errs hot
+            w->livePending = false;
+        }
     } else {
         gpio_set_level(PIN_EN, 1);
         for (Wheel *w : wheels) w->servo.enableDriver(false);
         S.driversOn = false;
         cancelCommands();
+        for (Wheel *w : wheels) {
+            w->boost.reset(millis());
+            w->livePending = false;
+        }
     }
     return true;
 }
@@ -260,20 +367,72 @@ void limitRobotVelocity(float &v, float &w) {
 float vmaxMps() { return wheelA.servo.vmaxTps * WHEEL_CIRC_M; }
 float wmaxRadps() { return 2.0f * vmaxMps() / fmaxf(S.trackM, 0.05f); }
 
+const char *const DERATE_TEXT[] = {"none", "no boost", "base current at 75%", "base current at 50%"};
+
+// Bench: whether debug otpw is feeding this wheel's samples now. An injection
+// ends by itself, and says so.
+bool otpwInjected(Wheel &w, uint32_t now) {
+    if (w.otpwInjecting && (int32_t)(w.otpwInjectUntil - now) <= 0) {
+        w.otpwInjecting = false;
+        ESP_LOGW(TAG, "BENCH: wheel %s OTPW injection over", w.name);
+    }
+    return w.otpwInjecting;
+}
+
+// CS_ACTUAL is the driver saying which current it is using, the only such
+// word there is. While the wheel runs in SpreadCycle it must be IRUN: anything
+// else is a live write that did not land as believed. Not at a standstill or
+// in StealthChop (the driver reduces or regulates it there), and not in the
+// first CS_SETTLE_MS after a write.
+void checkCsActual(Wheel &w, uint32_t now) {
+    const bool stealth = w.drvStatus & (1UL << 30), stst = w.drvStatus & (1UL << 31);
+    if (!S.driversOn || !w.gen.enabled() || stealth || stst || w.gen.rate() == 0 ||
+        now - w.lastLiveWriteMs <= CS_SETTLE_MS || w.csActual == w.gen.liveRun()) return;
+    w.csMismatch++;
+    if (w.csWarned && now - w.csWarnMs < CS_WARN_MS) return;
+    w.csWarned = true;
+    w.csWarnMs = now;
+    ESP_LOGW(TAG, "wheel %s: CS_ACTUAL %u while moving, but IRUN %u was written (%lu so far) -- "
+                  "a current write the driver did not take?",
+             w.name, w.csActual, w.gen.liveRun(), (unsigned long)w.csMismatch);
+}
+
 void pollDriver(Wheel &w) {
     // Short timeout keeps an absent driver from blocking the 200 Hz loop for 40 ms.
     auto dr = tmc.read(w.gen.address(), Tmc2209Uart::DRVSTATUS, 3);
     auto gs = dr.st == Tmc2209Uart::OK
         ? tmc.read(w.gen.address(), Tmc2209Uart::GSTAT, 3) : dr;
     w.driverStatusOk = dr.st == Tmc2209Uart::OK && gs.st == Tmc2209Uart::OK;
+    const uint32_t now = millis();
     if (w.driverStatusOk) {
         w.drvStatus = dr.value;
         w.gstat = gs.value;
-        w.driverSampleMs = millis();
+        w.driverSampleMs = now;
+        w.haveDriverSample = true;
+        w.csActual = (uint8_t)((dr.value >> 16) & 31);
+
+        // Soft: the ~120 C pre-warning lowers current (OtpwDerate) instead of
+        // cutting EN, which would let the wheels freewheel down whatever hill
+        // heated the driver. Only a sample that arrived counts; a failed read
+        // is the hard path's.
+        const uint32_t injected = otpwInjected(w, now) ? VelGen::DRV_OTPW : 0;
+        w.otpw = ((w.drvStatus | injected) & VelGen::DRV_SOFT) != 0;
+        const uint8_t before = w.derate.level();
+        const uint8_t level = w.derate.sample(w.otpw, now);
+        if (level > before) {
+            ESP_LOGW(TAG, "wheel %s: driver %s (DRV_STATUS 0x%08lX%s) -- derate level %u: %s",
+                     w.name, before ? "still at its temperature pre-warning" : "temperature pre-warning, ~120 C",
+                     (unsigned long)w.drvStatus, injected ? ", OTPW injected" : "", level, DERATE_TEXT[level]);
+        } else if (level < before) {
+            ESP_LOGI(TAG, "wheel %s: driver pre-warning clear %lu s -- derate level %u: %s", w.name,
+                     (unsigned long)(OtpwDerate::RESTORE_MS / 1000), level, DERATE_TEXT[level]);
+        }
+        checkCsActual(w, now);
     }
-    // OTPW is a warning, not automatic derating. Stop at the warning instead
-    // of waiting for shutdown. Open-load flags are diagnostic only.
-    if (!w.driverStatusOk || (w.gstat & 7) || (w.drvStatus & 0x3F)) {
+    // Hard: a failed read, a reset or driver error in GSTAT, overtemperature
+    // shutdown, a short, or t143 and above disable both drivers. Open-load
+    // flags are diagnostic only.
+    if (!w.driverStatusOk || (w.gstat & 7) || (w.drvStatus & VelGen::DRV_HARD)) {
         w.gen.invalidate();
         if (S.driversOn) {
             ESP_LOGE(TAG, "driver %s: UART %s GSTAT 0x%02lX DRV_STATUS 0x%08lX -- disabling both",
@@ -305,7 +464,8 @@ void pollHealth(Wheel &w) {
 }
 
 // Separate UART and encoder health transactions so they do not accumulate in
-// one 5 ms servo tick. Each sensor/driver still gets checked every 500 ms.
+// one 5 ms servo tick: uartSlot() runs one step every UartSlot::HEALTH_MS, so
+// each sensor/driver still gets checked every 500 ms.
 void pollHealthStep() {
     Wheel &w = *wheels[S.healthIdx / 2];
     if (S.healthIdx & 1) pollDriver(w);
@@ -398,6 +558,233 @@ void checkSupply() {
              battery_voltage(), battery_cut_v(), battery_pack_name());
 }
 
+// -------------------------------------------------------------------- torque
+//
+// Every tick, drivers on or off, each wheel's thermal model learns what
+// current its motor had since the last tick, its BoostPolicy says what the
+// driver should have next (boosted, ramping back, derated or base), and a pair
+// that differs from what the driver holds is left pending for uartSlot().
+// Nothing here touches the bus.
+
+// The driver's own standstill reduction, as ThermalModel::inferMa() wants it:
+// 2^20 + TPOWERDOWN x 2^18 clocks of this chip's oscillator from the last step
+// to the first reduction, then IHOLDDELAY x 2^18 clocks per CS step, both
+// stretched by INFER_MARGIN so the model believes in the higher current a
+// little longer than the driver delivers it. ~568 and ~192 ms on wheel A at
+// IHOLDDELAY 8.
+uint32_t standstillMs(const Wheel &w) {
+    const float clocks = 1048576.0f + VelGen::TPOWERDOWN * 262144.0f;
+    return (uint32_t)(clocks / (VelGen::FCLK * w.gen.clockGain()) * 1000.0f * INFER_MARGIN);
+}
+uint32_t reductionStepMs(const Wheel &w) {
+    return (uint32_t)(w.gen.holdDelay() * 262144.0f / VelGen::FCLK * 1000.0f * INFER_MARGIN);
+}
+
+// What the motor has been getting, as well as the drive can tell: the model's
+// inference from the pair last written and how long the step generator has
+// been still, or CS_ACTUAL from a recent DRV_STATUS sample where that is
+// higher.
+float motorMa(Wheel &w, uint32_t now) {
+    const bool energised = S.driversOn && w.gen.enabled();
+    const bool moving = w.gen.rate() != 0;
+    if (moving) w.lastMovingMs = now;
+    float ma = ThermalModel::inferMa(energised, moving, moving ? 0 : now - w.lastMovingMs, w.gen.liveRun(),
+                                     w.gen.liveHold(), standstillMs(w), reductionStepMs(w));
+    if (energised && w.haveDriverSample && now - w.driverSampleMs < CS_FRESH_MS)
+        ma = fmaxf(ma, MotorCurrent::milliamps(w.csActual));
+    return ma;
+}
+
+// Heat for the real time since the last call, whatever filled it: one tick, a
+// late one, or a whole calibration. Not the servos' dt, which stops at 50 ms.
+void thermalStep() {
+    const int64_t nowUs = esp_timer_get_time();
+    const float dtS = (float)(nowUs - S.heatUs) * 1e-6f;
+    S.heatUs = nowUs;
+    const uint32_t now = millis();
+    for (Wheel *w : wheels) w->thermal.accumulate(dtS, motorMa(*w, now));
+}
+
+void storeHeat() {
+    retainedHeat.magic = HEAT_MAGIC;
+    for (int i = 0; i < DRIVE_NWHEELS; i++) retainedHeat.h[i] = wheels[i]->thermal.heat();
+    retainedHeat.check = heatCheck(retainedHeat);
+}
+
+void saveHeat(uint32_t now) {
+    if (now - S.heatSavedMs < HEAT_SAVE_MS) return;
+    S.heatSavedMs = now;
+    storeHeat();
+}
+
+// At boot: the heat carried over a warm reset if there is a good copy, else
+// ThermalModel::BOOT_H, the "most of the way to rated" guess for a motor whose
+// history is unknown.
+void restoreHeat() {
+    const esp_reset_reason_t why = esp_reset_reason();
+    bool ok = why != ESP_RST_POWERON && retainedHeat.magic == HEAT_MAGIC &&
+              retainedHeat.check == heatCheck(retainedHeat);
+    for (float h : retainedHeat.h) ok = ok && isfinite(h) && h >= 0 && h < 4;
+    for (int i = 0; i < DRIVE_NWHEELS; i++) wheels[i]->thermal.reset(ok ? retainedHeat.h[i] : ThermalModel::BOOT_H);
+    if (ok) {
+        ESP_LOGI(TAG, "motor heat carried over the reset: A %.2f, B %.2f", wheelA.thermal.heat(), wheelB.thermal.heat());
+    } else {
+        ESP_LOGI(TAG, "motor heat assumed %.2f on both (%s)", ThermalModel::BOOT_H,
+                 why == ESP_RST_POWERON ? "power-on" : "no good copy from before the reset");
+    }
+    S.heatUs = esp_timer_get_time();
+    S.heatSavedMs = millis();
+    storeHeat();   // a good copy from the first moment
+}
+
+// "manual+start", for the logs.
+const char *reasonText(uint8_t r, char *buf, size_t n) {
+    static const char *const NAMES[] = {"manual", "start", "recovery", "load"};
+    size_t o = 0;
+    buf[0] = 0;
+    for (int i = 0; i < 4 && o < n; i++)
+        if (r & (1u << i)) o += snprintf(buf + o, n - o, "%s%s", o ? "+" : "", NAMES[i]);
+    return buf[0] ? buf : "none";
+}
+
+const char *limitText(uint8_t l) {
+    if (l & BoostPolicy::LIMIT_OFF) return "boost_ma is off";
+    if (l & BoostPolicy::LIMIT_DERATE) return "driver derating";
+    if (l & BoostPolicy::LIMIT_HEAT) return "motor heat limit";
+    if (l & BoostPolicy::LIMIT_SUPPLY) return "battery low";
+    return "none";
+}
+
+// Robot-level: boost is on while either wheel has it granted.
+void logBoost(uint32_t now) {
+    bool on = false;
+    uint8_t reasons = 0, limits = 0;
+    for (Wheel *w : wheels) {
+        on |= w->torque.boosting;
+        reasons |= w->torque.reasons;
+        limits |= w->torque.limitedBy;
+    }
+    if (on == S.boosting) return;
+    S.boosting = on;
+    char buf[40];
+    if (on) {
+        S.boostSinceMs = now;
+        const char *who = !wheelB.torque.boosting ? "wheel A" : !wheelA.torque.boosting ? "wheel B" : "both wheels";
+        ESP_LOGI(TAG, "boost on (%s), %s at %.0f mA", reasonText(reasons, buf, sizeof buf), who,
+                 MotorCurrent::milliamps(wheelA.boost.config().boostCs));
+    } else {
+        ESP_LOGI(TAG, "boost off after %.1f s (%s)", (now - S.boostSinceMs) * 1e-3f,
+                 !S.driversOn ? "drivers off" : limits ? limitText(limits) : "request over");
+    }
+}
+
+// The thermal model's pause and resume, per wheel.
+void logHeat(Wheel &w) {
+    const bool limited = w.thermal.limited();
+    if (limited == w.heatLimited) return;
+    w.heatLimited = limited;
+    const ThermalModel::Params &p = w.thermal.params();
+    if (limited) {
+        ESP_LOGW(TAG, "wheel %s: motor heat %.2f at the limit %.2f -- boost paused until it cools to %.2f",
+                 w.name, w.thermal.heat(), p.limit, p.limit - p.hysteresis);
+    } else {
+        ESP_LOGI(TAG, "wheel %s: motor heat back down to %.2f -- boost available again", w.name, w.thermal.heat());
+    }
+}
+
+void torqueUpdate() {
+    thermalStep();
+    const uint32_t now = millis();
+    // Low is the warning before a cutoff: no extra draw from a pack that is
+    // already sagging toward it.
+    const bool inhibit = battery_state() >= BATT_LOW;
+    for (Wheel *w : wheels) {
+        BoostPolicy::Inputs in;
+        in.nowMs = now;
+        in.energised = S.driversOn && w->gen.enabled();
+        in.moving = w->gen.rate() != 0;
+        in.heatLimited = w->thermal.limited();
+        in.supplyInhibit = inhibit;
+        in.derate = w->derate.level();
+        w->torque = w->boost.update(in);
+        w->livePending = in.energised && w->gen.ok() &&
+                         (w->torque.run != w->gen.liveRun() || w->torque.hold != w->gen.liveHold());
+        logHeat(*w);
+    }
+    logBoost(now);
+    saveHeat(now);
+}
+
+// BoostPolicy's settings follow the drive's: the base pair begin() programs,
+// boost_ma and boost_start_ms. The thermal models take therm_tau_s and
+// therm_lim, the rest at ThermalModel's defaults. Both apply at once.
+void configureTorque() {
+    BoostPolicy::Config bc;
+    bc.boostCs = S.boostMa ? MotorCurrent::scale(S.boostMa) : 0;   // at or below base: off
+    bc.startMs = (uint32_t)S.boostStartMs;
+    ThermalModel::Params tp;
+    tp.ratedMa = MotorCurrent::RATED_MA;
+    tp.tauHeatS = S.thermTauS;
+    tp.limit = S.thermLim;
+    for (Wheel *w : wheels) {
+        bc.baseRun = w->gen.runCurrent();
+        bc.baseHold = w->gen.holdCurrent();
+        w->boost.configure(bc);
+        w->thermal.configure(tp);
+    }
+}
+
+// A wheel's pending pair, onto the driver. setLiveCurrent() retries once; a
+// pair that still does not land has invalidated the driver, and the
+// checkFaults() right after the slot cuts EN, as for any driver fault.
+void liveWrite(Wheel &w, uint32_t now) {
+    const uint8_t run = w.torque.run, hold = w.torque.hold;
+    const uint32_t retries = w.gen.liveRetries();
+    w.lastLiveWriteMs = now;
+    const bool ok = w.gen.setLiveCurrent(run, hold);
+    S.liveRetries += w.gen.liveRetries() - retries;
+    if (ok) {
+        S.liveWrites++;
+        ESP_LOGD(TAG, "wheel %s: IRUN %u IHOLD %u", w.name, run, hold);
+        return;
+    }
+    S.liveFailures++;
+    ESP_LOGE(TAG, "wheel %s: current write IRUN %u IHOLD %u not acknowledged, twice -- driver invalidated",
+             w.name, run, hold);
+}
+
+// The tick's one extra bus group, UartSlot's choice: a pending live-current
+// write, else a due health step, else (Phase 3) an MSCNT read. servoUs is how
+// long the tick has run so far; past UartSlot::BUDGET_US the group waits.
+void uartSlot(uint32_t servoUs) {
+    const uint32_t now = millis();
+    UartSlot::Request rq;
+    for (int i = 0; i < DRIVE_NWHEELS; i++) {
+        const Wheel &w = *wheels[i];
+        rq.live[i] = w.livePending;
+        rq.raise[i] = w.torque.run > w.gen.liveRun() || w.torque.hold > w.gen.liveHold();
+    }
+    // Phase 3 (0.4.0): rq.mscnt = the load-angle tracker wants its MSCNT read.
+    const UartSlot::Choice c = S.slot.next(now, servoUs, rq);
+    if (c.group == UartSlot::NONE) return;
+    const uint32_t t0 = micros();
+    switch (c.group) {
+        case UartSlot::LIVE: liveWrite(*wheels[c.wheel], now); break;
+        case UartSlot::HEALTH: pollHealthStep(); break;
+        default: break;   // UartSlot::MSCNT: the Phase 3 read goes here
+    }
+    const uint32_t took = micros() - t0;
+    S.slotHist.add(took);
+    if (took > S.slotWorst) S.slotWorst = took;
+    checkFaults();
+}
+
+void noteEncoderRead(Wheel &w) {
+    if (w.servo.readCount() == w.readsSeen) return;
+    w.readsSeen = w.servo.readCount();
+    w.readHist.add(w.servo.lastReadUs());
+}
+
 void updateSnapshot() {
     drive_status_t s = {};
     s.enabled = S.driversOn;
@@ -421,6 +808,16 @@ void updateSnapshot() {
     s.tick_count = S.tickCount;
     s.bus_writes = tmc.writes();
     s.bus_echo_faults = tmc.echoFaults();
+    s.live_writes = S.liveWrites;
+    s.live_write_failures = S.liveFailures;
+    s.live_write_retries = S.liveRetries;
+    s.slot_worst_us = S.slotWorst;
+    s.slot_deferred = S.slot.deferred();
+    s.uart_read_worst_us = tmc.worstReadUs();
+    s.uart_write_worst_us = tmc.worstWriteUs();
+    s.heat_limit = wheelA.thermal.params().limit;
+    s.heat_resume = wheelA.thermal.params().limit - wheelA.thermal.params().hysteresis;
+    const uint32_t now = millis();
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
         Wheel &w = *wheels[i];
         drive_wheel_status_t &d = s.wheel[i];
@@ -462,6 +859,21 @@ void updateSnapshot() {
         d.accel_tps2 = w.servo.accelTps2;
         d.decel_tps2 = w.servo.decelTps2;
         d.worst_read_us = w.servo.worstReadUs();
+        d.live_run_ma = w.gen.liveRunMilliamps();
+        d.live_hold_ma = w.gen.liveHoldMilliamps();
+        d.live_run_cs = w.gen.liveRun();
+        d.live_hold_cs = w.gen.liveHold();
+        d.heat = w.thermal.heat();
+        d.boost_reasons = w.torque.reasons;
+        d.boost_limit = w.torque.limitedBy;
+        d.boost_active = w.torque.boosting;
+        d.heat_limited = w.thermal.limited();
+        d.derate = w.derate.level();
+        d.otpw = w.otpw;
+        d.otpw_injected = w.otpwInjecting && (int32_t)(w.otpwInjectUntil - now) > 0;
+        d.otpw_events = w.derate.events();
+        d.cs_actual = w.csActual;
+        d.cs_mismatch = w.csMismatch;
     }
     portENTER_CRITICAL(&snapMux);
     snap = s;
@@ -469,16 +881,19 @@ void updateSnapshot() {
 }
 
 // Polled by the blocking calibration at ~1 kHz. Doubles as the snapshot
-// refresher while the tick loop is suspended.
+// refresher while the tick loop is suspended. The motor heats during a
+// calibration like any other time, so the thermal models keep counting; the
+// current does not change until the tick loop is back.
 bool calAbortFn() {
     static uint32_t n = 0;
     if ((++n % 50) == 0) {
-        if (millis() - S.lastHealth >= HEALTH_MS) {
-            S.lastHealth = millis();
+        if (S.slot.healthDue(millis())) {
+            S.slot.healthRan(millis());
             pollHealthStep();
             checkFaults();
         }
         checkSupply();   // a cutoff latches here too, and the latch aborts the run
+        thermalStep();
         updateSnapshot();
     }
     return S.calAbort || S.pendingEstop || S.faultLatched;
@@ -561,6 +976,18 @@ void controlTask(void *) {
 
         xSemaphoreTake(S.mtx, portMAX_DELAY);
 
+        // The order below is the robot's: stop first, then the deadman, then
+        // the servos on fresh encoder reads, then everything that judges or
+        // follows what they did, and the bus traffic that is left last, where
+        // the tick can see how much time it has.
+
+        if (S.pendingEstop) {
+            S.pendingEstop = false;
+            demo.stop();
+            enableDrivers(false);
+            ESP_LOGW(TAG, "emergency stop: both drivers disabled");
+        }
+
 #if CONFIG_UBOT_BENCH_FAULTS
         if (S.wedgeMs) {
             // A loop stuck in a computation or a bus spin: busy, holding the
@@ -576,13 +1003,6 @@ void controlTask(void *) {
             }
         }
 #endif
-
-        if (S.pendingEstop) {
-            S.pendingEstop = false;
-            demo.stop();
-            enableDrivers(false);
-            ESP_LOGW(TAG, "emergency stop: both drivers disabled");
-        }
 
         int64_t now = esp_timer_get_time();
         if (S.cmdActive && S.cmdExpires && now > S.cmdExpires) {
@@ -600,22 +1020,29 @@ void controlTask(void *) {
             }
         }
 
-        for (Wheel *w : wheels) w->servo.update(dt);
+        for (Wheel *w : wheels) {
+            w->servo.update(dt);
+            noteEncoderRead(*w);
+        }
+        // Phase 2 (0.3.1): recoveryTick() goes here, after both servos and
+        // before checkFaults(). It samples the stall detectors on this tick's
+        // encoder reads; a trip it may not handle raises FAULT_SLIP for
+        // checkFaults() to latch in the same tick. Its boost hook is
+        //   wheels[i]->boost.request(BoostPolicy::RECOVERY, millis(), ms)
+        // so torqueUpdate() and uartSlot() below raise the current in this
+        // tick, before the servos' next update() writes the snapped VACTUAL.
         checkFaults();
         demo.update();
         checkSupply();
-
-        if (millis() - S.lastHealth >= HEALTH_MS) {
-            S.lastHealth = millis();
-            pollHealthStep();
-            checkFaults();
-        }
+        torqueUpdate();
+        uartSlot(micros() - t0);   // after the servos' own bus traffic, within what the tick has left
 
         updateSnapshot();
         xSemaphoreGive(S.mtx);
 
         uint32_t took = micros() - t0;
         if (took > S.tickWorst) S.tickWorst = took;
+        S.tickHist.add(took);
         S.tickCount++;
     }
 }
@@ -630,6 +1057,15 @@ void logCurrent() {
              S.runMa, S.holdMa, wheelA.gen.runMilliamps(), wheelA.gen.holdMilliamps(),
              wheelA.gen.runCurrent(), wheelA.gen.holdCurrent(), MotorCurrent::MAX_MA,
              wheelA.gen.spreadCycle() ? "SpreadCycle" : "StealthChop with optional handover");
+    const BoostPolicy::Config &bc = wheelA.boost.config();
+    if (bc.boostCs > bc.baseRun) {
+        ESP_LOGI(TAG, "boost to %.0f mA (IRUN %u) on request and for %d ms leaving a standstill; "
+                      "motor heat limit %.2f, back from %.2f, tau %.0f s",
+                 MotorCurrent::milliamps(bc.boostCs), bc.boostCs, S.boostStartMs, S.thermLim,
+                 wheelA.thermal.params().limit - wheelA.thermal.params().hysteresis, S.thermTauS);
+    } else {
+        ESP_LOGI(TAG, "boost off (boost_ma %d)", S.boostMa);
+    }
 }
 
 void loadSettings() {
@@ -660,6 +1096,20 @@ void loadSettings() {
     bool spread = settings_get_i32("spread", 1) != 0;
     float pwmthrs = settings_get_f32("pwmthrs", 0.0f);
     if (!isfinite(pwmthrs) || pwmthrs < 0) pwmthrs = 0;
+    // Torque. A stored value out of range falls back to its default, never to
+    // a neighbour of the bad one.
+    S.boostMa = settings_get_i32("boost_ma", MotorCurrent::BOOST_MAX_MA);
+    if (!MotorCurrent::validBoost(S.runMa, S.boostMa)) {
+        ESP_LOGW(TAG, "stored boost_ma %d does not fit run_ma %d; using %d", S.boostMa, S.runMa,
+                 MotorCurrent::BOOST_MAX_MA);
+        S.boostMa = MotorCurrent::BOOST_MAX_MA;
+    }
+    S.boostStartMs = settings_get_i32("boost_start_ms", BOOST_START_DEFAULT_MS);
+    if (S.boostStartMs < 0 || S.boostStartMs > 5000) S.boostStartMs = BOOST_START_DEFAULT_MS;
+    S.thermTauS = settings_get_f32("therm_tau_s", THERM_TAU_DEFAULT_S);
+    if (!(S.thermTauS >= 60.0f && S.thermTauS <= 3600.0f)) S.thermTauS = THERM_TAU_DEFAULT_S;   // NaN too
+    S.thermLim = settings_get_f32("therm_lim", THERM_LIM_DEFAULT);
+    if (!(S.thermLim >= 0.5f && S.thermLim <= 1.30f)) S.thermLim = THERM_LIM_DEFAULT;
     for (Wheel *w : wheels) {
         w->servo.vmaxTps = vmax;
         w->servo.accelTps2 = accel;
@@ -672,6 +1122,7 @@ void loadSettings() {
     wheelB.gen.setInvert(invB);
     wheelA.gen.presetClockGain(gainA);
     wheelB.gen.presetClockGain(gainB);
+    configureTorque();
 }
 
 Wheel *wheelArg(drive_wheel_t w) {
@@ -684,7 +1135,8 @@ const char *const PARAM_NAMES[] = {"kp", "vmax", "accel", "decel", "vmin", "tol"
 // tries to store it, and until then its reads quietly come back empty (or,
 // NVS comparing only 15 characters, with another key's value).
 constexpr const char *SETTING_NAMES[] = {"sign_a", "sign_b", "a_left", "track_m", "vmax_tps", "accel_tps2",
-                                         "decel_tps2", "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs"};
+                                         "decel_tps2", "run_ma", "hold_ma", "iholddly", "spread", "pwmthrs",
+                                         "boost_ma", "boost_start_ms", "therm_tau_s", "therm_lim"};
 
 constexpr size_t keyLength(const char *s) {
     size_t n = 0;
@@ -724,13 +1176,14 @@ void drive_park_en(void) {
 esp_err_t drive_init(void) {
     drive_park_en();
 #if CONFIG_UBOT_BENCH_FAULTS
-    ESP_LOGW(TAG, "BENCH FAULT INJECTION BUILD -- 'debug wedge' stalls the control loop on purpose; "
-                  "never drive this build outdoors");
+    ESP_LOGW(TAG, "BENCH FAULT INJECTION BUILD -- 'debug wedge' stalls the control loop and 'debug otpw' "
+                  "fakes a hot driver, on purpose; never drive this build outdoors");
 #endif
     if (!S.mtx) S.mtx = xSemaphoreCreateMutex();
     if (!S.mtx) return ESP_ERR_NO_MEM;
 
     loadSettings();
+    restoreHeat();
 
     if (!tmc.begin(CONFIG_UBOT_TMC_BAUD)) {
         ESP_LOGE(TAG, "UART%d on TX=GPIO%d RX=GPIO%d failed to start", (int)UART_NUM_1,
@@ -788,6 +1241,7 @@ esp_err_t drive_init(void) {
              S.signA, S.signB, S.aIsLeft ? "left" : "right", S.trackM, vmaxMps());
     ESP_LOGI(TAG, "drivers start disabled -- 'enable' energises both, 'cal A' / 'cal B' measure the clocks");
 
+    S.slot.reset(millis());   // everything was polled just now
     updateSnapshot();
 
     if (xTaskCreate(controlTask, "drive", 6144, nullptr, 20, &S.task) != pdPASS) {
@@ -899,7 +1353,7 @@ static esp_err_t motionPrecheck() {
     return ESP_OK;
 }
 
-esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms) {
+esp_err_t drive_set_velocity_ex(float v_mps, float w_radps, uint32_t hold_ms, uint32_t flags) {
     if (!(fabsf(v_mps) < 100.0f) || !(fabsf(w_radps) < 100.0f)) return ESP_ERR_INVALID_ARG;
     if (!lock()) return refuse("drive is busy (calibrating)");
     if (interlocked()) { unlock(); return interlockRefusal(); }
@@ -912,15 +1366,46 @@ esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms) {
     S.cmdActive = (v_mps != 0 || w_radps != 0);
     S.cmdExpires = hold_ms ? esp_timer_get_time() + (int64_t)hold_ms * 1000 : 0;
     for (int i = 0; i < DRIVE_NWHEELS; i++) S.whActive[i] = false;
+    // A manual boost lasts as long as the command that carries it, which a
+    // joystick renews with every frame, and the first frame without the flag
+    // ends it. A console command held until 'stop' (hold 0) still gets no
+    // more than a minute.
+    const uint32_t now = millis();
+    const uint32_t boostMs = hold_ms && hold_ms < BOOST_MANUAL_MAX_MS ? hold_ms : BOOST_MANUAL_MAX_MS;
+    for (Wheel *w : wheels) {
+        if (flags & DRIVE_CMD_BOOST) w->boost.request(BoostPolicy::MANUAL, now, boostMs);
+        else w->boost.cancel(BoostPolicy::MANUAL);
+    }
     unlock();
     return ESP_OK;
 }
 
-esp_err_t drive_set_normalized(float v, float w, uint32_t hold_ms) {
+esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms) {
+    return drive_set_velocity_ex(v_mps, w_radps, hold_ms, 0);
+}
+
+esp_err_t drive_set_normalized_ex(float v, float w, uint32_t hold_ms, uint32_t flags) {
     if (!(fabsf(v) <= 1.5f) || !(fabsf(w) <= 1.5f)) return ESP_ERR_INVALID_ARG;
     v = constrain(v, -1.0f, 1.0f);
     w = constrain(w, -1.0f, 1.0f);
-    return drive_set_velocity(v * vmaxMps(), w * wmaxRadps(), hold_ms);
+    return drive_set_velocity_ex(v * vmaxMps(), w * wmaxRadps(), hold_ms, flags);
+}
+
+esp_err_t drive_set_normalized(float v, float w, uint32_t hold_ms) {
+    return drive_set_normalized_ex(v, w, hold_ms, 0);
+}
+
+esp_err_t drive_boost_manual(uint32_t ms) {
+    if (ms > BOOST_MANUAL_MAX_MS) return ESP_ERR_INVALID_ARG;
+    if (!lock()) return refuse("drive is busy (calibrating)");
+    // Ending one is never refused. Starting one is a mutation like any other,
+    // and needs a power stage to boost.
+    if (ms && interlocked()) { unlock(); return interlockRefusal(); }
+    if (ms && !S.driversOn) { unlock(); return refuse("drivers are disabled -- 'enable' first"); }
+    const uint32_t now = millis();
+    for (Wheel *w : wheels) w->boost.request(BoostPolicy::MANUAL, now, ms);   // 0 cancels
+    unlock();
+    return ESP_OK;
 }
 
 esp_err_t drive_wheel_velocity(drive_wheel_t wi, float tps, uint32_t hold_ms) {
@@ -1243,6 +1728,12 @@ esp_err_t drive_setting_set(const char *name, float value) {
             else threshold = value;
         }
         if (!MotorCurrent::valid(run, hold)) err = ESP_ERR_INVALID_ARG;
+        // Boost is a current above run: a base current past it would make
+        // boost a derate.
+        if (err == ESP_OK && !MotorCurrent::validBoost(run, S.boostMa)) {
+            unlock();
+            return refuse("run_ma would be above boost_ma -- raise boost_ma first, or set it to 0 to turn boost off");
+        }
         if (err == ESP_OK) {
             err = !strcmp(name, "pwmthrs") ? settings_set_f32(name, value)
                                           : settings_set_i32(name, (int32_t)value);
@@ -1254,9 +1745,39 @@ esp_err_t drive_setting_set(const char *name, float value) {
                     w->gen.setSpreadCycle(spread);
                     w->gen.setSpreadAboveRate(threshold);
                 }
+                configureTorque();
                 logCurrent();
                 ESP_LOGI(TAG, "stored; configuration will be verified at next enable");
             }
+        }
+    } else if (!strcmp(name, "boost_ma") || !strcmp(name, "boost_start_ms") ||
+               !strcmp(name, "therm_tau_s") || !strcmp(name, "therm_lim")) {
+        // Live, drivers on or off: the policies take a new setting at their
+        // next update, up at once and down on the ramp.
+        const char *range = nullptr;
+        if (!strcmp(name, "boost_ma")) {
+            if (truncf(value) != value || !MotorCurrent::validBoost(S.runMa, (int)value))
+                range = "boost_ma takes 0 (boost off) or whole mA from run_ma up to 1768";
+        } else if (!strcmp(name, "boost_start_ms")) {
+            if (truncf(value) != value || value < 0 || value > 5000)
+                range = "boost_start_ms takes 0 (no start boost) to 5000 ms";
+        } else if (!strcmp(name, "therm_tau_s")) {
+            if (value < 60.0f || value > 3600.0f) range = "therm_tau_s takes 60 to 3600 s";
+        } else if (value < 0.5f || value > 1.30f) {
+            range = "therm_lim takes 0.5 to 1.3 (1.0 = the motor's rated steady heat)";
+        }
+        if (range) {
+            unlock();
+            return refuse(range);
+        }
+        err = name[0] == 'b' ? settings_set_i32(name, (int32_t)value) : settings_set_f32(name, value);
+        if (err == ESP_OK) {
+            if (!strcmp(name, "boost_ma")) S.boostMa = (int)value;
+            else if (!strcmp(name, "boost_start_ms")) S.boostStartMs = (int)value;
+            else if (!strcmp(name, "therm_tau_s")) S.thermTauS = value;
+            else S.thermLim = value;
+            configureTorque();
+            logCurrent();
         }
     } else if (!strcmp(name, "irun") || !strcmp(name, "ihold") ||
                !strcmp(name, "iscale") || !strcmp(name, "rsense")) {
@@ -1284,6 +1805,10 @@ esp_err_t drive_setting_get(const char *name, float *value) {
     else if (!strcmp(name, "iholddly")) *value = wheelA.gen.holdDelay();
     else if (!strcmp(name, "spread")) *value = wheelA.gen.spreadCycle() ? 1 : 0;
     else if (!strcmp(name, "pwmthrs")) *value = wheelA.gen.spreadAboveRate();
+    else if (!strcmp(name, "boost_ma")) *value = (float)S.boostMa;
+    else if (!strcmp(name, "boost_start_ms")) *value = (float)S.boostStartMs;
+    else if (!strcmp(name, "therm_tau_s")) *value = S.thermTauS;
+    else if (!strcmp(name, "therm_lim")) *value = S.thermLim;
     else return ESP_ERR_NOT_FOUND;
     return ESP_OK;
 }
@@ -1332,6 +1857,27 @@ esp_err_t drive_debug_wedge(uint32_t ms) {
 #endif
 }
 
+esp_err_t drive_debug_inject_otpw(drive_wheel_t wi, uint32_t ms) {
+#if CONFIG_UBOT_BENCH_FAULTS
+    Wheel *w = wheelArg(wi);
+    if (!w || ms > OTPW_INJECT_MAX_MS) return ESP_ERR_INVALID_ARG;
+    if (!lock()) return refuse("drive is busy (calibrating)");
+    if (interlocked()) { unlock(); return interlockRefusal(); }
+    // Only the samples lie; the chip is untouched, so the hard path and every
+    // other flag still come from the real DRV_STATUS.
+    w->otpwInjecting = ms != 0;
+    w->otpwInjectUntil = millis() + ms;
+    if (ms) ESP_LOGW(TAG, "BENCH: wheel %s DRV_STATUS samples read OTPW for the next %lu ms", w->name, (unsigned long)ms);
+    else ESP_LOGW(TAG, "BENCH: wheel %s OTPW injection cancelled", w->name);
+    unlock();
+    return ESP_OK;
+#else
+    (void)wi;
+    (void)ms;
+    return ESP_ERR_NOT_SUPPORTED;
+#endif
+}
+
 // --- observation ---
 
 void drive_get_status(drive_status_t *out) {
@@ -1342,14 +1888,43 @@ void drive_get_status(drive_status_t *out) {
 }
 
 void drive_reset_stats(void) {
+    // Under the mutex when it can be had, so no tick is halfway through a
+    // histogram; statistics are not worth waiting out a calibration for.
+    bool locked = lock();
     S.tickWorst = 0;
-    for (Wheel *w : wheels) w->servo.resetWorstRead();
+    S.tickHist.reset();
+    S.slotHist.reset();
+    S.slotWorst = 0;
+    S.slot.resetStats();
+    S.liveWrites = S.liveFailures = S.liveRetries = 0;
+    tmc.resetWorst();
+    for (Wheel *w : wheels) {
+        w->servo.resetWorstRead();
+        w->readHist.reset();
+        w->csMismatch = 0;
+    }
+    if (locked) unlock();
+}
+
+static void timingOf(const TimingHistogram &h, drive_timing_t *out) {
+    out->count = h.count();
+    out->p50_us = h.percentile(0.50);
+    out->p99_us = h.percentile(0.99);
+    out->max_us = h.max();
+}
+
+void drive_get_timings(drive_timings_t *out) {
+    if (!out) return;
+    timingOf(S.tickHist, &out->tick);
+    for (int i = 0; i < DRIVE_NWHEELS; i++) timingOf(wheels[i]->readHist, &out->read[i]);
+    timingOf(S.slotHist, &out->slot);
 }
 
 const char *drive_csv_header(void) {
     return "t_ms,pos,target,err,vel,steps,rate,slip,enc,agc,status,flags,"
            "bpos,btarget,berr,bvel,bsteps,brate,bslip,benc,bagc,bstatus,busus,"
-           "batt_v,batt_st";
+           "batt_v,batt_st,"
+           "arun,ahold,aboost,aheat,ader,aotpw,brun,bhold,bboost,bheat,bder,botpw";
 }
 
 int drive_csv_line(char *buf, size_t n) {
@@ -1368,17 +1943,22 @@ int drive_csv_line(char *buf, size_t n) {
     if (b.fault != DRIVE_FAULT_NONE) flags |= 0x80;
     // batt_st is battery_state()'s number, 0 none .. 3 cutoff, so a capture
     // shows the sag that led up to a cutoff next to the wheels that caused it.
+    // Then per wheel the live run/hold mA, the boost reasons (DRIVE_BOOST_*,
+    // granted or not: the mA say whether), the heat, the derate level and OTPW.
     return snprintf(buf, n,
                     "%lu,%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,0x%02X,"
                     "%.4f,%.4f,%ld,%.3f,%ld,%.1f,%ld,%u,%u,0x%02X,%lu,"
-                    "%.2f,%d",
+                    "%.2f,%d,"
+                    "%.0f,%.0f,%u,%.3f,%u,%u,%.0f,%.0f,%u,%.3f,%u,%u",
                     (unsigned long)millis(),
                     a.pos_turns, a.target_turns, (long)a.err_counts, a.vel_tps, a.cmd_steps,
                     a.rate_sps, (long)a.slip_steps, a.raw_angle, a.agc, a.magnet_status, flags,
                     b.pos_turns, b.target_turns, (long)b.err_counts, b.vel_tps, b.cmd_steps,
                     b.rate_sps, (long)b.slip_steps, b.raw_angle, b.agc, b.magnet_status,
                     (unsigned long)b.worst_read_us,
-                    battery_voltage(), battery_state());
+                    battery_voltage(), battery_state(),
+                    a.live_run_ma, a.live_hold_ma, a.boost_reasons, a.heat, a.derate, a.otpw ? 1u : 0u,
+                    b.live_run_ma, b.live_hold_ma, b.boost_reasons, b.heat, b.derate, b.otpw ? 1u : 0u);
 }
 
 }  // extern "C"

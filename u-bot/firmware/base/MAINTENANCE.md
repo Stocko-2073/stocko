@@ -33,10 +33,17 @@ a renewable one-second session lease. The CLI renews it every 300 ms. A lost
 connection ends renewal; a late or replayed renewal cannot restart motion.
 Calibration, demos, timed velocity and bounded position jobs survive disconnect.
 Only one maintenance motion owns the robot; all other motor mutations are
-refused until it finishes, and any client may stop it. The one exception is
-`debug`, which only a bench build (`CONFIG_UBOT_BENCH_FAULTS`) has: fault
-injection is meant to land during a timed drive, and the drive still refuses
-it during an update. Motors start disabled.
+refused until it finishes, and any client may stop it. The exceptions are
+`boost` (0.3.0), so a rack check can run `boost on 5000` during a timed
+`drive`, and `debug`, which only a bench build (`CONFIG_UBOT_BENCH_FAULTS`)
+has: fault injection is meant to land during a timed drive. The drive still
+refuses both during an update. `exec drive 0.1 0 20 boost` asks for boost
+current for the whole drive; the seconds stay optional before the flag.
+Motors start disabled.
+
+`ubotctl stream` first runs `stream header` and prints its `# ` line, then
+subscribes with `stream on`, whose own copy of the header it drops: sent as
+job output, that copy arrives in 96-byte pieces between the first samples.
 
 All existing command handlers receive an explicit output context. USB, Wi-Fi
 and BLE use the same bounded worker; no global stdout redirection is involved.

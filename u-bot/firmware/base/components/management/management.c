@@ -404,7 +404,8 @@ static int motion(int argc, char **a, int *wheel, double *seconds) {
   if (!strcmp(a[0], "demo") && argc > 1 && strcmp(a[1], "stop"))
     return 2;
   if (!strcmp(a[0], "drive")) {
-    *seconds = argc > 3 ? atof(a[3]) : 2;
+    /* drive <v> <w> [secs] [boost]: the seconds are optional before the flag. */
+    *seconds = argc > 3 && strcmp(a[3], "boost") ? atof(a[3]) : 2;
     return *seconds > 0 ? 3 : 5;
   }
   if (!strcmp(a[0], "wheel") && argc > 2) {
@@ -552,9 +553,10 @@ static void worker(void *arg) {
         (!strcmp(argv[0], "ota") && argc == 1) ||
         (!strcmp(argv[0], "cal") && argc == 2 && !strcmp(argv[1], "show"));
     /* Bench fault injection is meant to land during a timed drive (wedge the
-     * loop with a wheel turning). Only bench builds register it, and the drive
-     * still refuses it during an update. */
-    bool during_motion = !strcmp(argv[0], "debug");
+     * loop, or fake a hot driver, with a wheel turning), and so is a manual
+     * boost: the rack checks run 'boost on' during 'drive'. Only bench builds
+     * register debug, and the drive still refuses both during an update. */
+    bool during_motion = !strcmp(argv[0], "debug") || !strcmp(argv[0], "boost");
     if (owned && !read_only && !during_motion) {
       command_printf(&ctx, "refused: maintenance motion owns robot\n");
       rc = 1;

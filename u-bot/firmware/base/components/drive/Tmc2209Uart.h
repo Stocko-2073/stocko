@@ -73,6 +73,14 @@ class Tmc2209Uart {
     uint32_t echoFaults() const { return echoFaults_; }
     uint32_t writes() const { return writes_; }
 
+    // The longest a read and a write have held the bus, lock to unlock, since
+    // the last resetWorst(): the time a transaction really costs whoever is
+    // waiting for the bus, the control loop above all. A read that times out
+    // (an absent driver) counts too; that is the point.
+    uint32_t worstReadUs() const { return worstReadUs_; }
+    uint32_t worstWriteUs() const { return worstWriteUs_; }
+    void resetWorst() { worstReadUs_ = worstWriteUs_ = 0; }
+
     static const char *statusName(Status s);
 
     // Datasheet's swuart_calcCRC: x^8 + x^2 + x + 1, fed LSB first.
@@ -90,4 +98,6 @@ class Tmc2209Uart {
     SemaphoreHandle_t mtx_ = nullptr;
     uint32_t echoFaults_ = 0;
     uint32_t writes_ = 0;
+    uint32_t worstReadUs_ = 0;
+    uint32_t worstWriteUs_ = 0;
 };

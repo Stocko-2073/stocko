@@ -35,14 +35,40 @@ class VelGen {
     // measured to shed steps.
     static constexpr float DEFAULT_MAX_RATE = 16000.0f;
 
+    // DRV_STATUS flags, split by what the drive does about them:
+    //
+    //   soft  otpw (bit 0) and t120 (bit 8): the ~120 C pre-warning. The
+    //         datasheet names it as the cue for "power reduction measures like
+    //         motor current reduction", so the drive derates (OtpwDerate)
+    //         instead of cutting EN and letting the wheels freewheel.
+    //   hard  ot (1), s2ga/s2gb (2, 3), s2vsa/s2vsb (4, 5) and t143/t150/t157
+    //         (9-11): the chip has shut its power stage off or is at the point
+    //         of doing so, or a phase is shorted. Fatal, as all of bits 0-5
+    //         always were.
+    //
+    // Open load (6, 7) is neither: it reads at a standstill and means nothing
+    // there. The datasheet gives at least 23 C between OTPW and OT.
+    static constexpr uint32_t DRV_OTPW = 1UL << 0;
+    static constexpr uint32_t DRV_SOFT = DRV_OTPW | (1UL << 8);
+    static constexpr uint32_t DRV_HARD = (0x1FUL << 1) | (7UL << 9);
+
+    // Standstill to the start of the current reduction, in 2^18 clocks,
+    // after the 2^20 clocks it takes the driver to call it a standstill:
+    // ~0.52 s in all at 12 MHz. begin() programs it.
+    static constexpr uint8_t TPOWERDOWN = 20;
+
     VelGen(Tmc2209Uart &uart, uint8_t addr) : _uart(uart), _addr(addr) {}
 
     // EN is deliberately not ours. It is one pin shared by every driver on the
     // bus, so the drive layer owns it and parks it high before any of this
-    // runs. Refuses an active EN pin, missing driver, failed configuration, or fault.
+    // runs. Refuses an active EN pin, missing driver, failed configuration, or
+    // a hard fault flag (DRV_HARD). A driver that is merely hot (DRV_SOFT) is
+    // configured all the same and says so in hot(): refusing it would only
+    // stop the robot braking and holding on the slope that heated it.
     bool begin(uint16_t microsteps = 8) {
         _enabled = false;
         _ok = false;
+        _hot = false;
         _rate = 0;
         _budgeted = false;
         _remaining = 0;
@@ -71,16 +97,21 @@ class VelGen {
         // register is write-only; IFCNT advancing is the only acknowledgement.
         if (!writeChecked(Tmc2209Uart::NODECONF, 2UL << 8)) return false;
         if (!writeGconf() || !setMicrosteps(microsteps) || !writeCurrent() ||
-            !writePwmThreshold() || !writeChecked(Tmc2209Uart::TPOWERDOWN, 20) ||
+            !writePwmThreshold() || !writeChecked(Tmc2209Uart::TPOWERDOWN, TPOWERDOWN) ||
             !writeChecked(Tmc2209Uart::GSTAT, 7)) return false;
         r = _uart.read(_addr, Tmc2209Uart::GSTAT);
         if (r.st != Tmc2209Uart::OK || (r.value & 7)) return fail();
         r = _uart.read(_addr, Tmc2209Uart::DRVSTATUS);
-        if (r.st != Tmc2209Uart::OK || (r.value & 0x3F)) return fail();
+        if (r.st != Tmc2209Uart::OK || (r.value & DRV_HARD)) return fail();
+        _hot = (r.value & DRV_SOFT) != 0;
         return true;
     }
 
     void invalidate() { _ok = false; }
+
+    // OTPW (or t120) was up when begin() last configured the driver. The drive
+    // starts its derate at level 2 when it is.
+    bool hot() const { return _hot; }
 
     bool ok() const { return _ok; }
     uint8_t version() const { return _version; }
@@ -167,6 +198,38 @@ class VelGen {
     uint8_t runCurrent() const { return _irun; }
     uint8_t holdCurrent() const { return _ihold; }
     uint8_t holdDelay() const { return _iholdDelay; }
+
+    // The current pair the driver is running on right now, as opposed to the
+    // base pair above, which only begin() programs. Boost raises it and the
+    // OTPW derate lowers it, both with the power stage on: IHOLD_IRUN takes
+    // effect the moment it lands, and the driver's own standstill reduction
+    // carries on from whatever pair it holds.
+    //
+    // Only while enabled and ok, with ihold <= irun <= 31; refused otherwise
+    // without touching the bus or the driver's state. The same pair again is
+    // a no-op. The register is write-only, so IFCNT is the acknowledgement,
+    // and a write that is not acknowledged is sent once more before giving
+    // up: giving up invalidates the driver, and the drive answers that by
+    // cutting EN -- the robot freewheels -- so it is the last resort, never
+    // the first. Returns false if the pair did not land.
+    bool setLiveCurrent(uint8_t irun, uint8_t ihold) {
+        if (!_enabled || !_ok || irun > 31 || ihold > irun) return false;
+        if (irun == _liveRun && ihold == _liveHold) return true;
+        const uint32_t v = (uint32_t)ihold | ((uint32_t)irun << 8) | ((uint32_t)_iholdDelay << 16);
+        if (!verifiedWrite(Tmc2209Uart::IHOLD_IRUN, v)) {
+            _liveRetries++;
+            if (!verifiedWrite(Tmc2209Uart::IHOLD_IRUN, v)) return fail();
+        }
+        _liveRun = irun;
+        _liveHold = ihold;
+        return true;
+    }
+    uint8_t liveRun() const { return _liveRun; }
+    uint8_t liveHold() const { return _liveHold; }
+    float liveRunMilliamps() const { return MotorCurrent::milliamps(_liveRun); }
+    float liveHoldMilliamps() const { return MotorCurrent::milliamps(_liveHold); }
+    // Live writes that needed their retry, since boot.
+    uint32_t liveRetries() const { return _liveRetries; }
 
     // --- chopper ---
 
@@ -278,14 +341,18 @@ class VelGen {
     // The single control mutex serializes config with velocity writes.
     // Echo alone is not acknowledgement: IFCNT must advance even at wraparound.
     bool writeChecked(uint8_t reg, uint32_t value) {
+        return verifiedWrite(reg, value) || fail();
+    }
+
+    // One IFCNT-verified write, leaving _ok alone so the caller can decide
+    // whether a failure is final.
+    bool verifiedWrite(uint8_t reg, uint32_t value) {
         auto before = _uart.read(_addr, Tmc2209Uart::IFCNT);
-        if (before.st != Tmc2209Uart::OK) return fail();
+        if (before.st != Tmc2209Uart::OK) return false;
         auto wr = _uart.write(_addr, reg, value);
-        if (wr.st != Tmc2209Uart::OK) return fail();
+        if (wr.st != Tmc2209Uart::OK) return false;
         auto after = _uart.read(_addr, Tmc2209Uart::IFCNT);
-        if (after.st != Tmc2209Uart::OK ||
-            (uint8_t)(after.value - before.value) != 1) return fail();
-        return true;
+        return after.st == Tmc2209Uart::OK && (uint8_t)(after.value - before.value) == 1;
     }
 
     bool writeGconf() {
@@ -295,9 +362,13 @@ class VelGen {
         return true;
     }
 
+    // The base pair, which is also where the live pair starts over.
     bool writeCurrent() {
         uint32_t v = (uint32_t)_ihold | ((uint32_t)_irun << 8) | ((uint32_t)_iholdDelay << 16);
-        return writeChecked(Tmc2209Uart::IHOLD_IRUN, v);
+        if (!writeChecked(Tmc2209Uart::IHOLD_IRUN, v)) return false;
+        _liveRun = _irun;
+        _liveHold = _ihold;
+        return true;
     }
 
     // TSTEP is normalized to 256 microsteps, independent of selected MRES.
@@ -358,6 +429,7 @@ class VelGen {
     Tmc2209Uart &_uart;
     uint8_t _addr;
     bool _ok = false;
+    bool _hot = false;
     uint8_t _version = 0;
     Tmc2209Uart::Status _lastStatus = Tmc2209Uart::NO_ECHO;
 
@@ -368,6 +440,9 @@ class VelGen {
     uint8_t _irun = MotorCurrent::scale(MotorCurrent::DEFAULT_RUN_MA);
     uint8_t _ihold = MotorCurrent::scale(MotorCurrent::DEFAULT_HOLD_MA);
     uint8_t _iholdDelay = 8;
+    uint8_t _liveRun = MotorCurrent::scale(MotorCurrent::DEFAULT_RUN_MA);    // what the chip holds
+    uint8_t _liveHold = MotorCurrent::scale(MotorCurrent::DEFAULT_HOLD_MA);
+    uint32_t _liveRetries = 0;
     bool _spread = true;
     bool _spreadPin = false;
     float _spreadAboveSps = 0;

@@ -69,6 +69,28 @@ static const char *latched_text(const drive_status_t *s) {
     return s->fault_wheel == 0 ? "LATCHED on wheel A" : "LATCHED on wheel B";
 }
 
+// Bit sets as words joined by '+', "none" when empty.
+static const char *bits_text(uint8_t bits, const char *const *names, int count, char *buf, size_t n) {
+    size_t o = 0;
+    buf[0] = 0;
+    for (int i = 0; i < count && o < n; i++)
+        if (bits & (1u << i)) o += snprintf(buf + o, n - o, "%s%s", o ? "+" : "", names[i]);
+    return buf[0] ? buf : "none";
+}
+static const char *const BOOST_REASONS[] = {"manual", "start", "recovery", "load"};   // DRIVE_BOOST_*
+static const char *const BOOST_LIMITS[] = {"heat", "derate", "battery", "boost_ma off"}; // DRIVE_BOOST_LIMIT_*
+static const char *const DERATE_LEVELS[] = {"none", "no boost", "base at 75%", "base at 50%"};
+
+// "ON (manual)", "asked (start), refused: heat", or "idle".
+static const char *boost_text(const drive_wheel_status_t *w, char *buf, size_t n) {
+    char r[48], l[48];
+    bits_text(w->boost_reasons, BOOST_REASONS, 4, r, sizeof r);
+    if (w->boost_active) snprintf(buf, n, "ON (%s)", r);
+    else if (w->boost_reasons) snprintf(buf, n, "asked (%s), refused: %s", r, bits_text(w->boost_limit, BOOST_LIMITS, 4, l, sizeof l));
+    else snprintf(buf, n, "idle");
+    return buf;
+}
+
 // ------------------------------------------------------------------- status
 
 static void print_wheel(command_context_t *ctx, const drive_status_t *s, int i) {
@@ -93,6 +115,13 @@ static void print_wheel(command_context_t *ctx, const drive_status_t *s, int i) 
     command_printf(ctx, "    shaft %s, clock gain %.4f (%s), kp %.1f vmax %.2f turns/s accel %.1f decel %.1f turns/s^2\n",
            w->inverted ? "INVERTED" : "normal", w->clock_gain,
            w->calibrated ? "measured this boot" : "stored", w->kp, w->vmax_tps, w->accel_tps2, w->decel_tps2);
+    char boost[96];
+    command_printf(ctx, "    torque: live %.0f/%.0f mA (IRUN %u IHOLD %u), boost %s, heat %.2f%s, derate %u%s, "
+                        "CS_ACTUAL %u, %lu mismatches\n",
+           w->live_run_ma, w->live_hold_ma, w->live_run_cs, w->live_hold_cs, boost_text(w, boost, sizeof boost),
+           w->heat, w->heat_limited ? " (LIMITED)" : "", w->derate,
+           w->otpw ? (w->otpw_injected ? ", OTPW (injected)" : ", OTPW") : "",
+           w->cs_actual, (unsigned long)w->cs_mismatch);
 }
 
 static void print_drive(command_context_t *ctx) {
@@ -175,21 +204,70 @@ static int cmd_estop(command_context_t *ctx, int argc, char **argv) { drive_esto
 
 static int cmd_drive(command_context_t *ctx, int argc, char **argv) {
     float v, w, secs = 2.0f;
-    if (argc < 3 || !parse_f(argv[1], &v) || !parse_f(argv[2], &w) ||
-        (argc > 3 && !parse_f(argv[3], &secs))) {
-        command_printf(ctx, "usage: drive <v m/s> <w rad/s> [seconds, default 2, 0 = until stopped]\n");
+    // A trailing "boost" asks for boost current while the command holds; the
+    // seconds before it stay optional.
+    bool boost = argc > 3 && !strcmp(argv[argc - 1], "boost");
+    int n = boost ? argc - 1 : argc;
+    if (n < 3 || n > 4 || !parse_f(argv[1], &v) || !parse_f(argv[2], &w) ||
+        (n > 3 && !parse_f(argv[3], &secs))) {
+        command_printf(ctx, "usage: drive <v m/s> <w rad/s> [seconds, default 2, 0 = until stopped] [boost]\n");
         return 1;
     }
     uint32_t hold = secs <= 0 ? 0 : (uint32_t)(secs * 1000.0f);
-    int rc = report(ctx, drive_set_velocity(v, w, hold));
+    int rc = report(ctx, drive_set_velocity_ex(v, w, hold, boost ? DRIVE_CMD_BOOST : 0));
     if (rc == 0) {
         vTaskDelay(pdMS_TO_TICKS(15));   // let a control tick apply it before reading back
         drive_status_t s;
         drive_get_status(&s);
-        command_printf(ctx, "driving v %.3f m/s w %.3f rad/s%s\n", s.v_mps, s.w_radps,
-               hold ? "" : " until 'stop'");
+        command_printf(ctx, "driving v %.3f m/s w %.3f rad/s%s%s\n", s.v_mps, s.w_radps,
+               hold ? "" : " until 'stop'", boost ? ", boost asked" : "");
     }
     return rc;
+}
+
+// ------------------------------------------------------------------- torque
+
+static void print_boost(command_context_t *ctx) {
+    drive_status_t s;
+    drive_get_status(&s);
+    float boost_ma = 0, start_ms = 0, tau = 0, lim = 0;
+    drive_setting_get("boost_ma", &boost_ma);
+    drive_setting_get("boost_start_ms", &start_ms);
+    drive_setting_get("therm_tau_s", &tau);
+    drive_setting_get("therm_lim", &lim);
+    command_printf(ctx, "boost: boost_ma %.0f%s, boost_start_ms %.0f, therm_tau_s %.0f, therm_lim %.2f "
+                        "(boost pauses there and comes back at %.2f)\n",
+           boost_ma, boost_ma > 0 ? "" : " (off)", start_ms, tau, lim, s.heat_resume);
+    for (int i = 0; i < DRIVE_NWHEELS; i++) {
+        const drive_wheel_status_t *w = &s.wheel[i];
+        char boost[96];
+        command_printf(ctx, "  wheel %s: boost %s; live %.0f/%.0f mA (IRUN %u IHOLD %u), base %.0f/%.0f mA\n",
+               wheel_name(i), boost_text(w, boost, sizeof boost), w->live_run_ma, w->live_hold_ma,
+               w->live_run_cs, w->live_hold_cs, w->run_ma, w->hold_ma);
+        command_printf(ctx, "    heat %.2f%s; derate %u (%s), OTPW %s, %lu episode%s; CS_ACTUAL %u, %lu mismatch%s\n",
+               w->heat, w->heat_limited ? " LIMITED" : "", w->derate, DERATE_LEVELS[w->derate & 3],
+               w->otpw ? (w->otpw_injected ? "set (injected)" : "set") : "clear",
+               (unsigned long)w->otpw_events, w->otpw_events == 1 ? "" : "s",
+               w->cs_actual, (unsigned long)w->cs_mismatch, w->cs_mismatch == 1 ? "" : "es");
+    }
+}
+
+static int cmd_boost(command_context_t *ctx, int argc, char **argv) {
+    if (argc == 1 || (argc == 2 && !strcmp(argv[1], "status"))) { print_boost(ctx); return 0; }
+    if (argc == 2 && !strcmp(argv[1], "off")) {
+        int rc = report(ctx, drive_boost_manual(0));
+        if (!rc) command_printf(ctx, "manual boost ended\n");
+        return rc;
+    }
+    float ms = 2000;
+    if (!strcmp(argv[1], "on") && argc <= 3 &&
+        (argc == 2 || (parse_f(argv[2], &ms) && ms >= 1 && ms <= 60000 && truncf(ms) == ms))) {
+        int rc = report(ctx, drive_boost_manual((uint32_t)ms));
+        if (!rc) command_printf(ctx, "manual boost asked for %.0f ms on both wheels -- 'boost' says whether it is granted\n", ms);
+        return rc;
+    }
+    command_printf(ctx, "usage: boost on [ms, 1..60000, default 2000] | boost off | boost [status]\n");
+    return 1;
 }
 
 static void print_params(command_context_t *ctx, int w) {
@@ -248,8 +326,11 @@ static int cmd_wheel(command_context_t *ctx, int argc, char **argv) {
                    (unsigned long)((val >> 16) & 0x1F));
             command_printf(ctx, "  chopper   %s\n", (val & (1UL << 30)) ? "StealthChop" : "SpreadCycle");
             command_printf(ctx, "  standstill %s\n", (val & (1UL << 31)) ? "yes" : "no");
-            if (val & 0x01) command_printf(ctx, "  OTPW: overtemperature prewarning -- temperature warning (firmware stops both drivers)\n");
+            if (val & 0x01) command_printf(ctx, "  OTPW: overtemperature pre-warning, ~120 C -- the firmware derates this wheel (no boost, then less current)\n");
             if (val & 0x02) command_printf(ctx, "  OT: overtemperature SHUTDOWN -- the power stage is off\n");
+            if (val & 0xF00) command_printf(ctx, "  die above %s C (t120..t157, bits 8..11)%s\n",
+                   (val & 0x800) ? "157" : (val & 0x400) ? "150" : (val & 0x200) ? "143" : "120",
+                   (val & 0xE00) ? " -- the firmware disables both drivers above 143" : "");
             if (val & 0x3C) command_printf(ctx, "  short to ground or supply flagged (bits 2..5)\n");
             if (val & 0xC0) command_printf(ctx, "  open load flagged (bits 6..7) -- normal at a standstill or very low speed\n");
         }
@@ -527,12 +608,28 @@ static int cmd_stats(command_context_t *ctx, int argc, char **argv) {
     if (argc >= 2 && !strcmp(argv[1], "reset")) { drive_reset_stats(); command_printf(ctx, "stats reset\n"); return 0; }
     drive_status_t s;
     drive_get_status(&s);
+    drive_timings_t t;
+    drive_get_timings(&t);
     command_printf(ctx, "control: worst tick %lu us of %d us over %lu ticks; bus writes %lu, echo faults %lu\n",
            (unsigned long)s.tick_worst_us, 1000000 / CONFIG_UBOT_CONTROL_HZ, (unsigned long)s.tick_count,
            (unsigned long)s.bus_writes, (unsigned long)s.bus_echo_faults);
+    // p50 and p99 are bucket tops, so read "<=": within 25% of the real figure.
+    command_printf(ctx, "  tick p50 <= %lu us, p99 <= %lu us, max %lu us over %lu since stats reset\n",
+           (unsigned long)t.tick.p50_us, (unsigned long)t.tick.p99_us, (unsigned long)t.tick.max_us,
+           (unsigned long)t.tick.count);
     for (int i = 0; i < DRIVE_NWHEELS; i++) {
-        command_printf(ctx, "wheel %s: worst encoder read %lu us\n", wheel_name(i), (unsigned long)s.wheel[i].worst_read_us);
+        command_printf(ctx, "wheel %s: encoder read p50 <= %lu us, p99 <= %lu us, max %lu us over %lu; worst %lu us\n",
+               wheel_name(i), (unsigned long)t.read[i].p50_us, (unsigned long)t.read[i].p99_us,
+               (unsigned long)t.read[i].max_us, (unsigned long)t.read[i].count, (unsigned long)s.wheel[i].worst_read_us);
     }
+    command_printf(ctx, "slot: %lu bus groups, p50 <= %lu us, p99 <= %lu us, worst %lu us; %lu put off by the tick budget\n",
+           (unsigned long)t.slot.count, (unsigned long)t.slot.p50_us, (unsigned long)t.slot.p99_us,
+           (unsigned long)s.slot_worst_us, (unsigned long)s.slot_deferred);
+    command_printf(ctx, "live current writes %lu, %lu needed the retry, %lu failed; CS_ACTUAL mismatches A %lu B %lu\n",
+           (unsigned long)s.live_writes, (unsigned long)s.live_write_retries, (unsigned long)s.live_write_failures,
+           (unsigned long)s.wheel[0].cs_mismatch, (unsigned long)s.wheel[1].cs_mismatch);
+    command_printf(ctx, "uart: worst read %lu us, worst write %lu us, bus held throughout\n",
+           (unsigned long)s.uart_read_worst_us, (unsigned long)s.uart_write_worst_us);
     command_printf(ctx, "log lines dropped (host not reading): %u\n", ulog_dropped());
     return 0;
 }
@@ -549,10 +646,20 @@ static int cmd_free(command_context_t *ctx, int argc, char **argv) {
 // Bench-only fault injection. It exists to prove a safety path on the stand,
 // wheels clear; the build announces itself at boot and in 'version'.
 static int cmd_debug(command_context_t *ctx, int argc, char **argv) {
-    float ms;
+    float ms, s = 40;
+    int w = argc >= 3 ? wheel_arg(argv[2]) : -1;
+    if (argc >= 3 && argc <= 4 && !strcmp(argv[1], "otpw") && w >= 0 &&
+        (argc == 3 || (parse_f(argv[3], &s) && s >= 0 && s <= 120))) {
+        int rc = report(ctx, drive_debug_inject_otpw(w, (uint32_t)(s * 1000.0f)));
+        if (!rc && s > 0) command_printf(ctx, "wheel %s: OTPW in its DRV_STATUS samples for %.0f s\n", wheel_name(w), s);
+        else if (!rc) command_printf(ctx, "wheel %s: OTPW injection ended\n", wheel_name(w));
+        return rc;
+    }
     if (argc != 3 || strcmp(argv[1], "wedge") || !parse_f(argv[2], &ms) || ms < 1 || ms > 10000 || truncf(ms) != ms) {
         command_printf(ctx, "usage: debug wedge <ms>   1..10000: the next control tick spins that long without\n"
-                            "       feeding the task watchdog; past its 3 s the chip resets and EN floats high\n");
+                            "       feeding the task watchdog; past its 3 s the chip resets and EN floats high\n"
+                            "       debug otpw <A|B> [s]   0..120, default 40: that wheel's DRV_STATUS samples\n"
+                            "       read OTPW, so the derate runs as for a hot driver; 0 ends it\n");
         return 1;
     }
     int rc = report(ctx, drive_debug_wedge((uint32_t)ms));
@@ -637,7 +744,8 @@ esp_err_t console_start(void) {
     reg("disable", "cut both drivers (EN high)", NULL, cmd_disable);
     reg("stop",    "ramp every wheel to zero, cancel timed commands", NULL, cmd_stop);
     reg("estop",   "emergency stop: EN high immediately", NULL, cmd_estop);
-    reg("drive",   "robot-frame velocity: drive <v m/s> <w rad/s> [secs]", "<v> <w> [secs]", cmd_drive);
+    reg("drive",   "robot-frame velocity: drive <v m/s> <w rad/s> [secs] [boost]", "<v> <w> [secs] [boost]", cmd_drive);
+    reg("boost",   "boost current on both wheels: boost on [ms] | boost off | boost [status]", "on [ms]|off|status", cmd_boost);
     reg("wheel",   "bench control of one wheel: wheel <A|B> [subcommand]", "<A|B> ...", cmd_wheel);
     reg("zero",    "define here as position zero on both wheels", NULL, cmd_zero);
     reg("faults",  "show faults | faults clear", NULL, cmd_faults);
@@ -655,7 +763,8 @@ esp_err_t console_start(void) {
     reg("free",    "heap", NULL, cmd_free);
     reg("reboot",  "cut the drivers and restart", NULL, cmd_reboot);
 #if CONFIG_UBOT_BENCH_FAULTS
-    reg("debug",   "BENCH ONLY: debug wedge <ms> stalls the control loop to prove the watchdog reset", "wedge <ms>", cmd_debug);
+    reg("debug",   "BENCH ONLY: debug wedge <ms> stalls the control loop to prove the watchdog reset; "
+                   "debug otpw <A|B> [s] fakes a hot driver", "wedge <ms> | otpw <A|B> [s]", cmd_debug);
 #endif
 
     esp_console_dev_usb_serial_jtag_config_t hw = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();

@@ -6,6 +6,8 @@
 //   {"t":"drive","v":0.5,"w":-0.2}          normalised, -1..1 of the limits
 //   {"t":"drive","v_mps":0.3,"w_radps":0}   or in physical units
 //       optional "hold": ms before the deadman stops the robot (default 500)
+//       optional "boost":true: boost current while this command holds; a
+//       drive without it ends a boost (0.3.0; older firmware ignores it)
 //   {"t":"stop"} {"t":"enable"} {"t":"disable"} {"t":"estop"} {"t":"clear"}
 //   {"t":"status"}                          ask for a status frame now
 //   {"t":"log","on":true}                   mirror the log to this client
@@ -13,7 +15,10 @@
 //   {"t":"ota_update"}                       install the bucket's firmware.bin (disables drivers, reboots)
 //
 // Robot -> client:
-//   {"t":"status", ...}                     on connect, on request, and at 5 Hz
+//   {"t":"status", ...}                     on connect, on request, and at 5 Hz;
+//       "caps":["boost"] says drive frames may carry "boost", and each wheel
+//       has "torque":{"run","hold" (live mA),"boost" (DRIVE_BOOST_* reasons),
+//       "act" (granted),"h" (heat),"hot" (heat-limited),"derate" (0-3),"otpw"}
 //   {"t":"ack","cmd":"enable","ok":true}    for everything but "drive"
 //   {"t":"ack","cmd":"drive","ok":false,"err":"..."}   only when a drive was refused
 //   {"t":"log","m":"..."}                   when subscribed
@@ -126,6 +131,7 @@ static int status_json(char *buf, size_t n) {
     int len = snprintf(buf, n,
         "{\"t\":\"status\",\"fw\":\"%s\",\"hw\":\"%s\",\"name\":\"%s\",\"up\":%lu,"
         "\"enabled\":%s,\"faulted\":%s,\"fault\":%s%s%s,\"fault_wheel\":\"%s\",\"fault_code\":%u,"
+        "\"caps\":[\"boost\"],"
         "\"cal\":%s,\"demo\":%s%s%s,"
         "\"cmd\":{\"v\":%.3f,\"w\":%.3f,\"active\":%s},"
         "\"limits\":{\"v\":%.3f,\"w\":%.3f},"
@@ -150,12 +156,16 @@ static int status_json(char *buf, size_t n) {
         net_ota_get_url(ota_url, sizeof ota_url) ? "true" : "false");
     for (int i = 0; i < DRIVE_NWHEELS && len < (int)n; i++) {
         const drive_wheel_status_t *w = &s.wheel[i];
+        // run_ma/hold_ma are the base pair, "torque" the live one. "h" is the
+        // thermal model's heat, 1.0 at the motor's rated steady state.
         len += snprintf(buf + len, n - len,
             "%s{\"name\":\"%s\",\"driver\":%s,\"pos\":%.4f,\"vel\":%.3f,\"slip\":%ld,"
             "\"enc\":%s,\"agc\":%u,\"magnet\":\"%s\",\"fault\":%u,\"gain\":%.4f,\"loop\":%s,"
             "\"run_ma\":%.0f,\"hold_ma\":%.0f,\"driver_status_ok\":%s,"
             "\"drv_status\":%lu,\"gstat\":%lu,\"driver_age_ms\":%lu,"
-            "\"fault_driver_status_ok\":%s,\"fault_drv_status\":%lu,\"fault_gstat\":%lu,\"fault_driver_age_ms\":%lu}",
+            "\"fault_driver_status_ok\":%s,\"fault_drv_status\":%lu,\"fault_gstat\":%lu,\"fault_driver_age_ms\":%lu,"
+            "\"torque\":{\"run\":%.0f,\"hold\":%.0f,\"boost\":%u,\"act\":%s,\"h\":%.2f,\"hot\":%s,"
+            "\"derate\":%u,\"otpw\":%s}}",
             i ? "," : "", i == 0 ? "A" : "B", w->driver_ok ? "true" : "false",
             w->pos_turns, w->vel_tps, (long)w->slip_steps,
             w->encoder_ok ? "true" : "false", w->agc, magnet_text(w->magnet_status),
@@ -163,7 +173,9 @@ static int status_json(char *buf, size_t n) {
             w->run_ma, w->hold_ma, w->driver_status_ok ? "true" : "false",
             (unsigned long)w->drv_status, (unsigned long)w->gstat, (unsigned long)w->driver_age_ms,
             w->fault_driver_status_ok ? "true" : "false", (unsigned long)w->fault_drv_status,
-            (unsigned long)w->fault_gstat, (unsigned long)w->fault_driver_age_ms);
+            (unsigned long)w->fault_gstat, (unsigned long)w->fault_driver_age_ms,
+            w->live_run_ma, w->live_hold_ma, w->boost_reasons, w->boost_active ? "true" : "false",
+            w->heat, w->heat_limited ? "true" : "false", w->derate, w->otpw ? "true" : "false");
     }
     if (len < (int)n) len += snprintf(buf + len, n - len, "]}");
     return len;
@@ -286,13 +298,16 @@ static void handle_message(httpd_req_t *req, const char *text) {
         }
         cJSON *v = cJSON_GetObjectItem(root, "v"), *w = cJSON_GetObjectItem(root, "w");
         cJSON *vm = cJSON_GetObjectItem(root, "v_mps"), *wm = cJSON_GetObjectItem(root, "w_radps");
+        // Only a literal true boosts; anything else, or nothing, is a frame
+        // without the flag, which ends a boost.
+        uint32_t flags = cJSON_IsTrue(cJSON_GetObjectItem(root, "boost")) ? DRIVE_CMD_BOOST : 0;
         esp_err_t err;
         if (cJSON_IsNumber(vm) || cJSON_IsNumber(wm)) {
-            err = drive_set_velocity(cJSON_IsNumber(vm) ? (float)vm->valuedouble : 0,
-                                     cJSON_IsNumber(wm) ? (float)wm->valuedouble : 0, hold_ms);
+            err = drive_set_velocity_ex(cJSON_IsNumber(vm) ? (float)vm->valuedouble : 0,
+                                        cJSON_IsNumber(wm) ? (float)wm->valuedouble : 0, hold_ms, flags);
         } else {
-            err = drive_set_normalized(cJSON_IsNumber(v) ? (float)v->valuedouble : 0,
-                                       cJSON_IsNumber(w) ? (float)w->valuedouble : 0, hold_ms);
+            err = drive_set_normalized_ex(cJSON_IsNumber(v) ? (float)v->valuedouble : 0,
+                                          cJSON_IsNumber(w) ? (float)w->valuedouble : 0, hold_ms, flags);
         }
         if (err != ESP_OK) ack(req, "drive", err);   // silence on success keeps the joystick chatter one-way
     } else if (!strcmp(t, "stop")) { management_stop(false); ack(req, t, ESP_OK); }

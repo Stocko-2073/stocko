@@ -32,9 +32,28 @@ typedef enum {
     DRIVE_FAULT_ENCODER,   // encoder stopped answering on the bus
     DRIVE_FAULT_MAGNET,    // encoder says there is no magnet
     DRIVE_FAULT_PEER,      // stopped because the other wheel faulted
-    DRIVE_FAULT_DRIVER,    // reset, UART, temperature warning/shutdown, short or undervoltage
+    DRIVE_FAULT_DRIVER,    // reset, UART, overtemperature shutdown, short or undervoltage
     DRIVE_FAULT_BATTERY = 6,  // robot-level: the pack is below its cutoff; both wheels hold, drivers on
 } drive_fault_t;
+
+// Flags for drive_set_velocity_ex() / drive_set_normalized_ex().
+//
+// DRIVE_CMD_BOOST asks for boost current on both wheels for as long as this
+// command holds (a manual boost). Every accepted command without it ends a
+// manual boost, so a joystick that stops sending the flag has let go of it.
+#define DRIVE_CMD_BOOST 0x01u
+
+// Why a wheel is boosting: drive_wheel_status_t.boost_reasons, WS torque.boost.
+#define DRIVE_BOOST_MANUAL   1u   // the operator: DRIVE_CMD_BOOST or drive_boost_manual()
+#define DRIVE_BOOST_START    2u   // leaving a standstill of 0.5 s or more, for boost_start_ms
+#define DRIVE_BOOST_RECOVERY 4u   // stall recovery (from 0.3.1)
+#define DRIVE_BOOST_LOAD     8u   // the load angle nearing pull-out (from 0.4.0)
+
+// What refused a requested boost: drive_wheel_status_t.boost_limit.
+#define DRIVE_BOOST_LIMIT_HEAT   1u   // the thermal model is in its limited band
+#define DRIVE_BOOST_LIMIT_DERATE 2u   // the driver is derating for OTPW
+#define DRIVE_BOOST_LIMIT_SUPPLY 4u   // the battery is low (or cut off)
+#define DRIVE_BOOST_LIMIT_OFF    8u   // boost_ma is 0, or not above run_ma
 
 typedef struct {
     bool driver_ok;        // configuration verified; invalidated by driver faults/settings
@@ -59,6 +78,27 @@ typedef struct {
     float pos_turns, target_turns, vel_tps, cmd_tps, rate_sps, clock_gain;
     float kp, vmax_tps, accel_tps2, decel_tps2;
     uint32_t worst_read_us;
+
+    // --- torque (0.3.0) ---
+    // run_ma/hold_ma above are the base pair begin() programs; these are what
+    // the driver runs on now: boosted, on the way back down, or derated.
+    float live_run_ma, live_hold_ma;
+    uint8_t live_run_cs, live_hold_cs;   // the same as IRUN / IHOLD, 0..31
+    float heat;                // thermal model: 1.0 is the steady state at the rated 1.5 A RMS
+    uint8_t boost_reasons;     // DRIVE_BOOST_* active, granted or not
+    uint8_t boost_limit;       // DRIVE_BOOST_LIMIT_* refusing them; 0 when granted or not asked
+    bool boost_active;         // boost granted this tick
+    bool heat_limited;         // from therm_lim until the heat is back at the resume point
+    uint8_t derate;            // OTPW derate: 0 none, 1 no boost, 2 base at 75%, 3 base at 50%
+    bool otpw;                 // the last DRV_STATUS sample says OTPW or t120 (injection included)
+    bool otpw_injected;        // bench: debug otpw is feeding this wheel's samples
+    uint32_t otpw_events;      // derate episodes since boot
+    uint8_t cs_actual;         // CS_ACTUAL in the last DRV_STATUS sample
+    uint32_t cs_mismatch;      // moving samples whose CS_ACTUAL was not the live IRUN, since stats reset
+
+    // Reserved for later phases, not fields yet: rec_state and rec_count
+    // (0.3.1, stall recovery), lag (0.3.1, the stall detector's lag),
+    // load_deg and limiter (0.4.0, load-angle estimate and lead limiter).
 } drive_wheel_status_t;
 
 typedef struct {
@@ -77,7 +117,27 @@ typedef struct {
     drive_wheel_status_t wheel[DRIVE_NWHEELS];
     uint32_t tick_worst_us, tick_count, bus_writes, bus_echo_faults;
     const char *demo_caption;
+
+    // --- torque and bus timing (0.3.0), counters since stats reset ---
+    uint32_t live_writes, live_write_failures, live_write_retries;
+    uint32_t slot_worst_us;    // the tick's extra bus group (live write, health step), longest
+    uint32_t slot_deferred;    // ticks the budget put off a due group
+    uint32_t uart_read_worst_us, uart_write_worst_us;   // bus lock held, per transaction
+    float heat_limit, heat_resume;   // therm_lim, and where boost comes back
 } drive_status_t;
+
+// One duration, from a log histogram: p50 and p99 are the top of the bucket
+// (at most 25% wide) they fall in, never above the maximum. Since stats reset.
+typedef struct {
+    uint32_t count;
+    uint32_t p50_us, p99_us, max_us;
+} drive_timing_t;
+
+typedef struct {
+    drive_timing_t tick;                  // the whole control tick
+    drive_timing_t read[DRIVE_NWHEELS];   // one encoder read, per wheel
+    drive_timing_t slot;                  // the tick's extra bus group, when one ran
+} drive_timings_t;
 
 typedef struct {
     bool ok, flipped;
@@ -125,10 +185,23 @@ void drive_estop(void);
 // Robot-frame velocity, held for `hold_ms` (0 = until told otherwise; only the
 // console should ever use 0). Scaled down proportionally if either wheel would
 // exceed its ceiling. Refused while disabled or faulted.
-esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms);
+//
+// `flags` is DRIVE_CMD_BOOST or 0. With the flag, both wheels get a manual
+// boost for as long as the command holds (at most 60 s; renewed by each fresh
+// command); an accepted command without it ends a manual boost. A zero
+// command with the flag braces the robot where it stands.
+esp_err_t drive_set_velocity_ex(float v_mps, float w_radps, uint32_t hold_ms, uint32_t flags);
+esp_err_t drive_set_velocity(float v_mps, float w_radps, uint32_t hold_ms);   // flags 0
 
 // The same, from a joystick: v and w in -1..1 of the current limits.
-esp_err_t drive_set_normalized(float v, float w, uint32_t hold_ms);
+esp_err_t drive_set_normalized_ex(float v, float w, uint32_t hold_ms, uint32_t flags);
+esp_err_t drive_set_normalized(float v, float w, uint32_t hold_ms);   // flags 0
+
+// A manual boost on both wheels for `ms` (1..60000; a renewal can extend one
+// but never shortens it), or 0 to end one. Refused while the drivers are
+// disabled. Whether it is granted is the thermal model's, the OTPW derate's
+// and the battery's to say: drive_wheel_status_t.boost_active / boost_limit.
+esp_err_t drive_boost_manual(uint32_t ms);
 
 // Bench: one wheel in velocity mode, output turns/s, with a hold.
 esp_err_t drive_wheel_velocity(drive_wheel_t w, float tps, uint32_t hold_ms);
@@ -182,7 +255,10 @@ const char *const *drive_param_names(size_t *n);
 
 // Robot-frame settings, persisted: sign_a sign_b (+1/-1), a_left (0/1),
 // track_m, vmax_tps, accel_tps2. Current/chopper settings run_ma, hold_ma,
-// iholddly, spread, pwmthrs require disabled drivers and apply at next enable.
+// iholddly, spread, pwmthrs require disabled drivers and apply at next enable;
+// run_ma above a nonzero boost_ma is refused. Torque settings apply at once,
+// drivers on or off: boost_ma (0 = off, else run_ma..1768), boost_start_ms
+// (0..5000, 0 = no start boost), therm_tau_s (60..3600), therm_lim (0.5..1.3).
 esp_err_t drive_setting_set(const char *name, float value);
 esp_err_t drive_setting_get(const char *name, float *value);
 const char *const *drive_setting_names(size_t *n);
@@ -202,18 +278,31 @@ bool drive_wheel_read_reg(drive_wheel_t w, uint8_t reg, uint32_t *value);
 // ESP_ERR_NOT_SUPPORTED in a build without CONFIG_UBOT_BENCH_FAULTS.
 esp_err_t drive_debug_wedge(uint32_t ms);
 
+// For the next `ms` (0..120000; 0 ends it early), wheel `w`'s DRV_STATUS
+// samples read OTPW as well as whatever the chip says: the derate runs its
+// levels exactly as for a hot driver, and nothing else changes. Refused like
+// drive_debug_wedge(); ESP_ERR_NOT_SUPPORTED without CONFIG_UBOT_BENCH_FAULTS.
+esp_err_t drive_debug_inject_otpw(drive_wheel_t w, uint32_t ms);
+
 // --- observation ----------------------------------------------------------------------
 
 // Lock-free snapshot, refreshed every control tick (and every ~50 ms during a
 // calibration). Safe from any task.
 void drive_get_status(drive_status_t *out);
 
-// Zero the worst-tick and worst-encoder-read counters.
+// Start the statistics over: worst tick, worst encoder read, the timing
+// histograms, slot and UART timing, live-write counts and CS_ACTUAL
+// mismatches. Bus write and echo-fault totals stay counts since boot.
 void drive_reset_stats(void);
+
+// p50/p99/max of the control tick, each wheel's encoder read and the slot's
+// bus group, since stats reset. Safe from any task.
+void drive_get_timings(drive_timings_t *out);
 
 // Telemetry, same columns as the bench sketch streamed so the existing scope
 // can replay a capture. New columns are only ever appended (batt_v, batt_st
-// since 0.2.9); the scope finds them by name from the header.
+// since 0.2.9; since 0.3.0 per wheel the live run/hold mA, boost reasons,
+// heat, derate level and OTPW); the scope finds them by name from the header.
 const char *drive_csv_header(void);
 int drive_csv_line(char *buf, size_t n);
 

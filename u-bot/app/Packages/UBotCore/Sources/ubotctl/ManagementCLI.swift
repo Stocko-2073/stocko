@@ -50,6 +50,8 @@ final class ManagementCLI: NSObject, CBCentralManagerDelegate, CBPeripheralDeleg
   var expected: [String: Any]?
   var updateStarted = Date()
   var observedDropped = 0
+  // The current request's output is collected but not printed.
+  var quietOutput = false
 
   init(arguments: [String]) {
     args = arguments
@@ -221,15 +223,16 @@ final class ManagementCLI: NSObject, CBCentralManagerDelegate, CBPeripheralDeleg
       p.writeValue(fragments.removeFirst(), for: c, type: .withResponse)
     }
   }
-  func request(_ fields: [String: Any], done: @escaping (Int) -> Void) {
+  func request(_ fields: [String: Any], quiet: Bool = false, done: @escaping (Int) -> Void) {
     currentJob = nil
     collected = ""
+    quietOutput = quiet
     completion = done
     currentID = send(fields)
     if !updating { armTimeout(timeout) }
   }
-  func exec(_ words: [String], done: @escaping (Int) -> Void) {
-    request(["op": "exec", "args": words, "deadline_ms": deadline], done: done)
+  func exec(_ words: [String], quiet: Bool = false, done: @escaping (Int) -> Void) {
+    request(["op": "exec", "args": words, "deadline_ms": deadline], quiet: quiet, done: done)
   }
   func finish(_ code: Int) {
     if code != 0 { fail(Int32(code), "command failed (exit \(code))") }
@@ -265,7 +268,7 @@ final class ManagementCLI: NSObject, CBCentralManagerDelegate, CBPeripheralDeleg
     let id = r["id"] as? Int ?? 0
     if type == "output", let text = r["data"] as? String {
       if id == currentID { collected += text }
-      if !json { print(text, terminator: "") }
+      if !json && !(quietOutput && id == currentID) { print(text, terminator: "") }
     }
     if type == "log" || type == "stream" {
       if !json { print(r["data"] as? String ?? "") }
@@ -348,9 +351,16 @@ final class ManagementCLI: NSObject, CBCentralManagerDelegate, CBPeripheralDeleg
         timer?.cancel()
       }
     case "stream":
-      exec(["stream", "on", words.first ?? "20"]) { [self] code in
-        if code != 0 { finish(code) }
-        timer?.cancel()
+      // The '# ' header first, as a job of its own. 'stream on' prints it
+      // too, but as job output in 96-byte chunks, and those interleave with
+      // the samples that start arriving the moment it has run, so the
+      // capture would open with a torn header. Its copy is dropped here.
+      // Firmware before 0.2.9 has no 'stream header' and no header on 'on'.
+      exec(["stream", "header"]) { [self] header in
+        exec(["stream", "on", words.first ?? "20"], quiet: header == 0) { [self] code in
+          if code != 0 { finish(code) }
+          timer?.cancel()
+        }
       }
     case "shell": shellPrompt()
     case "ota": ota(words)

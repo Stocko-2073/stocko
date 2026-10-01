@@ -141,6 +141,48 @@ class CLIContract(unittest.TestCase):
             json.loads(line)
         self.assertNotIn('test password', p.stdout + p.stderr)
 
+    def test_stream_header_before_samples(self):
+        # Longer than one 96-byte output chunk, as the real header is.
+        header = '# t_ms,' + ','.join(f'col{i}' for i in range(40)) + '\n'
+        parts = [header[i:i + 96] for i in range(0, len(header), 96)]
+        self.assertGreater(len(parts), 1)
+
+        def peer(s):
+            r = receive(s)
+            self.assertEqual(r['args'], ['stream', 'header'])
+            send(s, dict(type='accepted', id=r['id'], job=4))
+            for part in parts:
+                send(s, dict(type='output', id=r['id'], job=4, data=part))
+            send(s, dict(type='finished', id=r['id'], job=4, code=0))
+            r = receive(s)
+            self.assertEqual(r['args'], ['stream', 'on', '50'])
+            send(s, dict(type='accepted', id=r['id'], job=5))
+            # 'stream on' repeats the header as job output, and the firmware's
+            # monitor sends it between the first samples.
+            send(s, dict(type='output', id=r['id'], job=5, data=parts[0]))
+            send(s, dict(type='stream', id=0, seq=1, data='1,2,3'))
+            for part in parts[1:]:
+                send(s, dict(type='output', id=r['id'], job=5, data=part))
+            send(s, dict(type='finished', id=r['id'], job=5, code=0))
+            send(s, dict(type='stream', id=0, seq=2, data='4,5,6'))
+            time.sleep(.2)   # then the connection goes, which ends the stream
+        p = self.run_cli(['stream', '50'], peer, expected=4)
+        self.assertEqual(p.stdout, header + '1,2,3\n4,5,6\n')
+
+    def test_stream_without_header_command(self):
+        # Firmware before 0.2.9: 'stream header' is refused, 'stream on' prints nothing first.
+        def peer(s):
+            r = receive(s)
+            self.assertEqual(r['args'], ['stream', 'header'])
+            send(s, dict(type='finished', id=r['id'], code=2))
+            r = receive(s)
+            self.assertEqual(r['args'], ['stream', 'on', '20'])
+            send(s, dict(type='finished', id=r['id'], code=0))
+            send(s, dict(type='stream', id=0, seq=1, data='1,2,3'))
+            time.sleep(.2)
+        p = self.run_cli(['stream'], peer, expected=4)
+        self.assertEqual(p.stdout, '1,2,3\n')
+
     def test_paginated_retained_result(self):
         def peer(s):
             r = receive(s)

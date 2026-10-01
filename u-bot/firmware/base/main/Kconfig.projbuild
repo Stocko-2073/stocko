@@ -96,7 +96,10 @@ menu "U-BOT base"
 
             Adds the console command 'debug wedge <ms>', which stalls the
             control loop without feeding the task watchdog, to prove on the
-            stand that a wedged loop resets the chip and EN floats high. Such
-            a build says "BENCH FAULT INJECTION BUILD" at boot and in 'version'.
+            stand that a wedged loop resets the chip and EN floats high, and
+            'debug otpw <A|B> [s]', which makes one wheel's DRV_STATUS samples
+            read OTPW so the derate levels can be watched without a hot
+            driver. Such a build says "BENCH FAULT INJECTION BUILD" at boot
+            and in 'version'.
 
 endmenu

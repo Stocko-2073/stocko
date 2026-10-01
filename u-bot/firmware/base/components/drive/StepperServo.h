@@ -170,6 +170,10 @@ class StepperServo {
     bool encoderOk() const { return _encOk; }
     uint32_t worstReadUs() const { return _worstUs; }
     void resetWorstRead() { _worstUs = 0; }
+    // The latest read's duration, and how many reads have been timed: a
+    // caller keeping a histogram takes a new sample whenever the count moves.
+    uint32_t lastReadUs() const { return _lastReadUs; }
+    uint32_t readCount() const { return _reads; }
     int32_t slipSteps() const { return (int32_t)lroundf(_slipRaw - _slipRef); }
     bool atTarget() const { return labs((long)(_target - _encPos)) <= tolCounts; }
     uint8_t fault() const { return _fault; }
@@ -457,6 +461,8 @@ class StepperServo {
         uint16_t raw = _enc.readAngle();
         uint32_t took = micros() - t0;
         if (took > _worstUs) _worstUs = took;
+        _lastReadUs = took;
+        _reads++;
 
         _encOk = (_enc.lastError() == AS5600::OK);
         if (!_encOk) {
@@ -487,4 +493,6 @@ class StepperServo {
     bool _encOk = true;
     uint32_t _retryMs = 0;
     uint32_t _worstUs = 0;   // worst encoder read since boot
+    uint32_t _lastReadUs = 0;
+    uint32_t _reads = 0;
 };
