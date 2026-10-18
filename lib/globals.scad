@@ -40,7 +40,7 @@ module asm(n=1000,orient=TOP) {
     } else {
         time_step = min(1,max(0,($t*num_assembly_steps-n)/2));
         s = pow(1-time_step,3); // Ease out cubic
-        if(s < 1) translate(orient*(200*s)) render() children();
+        if(s < 1) translate(orient*(200*s)) children();
     }
 }
 
@@ -65,124 +65,133 @@ module nop() { children(); }
 
 module skip() {}
 
+xyz_view_size=[2000,2000,2000];
+xyz_view_alpha=0.15;
+xyz_view_saturation=0.8;
 module zview(flip=false, xray=false) {
-    render() difference() {
+    difference() {
         union() children();
         if (flip) {
-            cuboid([500,500,500],anchor=BOT);
+            cuboid(xyz_view_size,anchor=BOT);
         } else {
-            cuboid([500,500,500],anchor=TOP);
+            cuboid(xyz_view_size,anchor=TOP);
         }
     }
-    % color("#88888848") if(xray) {
-        render() difference() {
+    // color("#88888848")
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) difference() {
             union() children();
             if (!flip) {
-                cuboid([500,500,500],anchor=BOT);
+                cuboid(xyz_view_size,anchor=BOT);
             } else {
-                cuboid([500,500,500],anchor=TOP);
+                cuboid(xyz_view_size,anchor=TOP);
             }
         }
     }
 }
 
 module xview(flip=false, xray=false) {
-    render() difference() {
+    difference() {
         union() children();
         if (flip) {
-            cuboid([500,500,500],anchor=LEFT);
+            cuboid(xyz_view_size,anchor=LEFT);
         } else {
-            cuboid([500,500,500],anchor=RIGHT);
+            cuboid(xyz_view_size,anchor=RIGHT);
         }
     }
-    % color("#88888848") if(xray) {
-        render() difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) difference() {
             union() children();
             if (!flip) {
-                cuboid([500,500,500],anchor=LEFT);
+                cuboid(xyz_view_size,anchor=LEFT);
             } else {
-                cuboid([500,500,500],anchor=RIGHT);
+                cuboid(xyz_view_size,anchor=RIGHT);
             }
         }
     }
 }
 
 module xyview(orient=1,angle=45,xray=false) {
-    render() zrot(-angle*orient) difference() {
+    zrot(-angle*orient) difference() {
         union() zrot(angle*orient) children();
-        cuboid([500,500,500],anchor=RIGHT);
+        cuboid(xyz_view_size,anchor=RIGHT);
     }
-    % color("#88888848") if(xray) {
-        render() zrot(-angle*orient+180) difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) 
+        zrot(-angle*orient+180) difference() {
             union() zrot(angle*orient+180) children();
-            right(ep) cuboid([500,500,500],anchor=RIGHT);
+            right(ep) cuboid(xyz_view_size,anchor=RIGHT);
         }
     }
 }
 
 module xzview(orient=1, angle=45, xray=false) {
-    render() yrot(-angle*orient) difference() {
+    yrot(-angle*orient) difference() {
         union() yrot(angle*orient) children();
-        cuboid([500,500,500], anchor=TOP);
+        cuboid(xyz_view_size, anchor=TOP);
     }
-    % color("#88888848") if(xray) {
-        render() yrot(-angle*orient+180) difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) yrot(-angle*orient+180)
+        difference() {
             union() yrot(angle*orient+180) children();
-            up(ep) cuboid([500,500,500], anchor=TOP);
+            up(ep) cuboid(xyz_view_size, anchor=TOP);
         }
     }
 }
 
 module yxview(orient=1, angle=45, xray=false) {
-    render() xrot(-angle*orient) difference() {
+    xrot(-angle*orient) difference() {
         union() xrot(angle*orient) children();
-        cuboid([500,500,500], anchor=BACK);
+        cuboid(xyz_view_size, anchor=BACK);
     }
-    % color("#88888848") if(xray) {
-        render() xrot(-angle*orient+180) difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) 
+        xrot(-angle*orient+180) difference() {
             union() xrot(angle*orient+180) children();
-            back(ep) cuboid([500,500,500], anchor=BACK);
+            back(ep) cuboid(xyz_view_size, anchor=BACK);
         }
     }
 }
 
 module yzview(orient=1, angle=45, xray=false) {
-    render() xrot(-angle*orient) difference() {
+    xrot(-angle*orient) difference() {
         union() xrot(angle*orient) children();
-        cuboid([100,500,500], anchor=RIGHT);
+        cuboid(xyz_view_size, anchor=RIGHT);
     }
-    % color("#88888848") if(xray) {
-        render() xrot(-angle*orient+180) difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) 
+        xrot(-angle*orient+180) difference() {
             union() xrot(angle*orient+180) children();
-            right(ep) cuboid([100,500,500], anchor=RIGHT);
+            right(ep) cuboid(xyz_view_size, anchor=RIGHT);
         }
     }
 }
 
 
-module yview(flip=false, xray=false, xray_color="#88888848") {
-    render() difference() {
+module yview(flip=false, xray=false) {
+    difference() {
         union() children();
         if (flip) {
-            cuboid([500,500,500],anchor=FWD);
+            cuboid(xyz_view_size,anchor=FWD);
         } else {
-            cuboid([500,500,500],anchor=BACK);
+            cuboid(xyz_view_size,anchor=BACK);
         }
     }
-    % color(xray_color) if(xray) {
-        render() difference() {
+    if(xray) {
+        %color(alpha=xyz_view_alpha,saturation=xyz_view_saturation) 
+        difference() {
             union() children();
             if (!flip) {
-                back(ep) cuboid([500,500,500],anchor=FWD);
+                back(ep) cuboid(xyz_view_size,anchor=FWD);
             } else {
-                fwd(ep) cuboid([500,500,500],anchor=BACK);
+                fwd(ep) cuboid(xyz_view_size,anchor=BACK);
             }
         }
     }
 }
 
 module xray(xray_color="#88888848") {
-    % color(xray_color) render() children();
+    color(xray_color) children();
 }
 
 // Add inout to ribs
@@ -294,19 +303,16 @@ module servo_gear_socket_with_screw_hole(len=10,h=3.5,flip=false) {
 }
 
 module bearing(type,orient,anchor) {
-    %
-    render() color("#FFF8") ball_bearing(type,orient=orient,anchor=anchor);
+    color("#FFF8") ball_bearing(type,orient=orient,anchor=anchor);
 }
 
 module m3_screw(orient) {
-    //%
     color("#FFF8") 
         screw("M3,14",head="socket",thread="none",drive="hex",atype="threads",anchor=TOP,orient=orient);
     children();
 }
 
 module m3_nut(orient) {
-    //%
     color("#FFF8") nut("M3",thread="none",orient=orient,anchor=TOP);
 }
 
@@ -349,4 +355,48 @@ module measure(p1,p2) {
             text(d_str, size=10, font="Berkeley Mono", halign="center", valign="center");
     stroke([p1, pt33], width=2, endcap1="arrow2");
     stroke([pt66, p2], width=2, endcap2="arrow2");
+}
+
+IN=-1;
+OUT=1;
+
+module pip_cyl(
+    h,l,r,d,or,od,ir,id,n=1,tube=false,igroove=undef,ogroove=undef,
+    orient=UP,anchor=CENTER,spin=0,slop=$slop*1.25,
+) {
+    _r=get_radius(
+        r=one_defined([r,or],"r,or",dflt=undef),
+        d=one_defined([d,od],"r,or",dflt=undef),
+        dflt=undef
+    );
+    _ir = get_radius(r=ir,d=id,dflt=_r);
+    _or = get_radius(r=or,d=od,dflt=_r);
+    l = one_defined([l,h],"l,h",1);
+    attachable(anchor,spin,orient=orient, r=_or, l=l) {
+        union() {
+            n2=n*4+1;
+            tl=l/n2;
+            difference() {
+                union() {
+                    if(tube) tube(ir=_ir,or=_or-(ogroove==IN?slop:0),l=l);
+                    else cyl(r=_or-(ogroove==IN?slop:0),l=l);
+                    if (ogroove==OUT) zcopies(tl*4,n=n) 
+                        tube(or=_or+tl,ir=_or,ochamfer=tl,l=tl*3);
+                    if (igroove==OUT) cyl(r=_ir,l=l);
+                }
+                if(igroove==IN) {
+                    cyl(r=_ir+slop,l=l);
+                    zcopies(tl*4,n=n) 
+                        cyl(r=_ir+tl+slop,chamfer=tl+slop,l=tl*3+slop*2);
+                } else if(igroove==OUT) difference() {
+                    cyl(r=_ir,l=l);
+                    zcopies(tl*4,n=n) 
+                        tube(or=_ir+ep,ir=_ir-tl,ichamfer=tl,l=tl*3);
+                }
+                if(ogroove==IN) zcopies(tl*4,n=n)
+                    tube(or=_or-slop+ep,ir=_or-tl-slop,ichamfer=tl,l=tl*3);
+            }
+        }
+        children();
+    }
 }
