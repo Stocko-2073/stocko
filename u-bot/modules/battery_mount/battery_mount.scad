@@ -10,7 +10,7 @@ module battery_simplified(anchor="mount",spin=0,orient=UP) {
     // tongue root on the pack's top face; mates with battery_mount's "battery"
     anchors=[named_anchor("mount",-c,UP)];
     attachable(anchor,spin,orient,size=size,anchors=anchors) {
-        tag_scope() diff() move(-c) {
+        tag_scope("battery_simplified") diff() move(-c) {
             color("#444") {
                 back(12) cuboid([73,75+15+2+22,32],anchor=TOP+BACK,chamfer=5);
                 back(2) up(15) cuboid([73,30,47],anchor=TOP+FWD,chamfer=5,except=[FWD+TOP]);
@@ -95,7 +95,7 @@ module battery_mount(channel_size=[1.2,15.5,50],chamfer=0,anchor=BOT+BACK,spin=0
     anchors=[named_anchor("battery",[0,size.y/2,-size.z/2],DOWN)];
     attachable(anchor,spin,orient,size=size,anchors=anchors) {
         render()
-        tag_scope() diff() back(size.y/2) down(size.z/2) {
+        tag_scope("battery_mount") diff() back(size.y/2) down(size.z/2) {
             cuboid(size,anchor=BOT+BACK,chamfer=chamfer,edges=[FWD+LEFT,FWD+RIGHT]);
             tag("remove") {
                 fwd($slop) up(h+ep+$slop) {
