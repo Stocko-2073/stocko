@@ -19,3 +19,8 @@ OpenSCAD+BOSL2 models in this repo follow
 
 `openscad` is Stocko's custom build for AI agents. Run `openscad --help` to see
 the extra tools it adds.
+
+For a printed part's mass, center of mass or inertia, run
+`tools/print_mass.py model.scad` (see `--help`). It slices each `// print` line
+with Bambu Studio and sums the G-code, so walls, infill and print orientation
+count; the CAD solid's mass and centroid are not what prints.
