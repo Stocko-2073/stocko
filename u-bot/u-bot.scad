@@ -13,7 +13,7 @@ use <modules/rpsma/rpsma_pigtail.scad>
 use <modules/rpsma/rpsma_antenna.scad>
 use <modules/battery_mount/battery_mount.scad>
 
-$fn=0;$fa=1;$fs=$preview?1:0.25;ep=0.03;$slop=0.2;
+$fn=0;$fa=1;$fs=0.25;ep=0.03;$slop=0.2;
 // $fn=0;$fa=1;$fs=2;ep=0.03;$slop=0.2;
 // $fn=0;$fa=1;$fs=0.25;ep=0.03;$slop=0.2;
 _6902ZZ=ball_bearing_info("6902ZZ");
@@ -55,6 +55,10 @@ module m4_14(orient=RIGHT,anchor=TOP,spin=0) {
     color("#888") screw("M4,14",head="button",drive="hex",atype="threads",thread="none",orient=orient,anchor=anchor,spin=spin,details=false) children();
 }
 
+module m4_25(orient=RIGHT,anchor=TOP,spin=0) {
+    color("#888") screw("M4,25",head="button",drive="hex",atype="threads",thread="none",orient=orient,anchor=anchor,spin=spin,details=false) children();
+}
+
 module m4_nut(orient=undef,anchor=undef,spin=undef) {
     color("#888") nut("M4",thread="none",orient=orient,anchor=anchor,spin=spin);
 }
@@ -72,7 +76,7 @@ module m5_nut(orient=undef,anchor=undef,spin=undef) {
 }
 
 module magnet() {
-    color("#888") %cyl(d=4,l=2,anchor=BOT);
+    color("#888") cyl(d=4,l=2,anchor=BOT);
 }
 
 module magnet_neg(depth=2) {
@@ -291,7 +295,7 @@ module leg() {
                 right(3) cuboid([45,30,zz],chamfer=10,edges=[FWD+TOP,FWD+BOT],anchor=LEFT+FWD)
                 attach(BACK) cuboid([45,124,zz],orient=FWD,anchor=FWD,chamfer=3,edges=[RIGHT+BACK]) {
                     tag("remove") attach(BACK) up(ep) {
-                        cuboid([20+$slop,40+$slop,zz-10+$slop],orient=BACK,anchor=FWD);
+                        cuboid([20+$slop*3,40+$slop*3,zz-10+$slop*3],orient=BACK,anchor=FWD);
                         xrot(90) left(13) fwd(40/2) zflip_copy() up(15) yrot(-90)
                             screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
                             down(31) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
@@ -398,9 +402,9 @@ module front_leg() {
                 yy=34;
                 right(3) cuboid([45,30,zz],chamfer=10,edges=[FWD+TOP,FWD+BOT],anchor=LEFT+FWD)
                 attach(BACK) cuboid([45,70+y,zz],orient=FWD,anchor=FWD,chamfer=3,edges=[RIGHT+BACK]) {
-                    attach(BACK) up(ep) {
+                    attach(BACK) {
                         yyy=20;
-                        cuboid([20+$slop,yyy+$slop,zz-10+$slop],orient=FWD,anchor=FWD,chamfer=2,edges=[BACK]);
+                        cuboid([20,yyy,zz-10],orient=FWD,anchor=FWD,chamfer=2,edges=[BACK]);
                         xrot(90) left(13) back(yyy/2) zflip_copy() up(15) yrot(-90)
                             screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
                             down(31) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
@@ -661,16 +665,40 @@ module body_back_form() {
     color_this("#ccc") diff() {
         // back
         cuboid([w2,y2,zz],chamfer=w2/2,edges=[FWD+LEFT,FWD+RIGHT],anchor=FWD);
-        up(zz/2) back(y2-10) 
-            battery_mount(anchor=TOP+RIGHT,orient=DOWN,spin=90)
-            attach("battery","mount") children(0); // battery
+
+        wall_sq2=wall*sqrt(2);
+        phi=(1+sqrt(5))/2;
+        tag("remove") down(5) back(wall*phi) hull() {
+            x3=w2-wall_sq2*4;
+            y3=y2-wall_sq2;
+            y4=62.55;
+            z3=zz-wall*2;
+            x4=56;
+            up(z3/2) {
+                back(y4/2) cuboid([y4-6,ep,z3+wall],anchor=FWD+TOP);
+                back(y3-1) cuboid([x3-x4,x4/2-3+wall_sq2,z3+wall],anchor=BACK+TOP);
+            }
+        }
+
+        back(y2) xflip_copy() right(w2/2-19.5) {
+            cuboid([20,35,zz-10],anchor=FWD);
+            tag("remove") {
+                right(13) back(40/2) zflip_copy() up(15) yrot(90)
+                screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
+                down(31) nut_trap_inline(10,"M5",orient=BOT,$slop=0.1);
+            }
+        }
+
         d=_6902ZZ[1]+10;
         up(zz/2) {
-            xflip_copy() yflip_copy() fwd(8) left(8) cyl(d=4-$slop*2,h=2.5,anchor=BOT);
+            xflip_copy() yflip_copy() fwd(8) left(8) {
+                cyl(d=4-$slop*2,h=2.5,anchor=BOT);
+                cyl(d=5,h=1,anchor=BOT);
+            }
             cyl(d=d-4,h=_6902ZZ[2]+wall,anchor=TOP);
             cuboid([d-4,_6902ZZ[1]/2+2,_6902ZZ[2]+wall],anchor=FWD+TOP)
                 attach(BACK) color_this("#ccc") 
-                tag("keep") cuboid([d-4,_6902ZZ[2]+wall,5],anchor=BOT,chamfer=-4,edges=[TOP+FWD,TOP+RIGHT,TOP+LEFT]);
+                tag("keep") cuboid([d-4,_6902ZZ[2]+wall,3],anchor=BOT,chamfer=-2,edges=[TOP+FWD,TOP+RIGHT,TOP+LEFT]);
             tag("remove") cyl(d=8,h=wall-$slop,anchor=TOP);
         }
         zflip() up(zz/2) {
@@ -683,6 +711,12 @@ module body_back_form() {
             back(19) cuboid([40,19,zz-24],anchor=BACK);
             cyl(d=_6902ZZ[1]+$slop,h=_6007ZZ[1]+$slop*2-2);
             cyl(d=_6902ZZ[1]-4,h=_6007ZZ[1]+$slop*2-1);
+
+            d=_6902ZZ[1]+10;
+            up(zz/2+7.8+$slop) back(d-6) down(3) 
+                screw_hole("M4",l=26,head="button",atype="head",counterbore=10,orient=TOP,anchor=BOT,$slop=0.1)
+                    down(24) nut_trap_side(15,"M4",$slop=0.1,anchor=TOP,spin=90);
+
         }
     }    
 }
@@ -690,21 +724,39 @@ module body_back_form() {
 module body_back_pivot_encoder_cap() {
     zz=56+14;
     d=_6902ZZ[1]+10;
+    dd=d-4+$slop*2;
     wall=5;
-    color("#f84") up(zz/2+6+$slop) diff() {
-        back(d/2) cyl(d=d,h=6,anchor=TOP);
-        tag("keep") back(d) cyl(d=12,h=6,anchor=TOP+BACK);
-        cuboid([d,_6902ZZ[1]/2+wall,6],anchor=FWD+TOP);            
-        cyl(d=d,h=_6902ZZ[2]+wall+6+$slop,anchor=TOP);
-        cuboid([d,_6902ZZ[1]/2+wall-2,_6902ZZ[2]+wall+6+$slop],anchor=FWD+TOP);            
-        tag("remove") down(2) {
-            dd=d-4+$slop*2;
-            back(d/2) cyl(d=dd,h=_6902ZZ[2]+wall+6,anchor=TOP);
-            cyl(d=dd,h=_6902ZZ[2]+wall+6,anchor=TOP);
-            cuboid([dd,_6902ZZ[1]/2+wall,_6902ZZ[2]+wall+6],anchor=FWD+TOP);            
+    zzz=40;
+    color("#f84") up(zz/2+6+$slop) {
+        fwd(_6902ZZ[1]/2+wall) cyl(d=6,h=6,anchor=TOP+FWD);
+        difference() {
+            union() {
+                back(d) cyl(d=18,h=6,anchor=TOP+BACK);
+                difference() {
+                    union() {
+                        cuboid([d,_6902ZZ[1]/2+wall,6],anchor=FWD+TOP);
+                        cyl(d=d,h=_6902ZZ[2]+wall+6+$slop,anchor=TOP);
+                        cuboid([d,_6902ZZ[1]/2+wall-2,_6902ZZ[2]+wall+6+$slop],anchor=FWD+TOP);            
+                        back(d/2) cyl(d=d,h=6,anchor=TOP);
+                    }
+                    down(2) cuboid([dd,_6902ZZ[1]/2+wall,_6902ZZ[2]+wall+6],anchor=FWD+TOP);
+                    down(2) back(d/2) cyl(d=dd,h=_6902ZZ[2]+wall+6,anchor=TOP);
+                    down(2) cyl(d=dd,h=_6902ZZ[2]+wall+6,anchor=TOP);
+                }
+                // back(d/2) cyl(d=d,h=wall,anchor=BOT,chamfer2=2);
+                // cuboid([d,_6902ZZ[1]/2+wall,wall],anchor=FWD+BOT,chamfer=2,edges=[TOP+LEFT,TOP+RIGHT]);
+                // cyl(d=d,h=zzz,anchor=BOT,chamfer2=2);
+                down(2) xflip_copy() yflip_copy() fwd(8) left(8) cyl(d=6,h=1.5,anchor=TOP);
+            }
+            cyl(d=d-4,h=zzz-2,anchor=BOT,chamfer2=2);
+            back(d-6) up(3.5)
+                screw_hole("M4",l=31,head="button",atype="head",counterbore=45,orient=TOP,anchor=BOT,$slop=0.1);
         }
-    }    
+    }
+    up(zz/2+7.8+$slop*2) back(d-6) up(4)
+        m4_30(orient=TOP) attach(TOP) down(28-0.3+$slop) m4_nut();
 }
+// !body_back_pivot_encoder_cap();
 
 module body_back_pivot_cut(slop=0) {
     wall=5;
@@ -735,7 +787,7 @@ module body_back_pivot_cap() {
         fwd(yy/2+ep) down(zz/2+ep) back(yy+10) up(9) 
             screw_hole("M4",l=16,head="button",atype="head",counterbore=10,orient=BOT,anchor=BOT,$slop=0.1);
     }
-    fwd(yy/2+ep) down(zz/2+ep) back(yy+10) up(9) 
+    fwd(yy/2+ep) down(zz/2+ep+$slop) back(yy+10) up(9) 
         children();
 }
 
@@ -744,17 +796,23 @@ module body_back(a=0) {
     w2=250;
     y2=125;
     zrot(-a) difference() {
-        body_back_form() children(1); // battery
+        body_back_form();
         body_back_pivot_cut($slop*2);
         yy=_6902ZZ[1]+wall*2;
         zz=56+14;
         fwd(yy/2+ep) down(zz/2+ep) back(yy+10) up(9) 
             screw_hole("M4",l=16,head="button",atype="head",counterbore=10,orient=BOT,anchor=BOT,$slop=0.1)
-                down(13) nut_trap_side(15,"M4",$slop=0.1,anchor=TOP,spin=-90);
+                down(13) nut_trap_side(15,"M4",$slop=0.1,anchor=TOP,spin=90);
     }
 
-    yflip() zrot(a) xflip_copy() fwd(79+y2) {
+    yflip() zrot(a) xflip_copy() fwd(79+y2+$slop) {
         left(w2/2+3) children(0); // leg 
+    }
+
+    zz=56+14;
+    up(zz/2+$slop) back(y2) {
+        battery_mount(anchor=TOP+RIGHT,orient=DOWN,spin=90)
+        attach("battery","mount") color("#444") children(1); // battery
     }
 
     // back payload
@@ -769,8 +827,18 @@ module body_front_form() {
     zz=56+14;
     wall=5;
 
-    color("#ccc") tag_scope() diff() {
-        fwd(10) cuboid([w1,y1,zz],anchor=BACK,rounding=y1,edges=[BACK+LEFT,BACK+RIGHT]);
+    color("#ccc") tag_scope("body_front_form") diff() {
+        fwd(10) {
+            cuboid([w1,y1,zz],anchor=BACK,rounding=y1-20,edges=[BACK+LEFT,BACK+RIGHT]);
+            tag("remove") fwd(y1) down(wall) cuboid([166,15+ep,zz],anchor=FWD);
+        }
+
+        tag("remove") fwd(y1+10) xflip_copy() left(w1/2-19.5) {
+            cuboid([20+$slop,20+$slop,zz-10+$slop],orient=TOP,anchor=FWD,chamfer=2,edges=[BACK]);
+            left(13) back(20/2-$slop) zflip_copy() up(15) yrot(-90)
+                screw_hole("M5",l=33,head="button",atype="head",counterbore=10,anchor=BOT,$slop=0)
+                down(31) nut_trap_side(15,"M5",orient=BOT,$slop=0.1,spin=-90);
+        }
 
         tag("remove") back(ep) {
             hull() {
@@ -838,7 +906,7 @@ module body() {
     wall=5;
     h=_6007ZZ[2]+$slop*2;
 
-    tag_scope() diff() {
+    tag_scope("body") diff() {
         body_front_form();
         tag("remove") yrot(180) body_front_pivot_cut($slop*2);
         yrot(180) up(zz/2-2.3) fwd(_6007ZZ[0]/2+wall*2+h/2) yflip_copy() back(9) xflip_copy() right(39) 
@@ -847,7 +915,7 @@ module body() {
     }
 
     children(0); //body_back
-    xflip_copy() fwd(64+y1) left(w1/2+3) children(1); // front_leg
+    xflip_copy() fwd(64+y1+$slop) left(w1/2+3) children(1); // front_leg
     yrot(180) up(zz/2-2.3) fwd(_6007ZZ[0]/2+wall*2+h/2) yflip_copy() back(9) xflip_copy() right(39)
         m4_14(orient=TOP)
             attach(TOP) down(11.3) nut("M4",spin=30);
@@ -856,7 +924,6 @@ module body() {
     fwd(y2-5) children(2); // payload
 }
 *!nop()
-//xview() back(35) left(40)
 xview()
 {
     body() {
@@ -875,9 +942,9 @@ module pivot_form() {
     color("#f84") diff() {
         zz=56+14;
         d=_6007ZZ[0]+wall*2;
-        fwd(_6007ZZ[0]/2+_6007ZZ[2]+wall*2+$slop) {
+        fwd(_6007ZZ[0]/2+_6007ZZ[2]+wall*2+$slop*2) {
             ycyl(d=_6007ZZ[0]+wall*2,h=wall,anchor=BACK);
-            ycyl(d=_6007ZZ[0],h=_6007ZZ[2]+$slop,anchor=FWD);
+            ycyl(d=_6007ZZ[0]-$slop,h=_6007ZZ[2]+$slop*2,anchor=FWD);
         } 
 
         union() {
@@ -928,14 +995,16 @@ module pivot_back() {
 }
 
 module robot(yaw=0,roll=0) {
+    explode=0;// 0..1 
     // up(107.5) 
     body() {
         yrot(roll) body_back(yaw) {
+            fwd(explode*40) 
             leg() {
-                skip() motor() m3_8();//*4
+                motor() m3_8();//*4
                 drive_gear();
                 wheel() skip() m5_30() down(27) m5_nut();
-                skip() axle_mount() {
+                axle_mount() {
                     axle() {
                         ball_bearing("6902ZZ",orient=RIGHT,anchor=BOT);
                         magnet();
@@ -948,15 +1017,16 @@ module robot(yaw=0,roll=0) {
                 }
                 leg_cap() m3_11();
             }
-            battery_simplified();
+            skip() battery_simplified();
             skip() %cuboid([150,150,100]);
         }
         // nop();// 
+        fwd(explode*40) 
         front_leg() {
-            skip() motor() m3_8();//*4
+            motor() m3_8();//*4
             drive_gear();
             wheel() skip() m5_30() down(27) m5_nut();
-            skip() axle_mount() {
+            axle_mount() {
                 axle() {
                     ball_bearing("6902ZZ",orient=RIGHT,anchor=BOT);
                     magnet();
@@ -971,10 +1041,12 @@ module robot(yaw=0,roll=0) {
         }
         skip() %cuboid([150,120,100]);
     }
-    body_back_pivot_cap() {
-        m4_14(orient=BOT,anchor=TOP) attach(TOP) down(11.3) nut("M4");
+    yrot(roll) zrot(-yaw) {
+        body_back_pivot_cap() {
+            m4_14(orient=BOT,anchor=TOP) attach(TOP) down(9.7+$slop) m4_nut();
+        }
+        body_back_pivot_encoder_cap();
     }
-    body_back_pivot_encoder_cap();
     body_front_pivot_cap();
     yrot(roll) {
         pivot_mid();
@@ -984,7 +1056,7 @@ module robot(yaw=0,roll=0) {
     // pivot encoder
     up(34.5) yrot(180) difference() {
         as5600();
-        down(3+ep)cuboid([20,20,10],anchor=TOP);
+        down(3+ep) cuboid([20,20,10],anchor=TOP);
     }
 }
 
@@ -1017,7 +1089,6 @@ module robot(yaw=0,roll=0) {
 // !yrot(-90) xflip() leg(); // print right
 // !yrot(90) leg_cap() nop(); // print
 // !body(); // print
-// !yrot(180) body_lid(); // print
 // !xrot(90) board_mount(); // print
 // !board_mount_lid();
 // !body_tray();
@@ -1028,8 +1099,11 @@ module robot(yaw=0,roll=0) {
 // back(154/2-5-5-5)
 
 // yview() fwd(59) left(112.75-15)
-xview()
+// xview()
 // zrot(sin($t*360)*45) robot(sin($t*360+90)*45);
+
+// xview()
+// zview(true,true)
 robot(0,0);
 
 // xview()

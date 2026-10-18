@@ -218,7 +218,7 @@ module hip(anchor="horn",spin=0,orient=UP) {
         children();
     }
 }
-// !side_bracket(anchor=BOT); // print
+// !hip(anchor=BOT); // print
 
 module wedge(a=10,w=20,l=34,anchor="bracket",spin=0,orient=UP) {
     h=l*sin(a);y=l/2*(1-cos(a));
