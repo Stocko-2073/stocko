@@ -6,8 +6,7 @@ files and when editing old ones. Good files to copy from:
 `WireHandler/WireHandler.scad` and `pet/mx1508.scad`.
 
 The short version: a few knobs at the top, numbers written where they're used,
-modules that read the globals, and nothing that only checks or configures the
-model.
+BOSL2 attachable modules, and nothing that only checks or configures the model.
 
 ## A typical file
 
@@ -18,18 +17,27 @@ $fn=0;$fa=1;$fs=$preview?0.5:0.25;ep=0.01;$slop=0.2;
 pcb=[51,70,1.6];
 wall=2;
 
-// Bottom face at the origin.
-module board() color("#853") cuboid(pcb,anchor=BOT);
+module board(anchor=BOT,spin=0,orient=UP) {
+    attachable(anchor,spin,orient,size=pcb) {
+        color("#853") cuboid(pcb);
+        children();
+    }
+}
 
-module tray() color("#f84") difference() {
-    cuboid([pcb.x+wall*2,pcb.y+wall*2,6],rounding=2,edges="Z",anchor=TOP);
-    up(ep) cuboid([pcb.x+$slop*2,pcb.y+$slop*2,4+ep],anchor=TOP);
-    grid_copies([pcb.x-7,pcb.y-7],n=2) cyl(d=3+$slop,h=20);
+module tray(anchor=TOP,spin=0,orient=UP) {
+    size=[pcb.x+wall*2,pcb.y+wall*2,6];
+    attachable(anchor,spin,orient,size=size) {
+        color("#f84") difference() {
+            cuboid(size,rounding=2,edges="Z");
+            up(3+ep) cuboid([pcb.x+$slop*2,pcb.y+$slop*2,4+ep],anchor=TOP);
+            grid_copies([pcb.x-7,pcb.y-7],n=2) cyl(d=3+$slop,h=20);
+        }
+        children();
+    }
 }
 // !tray(); // print
 
-tray();
-down(4) board();
+tray() position(TOP) down(4) board();
 ```
 
 In order: includes, the settings line, the knobs, values derived from them,
@@ -43,20 +51,15 @@ assembly at the bottom.
   `ball_bearings.scad`).
 - Then the settings on one line, as is:
   `$fn=0;$fa=1;$fs=$preview?0.5:0.25;ep=0.01;$slop=0.2;`
-- `use <nop.scad>` for a local file of modules. The shared helpers are
-  included: `include <../lib/globals.scad>` (`../globals.scad` inside
-  `cad-practice`). They provide `nozzle`, the cut-away views `zview()`,
-  `xview()` and `yview()`, `nop()` and `skip()`. They also define short globals
-  (`x`, `y`, `d1`, `h1`, `z1`), so check your own names don't clash.
 
 ## Variables
 
 - At the top, only the knobs someone would change (`pins=40; teeth=30;
-  capacity=20;`), then values derived from them (`r=teeth*2.54/(2*PI);`).
+  capacity=20;`), then global values derived from them (`r=teeth*2.54/(2*PI);`).
   Short ones can share a line: `w=20;l=62;h=3;`.
-- Everything else is a number written where it's used:
-  `cuboid([inset+overlap,w-inset*2-1,wall],anchor=BOT+RIGHT)`. Don't name a
-  dimension that appears once.
+- Don't make variables for an expression that appears once, just write in the
+  number, but if it's used in a few places a short variable helps keep it DRY
+  `cuboid([inset+overlap,w-inset*2-1,wall],anchor=BOT+RIGHT)`.
 - A value a module repeats becomes a local at the top of that module.
 - Sizes as vectors, read with `.x`, `.y`, `.z`:
   `size=[24.5,21,1.6]; ... left(size.x/2)`.
@@ -68,29 +71,40 @@ assembly at the bottom.
 
 ## Modules
 
-- Modules read the globals. Give a module parameters only when it's called
-  with different values (`drive_gear(offset,color,spin)`,
-  `screw_with_nut(a=0,l=11)`, `d_shaft(slop=0)`), never to pass the knobs down.
-- Build each part with its origin where it's used: a mating face, a mount face,
-  the floor. The assembly is then a chain of moves:
-  `right(wheel_x) fwd(r) zrot(a) wheel();`. If two rotations cancel out to fix
-  a part's orientation, rebuild the part in the right frame instead.
-- A part that carries others can place them at the mounting point with
-  `children()`: `module sg90() { ...; down(4.5) children(); }`. Label numbered
-  slots: `children(1); // stepper`.
-- A one-statement module can drop the braces:
-  `module pcb() color("#3638") up(ep) cuboid([70,50,1.6-ep*2],anchor=BOT);`
-- Use `attachable()` only for parts you `attach()` or anchor, and add a
-  `named_anchor` only when something uses it:
+- Make modules BOSL2 attachables: take `anchor`, `spin` and `orient`, wrap the
+  geometry in `attachable()` and pass `children()` through, so a part can be
+  anchored, oriented and attached like BOSL2's own shapes. Size the box to the
+  part, or to its main body the way BOSL2 does for motors and gears. If the
+  geometry isn't centred on the origin, give `cp=` instead of moving it.
+- Build each part around the origin where it's used (a mating face, a mount
+  face, the floor) and make that the default anchor: a box anchor when it is
+  one (`nema17_pancake(anchor=TOP)` is the mount face), otherwise a
+  `named_anchor` (`pin_header(anchor="pcb")`). Add other named anchors only
+  when something uses them.
 
   ```openscad
-  module rod5(l=100,anchor=CENTER,spin=0,orient=UP) {
-      attachable(anchor,spin,orient,d=5,l=l) {
-          color_this("#bbb") cyl(d=5,l=l);
+  module pin_header(anchor="pcb",spin=0,orient=UP) {
+      anchors=[named_anchor("pcb",[0,0,0],DOWN)];
+      attachable(anchor,spin,orient,size=[l,2.54,11.64],cp=[0,0,2.82],anchors=anchors) {
+          union() {
+              color("#222") up(1.27) cuboid([l,2.54,2.54]);
+              color("#da3") down(3) xcopies(2.54,n=pins) cuboid([0.64,0.64,11.64],anchor=BOT);
+          }
           children();
       }
   }
   ```
+
+- Mount parts on each other through anchors and moves:
+  `tray() position(TOP) down(4) board();`. If two rotations cancel out to fix a
+  part's orientation, rebuild the part in the right frame instead.
+- Modules read the globals. Besides `anchor`, `spin` and `orient`, give a
+  module parameters only when it's called with different values
+  (`nema17_pancake(a=0)`, `screw_with_nut(a=0,l=11)`, `d_shaft(slop=0)`), never
+  to pass the knobs down.
+- 2D profiles and other helpers used inside a part (`d_shaft()`,
+  `pin_pocket()`) stay plain modules. One that is a single statement can drop
+  its braces: `module d_shaft(slop=0) difference() {`.
 
 ## Formatting
 
@@ -137,13 +151,13 @@ assembly at the bottom.
 
 - Hex strings, usually three digits: `color("#848")`, grey like `"#888"` for
   metal, a colour of its own for each printed part. Four or eight digits add
-  transparency (`"#3638"`). Use `color_this()` inside attachables. No RGB float
-  vectors.
+  transparency (`"#3638"`). Inside `attachable()`, colour the geometry, not
+  `children()`. No RGB float vectors.
 
 ## Comments
 
-- Sparse. One or two lines above a module when its origin or orientation isn't
-  obvious ("PCB face at the origin, pins along X, mating ends +Z"), a short
+- Sparse. One or two lines above a module when its anchor or orientation isn't
+  obvious ("Anchored at the PCB face, pins along X, mating ends +Z"), a short
   label after a line (`// gate`, `// M3, 3 deep`), and a sentence for any maths
   that isn't obvious.
 
@@ -161,5 +175,5 @@ assembly at the bottom.
 - Long parameter lists passed down through modules.
 - Helper functions for simple derivations. To get a wheel with whole teeth,
   pick `teeth` and derive the radius, not the other way round.
-- `attachable()` with anchors nothing uses.
+- Named anchors nothing uses.
 - `_private` names, RGB float colours, `$fn` on ordinary round parts.
