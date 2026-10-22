@@ -1,6 +1,6 @@
 include <BOSL2/std.scad>
 include <BOSL2/screws.scad>
-include <../../../lib/as5600.scad>
+include <../../../../lib/as5600.scad>
 
 caster_encoder_floor_z=22.1;
 caster_encoder_face_z=24.5;

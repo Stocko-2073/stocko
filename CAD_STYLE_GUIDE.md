@@ -3,7 +3,7 @@
 How the OpenSCAD + BOSL2 models in this repo are written. Follow it for new
 files and when editing old ones. Good files to copy from:
 `cad-practice/chip_clip.scad`, `cad-practice/header_cutter/header_cutter.scad`,
-`WireHandler/WireHandler.scad` and `pet/mx1508.scad`.
+`WireHandler/WireHandler.scad` and `robots/pet/mx1508.scad`.
 
 The short version: a few knobs at the top, numbers written where they're used,
 BOSL2 attachable modules, and nothing that only checks or configures the model.

@@ -4,8 +4,8 @@ include <BOSL2/threading.scad>
 include <BOSL2/gears.scad>
 include <BOSL2/ball_bearings.scad>
 include <BOSL2/nema_steppers.scad>
-include <../lib/as5600.scad>
-include <../lib/globals.scad>
+include <../../lib/as5600.scad>
+include <../../lib/globals.scad>
 // use <modules/xiao_mount/xiao_mount.scad>
 use <modules/caster_as5600_mount/caster_as5600_mount.scad>
 use <modules/fpc_camera/fpc_camera.scad>

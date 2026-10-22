@@ -1,6 +1,6 @@
 include <BOSL2/std.scad>
 include <BOSL2/screws.scad>
-include <../lib/globals.scad>
+include <../../lib/globals.scad>
 $fn=0;$fa=1;$fs=$preview?0.5:0.25;ep=0.01;$slop=0.2;
 
 nozzle=0.4;

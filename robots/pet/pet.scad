@@ -2,7 +2,7 @@ include <BOSL2/std.scad>
 include <BOSL2/gears.scad>
 include <BOSL2/screws.scad>
 include <BOSL2/ball_bearings.scad>
-include <../cad-practice/globals.scad>
+include <../../cad-practice/globals.scad>
 include <mx1508.scad>
 $fn=0;$fa=1;$fs=$preview?0.5:0.0625;
 $slop=0.25;
