@@ -544,10 +544,10 @@ module neck(drive=[0,0],pose,anchor=UP,spin=0,orient=UP) {
 
 // xview(true)
 up(298)
-// zrot(-360*(1-cos($t*180)))
+zrot(-360*(1-cos($t*180)))
 up(100) {
     ta=-7;
-    ha=4;
+    ha=7;
     wa=0;
 
     fwd(4+$slop) left(29/2) down(54)

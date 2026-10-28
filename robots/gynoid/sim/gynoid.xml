@@ -1,0 +1,185 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="gynoid_balance">
+  <compiler angle="radian" meshdir="assets" inertiafromgeom="false" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="elliptic" iterations="50" />
+  <visual>
+    <global offwidth="960" offheight="720" />
+    <headlight diffuse="0.8 0.8 0.8" ambient="0.3 0.3 0.3" />
+  </visual>
+  <default>
+    <joint damping="0" armature="0" limited="true" />
+    <geom friction="0.8 0.003 0.0001" condim="3" solref="0.006 1" solimp="0.9 0.95 0.001" />
+  </default>
+  <asset>
+    <texture name="floor" type="2d" builtin="checker" rgb1="0.15 0.18 0.22" rgb2="0.22 0.26 0.30" width="512" height="512" />
+    <material name="floor" texture="floor" texrepeat="12 12" />
+    <mesh name="xl330_idler_disk_True" file="xl330_idler_disk_True.stl" scale="0.001 0.001 0.001" />
+    <mesh name="abdomen" file="abdomen.stl" scale="0.001 0.001 0.001" />
+    <mesh name="chest" file="chest.stl" scale="0.001 0.001 0.001" />
+    <mesh name="head" file="head.stl" scale="0.001 0.001 0.001" />
+    <mesh name="xl330_idler_disk_False" file="xl330_idler_disk_False.stl" scale="0.001 0.001 0.001" />
+    <mesh name="neck_link_1" file="neck_link_1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="neck_link_2" file="neck_link_2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="shoulder_l_10" file="shoulder_l_10.stl" scale="0.001 0.001 0.001" />
+    <mesh name="pole_l_30" file="pole_l_30.stl" scale="0.001 0.001 0.001" />
+    <mesh name="u_bracket_w_20" file="u_bracket_w_20.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wedge_a_10_w_20_l_34" file="wedge_a_10_w_20_l_34.stl" scale="0.001 0.001 0.001" />
+    <mesh name="pole_l_20" file="pole_l_20.stl" scale="0.001 0.001 0.001" />
+    <mesh name="hand" file="hand.stl" scale="0.001 0.001 0.001" />
+    <mesh name="thumb" file="thumb.stl" scale="0.001 0.001 0.001" />
+    <mesh name="shoulder_l_10_mirror" file="shoulder_l_10_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="xl330_idler_disk_False_mirror" file="xl330_idler_disk_False_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="pole_l_30_mirror" file="pole_l_30_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="xl330_idler_disk_True_mirror" file="xl330_idler_disk_True_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="u_bracket_w_20_mirror" file="u_bracket_w_20_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wedge_a_10_w_20_l_34_mirror" file="wedge_a_10_w_20_l_34_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="pole_l_20_mirror" file="pole_l_20_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="hand_mirror" file="hand_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="thumb_mirror" file="thumb_mirror.stl" scale="0.001 0.001 0.001" />
+    <mesh name="hip" file="hip.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wedge_a_18_w_34_l_23" file="wedge_a_18_w_34_l_23.stl" scale="0.001 0.001 0.001" />
+    <mesh name="pole_l_15" file="pole_l_15.stl" scale="0.001 0.001 0.001" />
+    <mesh name="leg" file="leg.stl" scale="0.001 0.001 0.001" />
+  </asset>
+  <worldbody>
+    <light pos="0 -1 2" dir="0 0 -1" directional="true" />
+    <geom name="floor" type="plane" size="3 3 0.1" material="floor" />
+    <body name="pelvis" pos="0.0042 -0.0145 0.3444689734">
+      <freejoint name="root" />
+      <body name="waist" pos="0 0 0">
+        <joint name="waist" axis="0 -1 0" range="-0.45 0.45" />
+        <geom name="part_1_chest" type="mesh" mesh="chest" pos="0 0 0" quat="0.7071067812 0 0 0.7071067812" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.027 0.02018160343 0.0547704277" pos="0.002081852913 0.0145 0.0467704277" quat="0.7071067812 0 0 0.7071067812" name="part_1_chest_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_2_head" type="mesh" mesh="head" pos="-0.003899495 0.0145 0.091542" quat="0 -0.7071067812 0.7071067812 0" rgba="0.8 0.8 0.82 1" contype="0" conaffinity="0" group="1" />
+        <geom type="ellipsoid" size="0.0345 0.04649156952 0.04859021378" pos="-0.007406021947 0.0145 0.1274500696" quat="0 -0.7071067812 0.7071067812 0" name="part_2_head_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_3_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.0257157 0.0045 0.099728" quat="-0.2705980501 0.6532814824 0.6532814824 -0.2705980501" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.020765951 0.0045 0.115284354" quat="-0.2705980501 0.6532814824 0.6532814824 -0.2705980501" name="part_3_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_4_neck_link_1" type="mesh" mesh="neck_link_1" pos="-0.0257157 0.0045 0.099728" quat="-0.1776396377 0.8183107427 0.4288600225 -0.3389554079" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_5_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.0257157 0.0245 0.099728" quat="-0.2705980501 0.6532814824 0.6532814824 -0.2705980501" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.020765951 0.0245 0.115284354" quat="-0.2705980501 0.6532814824 0.6532814824 -0.2705980501" name="part_5_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_6_neck_link_1" type="mesh" mesh="neck_link_1" pos="-0.0257157 0.0245 0.099728" quat="0.1776396377 0.8183107427 -0.4288600225 -0.3389554079" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_7_neck_link_2" type="mesh" mesh="neck_link_2" pos="-0.036494 -0.0103015 0.103435" quat="-0.2654112782 -0.333849689 0.8646722454 -0.2654112782" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_8_neck_link_2" type="mesh" mesh="neck_link_2" pos="-0.036494 0.0393015 0.103435" quat="-0.4237414936 0.0483932644 0.7990897228 -0.4237414936" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_9_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.0042530483 -0.0155 0.053895" quat="0.6532814824 0.6532814824 -0.2705980501 0.2705980501" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0010502542 -0.001 0.0485916975" quat="0.6532814824 0.6532814824 -0.2705980501 0.2705980501" name="part_9_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_10_shoulder" type="mesh" mesh="shoulder_l_10" pos="-0.0042530483 -0.0155 0.053895" quat="0.6532814824 0.6532814824 -0.2705980501 0.2705980501" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_11_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.01004039 -0.0387101 0.043366" quat="0.04999045509 0.8160348565 0.5713939077 -0.07139376456" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.0162269151 -0.033778898 0.057645716" quat="0.04999045509 0.8160348565 0.5713939077 -0.07139376456" name="part_11_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_12_pole" type="mesh" mesh="pole_l_30" pos="-0.01004039 -0.0387101 0.043366" quat="0.0616284504 0.9028590186 0.4210100483 -0.0616284504" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_13_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="-0.0226219 -0.0587774 -0.009515" quat="0.2409244852 -0.2409244852 -0.600306083 0.7235629838" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.0129268435 -0.0466404595 -0.004494992" quat="0.2409244852 -0.2409244852 -0.600306083 0.7235629838" name="part_13_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_14_u_bracket" type="mesh" mesh="u_bracket_w_20" pos="-0.0226219 -0.0587774 -0.009515" quat="-0.02107815777 -0.4317118328 -0.4817022161 0.7623277377" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_15_wedge" type="mesh" mesh="wedge_a_10_w_20_l_34" pos="-0.00587081 -0.0566706 -0.023787" quat="0.3201708728 0.2903618562 0.8796620163 -0.1984322093" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_16_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="0.014097 -0.0621015 -0.045292" quat="0.3442592056 0.261352284 0.8936091235 -0.1210095759" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0019647145 -0.0626121405 -0.0343811315" quat="0.3442592056 0.261352284 0.8936091235 -0.1210095759" name="part_16_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_17_pole" type="mesh" mesh="pole_l_20" pos="0.014097 -0.0621015 -0.045292" quat="0.3442592056 0.261352284 0.8936091235 -0.1210095759" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_18_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="0.0486271 -0.085932 -0.069276" quat="-0.4277532346 0.2045036049 -0.344846313 0.8101150945" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0354047605 -0.077395628 -0.073611888" quat="-0.4277532346 0.2045036049 -0.344846313 0.8101150945" name="part_18_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_19_hand" type="mesh" mesh="hand" pos="0.044789 -0.0841312 -0.086085" quat="0.3289947105 0.8166810432 0.4470730987 0.1578613271" rgba="0.8 0.8 0.82 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.0140764246 0.0115 0.0227002964" pos="0.05956359036 -0.08972526265 -0.1028879423" quat="0.3289947105 0.8166810432 0.4470730987 0.1578613271" name="part_19_hand_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_20_thumb" type="mesh" mesh="thumb" pos="0.0486271 -0.085932 -0.069276" quat="-0.4277532346 0.2045036049 -0.344846313 0.8101150945" rgba="0.8 0.8 0.82 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.01481900644 0.02348675537 0.01700000024" pos="0.05177941333 -0.08077978989 -0.09078933671" quat="-0.4277532346 0.2045036049 -0.344846313 0.8101150945" name="part_20_thumb_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_21_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.0042530483 0.0445 0.053895" quat="0.2705980501 -0.2705980501 0.6532814824 0.6532814824" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0010502542 0.03 0.0485916975" quat="0.2705980501 -0.2705980501 0.6532814824 0.6532814824" name="part_21_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_22_shoulder" type="mesh" mesh="shoulder_l_10_mirror" pos="-0.0042530483 0.0445 0.053895" quat="0.2705980501 -0.2705980501 0.6532814824 0.6532814824" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_23_xl330" type="mesh" mesh="xl330_idler_disk_False_mirror" pos="-0.01004039 0.0677101 0.043366" quat="-0.07139376456 0.5713939077 0.8160348565 0.04999045509" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.0162269151 0.062778898 0.057645716" quat="-0.07139376456 0.5713939077 0.8160348565 0.04999045509" name="part_23_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_24_pole" type="mesh" mesh="pole_l_30_mirror" pos="-0.01004039 0.0677101 0.043366" quat="-0.0616284504 0.4210100483 0.9028590186 0.0616284504" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_25_xl330" type="mesh" mesh="xl330_idler_disk_True_mirror" pos="-0.0226219 0.0877774 -0.009515" quat="0.7235629838 -0.600306083 -0.2409244852 0.2409244852" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.0129268435 0.0756404595 -0.004494992" quat="0.7235629838 -0.600306083 -0.2409244852 0.2409244852" name="part_25_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_26_u_bracket" type="mesh" mesh="u_bracket_w_20_mirror" pos="-0.0226219 0.0877774 -0.009515" quat="0.7623277377 -0.4817022161 -0.4317118328 -0.02107815777" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_27_wedge" type="mesh" mesh="wedge_a_10_w_20_l_34_mirror" pos="-0.00587081 0.0856706 -0.023787" quat="-0.1984322093 0.8796620163 0.2903618562 0.3201708728" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_28_xl330" type="mesh" mesh="xl330_idler_disk_False_mirror" pos="0.014097 0.0911015 -0.045292" quat="-0.1210095759 0.8936091235 0.261352284 0.3442592056" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0019647145 0.0916121405 -0.0343811315" quat="-0.1210095759 0.8936091235 0.261352284 0.3442592056" name="part_28_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_29_pole" type="mesh" mesh="pole_l_20_mirror" pos="0.014097 0.0911015 -0.045292" quat="-0.1210095759 0.8936091235 0.261352284 0.3442592056" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_30_xl330" type="mesh" mesh="xl330_idler_disk_True_mirror" pos="0.0486271 0.114932 -0.069276" quat="0.8101150945 -0.344846313 0.2045036049 -0.4277532346" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0354047605 0.106395628 -0.073611888" quat="0.8101150945 -0.344846313 0.2045036049 -0.4277532346" name="part_30_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_31_hand" type="mesh" mesh="hand_mirror" pos="0.044789 0.1131312 -0.086085" quat="0.1578613271 0.4470730987 0.8166810432 0.3289947105" rgba="0.8 0.8 0.82 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.0140764246 0.0115 0.0227002964" pos="0.05956359036 0.1187252627 -0.1028879423" quat="0.1578613271 0.4470730987 0.8166810432 0.3289947105" name="part_31_hand_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <geom name="part_32_thumb" type="mesh" mesh="thumb_mirror" pos="0.0486271 0.114932 -0.069276" quat="0.8101150945 -0.344846313 0.2045036049 -0.4277532346" rgba="0.8 0.8 0.82 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.01481900644 0.02348675537 0.01700000024" pos="0.05177941333 0.1097797899 -0.09078933671" quat="0.8101150945 -0.344846313 0.2045036049 -0.4277532346" name="part_32_thumb_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <inertial mass="0.3802600718" pos="0.001454013525 0.01449040834 0.03827961033" fullinertia="0.003502410105 0.002555547828 0.001386107826 -5.590175252e-09 0.0003979811333 -1.796825492e-09" />
+      </body>
+      <body name="right_hip_roll" pos="0.013 -0.0165 -0.043">
+        <joint name="right_hip_roll" axis="1 0 0" range="-0.45 0.45" />
+        <body name="right_hip_pitch" pos="-0.0071 -0.0185804 -0.032619">
+          <joint name="right_hip_pitch" axis="0 -0.9975640482 -0.06975650337" range="-0.7 0.7" />
+          <body name="right_thigh_yaw" pos="-0.00519163 0.0100321 -0.041684">
+            <joint name="right_thigh_yaw" axis="-0.1218690486 0.06923652761 -0.9901283948" range="-0.45 0.45" />
+            <body name="right_knee" pos="-0.005008834 0.0173103 -0.039683">
+              <joint name="right_knee" axis="0 0.9975640482 0.06975650337" range="-0.9 0.9" />
+              <geom name="part_42_u_bracket" type="mesh" mesh="u_bracket_w_20" pos="0 0 0" quat="0.7313537117 -0.6819983492 -1.572580061e-18 -2.672136579e-18" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+              <geom name="part_43_leg" type="mesh" mesh="leg" pos="0 -0.0134064 -0.017578" quat="7.775038704e-19 -3.00146792e-18 -0.03489951154 0.9993908265" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+              <geom type="mesh" mesh="leg" pos="0 -0.0134064 -0.017578" quat="7.775038704e-19 -3.00146792e-18 -0.03489951154 0.9993908265" name="part_43_leg_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+              <site name="right_foot" pos="1.94348575e-19 -0.00172218625 -0.18466997" size="0.0025" />
+              <inertial mass="0.02264495991" pos="-4.017017683e-07 -0.01097810408 -0.06230636445" fullinertia="4.881262882e-05 4.720548211e-05 2.946226105e-06 -3.220540122e-10 -1.944904985e-09 3.049026053e-06" />
+            </body>
+            <geom name="part_40_pole" type="mesh" mesh="pole_l_15" pos="0 0 0" quat="0.01850975838 0.7068644835 -0.7038514074 -0.06777305607" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+            <geom name="part_41_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="-0.005008834 0.0173103 -0.039683" quat="0.7299895943 -0.6807262966 0.0416348692 0.04464794525" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+            <geom type="box" size="0.010 0.017 0.0115" pos="-0.0040948165 0.00232634825 -0.03326850925" quat="0.7299895943 -0.6807262966 0.0416348692 0.04464794525" name="part_41_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+            <inertial mass="0.02183486311" pos="-0.003620690826 0.002056129438 -0.02941663055" fullinertia="4.472340736e-06 4.18402153e-06 1.876202403e-06 2.258422809e-08 -3.243154384e-07 1.626792802e-07" />
+          </body>
+          <geom name="part_38_u_bracket" type="mesh" mesh="u_bracket_w_20" pos="0 0 0" quat="-0.0416348692 -0.04464794525 0.7299895943 -0.6807262966" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+          <geom name="part_39_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.00519163 0.0100321 -0.041684" quat="-0.03483441186 0.9975267728 0.002130566505 -0.0610111632" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+          <geom type="box" size="0.010 0.017 0.0115" pos="-0.0034245295 0.01650990075 -0.02680397025" quat="-0.03483441186 0.9975267728 0.002130566505 -0.0610111632" name="part_39_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+          <inertial mass="0.02183057676" pos="-0.002995583332 0.0162655823 -0.02330652372" fullinertia="4.751769232e-06 3.044455202e-06 3.205424166e-06 1.343948038e-08 -1.915523704e-07 -1.13650453e-08" />
+        </body>
+        <geom name="part_35_hip" type="mesh" mesh="hip" pos="0 0 0" quat="-0.4353383943 0.5572077552 -0.4353383943 0.5572077552" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_36_wedge" type="mesh" mesh="wedge_a_18_w_34_l_23" pos="-0.0146 -0.0044997 -0.018048" quat="0 0 0.9925461495 -0.1218693608" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_37_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="-0.0071 -0.0185804 -0.032619" quat="0.4822456575 0.517145169 0.517145169 -0.4822456575" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="-0.0146 -0.004115722 -0.03160753075" quat="0.4822456575 0.517145169 0.517145169 -0.4822456575" name="part_37_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <inertial mass="0.02425033759" pos="-0.01459882884 -0.004103519948 -0.02681598735" fullinertia="3.720733006e-06 5.345210392e-06 3.793436252e-06 -4.481339037e-10 -2.524076106e-09 -1.088010623e-07" />
+      </body>
+      <body name="left_hip_roll" pos="-0.016 0.0455 -0.043">
+        <joint name="left_hip_roll" axis="-1 0 0" range="-0.45 0.45" />
+        <body name="left_hip_pitch" pos="0.0221 -0.0103489 -0.030596">
+          <joint name="left_hip_pitch" axis="0 -0.9975640482 0.06975650337" range="-0.7 0.7" />
+          <body name="left_thigh_yaw" pos="-0.00519163 0.0190967 -0.043721">
+            <joint name="left_thigh_yaw" axis="-0.1218690486 -0.06923652761 -0.9901283948" range="-0.45 0.45" />
+            <body name="left_knee" pos="-0.005008834 -0.0173103 -0.039683">
+              <joint name="left_knee" axis="0 -0.9975640482 0.06975650337" range="-0.9 0.9" />
+              <geom name="part_52_u_bracket" type="mesh" mesh="u_bracket_w_20" pos="0 0 0" quat="-2.672136579e-18 -1.572580061e-18 -0.6819983492 0.7313537117" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+              <geom name="part_53_leg" type="mesh" mesh="leg" pos="0 0.0134065 -0.017578" quat="0.9993908265 -0.03489951154 -3.00146792e-18 7.775038704e-19" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+              <geom type="mesh" mesh="leg" pos="0 0.0134065 -0.017578" quat="0.9993908265 -0.03489951154 -3.00146792e-18 7.775038704e-19" name="part_53_leg_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+              <site name="left_foot" pos="1.94348575e-19 0.00172228625 -0.18466997" size="0.0025" />
+              <inertial mass="0.02264495991" pos="4.017017683e-07 0.01097818717 -0.06230636445" fullinertia="4.88126265e-05 4.720548211e-05 2.946223782e-06 -3.220574978e-10 1.944904985e-09 -3.049005622e-06" />
+            </body>
+            <geom name="part_50_pole" type="mesh" mesh="pole_l_15" pos="0 0 0" quat="-0.01850975838 0.7068644835 0.7038514074 -0.06777305607" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+            <geom name="part_51_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="-0.005008834 -0.0173103 -0.039683" quat="0.04464794525 0.0416348692 -0.6807262966 0.7299895943" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+            <geom type="box" size="0.010 0.017 0.0115" pos="-0.0040948165 -0.00232634825 -0.03326850925" quat="0.04464794525 0.0416348692 -0.6807262966 0.7299895943" name="part_51_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+            <inertial mass="0.02183486311" pos="-0.00362071953 -0.002056129192 -0.02941662704" fullinertia="4.472357232e-06 4.184026693e-06 1.876180743e-06 -2.288572058e-08 -3.242280308e-07 -1.626431179e-07" />
+          </body>
+          <geom name="part_48_u_bracket" type="mesh" mesh="u_bracket_w_20" pos="0 0 0" quat="0.04464794525 0.0416348692 -0.6807262966 0.7299895943" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+          <geom name="part_49_xl330" type="mesh" mesh="xl330_idler_disk_False" pos="-0.00519163 0.0190967 -0.043721" quat="-0.0610111632 0.002130566505 0.9975267728 -0.03483441186" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+          <geom type="box" size="0.010 0.017 0.0115" pos="-0.0034245295 0.01261889925 -0.02884097025" quat="-0.0610111632 0.002130566505 0.9975267728 -0.03483441186" name="part_49_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+          <inertial mass="0.02183057676" pos="-0.002995583332 0.01286369782 -0.02534353712" fullinertia="4.751783713e-06 3.044455438e-06 3.205438411e-06 -1.335001411e-08 -1.915595145e-07 1.12631824e-08" />
+        </body>
+        <geom name="part_45_hip" type="mesh" mesh="hip" pos="0 0 0" quat="0.5572077552 -0.4353383943 -0.5572077552 0.4353383943" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_46_wedge" type="mesh" mesh="wedge_a_18_w_34_l_23" pos="0.0146 0.0044997 -0.018048" quat="-0.1218693608 0.9925461495 0 0" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+        <geom name="part_47_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="0.0221 -0.0103489 -0.030596" quat="0.517145169 0.4822456575 0.4822456575 -0.517145169" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+        <geom type="box" size="0.010 0.017 0.0115" pos="0.0146 0.004115778 -0.03160746925" quat="0.517145169 0.4822456575 0.4822456575 -0.517145169" name="part_47_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+        <inertial mass="0.02425033759" pos="0.01459882884 0.004103561515 -0.0268159417" fullinertia="3.720722422e-06 5.345199783e-06 3.793436276e-06 -4.481350843e-10 2.524074809e-09 1.088058786e-07" />
+      </body>
+      <geom name="part_0_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="0 0 0" quat="0.7071067812 0.7071067812 0 0" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+      <geom type="box" size="0.010 0.017 0.0115" pos="0 0.0145 -0.0075" quat="0.7071067812 0.7071067812 0 0" name="part_0_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+      <geom name="part_33_abdomen" type="mesh" mesh="abdomen" pos="0 0.026 -0.0075" quat="0.7071067812 0.7071067812 0 0" rgba="0.95 0.42 0.18 1" contype="0" conaffinity="0" group="1" />
+      <geom type="box" size="0.0115 0.0261927948 0.04300861263" pos="-0.0015 0.01449999905 -0.0366927948" quat="0.7071067812 0.7071067812 0 0" name="part_33_abdomen_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+      <geom name="part_34_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="0.013 -0.0165 -0.043" quat="-0.1045171107 0.6993398127 -0.1045171107 0.6993398127" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+      <geom type="box" size="0.010 0.017 0.0115" pos="-0.0015 -0.0093277125 -0.04080721" quat="-0.1045171107 0.6993398127 -0.1045171107 0.6993398127" name="part_34_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+      <geom name="part_44_xl330" type="mesh" mesh="xl330_idler_disk_True" pos="-0.016 0.0455 -0.043" quat="0.6993398127 -0.1045171107 -0.6993398127 0.1045171107" rgba="0.18 0.18 0.20 1" contype="0" conaffinity="0" group="1" />
+      <geom type="box" size="0.010 0.017 0.0115" pos="-0.0015 0.0383277125 -0.04080721" quat="0.6993398127 -0.1045171107 -0.6993398127 0.1045171107" name="part_44_xl330_collision" group="3" rgba="0.2 0.7 0.9 0.25" />
+      <inertial mass="0.07097377968" pos="-0.0009784331194 0.01450006432 -0.03173010396" fullinertia="5.225678888e-05 2.423216211e-05 3.420367473e-05 2.212895139e-10 -7.993975952e-07 -4.420963494e-11" />
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="waist" joint="waist" gear="1" />
+    <motor name="right_hip_roll" joint="right_hip_roll" gear="1" />
+    <motor name="right_hip_pitch" joint="right_hip_pitch" gear="1" />
+    <motor name="right_thigh_yaw" joint="right_thigh_yaw" gear="1" />
+    <motor name="right_knee" joint="right_knee" gear="1" />
+    <motor name="left_hip_roll" joint="left_hip_roll" gear="1" />
+    <motor name="left_hip_pitch" joint="left_hip_pitch" gear="1" />
+    <motor name="left_thigh_yaw" joint="left_thigh_yaw" gear="1" />
+    <motor name="left_knee" joint="left_knee" gear="1" />
+  </actuator>
+</mujoco>

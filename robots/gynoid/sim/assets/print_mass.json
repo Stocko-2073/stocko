@@ -1,0 +1,833 @@
+{
+  "cad_sha256": "988c173bb66ff4c595fe09d0c36d32f1f6f6cc11267e94a8fd42d56a640de901",
+  "print_orientations": {
+    "u_bracket": "xrot(-90)",
+    "head": "yrot(180)",
+    "leg": "xrot(90)",
+    "chest": "yrot(90)",
+    "abdomen": "xrot(90)",
+    "hand": "xrot(90)"
+  },
+  "print_tool_sha256": "d59189d8713e877bd8a8b2641f893c9d4c221941d0bc7709bb447260fd1de254",
+  "parts": [
+    {
+      "mass_g": 12.965149837718675,
+      "com_mm": [
+        14.202399996505086,
+        -3.4800422133856586,
+        41.27511501967858
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          11146.019491468742,
+          9.483599982171933,
+          12.896422494856566
+        ],
+        [
+          9.483599982171933,
+          12174.128987841357,
+          -1136.018263918704
+        ],
+        [
+          12.89642249485083,
+          -1136.018263918704,
+          2975.0028303084855
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 3.7321549061598107,
+        "Inner wall": 3.0236698857800794,
+        "Outer wall": 2.860577427602281,
+        "Internal solid infill": 1.5774062980566355,
+        "Bridge": 0.7166127949550807,
+        "Floating vertical shell": 0.5634558365442751,
+        "Top surface": 0.37866719706721425,
+        "Brim": 0.315612328616126,
+        "Overhang wall": 0.09935869218255686,
+        "Custom": 0.09236282401553991,
+        "Gap infill": 0.009556165648727808,
+        "Bottom surface": 0.0036906337220129464
+      },
+      "total_g": 13.37312499035034,
+      "solid_mass_g": 28.305311412931268,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        14.499999997832127,
+        -2.11661963968366,
+        44.63351064578813
+      ],
+      "source": "mass_parts.scad:3 chest chest",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "yrot(90)",
+      "asset": "chest"
+    },
+    {
+      "mass_g": 91.02207741128873,
+      "com_mm": [
+        -0.0023088023159516524,
+        -2.682648220312373,
+        -40.915136964791756
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          99809.88114031064,
+          -4.50508021494487,
+          -6.407655666067625
+        ],
+        [
+          -4.505080214761362,
+          85197.56276673917,
+          11317.100455984764
+        ],
+        [
+          -6.407655666067625,
+          11317.100455984764,
+          82400.95186070484
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 58.14285873142412,
+        "Inner wall": 12.376831068090071,
+        "Outer wall": 11.503891576542333,
+        "Floating vertical shell": 6.657874478885666,
+        "Internal solid infill": 1.1706117578291302,
+        "Bridge": 0.6668343435536344,
+        "Top surface": 0.2892869533647835,
+        "Overhang wall": 0.164322053666279,
+        "Custom": 0.09236282401553991,
+        "Brim": 0.07023777133673743,
+        "Gap infill": 0.04956644793272346
+      },
+      "total_g": 91.18467800664102,
+      "solid_mass_g": 420.6131225442314,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        1.2502573779302064e-09,
+        -3.781195685522239,
+        -41.628442476896694
+      ],
+      "source": "mass_parts.scad:4 head head",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "yrot(180)",
+      "asset": "head"
+    },
+    {
+      "mass_g": 0.769094090463303,
+      "com_mm": [
+        -3.898473451448382,
+        0.0005599035456071988,
+        1.6016990638910014
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          12.00204234075823,
+          0.002913465449280738,
+          0.005716148309570774
+        ],
+        [
+          0.002913465449280738,
+          38.92482328761744,
+          -0.0006814668933322512
+        ],
+        [
+          0.005716148309593175,
+          -0.0006814668933098502,
+          49.46601510870889
+        ]
+      ],
+      "features_g": {
+        "Internal solid infill": 0.2998049546752016,
+        "Outer wall": 0.09479353645515705,
+        "Custom": 0.09236282401553991,
+        "Inner wall": 0.09150812922970805,
+        "Bridge": 0.08399521397385208,
+        "Sparse infill": 0.07260173624219926,
+        "Top surface": 0.06512102482431652,
+        "Bottom surface": 0.05585817271705402,
+        "Floating vertical shell": 0.005230106485095958,
+        "Gap infill": 0.00018121586071848933
+      },
+      "total_g": 0.8614569144788429,
+      "solid_mass_g": 1.1397266488445912,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -3.8780849593342133,
+        -2.3977217383691906e-16,
+        1.5000000000000027
+      ],
+      "source": "mass_parts.scad:5 neck_link_1 neck_link_1",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "neck_link_1"
+    },
+    {
+      "mass_g": 0.22297195431441771,
+      "com_mm": [
+        -21.623570028074255,
+        0.00042834001719427306,
+        -0.004655474686497074
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          0.18911382847934277,
+          -0.0018159038278432965,
+          0.0037459304397570274
+        ],
+        [
+          -0.0018159038278432965,
+          54.89037397861423,
+          5.291018194225438e-05
+        ],
+        [
+          0.0037459304397570274,
+          5.2910181953454846e-05,
+          54.884595559678644
+        ]
+      ],
+      "features_g": {
+        "Outer wall": 0.09433255360049479,
+        "Custom": 0.09236282401553991,
+        "Inner wall": 0.0711334136412155,
+        "Gap infill": 0.027308608300594645,
+        "Internal solid infill": 0.02133088633030896,
+        "Overhang wall": 0.008866492441803774,
+        "Brim": 0.0032747547130789726
+      },
+      "total_g": 0.3186095330430366,
+      "solid_mass_g": 0.24263157445835554,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -21.624989973893396,
+        1.9748965422077046e-17,
+        -1.7751190096942932e-16
+      ],
+      "source": "mass_parts.scad:6 neck_link_2 neck_link_2",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "neck_link_2"
+    },
+    {
+      "mass_g": 2.67881545629299,
+      "com_mm": [
+        -3.1586181591173386,
+        4.6290029035233005,
+        6.06070005491152
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          208.65089789530205,
+          64.15266468243352,
+          -25.140146210601834
+        ],
+        [
+          64.15266468243352,
+          202.7308347615839,
+          36.13968318552375
+        ],
+        [
+          -25.140146210601475,
+          36.13968318552375,
+          322.7374391461843
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 0.790348715888584,
+        "Floating vertical shell": 0.5354183316241566,
+        "Inner wall": 0.4971959780998455,
+        "Outer wall": 0.48258876669417844,
+        "Internal solid infill": 0.17819316415214906,
+        "Bridge": 0.09403720807690162,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.057383452392846764,
+        "Overhang wall": 0.04335101484102979,
+        "Gap infill": 0.0002988245232982768
+      },
+      "total_g": 2.7711782803085296,
+      "solid_mass_g": 6.882128457610433,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -2.671738684971856,
+        3.9942749271947338,
+        5.772463795452341
+      ],
+      "source": "mass_parts.scad:7 shoulder shoulder_l_10",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "shoulder_l_10"
+    },
+    {
+      "mass_g": 6.093969174051964,
+      "com_mm": [
+        0.008361477552341512,
+        0.005007539100176928,
+        19.694004587091662
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          959.5186749511096,
+          0.3194815530005393,
+          0.7483810451225883
+        ],
+        [
+          0.3194815530120086,
+          1111.5537219221437,
+          -0.008776994325670893
+        ],
+        [
+          0.7483810451254557,
+          -0.008776994322803572,
+          662.7026418825252
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 2.365607978525775,
+        "Inner wall": 1.465587122011785,
+        "Outer wall": 1.4320009512265475,
+        "Internal solid infill": 0.4758588110975034,
+        "Bridge": 0.16153438969945016,
+        "Top surface": 0.12558329959289746,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.05769936403858786,
+        "Floating vertical shell": 0.007117386855813489,
+        "Gap infill": 0.0029798710036053593
+      },
+      "total_g": 6.186331998067504,
+      "solid_mass_g": 18.68331161155381,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        6.271072481653605e-11,
+        -1.2108346716755242e-11,
+        17.867726551310952
+      ],
+      "source": "mass_parts.scad:8 pole pole_l_30",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "pole_l_30"
+    },
+    {
+      "mass_g": 3.830576762218385,
+      "com_mm": [
+        0.008697572495833583,
+        7.970190386783139,
+        -14.601336949548198
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          967.9694462996906,
+          0.07957237138961158,
+          0.05070738870761195
+        ],
+        [
+          0.07957237138961158,
+          848.7249417338737,
+          0.04186330517941928
+        ],
+        [
+          0.05070738869614267,
+          0.04186330517941928,
+          370.3555010620471
+        ]
+      ],
+      "features_g": {
+        "Outer wall": 0.9957953477353942,
+        "Inner wall": 0.989420650347498,
+        "Internal solid infill": 0.8572445539515757,
+        "Sparse infill": 0.4778017554634968,
+        "Bridge": 0.20465040272857635,
+        "Top surface": 0.14864900605908188,
+        "Bottom surface": 0.1395861502534213,
+        "Custom": 0.09236282401553991,
+        "Floating vertical shell": 0.014497299645087147,
+        "Gap infill": 0.002931596034253236
+      },
+      "total_g": 3.922939586233925,
+      "solid_mass_g": 4.798853610908019,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -2.0847565961924002e-16,
+        8.431886644347848,
+        -14.599999324027587
+      ],
+      "source": "mass_parts.scad:9 u_bracket u_bracket_w_20",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "xrot(-90)",
+      "asset": "u_bracket_w_20"
+    },
+    {
+      "mass_g": 1.6016314042650688,
+      "com_mm": [
+        0.009162329766894572,
+        -3.956521988094977,
+        1.9886652856306628
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          123.9866990609072,
+          0.0728311862061422,
+          -0.0023051408152699737
+        ],
+        [
+          0.07283118620900952,
+          62.061683424221414,
+          11.3773890928247
+        ],
+        [
+          -0.0023051408152699737,
+          11.377389092824655,
+          178.083789561429
+        ]
+      ],
+      "features_g": {
+        "Floating vertical shell": 0.38821307965486906,
+        "Internal solid infill": 0.31321886918219427,
+        "Top surface": 0.1987718476436715,
+        "Outer wall": 0.19595321134319257,
+        "Inner wall": 0.1852262237496362,
+        "Sparse infill": 0.17903314246135424,
+        "Bottom surface": 0.13973651693091838,
+        "Custom": 0.09236282401553991,
+        "Gap infill": 0.001478513299232758
+      },
+      "total_g": 1.6939942282806089,
+      "solid_mass_g": 2.5782074556724033,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        5.441360331179645e-16,
+        -5.475789454931786,
+        1.966376800684838
+      ],
+      "source": "mass_parts.scad:10 wedge wedge_a_10_w_20_l_34",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "wedge_a_10_w_20_l_34"
+    },
+    {
+      "mass_g": 4.5877057414322024,
+      "com_mm": [
+        0.0072341684501395775,
+        0.00439368063000245,
+        14.217904979524729
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          469.6126575890316,
+          0.25692202264297587,
+          0.37502795713998494
+        ],
+        [
+          0.25692202264297587,
+          602.5009060966879,
+          0.008367774065668491
+        ],
+        [
+          0.3750279571414186,
+          0.008367774067102152,
+          508.4583944493618
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 1.5812845822494381,
+        "Inner wall": 1.0966394496413834,
+        "Outer wall": 1.0788806647422609,
+        "Internal solid infill": 0.47598953528109333,
+        "Bridge": 0.16153438969945016,
+        "Top surface": 0.12558329959289746,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.05769656236625936,
+        "Floating vertical shell": 0.007117386855813489,
+        "Gap infill": 0.0029798710036053593
+      },
+      "total_g": 4.680068565447741,
+      "solid_mass_g": 13.022440429595997,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        7.209027037896086e-11,
+        2.4697120539762835e-11,
+        12.48519244657029
+      ],
+      "source": "mass_parts.scad:11 pole pole_l_20",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "pole_l_20"
+    },
+    {
+      "mass_g": 6.112488997833338,
+      "com_mm": [
+        1.8005848269816624,
+        0.42532079673546264,
+        20.562866749064597
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          1509.1433681121653,
+          1.4378176081486533,
+          -365.8162045020878
+        ],
+        [
+          1.4378176081486533,
+          1506.207134938898,
+          0.9818322335239467
+        ],
+        [
+          -365.8162045020878,
+          0.9818322335239467,
+          643.4858542393686
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 2.351842777411447,
+        "Inner wall": 1.448440086883724,
+        "Outer wall": 1.379752563972867,
+        "Internal solid infill": 0.5378723810706398,
+        "Bridge": 0.15725580502736194,
+        "Top surface": 0.10227988200530447,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.08396159390591038,
+        "Floating vertical shell": 0.04439794745124589,
+        "Overhang wall": 0.006450773567285334,
+        "Gap infill": 0.00023518653755156985
+      },
+      "total_g": 6.2048518218488775,
+      "solid_mass_g": 17.03921942024637,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        1.38189422127001,
+        1.3835336252922505e-08,
+        20.354165755491014
+      ],
+      "source": "mass_parts.scad:12 hand hand",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "xrot(90)",
+      "asset": "hand"
+    },
+    {
+      "mass_g": 4.239168713788767,
+      "com_mm": [
+        -11.41017810598214,
+        17.45410655492202,
+        -14.376582177467828
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          1222.7818965629426,
+          303.5749585151261,
+          4.136895780402453
+        ],
+        [
+          303.5749585151376,
+          823.6095258763054,
+          -7.98227947272038
+        ],
+        [
+          4.136895780403886,
+          -7.98227947272038,
+          833.0909031720946
+        ]
+      ],
+      "features_g": {
+        "Inner wall": 0.9549413002664007,
+        "Sparse infill": 0.9349513989903502,
+        "Outer wall": 0.9256221380126274,
+        "Internal solid infill": 0.7556614570906418,
+        "Bridge": 0.27864672525058537,
+        "Top surface": 0.16637561790783256,
+        "Floating vertical shell": 0.13860544178802395,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.04596626820302966,
+        "Overhang wall": 0.034522052493384345,
+        "Gap infill": 0.0038763137858921905
+      },
+      "total_g": 4.331531537804309,
+      "solid_mass_g": 8.640407725412869,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -12.980976891554029,
+        20.122222320481498,
+        -14.599999643989003
+      ],
+      "source": "mass_parts.scad:13 thumb thumb",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "thumb"
+    },
+    {
+      "mass_g": 16.97377968047273,
+      "com_mm": [
+        -0.9098207317823324,
+        -30.673339112189616,
+        11.499731054523565
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          10383.3202589825,
+          -209.73036588641034,
+          -0.22160273091710397
+        ],
+        [
+          -209.73036588641034,
+          7482.582471295811,
+          0.07362314041052084
+        ],
+        [
+          -0.22160273091710397,
+          0.07362314041052084,
+          4651.57068949742
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 5.752139688626648,
+        "Inner wall": 3.084493607066611,
+        "Floating vertical shell": 2.8521256134527255,
+        "Outer wall": 2.7992733888431958,
+        "Internal solid infill": 0.879418528139493,
+        "Bridge": 0.8216103914818207,
+        "Overhang wall": 0.5593587756089783,
+        "Top surface": 0.15289948164506115,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.054938454503115304,
+        "Gap infill": 0.017521751105083996
+      },
+      "total_g": 17.066142504488273,
+      "solid_mass_g": 47.80040253259473,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -0.8271498020013011,
+        -32.37769964098261,
+        11.500000272983865
+      ],
+      "source": "mass_parts.scad:14 abdomen abdomen",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "xrot(90)",
+      "asset": "abdomen"
+    },
+    {
+      "mass_g": 4.320608125271709,
+      "com_mm": [
+        -0.004000923524500877,
+        10.315704440069368,
+        -14.59439250356025
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          1083.0328189735017,
+          0.19053283666688722,
+          -0.014197043429534035
+        ],
+        [
+          0.19053283666688722,
+          954.7621601825738,
+          2.127581507442394
+        ],
+        [
+          -0.014197043430967693,
+          2.127581507443828,
+          485.6386708236364
+        ]
+      ],
+      "features_g": {
+        "Internal solid infill": 1.2088631748554095,
+        "Inner wall": 0.8659331248067104,
+        "Outer wall": 0.8628834582957643,
+        "Sparse infill": 0.5279513822670474,
+        "Bridge": 0.46119488891789157,
+        "Top surface": 0.25003081353887524,
+        "Bottom surface": 0.11565866785156344,
+        "Custom": 0.09236282401553991,
+        "Floating vertical shell": 0.013794203041072841,
+        "Overhang wall": 0.012336871616147667,
+        "Gap infill": 0.0019615400812260262
+      },
+      "total_g": 4.412970949287248,
+      "solid_mass_g": 5.574300209726365,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        -1.9154812975776774e-15,
+        10.119853667064318,
+        -14.599999328598365
+      ],
+      "source": "mass_parts.scad:15 hip hip",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "hip"
+    },
+    {
+      "mass_g": 1.9297294625820518,
+      "com_mm": [
+        -0.002162548956818,
+        -2.5951599237158973,
+        2.4004279175572356
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          76.88800317702703,
+          -0.07971200194879922,
+          -0.00032725627699031247
+        ],
+        [
+          -0.07971200194306459,
+          206.19592037194965,
+          10.850419987395584
+        ],
+        [
+          -0.00032725627699031247,
+          10.850419987395584,
+          268.44819627531695
+        ]
+      ],
+      "features_g": {
+        "Floating vertical shell": 0.49232310023043285,
+        "Internal solid infill": 0.37924926758416067,
+        "Sparse infill": 0.3122181795592028,
+        "Outer wall": 0.28983020070803583,
+        "Inner wall": 0.2880452275587193,
+        "Bottom surface": 0.16065709680934212,
+        "Custom": 0.09236282401553991,
+        "Gap infill": 0.007406390132158115
+      },
+      "total_g": 2.0220922865975917,
+      "solid_mass_g": 3.5673615755589085,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        3.4099407583339994e-16,
+        -3.4481187466057848,
+        2.3675494581269754
+      ],
+      "source": "mass_parts.scad:16 wedge wedge_a_18_w_34_l_23",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "wedge_a_18_w_34_l_23"
+    },
+    {
+      "mass_g": 3.834863105367654,
+      "com_mm": [
+        0.004949635479107428,
+        -8.233115028133398e-05,
+        11.449436696397163
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          310.2987105372679,
+          -0.1545811882969253,
+          0.1419423076149384
+        ],
+        [
+          -0.1545811882969253,
+          433.6293356289217,
+          -0.028329250776804198
+        ],
+        [
+          0.1419423076149384,
+          -0.028329250776804198,
+          431.37164041394055
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 1.189403990366164,
+        "Inner wall": 0.9121634275359948,
+        "Outer wall": 0.9022820215962936,
+        "Internal solid infill": 0.4760926737679106,
+        "Bridge": 0.16153438969945016,
+        "Top surface": 0.12558336116811344,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.05770598337430894,
+        "Floating vertical shell": 0.007117386855813489,
+        "Gap infill": 0.0029798710036053593
+      },
+      "total_g": 3.9272259293831944,
+      "solid_mass_g": 10.19200477595141,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        9.820488816430189e-11,
+        5.925927710759738e-12,
+        9.813940852302858
+      ],
+      "source": "mass_parts.scad:17 pole pole_l_15",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "",
+      "asset": "pole_l_15"
+    },
+    {
+      "mass_g": 18.814383143419008,
+      "com_mm": [
+        0.0022542987035478745,
+        0.8394791171391383,
+        -55.664738558939064
+      ],
+      "density": 1.28,
+      "inertia_g_mm2": [
+        [
+          34686.21316465969,
+          -0.47843552581932225,
+          -0.4028868842093877
+        ],
+        [
+          -0.47843552581932225,
+          33887.89703288523,
+          -111.03306684930125
+        ],
+        [
+          -0.4028868842093877,
+          -111.03306684930125,
+          1886.2873439334726
+        ]
+      ],
+      "features_g": {
+        "Sparse infill": 7.580739186362104,
+        "Inner wall": 3.574914310210789,
+        "Outer wall": 3.3731223829474812,
+        "Internal solid infill": 2.0322552760001,
+        "Bridge": 1.4145872646255573,
+        "Top surface": 0.5054554928498238,
+        "Brim": 0.3964432846020291,
+        "Overhang wall": 0.19654350215147626,
+        "Floating vertical shell": 0.12738415914794438,
+        "Custom": 0.09236282401553991,
+        "Bottom surface": 0.006480822272698393,
+        "Gap infill": 0.002900746851032047
+      },
+      "total_g": 19.303189252036574,
+      "solid_mass_g": 60.9426432068162,
+      "mirrored": false,
+      "solid_centroid_mm": [
+        0.00038018364804105943,
+        5.181728021150609e-13,
+        -50.63698380625059
+      ],
+      "source": "mass_parts.scad:18 leg leg",
+      "frame": "part",
+      "settings": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+      "print_transform": "xrot(90)",
+      "asset": "leg"
+    }
+  ]
+}

@@ -1,0 +1,1011 @@
+{
+  "cad_sha256": "988c173bb66ff4c595fe09d0c36d32f1f6f6cc11267e94a8fd42d56a640de901",
+  "units": "m, kg, s, rad",
+  "floor_offset_m": 0.0004689733831180262,
+  "servo_count": 21,
+  "actuated_joints": [
+    {
+      "name": "waist",
+      "parent": "pelvis",
+      "cad_part_index": 0,
+      "cad_drive_deg": 0,
+      "range_rad": [
+        -0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "right_hip_roll",
+      "parent": "pelvis",
+      "cad_part_index": 34,
+      "cad_drive_deg": 4,
+      "range_rad": [
+        -0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "right_hip_pitch",
+      "parent": "right_hip_roll",
+      "cad_part_index": 37,
+      "cad_drive_deg": -7,
+      "range_rad": [
+        -0.7,
+        0.7
+      ]
+    },
+    {
+      "name": "right_thigh_yaw",
+      "parent": "right_hip_pitch",
+      "cad_part_index": 39,
+      "cad_drive_deg": 90,
+      "range_rad": [
+        -0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "right_knee",
+      "parent": "right_thigh_yaw",
+      "cad_part_index": 41,
+      "cad_drive_deg": 83,
+      "range_rad": [
+        -0.9,
+        0.9
+      ]
+    },
+    {
+      "name": "left_hip_roll",
+      "parent": "pelvis",
+      "cad_part_index": 44,
+      "cad_drive_deg": 4,
+      "range_rad": [
+        -0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "left_hip_pitch",
+      "parent": "left_hip_roll",
+      "cad_part_index": 47,
+      "cad_drive_deg": -7,
+      "range_rad": [
+        -0.7,
+        0.7
+      ]
+    },
+    {
+      "name": "left_thigh_yaw",
+      "parent": "left_hip_pitch",
+      "cad_part_index": 49,
+      "cad_drive_deg": 90,
+      "range_rad": [
+        -0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "left_knee",
+      "parent": "left_thigh_yaw",
+      "cad_part_index": 51,
+      "cad_drive_deg": 97,
+      "range_rad": [
+        -0.9,
+        0.9
+      ]
+    }
+  ],
+  "links": {
+    "pelvis": {
+      "mass_kg": 0.07097377968047272,
+      "com_m": [
+        -0.0009784331194229176,
+        0.014500064319827458,
+        -0.03173010396088406
+      ],
+      "inertia_kg_m2": [
+        [
+          5.225678887888859e-05,
+          2.2128951390788768e-10,
+          -7.993975951789609e-07
+        ],
+        [
+          2.2128951390788768e-10,
+          2.4232162111263006e-05,
+          -4.420963494157574e-11
+        ],
+        [
+          -7.993975951789609e-07,
+          -4.420963494157574e-11,
+          3.420367473131658e-05
+        ]
+      ]
+    },
+    "waist": {
+      "mass_kg": 0.3802600718383283,
+      "com_m": [
+        0.001454013524845274,
+        0.014490408342404722,
+        0.03827961033447937
+      ],
+      "inertia_kg_m2": [
+        [
+          0.0035024101053902964,
+          -5.590175252009281e-09,
+          0.0003979811333440076
+        ],
+        [
+          -5.590175252195628e-09,
+          0.0025555478275916073,
+          -1.7968254915030966e-09
+        ],
+        [
+          0.0003979811333440076,
+          -1.7968254915098729e-09,
+          0.0013861078260001684
+        ]
+      ]
+    },
+    "right_hip_roll": {
+      "mass_kg": 0.02425033758785376,
+      "com_m": [
+        -0.014598828843969147,
+        -0.004103519948157737,
+        -0.026815987347451057
+      ],
+      "inertia_kg_m2": [
+        [
+          3.720733006257566e-06,
+          -4.4813390372800586e-10,
+          -2.5240761058393354e-09
+        ],
+        [
+          -4.481339037346142e-10,
+          5.345210391501841e-06,
+          -1.0880106227463469e-07
+        ],
+        [
+          -2.52407610583621e-09,
+          -1.0880106227463464e-07,
+          3.7934362516061248e-06
+        ]
+      ]
+    },
+    "right_hip_pitch": {
+      "mass_kg": 0.021830576762218383,
+      "com_m": [
+        -0.0029955833318214076,
+        0.016265582295962526,
+        -0.023306523724534536
+      ],
+      "inertia_kg_m2": [
+        [
+          4.751769232381781e-06,
+          1.3439480384196473e-08,
+          -1.9155237044960973e-07
+        ],
+        [
+          1.3439480384185112e-08,
+          3.044455201927308e-06,
+          -1.1365045304925185e-08
+        ],
+        [
+          -1.915523704496105e-07,
+          -1.1365045304926554e-08,
+          3.2054241664478022e-06
+        ]
+      ]
+    },
+    "right_thigh_yaw": {
+      "mass_kg": 0.02183486310536765,
+      "com_m": [
+        -0.0036206908260316,
+        0.0020561294378168018,
+        -0.029416630554722552
+      ],
+      "inertia_kg_m2": [
+        [
+          4.47234073579431e-06,
+          2.258422809216006e-08,
+          -3.24315438423084e-07
+        ],
+        [
+          2.2584228092160055e-08,
+          4.184021530029259e-06,
+          1.6267928024445848e-07
+        ],
+        [
+          -3.2431543842308396e-07,
+          1.6267928024445848e-07,
+          1.8762024029255073e-06
+        ]
+      ]
+    },
+    "right_knee": {
+      "mass_kg": 0.02264495990563739,
+      "com_m": [
+        -4.017017683368371e-07,
+        -0.010978104084953378,
+        -0.06230636445156915
+      ],
+      "inertia_kg_m2": [
+        [
+          4.881262882045688e-05,
+          -3.2205401221575957e-10,
+          -1.944904985042184e-09
+        ],
+        [
+          -3.2205401222720093e-10,
+          4.72054821139319e-05,
+          3.049026053161787e-06
+        ],
+        [
+          -1.944904985042984e-09,
+          3.049026053161787e-06,
+          2.9462261046613757e-06
+        ]
+      ]
+    },
+    "left_hip_roll": {
+      "mass_kg": 0.02425033758785376,
+      "com_m": [
+        0.014598828843969147,
+        0.0041035615145893975,
+        -0.02681594169860201
+      ],
+      "inertia_kg_m2": [
+        [
+          3.7207224224119054e-06,
+          -4.481350842532972e-10,
+          2.5240748093697348e-09
+        ],
+        [
+          -4.481350842599055e-10,
+          5.345199783042296e-06,
+          1.0880587862673556e-07
+        ],
+        [
+          2.5240748093666093e-09,
+          1.0880587862673552e-07,
+          3.79343627622001e-06
+        ]
+      ]
+    },
+    "left_hip_pitch": {
+      "mass_kg": 0.021830576762218383,
+      "com_m": [
+        -0.0029955833318214076,
+        0.012863697818173897,
+        -0.025343537116607456
+      ],
+      "inertia_kg_m2": [
+        [
+          4.75178371253202e-06,
+          -1.3350014108301922e-08,
+          -1.91559514546972e-07
+        ],
+        [
+          -1.3350014108313274e-08,
+          3.0444554379515207e-06,
+          1.1263182403925122e-08
+        ],
+        [
+          -1.915595145469712e-07,
+          1.12631824039237e-08,
+          3.2054384105629407e-06
+        ]
+      ]
+    },
+    "left_thigh_yaw": {
+      "mass_kg": 0.02183486310536765,
+      "com_m": [
+        -0.003620719530150099,
+        -0.0020561291919653467,
+        -0.029416627038898503
+      ],
+      "inertia_kg_m2": [
+        [
+          4.472357232198052e-06,
+          -2.288572057938728e-08,
+          -3.2422803079544063e-07
+        ],
+        [
+          -2.2885720579387275e-08,
+          4.1840266934037936e-06,
+          -1.6264311789075023e-07
+        ],
+        [
+          -3.2422803079544063e-07,
+          -1.6264311789075029e-07,
+          1.876180743194027e-06
+        ]
+      ]
+    },
+    "left_knee": {
+      "mass_kg": 0.02264495990563739,
+      "com_m": [
+        4.0170176833694786e-07,
+        0.01097818716915058,
+        -0.06230636445156915
+      ],
+      "inertia_kg_m2": [
+        [
+          4.881262649786336e-05,
+          -3.2205749776248777e-10,
+          1.944904985042625e-09
+        ],
+        [
+          -3.22057497773929e-10,
+          4.72054821139319e-05,
+          -3.049005621994864e-06
+        ],
+        [
+          1.944904985043425e-09,
+          -3.049005621994864e-06,
+          2.94622378206786e-06
+        ]
+      ]
+    }
+  },
+  "parts": [
+    {
+      "index": 0,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "pelvis",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.004200000000000001,
+        -0.0145,
+        0.34400000000000003
+      ]
+    },
+    {
+      "index": 33,
+      "module": "abdomen",
+      "asset": "abdomen",
+      "link": "pelvis",
+      "mass_kg": 0.01697377968047273,
+      "origin_m": [
+        0.004200000000000001,
+        0.0115,
+        0.3365
+      ]
+    },
+    {
+      "index": 34,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "pelvis",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.0172,
+        -0.031,
+        0.301
+      ]
+    },
+    {
+      "index": 44,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "pelvis",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.011800000000000001,
+        0.031,
+        0.301
+      ]
+    },
+    {
+      "index": 1,
+      "module": "chest",
+      "asset": "chest",
+      "link": "waist",
+      "mass_kg": 0.012965149837718676,
+      "origin_m": [
+        0.004200000000000001,
+        -0.0145,
+        0.34400000000000003
+      ]
+    },
+    {
+      "index": 2,
+      "module": "head",
+      "asset": "head",
+      "link": "waist",
+      "mass_kg": 0.09102207741128873,
+      "origin_m": [
+        0.000300505,
+        0.0,
+        0.435542
+      ]
+    },
+    {
+      "index": 3,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.0215157,
+        -0.01,
+        0.443728
+      ]
+    },
+    {
+      "index": 4,
+      "module": "neck_link_1",
+      "asset": "neck_link_1",
+      "link": "waist",
+      "mass_kg": 0.000769094090463303,
+      "origin_m": [
+        -0.0215157,
+        -0.01,
+        0.443728
+      ]
+    },
+    {
+      "index": 5,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.0215157,
+        0.01,
+        0.443728
+      ]
+    },
+    {
+      "index": 6,
+      "module": "neck_link_1",
+      "asset": "neck_link_1",
+      "link": "waist",
+      "mass_kg": 0.000769094090463303,
+      "origin_m": [
+        -0.0215157,
+        0.01,
+        0.443728
+      ]
+    },
+    {
+      "index": 7,
+      "module": "neck_link_2",
+      "asset": "neck_link_2",
+      "link": "waist",
+      "mass_kg": 0.00022297195431441772,
+      "origin_m": [
+        -0.032293999999999996,
+        -0.0248015,
+        0.447435
+      ]
+    },
+    {
+      "index": 8,
+      "module": "neck_link_2",
+      "asset": "neck_link_2",
+      "link": "waist",
+      "mass_kg": 0.00022297195431441772,
+      "origin_m": [
+        -0.032293999999999996,
+        0.0248015,
+        0.447435
+      ]
+    },
+    {
+      "index": 9,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -5.30483e-05,
+        -0.03,
+        0.397895
+      ]
+    },
+    {
+      "index": 10,
+      "module": "shoulder",
+      "asset": "shoulder_l_10",
+      "link": "waist",
+      "mass_kg": 0.0026788154562929897,
+      "origin_m": [
+        -5.30483e-05,
+        -0.03,
+        0.397895
+      ]
+    },
+    {
+      "index": 11,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.00584039,
+        -0.053210099999999996,
+        0.387366
+      ]
+    },
+    {
+      "index": 12,
+      "module": "pole",
+      "asset": "pole_l_30",
+      "link": "waist",
+      "mass_kg": 0.006093969174051964,
+      "origin_m": [
+        -0.00584039,
+        -0.053210099999999996,
+        0.387366
+      ]
+    },
+    {
+      "index": 13,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.0184219,
+        -0.0732774,
+        0.33448500000000003
+      ]
+    },
+    {
+      "index": 14,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "waist",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        -0.0184219,
+        -0.0732774,
+        0.33448500000000003
+      ]
+    },
+    {
+      "index": 15,
+      "module": "wedge",
+      "asset": "wedge_a_10_w_20_l_34",
+      "link": "waist",
+      "mass_kg": 0.0016016314042650687,
+      "origin_m": [
+        -0.00167081,
+        -0.0711706,
+        0.320213
+      ]
+    },
+    {
+      "index": 16,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.018297,
+        -0.0766015,
+        0.29870800000000003
+      ]
+    },
+    {
+      "index": 17,
+      "module": "pole",
+      "asset": "pole_l_20",
+      "link": "waist",
+      "mass_kg": 0.004587705741432202,
+      "origin_m": [
+        0.018297,
+        -0.0766015,
+        0.29870800000000003
+      ]
+    },
+    {
+      "index": 18,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.0528271,
+        -0.10043200000000001,
+        0.27472399999999997
+      ]
+    },
+    {
+      "index": 19,
+      "module": "hand",
+      "asset": "hand",
+      "link": "waist",
+      "mass_kg": 0.006112488997833338,
+      "origin_m": [
+        0.048989,
+        -0.0986312,
+        0.257915
+      ]
+    },
+    {
+      "index": 20,
+      "module": "thumb",
+      "asset": "thumb",
+      "link": "waist",
+      "mass_kg": 0.004239168713788767,
+      "origin_m": [
+        0.0528271,
+        -0.10043200000000001,
+        0.27472399999999997
+      ]
+    },
+    {
+      "index": 21,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -5.30483e-05,
+        0.03,
+        0.397895
+      ]
+    },
+    {
+      "index": 22,
+      "module": "shoulder",
+      "asset": "shoulder_l_10",
+      "link": "waist",
+      "mass_kg": 0.0026788154562929897,
+      "origin_m": [
+        -5.30483e-05,
+        0.03,
+        0.397895
+      ]
+    },
+    {
+      "index": 23,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.00584039,
+        0.053210099999999996,
+        0.387366
+      ]
+    },
+    {
+      "index": 24,
+      "module": "pole",
+      "asset": "pole_l_30",
+      "link": "waist",
+      "mass_kg": 0.006093969174051964,
+      "origin_m": [
+        -0.00584039,
+        0.053210099999999996,
+        0.387366
+      ]
+    },
+    {
+      "index": 25,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.0184219,
+        0.0732774,
+        0.33448500000000003
+      ]
+    },
+    {
+      "index": 26,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "waist",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        -0.0184219,
+        0.0732774,
+        0.33448500000000003
+      ]
+    },
+    {
+      "index": 27,
+      "module": "wedge",
+      "asset": "wedge_a_10_w_20_l_34",
+      "link": "waist",
+      "mass_kg": 0.0016016314042650687,
+      "origin_m": [
+        -0.00167081,
+        0.0711706,
+        0.320213
+      ]
+    },
+    {
+      "index": 28,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.018297,
+        0.0766015,
+        0.29870800000000003
+      ]
+    },
+    {
+      "index": 29,
+      "module": "pole",
+      "asset": "pole_l_20",
+      "link": "waist",
+      "mass_kg": 0.004587705741432202,
+      "origin_m": [
+        0.018297,
+        0.0766015,
+        0.29870800000000003
+      ]
+    },
+    {
+      "index": 30,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "waist",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.0528271,
+        0.10043200000000001,
+        0.27472399999999997
+      ]
+    },
+    {
+      "index": 31,
+      "module": "hand",
+      "asset": "hand",
+      "link": "waist",
+      "mass_kg": 0.006112488997833338,
+      "origin_m": [
+        0.048989,
+        0.0986312,
+        0.257915
+      ]
+    },
+    {
+      "index": 32,
+      "module": "thumb",
+      "asset": "thumb",
+      "link": "waist",
+      "mass_kg": 0.004239168713788767,
+      "origin_m": [
+        0.0528271,
+        0.10043200000000001,
+        0.27472399999999997
+      ]
+    },
+    {
+      "index": 35,
+      "module": "hip",
+      "asset": "hip",
+      "link": "right_hip_roll",
+      "mass_kg": 0.004320608125271709,
+      "origin_m": [
+        0.0172,
+        -0.031,
+        0.301
+      ]
+    },
+    {
+      "index": 36,
+      "module": "wedge",
+      "asset": "wedge_a_18_w_34_l_23",
+      "link": "right_hip_roll",
+      "mass_kg": 0.001929729462582052,
+      "origin_m": [
+        0.0026000000000000003,
+        -0.035499699999999995,
+        0.282952
+      ]
+    },
+    {
+      "index": 37,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "right_hip_roll",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.0101,
+        -0.0495804,
+        0.268381
+      ]
+    },
+    {
+      "index": 38,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "right_hip_pitch",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        0.0101,
+        -0.0495804,
+        0.268381
+      ]
+    },
+    {
+      "index": 39,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "right_hip_pitch",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.00490837,
+        -0.0395483,
+        0.226697
+      ]
+    },
+    {
+      "index": 40,
+      "module": "pole",
+      "asset": "pole_l_15",
+      "link": "right_thigh_yaw",
+      "mass_kg": 0.0038348631053676543,
+      "origin_m": [
+        0.00490837,
+        -0.0395483,
+        0.226697
+      ]
+    },
+    {
+      "index": 41,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "right_thigh_yaw",
+      "mass_kg": 0.018,
+      "origin_m": [
+        -0.000100464,
+        -0.022238,
+        0.187014
+      ]
+    },
+    {
+      "index": 42,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "right_knee",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        -0.000100464,
+        -0.022238,
+        0.187014
+      ]
+    },
+    {
+      "index": 43,
+      "module": "leg",
+      "asset": "leg",
+      "link": "right_knee",
+      "mass_kg": 0.018814383143419006,
+      "origin_m": [
+        -0.000100464,
+        -0.0356444,
+        0.169436
+      ]
+    },
+    {
+      "index": 45,
+      "module": "hip",
+      "asset": "hip",
+      "link": "left_hip_roll",
+      "mass_kg": 0.004320608125271709,
+      "origin_m": [
+        -0.011800000000000001,
+        0.031,
+        0.301
+      ]
+    },
+    {
+      "index": 46,
+      "module": "wedge",
+      "asset": "wedge_a_18_w_34_l_23",
+      "link": "left_hip_roll",
+      "mass_kg": 0.001929729462582052,
+      "origin_m": [
+        0.0028,
+        0.035499699999999995,
+        0.282952
+      ]
+    },
+    {
+      "index": 47,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "left_hip_roll",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.0103,
+        0.0206511,
+        0.270404
+      ]
+    },
+    {
+      "index": 48,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "left_hip_pitch",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        0.0103,
+        0.0206511,
+        0.270404
+      ]
+    },
+    {
+      "index": 49,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_False",
+      "link": "left_hip_pitch",
+      "mass_kg": 0.018,
+      "origin_m": [
+        0.00510837,
+        0.0397478,
+        0.226683
+      ]
+    },
+    {
+      "index": 50,
+      "module": "pole",
+      "asset": "pole_l_15",
+      "link": "left_thigh_yaw",
+      "mass_kg": 0.0038348631053676543,
+      "origin_m": [
+        0.00510837,
+        0.0397478,
+        0.226683
+      ]
+    },
+    {
+      "index": 51,
+      "module": "xl330",
+      "asset": "xl330_idler_disk_True",
+      "link": "left_thigh_yaw",
+      "mass_kg": 0.018,
+      "origin_m": [
+        9.9536e-05,
+        0.0224375,
+        0.187
+      ]
+    },
+    {
+      "index": 52,
+      "module": "u_bracket",
+      "asset": "u_bracket_w_20",
+      "link": "left_knee",
+      "mass_kg": 0.0038305767622183852,
+      "origin_m": [
+        9.9536e-05,
+        0.0224375,
+        0.187
+      ]
+    },
+    {
+      "index": 53,
+      "module": "leg",
+      "asset": "leg",
+      "link": "left_knee",
+      "mass_kg": 0.018814383143419006,
+      "origin_m": [
+        9.9536e-05,
+        0.035844,
+        0.169422
+      ]
+    }
+  ],
+  "total_mass_kg": 0.6323553262409554,
+  "assumptions": [
+    "Arms, thumbs and parallel neck linkage fixed in CAD pose; nine actuated joints.",
+    "XL330-M288 at 5 V assumed; 18 g and uniform case inertia per servo.",
+    "BAM XL330 M6 supplies motor electrical dynamics, armature and friction at runtime.",
+    "Default 5 V, firmware Kp 200 and 1.75 A current limiter; no thermal or gearbox backlash model.",
+    "Joint travel and ground contact friction remain simulation assumptions.",
+    "Printed mass/inertia from Bambu PETG HF and saved slicer settings, including neck rods.",
+    "No battery/electronics/wiring/extra fastener mass: these are absent from the CAD assembly.",
+    "Collision proxies for cases/torso/hands, convex CAD legs; small brackets are visual only."
+  ]
+}

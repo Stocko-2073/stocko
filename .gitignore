@@ -12,3 +12,5 @@ xyz/devlog/*.mp4
 robots/u-bot/firmware/base/.cache
 xyz/stl
 robots/u-bot/firmware/protoboard/__pycache__
+robots/gynoid/devlog
+robots/phone_girl/devlog/*.mp4
