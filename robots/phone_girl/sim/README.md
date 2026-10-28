@@ -32,7 +32,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd stocko/robots/phone_girl/sim
 uv sync                      # Python 3.12 and the locked dependencies
 uv run python -c "import torch; print(torch.cuda.get_device_name())"
-uv run pytest -q             # 23 tests; the CAD comparison skips without OpenSCAD
+uv run pytest -q             # 26 tests; the CAD comparison skips without OpenSCAD
 uv run phone-girl-bench      # throughput at 1k-8k worlds: pick num-envs from this
 ```
 
@@ -54,6 +54,34 @@ Every checkpoint is saved with an ONNX policy beside it
 
 On this Mac everything runs on the CPU, slowly: model building, tests, the
 viewer, and short training runs for debugging.
+
+## Looking at it
+
+There are two web viewers, and both work on the Mac:
+
+```sh
+uv run phone-girl-view                    # http://localhost:8081: pose the model by hand
+uv run play PhoneGirl-Stand --agent zero  # http://localhost:8080: the simulator as training sees it
+```
+
+- **`phone-girl-view`** holds the torso on a stand 5 cm above the floor. Each
+  joint has a slider under Controls → Actuation that sets its target as an
+  offset from home, across its full travel. The servos are ideal position
+  servos, not BAM.
+  - Use it to check joint axes and directions, travel, and collision shapes.
+  - Collision geoms are group 3, under Groups. Contact points are under
+    Visualization.
+  - To drop the robot, tick Equality under Physics → Disable Flags.
+- **`play`** runs the whole environment: BAM servos, link delays, domain
+  randomization and terminations.
+  - `--agent zero` holds home, and the robot topples in about a second.
+  - Other options: `--agent random` for random targets, `--num-envs 4` for
+    several randomized robots, and `--no-terminations` to let a fallen robot
+    lie.
+  - `PhoneGirl-Walk` adds a joystick under Commands.
+  - The Mac runs it at 0.3–0.4× real time.
+  - On Linux with a display, `play` opens MuJoCo's native viewer instead;
+    `--viewer viser` keeps the web one.
 
 ## How it fits together
 
@@ -134,6 +162,9 @@ test fails if `phone_girl.scad` changed since the export.
   - Sliced PETG parts add 140 g.
   - The electronics box is a **20 g guess**.
   - Link inertias sum the parts' sliced or box inertias.
+- **Looks.** Printed parts are teal and bought parts dark grey. The face on the
+  phone's screen is split off the phone mesh by its CAD colour (`cad.DECALS`)
+  and drawn on its own, visual only.
 - **Collision.** The servo and phone boxes are exact; printed parts are oriented
   boxes. Each stilt ends in a 2.5 mm sphere, which is the foot. Limbs collide with
   each other and with the trunk, but not with themselves. Robot geoms have
@@ -356,9 +387,9 @@ uv run pytest -q
 
 | File | Checks |
 | --- | --- |
-| `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the IMU frame and camera directions. |
+| `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the IMU frame and camera directions; `phone-girl-view`'s stand holding home. |
 | `test_xl330.py` | The motor law and M6 friction against BAM; a closed loop against BAM's CPU controller. |
-| `test_env.py` | Clean resets; commands landing after exactly the modelled latency; stalls holding; randomization spans. |
+| `test_env.py` | Clean resets; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls. |
 | `test_phone.py` | CoreMotion gravity at rest; the 100 Hz sample-and-hold; camera frames held and late. |
 | `test_protocol.py` | Frame round trips; sizes within one notification; the C header byte-identical to Python; the app-side encoding equal to the simulator's. |
 | `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment. |

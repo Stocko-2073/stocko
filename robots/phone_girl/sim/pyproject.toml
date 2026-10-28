@@ -12,6 +12,8 @@ dependencies = [
     "better-actuator-models==1.0.2",
     "trimesh>=4.8.3",
     "onnx>=1.19",
+    "mjviser>=0.0.14",  # phone-girl-view
+    "viser>=1.0.27",
 ]
 
 [project.entry-points."mjlab.tasks"]
@@ -21,6 +23,7 @@ phone_girl = "phone_girl.tasks"
 phone-girl-export = "phone_girl.cad:main"
 phone-girl-build = "phone_girl.mjcf:main"
 phone-girl-bench = "phone_girl.bench:main"
+phone-girl-view = "phone_girl.view:main"
 
 [dependency-groups]
 dev = [

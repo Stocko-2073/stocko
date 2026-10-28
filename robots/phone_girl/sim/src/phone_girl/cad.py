@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
@@ -24,6 +25,8 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from xml.etree import ElementTree
+import zipfile
 
 import numpy as np
 import trimesh
@@ -42,6 +45,9 @@ NUDGE = 5.0  # degrees per knob when finding joints
 BOX = {"xl330": [20, 34, 23], "electronics": [67, 18, 16]}
 CELL = dict(d=18, l=65)
 ELECTRONICS_G = 20.0
+# Visual-only pieces split off a part by their CAD colour, each to be drawn in
+# that colour: the face on the phone's screen.
+DECALS = {"iphone_16_pro": {"face": "#CCCCCC"}}
 
 
 def run_scad(source: str, suffix: str, *args: str) -> bytes:
@@ -204,17 +210,39 @@ def frame_of_calls(source: str, variants: dict) -> dict:
             if r["variant"] and r["module"] == variants[r["variant"]]["module"]}
 
 
+def read_3mf(data: bytes) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Vertices, triangles and each triangle's #RRGGBB colour from OpenSCAD's 3MF."""
+    core = "{http://schemas.microsoft.com/3dmanufacturing/core/2015/02}"
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        root = ElementTree.fromstring(archive.read("3D/3dmodel.model"))
+    colours = [base.get("displaycolor")[:7] for base in root.iter(f"{core}base")]
+    (model,) = root.iter(f"{core}object")
+    vertices = np.array([[float(v.get(axis)) for axis in "xyz"] for v in root.iter(f"{core}vertex")])
+    triangles = list(root.iter(f"{core}triangle"))
+    faces = np.array([[int(t.get(f"v{i}")) for i in (1, 2, 3)] for t in triangles])
+    colour = np.array([colours[int(t.get("p1", model.get("pindex", 0)))] for t in triangles])
+    return vertices, faces, colour
+
+
 def export_mesh(key: str, variant: dict, called: np.ndarray) -> None:
     wrapper = f"include <{CAD.name}>\n!{call(variant['module'], variant['params'])};\n"
     # Coarser facets: these meshes are for viewing and fitting collision shapes.
-    data = run_scad(wrapper, ".stl", "--export-format", "binstl", "-D", "$fa=6", "-D", "$fs=1")
-    with tempfile.NamedTemporaryFile(suffix=".stl") as handle:
-        handle.write(data)
-        handle.flush()
-        mesh = trimesh.load(handle.name, force="mesh")
-    mesh.apply_transform(np.linalg.inv(called))  # call frame -> geometry frame
-    mesh.export(ASSETS / f"{key}.stl")
-    print(f"mesh {key}: {len(mesh.faces)} faces", flush=True)
+    coarse = ["-D", "$fa=6", "-D", "$fs=1"]
+    decals = DECALS.get(variant["module"], {})
+    if decals:  # split by colour, which the Manifold backend's 3MF keeps
+        vertices, faces, colour = read_3mf(run_scad(wrapper, ".3mf", "--backend", "Manifold", *coarse))
+        meshes = {key: trimesh.Trimesh(vertices, faces[~np.isin(colour, list(decals.values()))])}
+        meshes |= {f"{key}_{name}": trimesh.Trimesh(vertices, faces[colour == c]) for name, c in decals.items()}
+    else:
+        data = run_scad(wrapper, ".stl", "--export-format", "binstl", *coarse)
+        with tempfile.NamedTemporaryFile(suffix=".stl") as handle:
+            handle.write(data)
+            handle.flush()
+            meshes = {key: trimesh.load(handle.name, force="mesh")}
+    for name, mesh in meshes.items():
+        mesh.apply_transform(np.linalg.inv(called))  # call frame -> geometry frame
+        mesh.export(ASSETS / f"{name}.stl")
+        print(f"mesh {name}: {len(mesh.faces)} faces", flush=True)
 
 
 def box_inertia(grams: float, size) -> list:
@@ -311,6 +339,9 @@ def main():
         variant["mass"] = properties[key] if variant["module"] in mass.PRINTED else \
             bought(variant["module"], args.electronics_g, phone_size)
         variant["mesh"] = f"{key}.stl"
+        if variant["module"] in DECALS:
+            variant["decals"] = {name: dict(mesh=f"{key}_{name}.stl", color=colour)
+                                 for name, colour in DECALS[variant["module"]].items()}
 
     for joint in joints:
         joint["default_rad"] = float(np.radians(joint["default_deg"]))

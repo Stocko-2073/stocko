@@ -162,8 +162,21 @@ def build(manifest: dict) -> tuple[mujoco.MjSpec, dict]:
     def body_of(link):
         return bodies[link]
 
-    report = dict(cad_sha256=manifest["cad_sha256"], slicer=manifest["slicer"], links={}, joints=[], parts=[])
     used_meshes, inertials = set(), {}
+
+    def mesh_asset(stem: str, mirrored: bool, **attributes) -> str:
+        """An exported mesh, or its mirror image for a part placed inside an xflip()."""
+        name = stem + ("_mirror" if mirrored else "")
+        if name not in used_meshes:
+            if mirrored:
+                flipped = trimesh.load(ASSETS / f"{stem}.stl", force="mesh")
+                flipped.apply_transform(np.diag([-1.0, 1, 1, 1]))
+                flipped.export(ASSETS / f"{name}.stl")
+            spec.add_mesh(name=name, file=f"{name}.stl", scale=[1e-3] * 3, **attributes)
+            used_meshes.add(name)
+        return name
+
+    report = dict(cad_sha256=manifest["cad_sha256"], slicer=manifest["slicer"], links={}, joints=[], parts=[])
     phone = None
     for part in parts:
         link = link_of[part["index"]]
@@ -180,19 +193,18 @@ def build(manifest: dict) -> tuple[mujoco.MjSpec, dict]:
             phone = (link, rotation, local)
 
         upright, mirrored = proper(rotation)
-        mesh_name = key + ("_mirror" if mirrored else "")
-        if mesh_name not in used_meshes:
-            if mirrored:
-                flipped = meshes[key].copy()
-                flipped.apply_transform(np.diag([-1.0, 1, 1, 1]))
-                flipped.export(ASSETS / f"{mesh_name}.stl")
-            spec.add_mesh(name=mesh_name, file=f"{mesh_name}.stl", scale=[1e-3] * 3)
-            used_meshes.add(mesh_name)
+        visual = dict(type=mujoco.mjtGeom.mjGEOM_MESH, pos=local, quat=quat(upright), contype=0, conaffinity=0,
+                      group=2, density=0)
         grey = part["module"] in ("xl330", "iphone_16_pro", "inr18650", "electronics", "backpack_lid")
         body_of(link).add_geom(name=f"{link}_{part['module']}_{part['index']}_visual",
-                               type=mujoco.mjtGeom.mjGEOM_MESH, meshname=mesh_name, pos=local,
-                               quat=quat(upright), contype=0, conaffinity=0, group=2, density=0,
+                               meshname=mesh_asset(key, mirrored), **visual,
                                rgba=[0.2, 0.2, 0.22, 1] if grey else [0.42, 0.73, 0.67, 1])
+        for name, decal in variants[key].get("decals", {}).items():
+            # Decals are open surfaces (the face is a skin on the screen), so no volume.
+            stem = decal["mesh"].removesuffix(".stl")
+            body_of(link).add_geom(name=f"{link}_{part['module']}_{part['index']}_{name}",
+                                   meshname=mesh_asset(stem, mirrored, inertia=mujoco.mjtMeshInertia.mjMESH_INERTIA_SHELL),
+                                   **visual, rgba=[int(decal["color"][i:i + 2], 16) / 255 for i in (1, 3, 5)] + [1])
 
         bit = TRUNK if limb_of[link] == "trunk" else LIMB_BITS[limb_of[link]]
         for n, (kind, size, pos, frame) in enumerate(collision_shapes(part["module"], meshes[key])):

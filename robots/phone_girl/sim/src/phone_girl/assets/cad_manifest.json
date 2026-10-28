@@ -2164,7 +2164,13 @@
     ],
     "source": "199 g from mass.py; uniform box inertia"
    },
-   "mesh": "iphone_16_pro.stl"
+   "mesh": "iphone_16_pro.stl",
+   "decals": {
+    "face": {
+     "mesh": "iphone_16_pro_face.stl",
+     "color": "#CCCCCC"
+    }
+   }
   },
   "electronics": {
    "module": "electronics",

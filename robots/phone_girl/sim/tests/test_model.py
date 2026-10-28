@@ -117,3 +117,16 @@ def test_imu_and_cameras_follow_the_phone(model):
     np.testing.assert_allclose(front[:, 1], [0, 0, 1], atol=1e-6)  # image up is up
     rear = data.camera("rear_main").xmat.reshape(3, 3)
     np.testing.assert_allclose(-rear[:, 2], [-1, 0, 0], atol=1e-6)
+
+
+def test_view_stand_holds_home():
+    """phone-girl-view's stand: nothing touches at home, and the torso and joints hold still."""
+    from phone_girl.view import model as stand
+
+    m = stand()
+    data = mujoco.MjData(m)
+    for _ in range(500):  # 1 s
+        mujoco.mj_step(m, data)
+    assert data.ncon == 0
+    assert np.abs(data.qpos[7:] - m.qpos0[7:]).max() < np.radians(0.1)
+    assert np.linalg.norm(data.qpos[:3] - m.qpos0[:3]) < 1e-4

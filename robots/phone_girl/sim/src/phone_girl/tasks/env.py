@@ -8,6 +8,7 @@ tasks can be compared, swapped on the phone, and distilled into one.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass, field
 
 import torch
 
@@ -23,7 +24,7 @@ from mjlab.scene import SceneCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.velocity import mdp as velocity
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.mdp import UniformVelocityCommand, UniformVelocityCommandCfg
 from mjlab.terrains import TerrainEntityCfg
 from mjlab.viewer import ViewerConfig
 
@@ -36,6 +37,25 @@ from phone_girl.robot import FEET, FOOT_SITES, JOINTS, LIMITS, index, robot_cfg,
 PHYSICS_DT = 0.0025
 ACTION_SCALE = 0.4  # rad per unit action, about the home pose
 DR_EVENTS = ("servos", "supply", "body", "friction")
+
+
+class ZeroTwist(UniformVelocityCommand):
+    """The twist slot for tasks that hold it at zero. It has no joystick in the web
+    viewer, whose sliders can't take a zero range."""
+
+    def create_gui(self, *args, **kwargs) -> None:
+        pass
+
+
+@dataclass(kw_only=True)
+class ZeroTwistCfg(UniformVelocityCommandCfg):
+    resampling_time_range: tuple[float, float] = (1e9, 1e9)
+    rel_standing_envs: float = 1.0
+    ranges: UniformVelocityCommandCfg.Ranges = field(default_factory=lambda: UniformVelocityCommandCfg.Ranges(
+        lin_vel_x=(0, 0), lin_vel_y=(0, 0), ang_vel_z=(0, 0)))
+
+    def build(self, env) -> ZeroTwist:
+        return ZeroTwist(self, env)
 
 
 # Rewards specific to phone_girl.
@@ -117,9 +137,7 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
         actions={"joint_pos": JointPositionActionCfg(
             entity_name="robot", actuator_names=JOINTS, preserve_order=True, scale=ACTION_SCALE,
             use_default_offset=True, clip=dict(LIMITS))},
-        commands={"twist": UniformVelocityCommandCfg(
-            entity_name="robot", resampling_time_range=(1e9, 1e9), rel_standing_envs=1.0,
-            ranges=UniformVelocityCommandCfg.Ranges(lin_vel_x=(0, 0), lin_vel_y=(0, 0), ang_vel_z=(0, 0)))},
+        commands={"twist": ZeroTwistCfg(entity_name="robot")},
         events=events,
         terminations={
             "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
@@ -165,7 +183,7 @@ def walk_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     """Follow a twist command on the stilt tips."""
     cfg = base_cfg(play=play)
     cfg.commands["twist"] = UniformVelocityCommandCfg(
-        entity_name="robot", resampling_time_range=(3.0, 8.0), rel_standing_envs=0.15,
+        entity_name="robot", resampling_time_range=(3.0, 8.0), rel_standing_envs=0.15, debug_vis=True,
         ranges=UniformVelocityCommandCfg.Ranges(lin_vel_x=(-0.15, 0.25), lin_vel_y=(-0.1, 0.1),
                                                 ang_vel_z=(-0.6, 0.6)))
     cfg.rewards = {

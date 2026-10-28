@@ -1385,8 +1385,10 @@ source = { editable = "." }
 dependencies = [
     { name = "better-actuator-models" },
     { name = "mjlab" },
+    { name = "mjviser" },
     { name = "onnx" },
     { name = "trimesh" },
+    { name = "viser" },
 ]
 
 [package.dev-dependencies]
@@ -1399,8 +1401,10 @@ dev = [
 requires-dist = [
     { name = "better-actuator-models", specifier = "==1.0.2" },
     { name = "mjlab", git = "https://github.com/mujocolab/mjlab?rev=8bb2bc9e187797689ec82c78c35019afd2fd0376" },
+    { name = "mjviser", specifier = ">=0.0.14" },
     { name = "onnx", specifier = ">=1.19" },
     { name = "trimesh", specifier = ">=4.8.3" },
+    { name = "viser", specifier = ">=1.0.27" },
 ]
 
 [package.metadata.requires-dev]

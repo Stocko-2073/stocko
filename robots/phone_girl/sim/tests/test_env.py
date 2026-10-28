@@ -93,3 +93,19 @@ def test_cached_foot_indices_name_the_feet():
     assert [robot.site_names[i] for i in FOOT_SITES] == list(FEET)
     assert [robot.geom_names[i] for i in FOOT_GEOMS] == list(FEET)
     env.close()
+
+
+@pytest.mark.parametrize("task", ["PhoneGirl-Stand", "PhoneGirl-Walk"])
+def test_web_viewer_builds_the_command_controls(task):
+    """`play`'s web viewer adds a joystick per command; Stand's zero ranges once crashed it."""
+    import viser
+
+    cfg = load_env_cfg(task, play=True)
+    cfg.scene.num_envs = 1
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    server = viser.ViserServer(port=8099, verbose=False)
+    try:
+        env.command_manager.create_gui(server, lambda: 0)
+    finally:
+        server.stop()
+        env.close()
