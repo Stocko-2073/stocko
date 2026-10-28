@@ -1,0 +1,26 @@
+[project]
+name = "yaam"
+version = "0.1.0"
+description = "Yet Another Actuator Model: an SG90 bench, its MuJoCo model and the fits between them"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy==2.5.4",
+    "scipy==1.18.1",
+    "mujoco==3.16.0",
+    "pyserial>=3.5",
+    "matplotlib>=3.8",
+    "cma>=4.0",
+]
+
+[project.scripts]
+yaam-bench = "yaam.bench.cli:main"
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

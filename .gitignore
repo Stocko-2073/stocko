@@ -14,3 +14,4 @@ xyz/stl
 robots/u-bot/firmware/protoboard/__pycache__
 robots/gynoid/devlog
 robots/phone_girl/devlog/*.mp4
+robots/phone_girl/__pycache__

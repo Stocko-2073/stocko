@@ -1,0 +1,8 @@
+[project]
+name = "sg90-bench-board"
+version = "0.1.0"
+description = "Stripboard layout for the SG90 bench electronics"
+requires-python = ">=3.12"
+dependencies = [
+    "stripboard>=0.6.0",
+]

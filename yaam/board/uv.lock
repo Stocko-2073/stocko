@@ -1,0 +1,23 @@
+version = 1
+revision = 1
+requires-python = ">=3.12"
+
+[[package]]
+name = "sg90-bench-board"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "stripboard" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "stripboard", specifier = ">=0.6.0" }]
+
+[[package]]
+name = "stripboard"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/4c/25621e5f172344bef36ac9f6a7af7b004d10ea2af001ea18389b6fa38ed0/stripboard-0.6.0.tar.gz", hash = "sha256:dea38e82b84b78503dc31d643b77ecf04dc86f7c213048c978774b277fbfdf1d", size = 192942 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/2f/9715ab2bc45255847b4f6f927153ee41e1462958ac37819388513ba424bd/stripboard-0.6.0-py3-none-any.whl", hash = "sha256:7785ff43fd2a94b80616fc82bd7e93c31cc741f70929d9a06a621e312d1b4e83", size = 109993 },
+]
