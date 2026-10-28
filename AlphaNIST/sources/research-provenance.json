@@ -1,0 +1,27 @@
+[
+  {
+    "path": "sources/UWLab-main.zip",
+    "bytes": 23172809,
+    "sha256": "29c232df9a36db0f3790156c95d8dae8fcd6f4526466b29059c62649cf4aa3a4"
+  },
+  {
+    "path": "sources/shared-conversation.html",
+    "bytes": 1072773,
+    "sha256": "119c099bd209ae5d6c4862b6bcb127203b0086a3020f3859746f380df768e89e"
+  },
+  {
+    "path": "sources/shared-conversation.json",
+    "bytes": 26697,
+    "sha256": "e47ce3d661fe530e49889c7867dabea107d44b782679dd6edb11278b783c9eb1"
+  },
+  {
+    "path": "sources/conversation-stream-0.json",
+    "bytes": 508325,
+    "sha256": "b24da67b72dbbadd05f8d77f3836be72497fdf57a14ad7108475fa028cc62bda"
+  },
+  {
+    "path": "sources/conversation-stream-1.json",
+    "bytes": 11,
+    "sha256": "4082f5c1c5be16a9b4ed3bd45d7bc6d0dd68278cfff74cff28b650a31bada038"
+  }
+]

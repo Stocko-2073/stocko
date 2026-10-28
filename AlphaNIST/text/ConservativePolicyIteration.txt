@@ -1,0 +1,971 @@
+Approximately Optimal Approximate Reinforcement Learning
+
+Sham Kakade
+
+SHAMQGATSBY.UCL.AC.UK
+
+Gatsby Computational Neuroscience Unit, UCL, London WCIN 3AR, UK
+
+John Langford
+
+JCL@Cs.CMU.EDU
+
+Computer Science Department, Carnegie-Mellon University, 5000 Forbes Avenue, Pittsburgh, PA 15217
+
+Abstract
+
+In order to solve realistic reinforce-
+ment learning problems, it is critical
+that approximate algorithms be used.
+In this paper, we present the conser-
+vative policy iteration algorithm which
+finds an “approximately” optimal pol-
+icy, given access to a restart distri-
+bution (which draws the next state
+from a particular distribution) and
+an approximate greedy policy chooser.
+Crudely, the greedy policy chooser
+outputs a policy that usually chooses
+actions with the largest state-action
+values of the current policy, ie it out-
+puts an “approximate” greedy policy.
+This greedy policy chooser can be im-
+plemented using standard value func-
+tion approximation techniques. Un-
+der these assumptions, our algorithm:
+(1) is guaranteed to improve a per-
+formance metric (2) is guaranteed
+to terminate in a “small” number of
+timesteps and (3) returns an “approx-
+imately” optimal policy. The quanti-
+fied statements of (2) and (3) depend
+on the quality of the greedy policy
+chooser, but not explicitly on the the
+size of the state space.
+
+1 Introduction
+
+The two standard approaches, greedy dynamic pro-
+gramming and policy gradient methods, have enjoyed
+many empirical successes on reinforcement learning
+problems. Unfortunately, both methods can fail to ef
+ficiently improve the policy. Approximate value func-
+tion methods suffer from a lack of strong theoretical
+performance guarantees. We show how policy gradient
+techniques can require an unreasonably large number
+
+1
+
+of samples in order to determine the gradient accu-
+rately. This is due to policy gradient method’s fun-
+damental intertwining of “exploration” and “exploita-
+tion”.
+
+In this paper, we consider a setting in which our al-
+gorithm is given access to a restart distribution and
+an “approximate” greedy policy chooser. Informally,
+the restart distribution allows the agent to obtain
+its next state from a fixed distribution of our choos-
+ing. Through a more uniform restart distribution,
+the agent can gain information about states that it
+wouldn’t necessarily visit otherwise. Also informally,
+the greedy policy chooser is a “black box” that outputs
+a policy that on average chooses actions with large
+advantages with respect to the current policy, ie it
+provides an “approximate” greedy policy. This “black
+box” algorithm can be implemented using one of the
+well-studied regression algorithms for value functions
+(see [9, 3]). The quality of the resulting greedy pol-
+icy chooser is then related to the quality of this “black
+box”.
+
+Drawing upon the strengths of the standard ap-
+proaches, we propose the conservative policy iteration
+algorithm. The key ingredients of this algorithm are:
+(1) the policy is improved in a more uniform manner
+over the state-space and (2) a more conservative policy
+update is performed in which the new policy is a mix-
+ture distribution of the current policy and the greedy
+policy. Crudely, the importance of (1) is to incorpo-
+rate “exploration” and the importance of (2) is to avoid
+the pitfalls of greedy dynamic programming methods
+which can suffer from significant policy degradation
+by directly using “approximate” greedy policies. Our
+contribution is in proving that such an algorithm con-
+verges in a “small” number of steps and returns an
+“approximately” optimal policy, where the quantified
+claims do not explicitly depend on the the size of the
+state space. We first review the problems with stan-
+dard approaches, then state our algorithm.
+2 Preliminaries
+
+A finite Markov decision process (MDP) is defined
+by the tuple (5, D,A,R, {P(s';s,a)}) where: S is a
+finite set of states, D is the starting state distribu-
+tion, A is a finite set of actions, R is a reward function
+R:SxA-— (0,R], and {P(s';s,a)} are the transi-
+tion probabilities, with P(s’; s,a) giving the next-state
+distribution upon taking action a in state s.
+
+Although ultimately we desire an algorithm which uses
+only the given MDP M, we assume access to a restart
+distribution, defined as follows:
+
+Definition 2.1. A restart distribution draws the
+next state from the distribution p.
+
+This restart distribution is a slightly weaker version of
+the generative model in [5]. As in [5], our assumption
+is considerably weaker than having knowledge of the
+full transition model. However, it is a much stronger
+assumption than having only “irreversible” experience,
+in which the agent must follow a single trajectory, with
+no ability to reset to obtain another trajectory from a
+state. If 4 is chosen to be a relatively uniform distri-
+bution (not necessarily D), then this p restart distri-
+bution can obviate the need for explicit exploration.
+
+The agent’s decision making procedure is characterized
+by a stochastic policy (a; s), which is the probability
+of taking action a in state s (where the semi-colon is
+used to distinguish the parameters from the random
+variables of the distribution). We only consider the
+case where the goal of the agent is to maximize the 7-
+discounted average reward from the starting state dis-
+tribution D, though this has a similar solution to max-
+imizing the average reward for processes that “mix” on
+a reasonable timescale [4]. Given 0 < 7 < 1, we define
+the value function for a given policy z as
+oo
+Vals) = (1-7) B | Flowers
+t=0
+
+where s, and a, are random variables for the state
+and action at time t upon executing the policy 7 from
+the starting state s (see [7] for a formal definition of
+this expectation). Note that we are using normalized
+values so V;,(s) € [0, R]. For a given policy 7, we define
+the state-action value as
+
+Qx(8,a) = (1 — 7)R(s,4) + YEy~P(0"39,0) [Va(s")]
+and as in [8] (much as in [1]), we define the advantage
+as
+
+Ax(8,@) = Qx(8,a) — Va(s)
+Again, both Qx(s,a) € [0, R] and A,(s,a) € [—R, R]
+due to normalization.
+
+It is convenient to define the y-discounted future
+state distribution (as in [8]) for a starting state dis-
+tribution pz as
+
+Ma
+
+(21) dry(s) = (1-7) D7 Pr(se = 837, 4)
+
+t
+
+ii
+°
+
+where the 1 — 7 is necessary for normalization. We
+abuse notation and write d;,, for the discounted
+future-state distribution with respect to the distribu-
+tion which deterministically starts from state s. Note
+that Vi (8) = E(a's\~nd,,, (R(s',@’)]. This distribu-
+tion is analogous to the stationary distribution in the
+undiscounted setting, since as y > 1, dy,, tends to the
+stationary distribution for all s, if one such exists.
+
+The goal of the agent is to maximize the discounted
+reward from the start state distribution D,
+
+np(m) = Es~p [Vx(s)] -
+
+Note that np(7) = E(a,s)wndz,n [R(8,@)]. A well
+known result is that a policy exists which simultane-
+ously maximizes V,,-(s) for all states.
+
+3 The Problems with Current Methods
+
+We now examine in more detail the problems with ap-
+proximate value function methods and policy gradient
+methods. There are three questions to which we desire
+answers to:
+
+(1) Is there some performance measure that is
+guaranteed to improve at every step?
+
+(2) How difficult is it to verify if a particular up-
+date improves this measure?
+
+(3) After a reasonable number of policy updates,
+what performance level is obtained?
+
+We now argue that both greedy dynamic programming
+and policy gradient methods give unsatisfactory an-
+swers to these questions. Note that we did not ask is
+“What is the quality of the asymptotic policy?”. We
+are only interested in policies that we can find in a rea-
+sonable amount of time. Understanding the problems
+with these current methods gives insight into our new
+algorithm, which addresses these three questions.
+
+3.1 Approximate Value Function Methods
+
+Exact value function methods, such as policy iteration,
+typically work in an iterative manner. Given a pol-
+icy 7, policy iteration calculates the state-action value
+Q;(s,a), and then creates a new deterministic policy
+a'(a; 8) such that 7/(a;s) = 1 iff a € argmax,Q,(s,a).
+This process is repeated until the state-action values
+converge to their optimal values. These exact value
+function methods have strong bounds showing how
+fast the values converge to optimal (see [7]).
+
+Approximate value function methods typically use ap-
+proximate estimates of the state-action values in an
+exact method. These methods suffer from a paucity
+of theoretical results on the performance of a policy
+based on the approximate values. This leads to weak
+answers to all three questions.
+
+Let us consider some function approximator V(s) with
+the /,-error:
+
+e=max|¥(s) — V4(s)|
+
+where x is some policy. Let 7’ be a greedy policy
+based on this approximation. We have the following
+guarantee (see [3]) for all states s:
+
+; ; ye
+
+w(s) 2 Vals) —
+
+In other words, the performance is guaranteed to not
+decrease by more than ze. Question 2 is not applica-
+ble since these methods don’t guarantee improvement
+and a performance measure to check isn’t well defined.
+
+(3.1)
+
+For approximate methods, the time required to obtain
+some performance level is not well understood. Some
+convergence and asymptotic results exist (see [3]).
+
+3.2 Policy Gradients Methods
+
+Direct policy gradient methods attempt to find a good
+policy among some restricted class of policies, by fol-
+lowing the gradient of the future reward. Given some
+parameterized class {79|9 € R™}, these methods com-
+pute the gradient
+
+(3.2) Viv = So dx,p(8)Vn(a58)Qx(8,@)
+
+3a
+
+(as shown in [8]).
+
+For policy gradient techniques, question 1 has the ap-
+pealing answer that the performance measure of inter-
+est is guaranteed to improve under gradient ascent. We
+now address question 2 by examining the situations in
+which estimating the gradient direction is difficult. We
+show that the lack of exploration in gradient methods
+translates into requiring a large number of samples in
+order to accurately estimate the gradient direction.
+
+Consider the simple MDP shown in Figure 3.1
+(adapted from [10]). Under a policy that gives equal
+probability to all actions, the expected time to the
+goal from the left most state is 3(2”—n —1), and with
+n = 50, the expected time to the goal is about 10°.
+This MDP falls in the class of MDPs in which random
+actions are more likely than not to increase the dis-
+tance to the goal state. For these classes of problems
+(see [11]), the expected time to reach the goal state
+using undirected exploration, ie random walk explo-
+ration, is exponential in the size of the state space.
+Thus, any "on-policy" method has to run for at least
+this long before any policy improvement can occur. In
+
+n states
+
+Figure 3.1. Example 1; Two actions move agent to the left
+and one actions moves agent to the right.
+
+average reward
+
+0 05 1 75 2
+time x 10”
+
+Figure 3.2, Example 2: A two state MDP and the aver-
+age reward vs. time (on a 10” scale) of a policy under
+standard gradient descent in the limit of an infinitesimally
+small learning rate (initial conditions stated in text).
+
+online value function methods, this problem is seen as
+a lack of exploration.
+
+Any sensible estimate of the gradient without reaching
+the goal state would be zero, and obtaining non-zero
+estimates requires exponential time with "on-policy"
+samples. Importance sampling methods do exist (see
+[6]), but are not feasible solutions for this class of prob-
+lems. The reason is that if the agent could follow some
+“off-policy” trajectory to reach the goal state in a rea-
+sonable amount of time, the importance weights would
+have to be exponentially large.
+
+Note that a zero estimate is a rather accurate esti-
+mate of the gradient in terms of magnitude, but this
+provides no information about direction, which is the
+crucial quantity of interest. The analysis in [2] sug-
+gests a relatively small sample size is needed to ac-
+curately estimate the magnitude (within some ¢ toler-
+ance), though this does not imply an accurate direction
+if the gradient is small. Unfortunately, the magnitude
+of the gradient can be very small when the policy is
+far from optimal.
+
+Let us give an additional example demonstrating the
+problems for the simple two state MDP shown in Fig-
+ure 3.2, which uses the common Gibbs table-lookup
+distributions, {7 : 7(a;s) « exp(65,)}. Increasing
+the chance of a self-loop at i decreases the stationary
+probability of j, which hinders the learning at state j.
+Under an initial policy that has the stationary distri-
+bution p(i) = 8 and p(j) = .2 (using 7(a1;i) = .8 and
+k (2)
+a PoP
+
+4
+
+time x 10”
+
+Figure 3.3. The stationary probability (for figure 3.2) of
+state j vs. time (on a 10’ scale).
+
+a(a1;j) = 9), learning at state i reduces the learning
+at state j leading to an an extremely flat plateau of
+improvement at 1 average reward shown in Figure 3.2.
+Figure 3.3 shows that this problem is so severe that
+p(j) drops as low as 10-7 from it’s initial probability
+of .2. As in example 1, to obtain a nonzero estimate
+of the gradient it is necessary to visit state j. The
+situation could be even worse with a few extra states
+in a chain as in figure 3.1.
+
+Although asymptotically a good policy might be
+found, these results do not bode well for the answer
+to question 3, which is concerned with how fast such a
+policy can be found. These results suggest that in any
+reasonable number of steps, a gradient method could
+end up being trapped at plateaus where estimating the
+gradient direction has an unreasonably large sample
+complexity. Answering question 3 is crucial to under-
+stand how well gradient methods perform, and (to our
+knowledge) no such analysis exists.
+
+4 Approximately Optimal RL
+
+The fundamental problem with policy gradients is that
+np, which is what we ultimately seek to optimize, is
+insensitive to policy improvement at unlikely states
+though policy improvement at these unlikely states
+might be necessary in order for the agent to achieve
+near optimal payoff. We desire an alternative perfor-
+mance measure that does not down weight advantages
+at unlikely states or unlikely actions. A natural can-
+didate for a performance measure is to weight the im-
+provement from all states more uniformly (rather than
+by D), such as
+
+T(t) = Esmp [Vn (8)]
+where ps is some “exploratory” restart distribution. Un-
+
+der our assumption of having access to a si-restart dis-
+tribution, we can obtain estimates of n, (7).
+
+Any optimal policy simultaneously maximizes both n,.
+and jp. Unfortunately, the policy that maximizes n,
+within some restricted class of policies may have poor
+
+performance according to np, so we must ensure that.
+maximizing n,, results in a good policy under np.
+
+Greedy policy iteration updates the policy to some 7’
+based on some approximate state-action values. In-
+stead, let us consider the following more conservative
+update rule:
+
+(4.1)
+
+for some x’ and a € [0,1]. To guarantee improve-
+ment with a = 1, 7’ must choose a better action at
+every state, or else we could suffer the penalty shown
+in equation 3.1.
+
+Tnew (4; 8) = (1 — a) (458) + an'(a; 8) ,
+
+In the remainder of this section, we describe a more
+conservative policy iteration scheme using a < 1 and
+state the main theorems of this paper. In subsection
+4.1, we show that 7, can improve under the much less
+stringent condition in which 7’ often, but not always,
+chooses greedy actions. In subsection 4.2, we assume
+access to a greedy policy chooser that outputs “ap-
+proximately” greedy policies 7’ and then bound the
+performance of the policy found by our algorithm in
+terms of the quality of this greedy policy chooser.
+
+4.1 Policy Improvement
+
+A more reasonable situation is one in which we are
+able to improve the policy with some a > 0 using a 7’
+that chooses better actions at most but not all states.
+Let us define the policy advantage A,,,,(7') of some
+policy x’ with respect to a policy 7 and a distribution
+pb to be
+
+Ant’) = Bsndyy [Eawn'(a;s) [Ar(8,@)]] «
+
+The policy advantage measures the degree to which 7’
+is choosing actions with large advantages, with respect
+to the set of states visited under 7 starting from a state
+s~. Note that a policy found by one step of policy
+improvement maximizes the policy advantage.
+
+It is straightforward to show that S4\a-0 = pL Anu
+(using equation 3.2), so the change in n, is:
+
+(4.2) Ani = Anu (m’) + O(07).
+
+1-7
+Hence, for sufficiently small a, policy improvement oc-
+curs if the policy advantage is positive, and at the other
+extreme of a = 1, significant degradation could occur.
+We now connect these two regimes to determine how
+much policy improvement is possible.
+
+Theorem 4.1. Let A be the policy advantage of
+a' with respect to ~ and wp. and let e =
+maxs|Eawn'(a;s) [Ax(8,@)]|. For the update rule 4.1
+and for alla € [0,1]:
+
+2aye
+A T2700)"
+
+Ny (new) — N(™) >
+
+The proof of this theorem is given in the appendix. It
+is possible to construct a two state example showing
+this bound is tight for all a though we do not provide
+this example here.
+
+The first term is analogous to the first order increase
+specified in equation 4.2, and the second term is a
+penalty term. Note that if a = 1, the bound reduces
+
+to A 2
+ye
+Nu (7new) — Nl) = T-7 T-7
+
+and the penalty term has the same form as that of
+greedy dynamic programming, where ¢, as defined
+here, is analogous to the /,, error in equation 3.1.
+
+The following corollary shows that the greater the pol-
+icy advantage the greater the guaranteed performance
+increase.
+
+Corollary 4.2. Let R be the maximal possible reward
+and A be the policy advantage of ' with respect to
+and pw. If A > 0, then using a = apa guarantees the
+following policy improvement:
+
+7
+Ny (new) — Nu(™) > aR
+Proof. Using the previous theorem, it is straightfor-
+ward to show the change is bounded by ty (A-aZ®).
+The corollary follows by choosing the a that maximizes
+this bound. o
+
+4.2 Answering question 3
+
+We address question 3 by first addressing how fast we
+converge to some policy then bounding the quality of
+this policy. Naively, we expect our ability to obtain
+policies with large advantages to affect the speed of im-
+provement and the quality of the final policy. Instead
+of explicitly suggesting algorithms that find policies
+with large policy advantages, we assume access to an
+é-greedy policy chooser that solves this problem. Let
+us call this e-good algorithm G,(7, 4), which is defined
+as:
+
+Definition 4.3. An ¢-greedy policy chooser,
+G.(x,), is a function of a policy 7 and a state
+distribution which returns a policy 7’ such that
+Aryu(a’) > OPT(Ax) — €, where OPT(A;,) =
+mary Any (1).
+
+In the discussion, we show that a regression algorithm
+that fits the advantages with an § average error is
+sufficient to construct such a G,.
+
+The “breaking point” at which policy improvement is
+no longer guaranteed occurs when the greedy policy
+chooser is no longer guaranteed to return a policy with
+a positive policy advantage, ie when OPT(A,,,,) < €.
+A crude outline of the Conservative Policy Itera-
+tion algorithm is:
+
+(1) Call G.(z, #4) to obtain some 7’
+
+(2) Estimate the policy advantage A, ,, (x’)
+
+(3) If the policy advantage is small (less than €),
+STOP and return 7.
+
+(4) Else, update the policy and go to (1).
+
+where, for simplicity, we assume ¢ is known. This algo-
+rithm ceases when an € small policy advantage (with
+respect to 7) is obtained. By definition of the greedy
+policy chooser, it follows that the optimal policy ad-
+vantage of 7 is less than 2¢. The full algorithm is spec-
+ified in the next section. The following theorem shows
+that in polynomial time, the full algorithm finds a pol-
+icy 7 that is close to the “break point” of the greedy
+policy chooser.
+
+Theorem 4.4. With probability at least 1—6, conser-
+vative policy iteration: i) improves n, with every pol-
+icy update, ii) ceases in at most 72 calls to G. (1, 1),
+and iii) returns a policy 7 such that OPT(A;,,) < 2e.
+
+The proof is in the appendix.
+
+To complete the answer to question 3, we need to ad-
+dress the quality of the policy found by this algorithm.
+Note that the bound on the time until our algorithm
+ceases does not depend on the restart distribution pz
+though the performance of the policy 7 that we find
+does depend on yp since OPT(A;,,) < 2e. Crudely,
+for a policy to have near optimal performance then all
+advantages must be small. Unfortunately, if d,., is
+highly non-uniform, then a small optimal policy ad-
+vantage does not necessarily imply that all advantages
+are small. The following corollary (of theorem 6.2)
+bounds the performance of interest, 7p, for the policy
+found by the algorithm. We use the standard defini-
+tion of the J,,-norm, ||f||.. = max, f(s).
+
+Corollary 4.5. Assume that for some policy 7,
+OPT(Az,y) <€. Let x* be an optimal policy. Then
+
+€ dy+.D
+nol") wl) < ga |
+(1-7) daw Moo
+€ dy- Dp
+<_f__|@&e.
+~(l-7P | # .
+
+The factor of |42| represents a mismatch be-
+
+tween the distribution of states of the current pol-
+icy and that of the optimal policy and elucidates the
+problem of using the given start-state distribution D
+instead of a more uniform distribution. Essentially,
+a more uniform d,,,, ensures that the advantages are
+small at states that an optimal policy visits (deter-
+mined by d-,p). The second inequality follows since
+d,,,(s) > (1 —)u(s), and it shows that a uniform
+measure prevents this mismatch from becoming arbi-
+trarily large.
+
+‘We now discuss and prove these theorems.
+5 Conservative Policy Iteration
+
+For simplicity, we assume knowledge of ¢. The conser-
+vative policy iteration algorithm is:
+
+(1) Call G.(z, 4) to obtain some 7’
+
+(2) Use OEP log 2) p-restarts to obtain an §-
+accurate estimate A of Any (a).
+
+(3) If A < 22, STOP and return 7.
+
+(4) fA> 22, then update policy 7m according to
+equation 4.1 using Goi §) and return to
+step 1.
+
+where 6 is the failure probability of the algorithm.
+Note that the estimation procedure of step (2) allows
+us to set the learning rate a.
+
+We now specify the estimation procedure
+of step (2) to obtain $-accurate estimates
+of A, (x). It is straightforward to show
+
+that the policy advantage can be written as
+Anal!) = Brod» Salt (ass) — 1(438))Qx (854).
+We can obtain a nearly unbiased estimate x; of
+Az,u(7’) using one call to the p-restart distribution
+(see definition 2.1). To obtain a sample s from from
+dz,., we obtain a trajectory from so ~ p and accept
+the current state s; with probability (1 — 7) (see
+equation 2.1). Then we chose an action a from the
+uniform distribution, and continue the trajectory
+from s to obtain a nearly unbiased estimate Q,(s, a)
+of Qx(s,a). Using importance sampling, the nearly
+unbiased estimate of the policy advantage from the
+i-th sample is 7; = ngQi(s,a)(m'(a; 8) —7(a;s)) where
+aq is the number of actions. We assume that each
+trajectory is run sufficiently long such that the bias in
+@; is less than 5-
+
+Since Q; € [0,R], our samples satisfy 2; €
+[En R,n,R]. Using Hoeffding’s inequality for k inde-
+pendent, identically distributed random variables, we
+have:
+
+(5.1) Pr (|A~A| > A)< ae" HER
+
+where A = ty, z; (and A here is = biased). Hence,
+the number of trajectories required to obtain a A ac-
+2p?
+curate sample with a fixed error rate is O (2 ).
+The proof of theorem 4.4, which guarantees the sound-
+
+ness of conservative policy iteration, is straightforward
+and in the appendix.
+
+6 How Good is The Policy Found?
+
+Recall that the bound on the speed with which our
+algorithm ceases does not depend on the restart dis-
+tribution used. In contrast, we now show that the
+
+quality of the resulting policy could strongly depend
+on this distribution.
+The following lemma is useful:
+
+Lemma 6.1. For any policies * anda and any start-
+ing state distribution p,
+
+— mlm)
+
+Proof. Let P,(s') = P(s, = s!;7,80 = s). By defini-
+tion of Vz(s),
+
+Va(s)
+
+= 1D) 07 Bear,s)~ar (R(s544)]
+‘=o
+oo
+= YBa, sya, (1 — 1)R(se, a0)
+‘20
++V; (se) — Vir(se)]
+oo
+= SO Blac sesses)#PLP(se 4239000) [1 —V)R(se, ae)
+‘20
++Vir(St41) — Vr(se))] + Va(s)
+
+oo
+= Va(8) +307 Blarssnar [An(8e,a0)]
+t=0
+
+. 1
+= Vr(s)+ [a7 Mas ~wades [A,(s', @)]
+
+and the result follows by taking the expectation of this
+equation with respect to p. im
+
+This lemma elucidates a fundamental measure mis-
+match. The performance measure of interest, np(7)
+changes in proportion the policy advantage A,,p(z’)
+for small a (see equation 4.2), which is the average
+advantage under the state distribution d;,p. How-
+ever, for an optimal policy x*, the difference between
+np(x*) and np(7) is proportional to the average ad-
+vantage under the state distribution d,- p. Thus, even
+if the optimal policy advantage is small with respect
+to x and D, the advantages may not be small under
+d,+,p. This motivates the use of the more uniform
+distribution p.
+
+After termination, our algorithm returns a policy 7
+which has small policy advantage with respect to p.
+We now quantify how far from optimal 7 is, with re-
+spect to an arbitrary measure ji.
+
+Theorem 6.2. Assume that for a policy zx,
+OPT(Az,y) < €. Let «* be an optimal policy. Then
+for any state distribution ji,
+
+y ede
+nla") — nla) < Ty |S we
+é
+
+~ (=7)?
+
+dys ji
+a
+
+oo}
+Proof. The optimal policy advantage is OPT(A,,,,) =
+dX, Iru(S) max, A,(s,a). Therefore,
+
+2 > Le - p(s) max Ax(s;a)
+2 min ae Lider als) max Ax(s,a)
+> |S de sl)": Aa(6, 0)
+TH loo sa
+_ 1
+= a-n |S
+
+where the last step follows from lemma 6.1. The sec-
+ond inequality is due to drjy(s) < (1 — y)u(s)- a
+
+Note that |=l_ is a measure of the mismatch in
+
+using ps rather than the future-state distribution of an
+optimal policy. The interpretation of each factor of
+7+ is important. In particular, one factor of +—
+
+lue to the fact that difference between the perfor-
+mance of 7 and optimal is “i times the average ad-
+vantage under d,- ;(s) (see lemma 6.1) and another
+
+factor of -+ is due to the inherent non-uniformity of
+
+dry (Since dr y(s) < (1 —7)u(s))-
+
+7 Discussion
+
+We have provided an algorithm that finds an “approx-
+imately” optimal solution that is polynomial in the
+approximation parameter ¢, but not in the size of the
+state space. We discuss a few related points.
+
+7.1 The Greedy Policy Chooser
+
+The ability to find a policy with a large policy advan-
+tage can be stated as a regression problem though we
+don’t address the sample complexity of this problem.
+Let us consider the error given by:
+Bonde, W2%|An(850) ~ fo($,0)]-
+This loss is an average loss over the state space (though
+it is an oo-loss over actions). It is straightforward to
+see that if we can keep this error below $, then we
+can construct an é-greedy policy chooser by choos-
+ing a greedy policy based on these approximation f,.
+This J, condition for the regression problem is a much
+weaker constraint than minimizing an /,,-error over
+the state-space, which is is the relevant error for greedy
+dynamic programming (see equation 3.1 and [3]).
+
+Direct policy search methods could also be used to
+implement this greedy policy chooser.
+
+7.2 What about improving np?
+
+Even though we ultimately seek to have good perfor-
+mance measure under mp, we show that it is important
+to improve the policy under a somewhat uniform mea-
+sure. An important question is “Can we improve the
+policy according to both jp and mj at each update?”
+In general the answer is “no”, but consider improving
+the performance under ji = (1 — 8) + 8D instead of
+just y. This metric only slightly changes the quality of
+the asymptotic policy. However by giving weight to D,
+the possibility of improving np is allowed if the optimal
+policy has large advantages under D, though we do not
+formalize this here. The only situation where joint im-
+provement with np is not possible is when OPT(A;,p)
+is small. However, this is the problematic case where,
+under D, the large advantages are not at states visited
+frequently.
+
+7.3 Implications of the mismatch
+
+The bounds we have presented directly show the im-
+portance of ensuring the agent starts in states where
+the optimal policy tends to visit. It also suggests that
+certain optimal policies are easier to learn in large state
+spaces — namely those optimal policies which tend to
+visit a significant fraction of the state space. An inter-
+esting suggestion for how to choose p, is to use prior
+knowledge of which states an optimal policy tends to
+visit.
+
+Acknowledgments
+
+We give warm thanks to Peter Dayan for numerous
+critical comments.
+
+References
+
+[1] L. C. Baird. Advantage updating. Technical report,
+Wright Laboratory, 1993.
+
+[2] P. Bartlett and J. Baxter. Estimation and approxima-
+tion bounds for gradient-based reinforcement learn-
+ing. Technical report, Australian National University,
+2000.
+
+[3] D. P. Bertsckas and J. N. Tsitsiklis. Neuro-Dynamic
+Programming. Athena Scientific, 1996.
+
+[4] S. Kakade. Optimizing average reward using dis-
+counted rewards. In Proc. of Computational Learning
+Theory, 2001.
+
+[5] M. Kearns, Y. Mansour, and A. Y. Ng. A sparse
+sampling algorithm for near-optimal planning in large
+markov decision processes. IJCAI, pages 1324-1231,
+1999.
+
+[6] N. Meuleau, L. Peshkin, and K. Kim. Exploration in
+gradient-based reinforcement learning, Technical re-
+port, Massachusetts Institute of Technology, 2001.
+
+[7] M. Puterman. Markov decision processes : Discrete
+stochastic dynamic programming. John Wiley and
+Sons, 1994.
+
+[8] R. Sutton, D. McAlester, S. Singh, and Y. Mansour.
+Policy gradient methods for reinforcement learning
+with function approximation. Neural Information Pro-
+
+cessing Systems, 13, 2000.
+
+R. S. Sutton and A. G. Barto. Reinforcement Learn-
+
+ing: An Introduction. MIT Press, 1998.
+
+[10] S. B. Thrun, Efficient exploration in reinforcement
+learning. Technical report, Camegie Mellon Univer-
+sity, 1992.
+
+[11] S.'D. Whitehead. Complexity and cooperation in
+learning. Proc. 8th International Conf. on Machine
+Learning, pages 363-367, 1991.
+
+[9
+
+8 Appendix: Proofs
+
+The intuition for the proof of theorem 4.1 is that a de-
+termines the probability of choosing an action from 7’.
+If the current state distribution is d,,,, when an action
+from 7x’ is chosen, then the performance improvement
+is proportional to the policy advantage. The proof in-
+volves bounding the performance decrease due to the
+state distribution not being exactly d,,,, when an ac-
+tion from 7’ is chosen.
+
+Proof. Throughout the proof, the y dependence is not
+explicitly stated. For any state s,
+
+Yraww(53) An (8,0)
+D1 - a)a(a;
+=a > a'(a;s)A,(8, a).
+
+s)A,(s,a) =0.
+
+For any timestep, the probability that we choose an
+action according to 7’ is a. Let c be the random vari-
+able indicating the number of actions chosen from 7’
+before time t. Hence, Pr(c, = 0) = (1 —a)*. Defin-
+ing pp = Pr(, > 1) = 1-(1—a)! and P(s;7) to
+be distribution over states at time ¢ while following x
+starting from s ~ yp, it follows that
+
+EsnP(s¢imnew) [Sa s)A,(s, “|
+
+a
+
+8) + an'(a;8))An(s,a)
+
+where we have used >, 7(a;
+
+= AE .nP(s::% ew) [Ertan]
+
+a
+
+= (1 = pi) EonP(s4\c=0:rew) = a (a; 8)Ax(s, 7)
+
+HOP E5~P(s¢ e121; ew) [Zetec]
+@
+
+IV
+
+OB s~ P(s4|ct=0;r new) = m'(a;8)Ax(8, 7)
+a
+
+—2apye
+
+= aE. p(s,:n) [Eros “| — 2ape
+@
+
+where we have used the definition of ¢ and P(s:|q =
+O;7new) = P(8e57)-
+
+By substitution and lemma 6.1, we have:
+
+mum)
+
+= YEA BsPlssimnen) [Zomwianratsa
+
+t=0
+
+a3 7'B Plain = ae oto
+t=0 @
+hr —(1-a)')
+t=0
+
+= Endy [E~ a; 8) A <(
+
+- 1 )
+1-y 1-7(0-a)”"
+The result follows from simple algebra. oO
+
+Mu (new) —
+
+IV
+
+—2ae(
+
+The proof of theorem 4.4 follows.
+
+Proof. During step (2), we need enough samples such
+that |A—A| < § for every loop of the algorithm and, as
+proved below, we need to consider at most ar loops.
+If we demand that the probability of failure is less than
+6, then by the union bound and inequality 5. 1, we have
+
+for k trajectories mae) < BE oe ita <6,
+where we have taken A = £ since the bias in our esti-
+
+mates is at most
+trajectories.
+
+Thus, if A > 22, then A > § > 0. By corollary
+4.2, step 4 guarantees improvement of 7, by at least
+ya se
+(6) > on using @ = Gono) which proves i.
+Since 0 < m < R, there are at most SE BE steps be-
+fore 7, becomes larger than R, so the algorithm must.
+cease in this time, which proves ii. In order to cease
+and return 7, on the penultimate loop, the G, must
+
+g Thus, we require O (4+log &)
+
+have returned some 7’ such that A < 2, which im-
+plies A, (x') < e. By definition of G., it follows that
+OPT(A,) < 2e, which proves iii. a

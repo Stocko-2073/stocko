@@ -1,0 +1,316 @@
+# AlphaNIST full concept tree
+
+This is a spanning tree of the graph. Repeated nodes use cross references; follow them to the full definition and all dependencies. Every branch is reachable from AlphaNIST. See [the interactive explorer](concept-graph.html) for search and parent links.
+
+- [AlphaNIST](CONCEPTS.md#alphanist) — documented
+  - [Task and mathematical problem](CONCEPTS.md#task) — documented
+    - [NIST Assembly Task Board 1](CONCEPTS.md#nist) — documented
+      - [Insertion, meshing, threading and clearance](CONCEPTS.md#assembly_geometry) — documented
+        - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented
+          - [Translation and orientation error](CONCEPTS.md#rotation_distance) — documented
+            - [Exact success distance and symmetry handling](CONCEPTS.md#gap_metric) — undocumented
+        - [Nonpenetration and contact constraints](CONCEPTS.md#contact) — documented
+          - [Signed distance field](CONCEPTS.md#sdf) — documented
+          - [Iterative contact solver](CONCEPTS.md#solver) — documented
+            - [Physics step versus policy step](CONCEPTS.md#timestep) — documented
+              - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented
+            - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented (shared reference)
+        - [Ideal threaded assembly path](CONCEPTS.md#helix) — documented
+          - [Exact adaptation from OmniReset and SGS](CONCEPTS.md#gap_adaptation) — undocumented
+    - [Markov decision process](CONCEPTS.md#mdp) — documented
+      - [Simulator state versus configuration](CONCEPTS.md#state) — documented
+        - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+      - [Policy action](CONCEPTS.md#action) — documented
+      - [Probability, expectation and empirical frequency](CONCEPTS.md#probability) — documented
+      - [Discounted finite-horizon return](CONCEPTS.md#return) — documented
+        - [Discount and the incentive to finish early](CONCEPTS.md#discount) — documented
+          - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented
+    - [Partial observation and history](CONCEPTS.md#pomdp) — documented
+      - [Proprioception packing and history](CONCEPTS.md#gap_observation) — undocumented
+    - [Goal configuration and assembly coordinate](CONCEPTS.md#goal) — documented
+      - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+      - [Exact success distance and symmetry handling](CONCEPTS.md#gap_metric) — undocumented (shared reference)
+      - [Exact adaptation from OmniReset and SGS](CONCEPTS.md#gap_adaptation) — undocumented (shared reference)
+    - [Shared learning across assembly pairs](CONCEPTS.md#multi_task) — documented
+      - [Task frequency induced by reset weights](CONCEPTS.md#task_balance) — derived
+        - [Normalized categorical sampling](CONCEPTS.md#categorical) — documented
+          - [Probability, expectation and empirical frequency](CONCEPTS.md#probability) — documented (shared reference)
+      - [Why transfer and planning-like behavior emerge](CONCEPTS.md#gap_causality) — undocumented
+    - [Several pairs in one episode](CONCEPTS.md#multi_pair) — documented
+      - [Multi-pair observation and reset construction](CONCEPTS.md#gap_multi_pair) — undocumented
+  - [Which states can training start from](CONCEPTS.md#resets) — documented
+    - [OmniReset reset generation](CONCEPTS.md#omnireset) — documented
+      - [Human-supplied reset priors](CONCEPTS.md#reset_inputs) — documented
+        - [Goal configuration and assembly coordinate](CONCEPTS.md#goal) — documented (shared reference)
+        - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+      - [Reaching resets](CONCEPTS.md#reaching) — documented
+        - [Inverse kinematics](CONCEPTS.md#ik) — documented
+          - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+          - [Reset physical feasibility](CONCEPTS.md#validation) — documented
+            - [Nonpenetration and contact constraints](CONCEPTS.md#contact) — documented (shared reference)
+            - [Signed distance field](CONCEPTS.md#sdf) — documented (shared reference)
+      - [Near-object resets](CONCEPTS.md#near_object) — documented
+        - [Grasp pose generation](CONCEPTS.md#grasp_sampling) — documented
+          - [Opposing-contact grasp candidates](CONCEPTS.md#antipodal) — documented
+            - [Friction model and combine rule](CONCEPTS.md#friction) — documented
+              - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented (shared reference)
+          - [Reset physical feasibility](CONCEPTS.md#validation) — documented (shared reference)
+          - [Inverse kinematics](CONCEPTS.md#ik) — documented (shared reference)
+          - [Limits of the public grasp sampler](CONCEPTS.md#grasp_limits) — documented
+      - [Stable-grasp resets](CONCEPTS.md#stable_grasp) — documented
+        - [Grasp pose generation](CONCEPTS.md#grasp_sampling) — documented (shared reference)
+        - [Reset physical feasibility](CONCEPTS.md#validation) — documented (shared reference)
+        - [Friction model and combine rule](CONCEPTS.md#friction) — documented (shared reference)
+      - [Near-goal and partial-assembly resets](CONCEPTS.md#near_goal) — documented
+        - [Offline partial-assembly generation](CONCEPTS.md#partial_assembly) — documented
+          - [IndustReal](CONCEPTS.md#industreal) — documented
+            - [Signed distance field](CONCEPTS.md#sdf) — documented (shared reference)
+            - [Progress shaping and policy invariance](CONCEPTS.md#shaping) — documented
+              - [Why shaping boundary conditions matter](CONCEPTS.md#potential_terminal) — derived
+                - [Discount and the incentive to finish early](CONCEPTS.md#discount) — documented (shared reference)
+              - [The tested dense reward is one choice](CONCEPTS.md#dense_ablation) — documented
+                - [Cross-paper reward-coefficient discrepancy](CONCEPTS.md#gap_reward_comparison) — undocumented
+          - [Reset physical feasibility](CONCEPTS.md#validation) — documented (shared reference)
+        - [Goal configuration and assembly coordinate](CONCEPTS.md#goal) — documented (shared reference)
+        - [Grasp pose generation](CONCEPTS.md#grasp_sampling) — documented (shared reference)
+        - [Exact adaptation from OmniReset and SGS](CONCEPTS.md#gap_adaptation) — undocumented (shared reference)
+      - [Reset physical feasibility](CONCEPTS.md#validation) — documented (shared reference)
+      - [Cached states versus replayed trajectories](CONCEPTS.md#reset_cache) — documented
+        - [Fresh rollouts and bounded data reuse](CONCEPTS.md#on_policy) — documented
+      - [Uniformity over states versus reset families](CONCEPTS.md#omni_sampling) — documented
+        - [Normalized categorical sampling](CONCEPTS.md#categorical) — documented (shared reference)
+    - [Assembly-indexed reset bank](CONCEPTS.md#reset_bank) — documented
+      - [Cached states versus replayed trajectories](CONCEPTS.md#reset_cache) — documented (shared reference)
+      - [Task frequency induced by reset weights](CONCEPTS.md#task_balance) — derived (shared reference)
+      - [Exact AlphaNIST reset-bank contents](CONCEPTS.md#gap_bank) — undocumented
+    - [Initial-state distribution is an inductive bias](CONCEPTS.md#reset_prior) — derived
+      - [Coverage is finite and approximate](CONCEPTS.md#reset_support) — derived
+        - [Start distribution defines the test](CONCEPTS.md#reset_evaluation) — documented
+          - [Evaluation independence and uncertainty](CONCEPTS.md#gap_eval) — undocumented
+      - [How skills can connect across reset states](CONCEPTS.md#credit) — derived
+        - [Bootstrapping and Bellman recursion](CONCEPTS.md#bellman) — documented
+          - [Actor, critic and advantage](CONCEPTS.md#value) — documented
+            - [Discounted finite-horizon return](CONCEPTS.md#return) — documented (shared reference)
+          - [Success, timeout and unsafe termination](CONCEPTS.md#termination) — documented
+            - [Reward timing and termination masks](CONCEPTS.md#gap_reward_timing) — undocumented
+            - [Joint-speed and torque limits](CONCEPTS.md#limits) — documented
+              - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented
+              - [Reward timing and termination masks](CONCEPTS.md#gap_reward_timing) — undocumented (shared reference)
+        - [Coverage is finite and approximate](CONCEPTS.md#reset_support) — derived (shared reference)
+    - [Coverage is finite and approximate](CONCEPTS.md#reset_support) — derived (shared reference)
+    - [Exact AlphaNIST reset-bank contents](CONCEPTS.md#gap_bank) — undocumented (shared reference)
+    - [Exact adaptation from OmniReset and SGS](CONCEPTS.md#gap_adaptation) — undocumented (shared reference)
+  - [Which available states get practiced](CONCEPTS.md#sampling) — documented
+    - [AlphaNIST sampling equation](CONCEPTS.md#alpha_sampler) — documented
+      - [Bernoulli variance and learning heuristic](CONCEPTS.md#bernoulli) — documented
+        - [Probability, expectation and empirical frequency](CONCEPTS.md#probability) — documented (shared reference)
+      - [Beta-shaped kernel is not a Bayesian posterior](CONCEPTS.md#beta) — documented
+        - [Normalized categorical sampling](CONCEPTS.md#categorical) — documented (shared reference)
+        - [Bernoulli variance and learning heuristic](CONCEPTS.md#bernoulli) — documented (shared reference)
+      - [Normalized categorical sampling](CONCEPTS.md#categorical) — documented (shared reference)
+      - [Rolling empirical success](CONCEPTS.md#success_history) — documented
+        - [Probability, expectation and empirical frequency](CONCEPTS.md#probability) — documented (shared reference)
+        - [Sampler numerical and bookkeeping settings](CONCEPTS.md#gap_sampler) — undocumented
+      - [Sampler numerical and bookkeeping settings](CONCEPTS.md#gap_sampler) — undocumented (shared reference)
+    - [Rolling empirical success](CONCEPTS.md#success_history) — documented (shared reference)
+    - [Normalized categorical sampling](CONCEPTS.md#categorical) — documented (shared reference)
+    - [Beta-shaped kernel is not a Bayesian posterior](CONCEPTS.md#beta) — documented (shared reference)
+    - [General SGS sampler](CONCEPTS.md#sgs) — documented
+      - [Softmax temperature changes the kernel](CONCEPTS.md#temperature) — derived
+        - [Beta-shaped kernel is not a Bayesian posterior](CONCEPTS.md#beta) — documented (shared reference)
+      - [Published AlphaNIST and SGS formulas differ](CONCEPTS.md#sampler_difference) — derived
+        - [Sampler numerical and bookkeeping settings](CONCEPTS.md#gap_sampler) — undocumented (shared reference)
+      - [Sampling for Learnability lineage](CONCEPTS.md#sfl) — documented
+        - [Bernoulli variance and learning heuristic](CONCEPTS.md#bernoulli) — documented (shared reference)
+        - [Prioritized Level Replay](CONCEPTS.md#plr) — documented
+          - [Actor, critic and advantage](CONCEPTS.md#value) — documented (shared reference)
+        - [ProCuRL and the limits of learnability theory](CONCEPTS.md#procurl) — documented
+          - [Bernoulli variance and learning heuristic](CONCEPTS.md#bernoulli) — documented (shared reference)
+      - [Reverse curriculum generation](CONCEPTS.md#reverse_curriculum) — documented
+        - [Goal configuration and assembly coordinate](CONCEPTS.md#goal) — documented (shared reference)
+        - [Bernoulli variance and learning heuristic](CONCEPTS.md#bernoulli) — documented (shared reference)
+      - [Prioritized Level Replay](CONCEPTS.md#plr) — documented (shared reference)
+    - [Task frequency induced by reset weights](CONCEPTS.md#task_balance) — derived (shared reference)
+    - [Training distribution moves with the policy](CONCEPTS.md#adaptive_objective) — derived
+      - [Fresh rollouts and bounded data reuse](CONCEPTS.md#on_policy) — documented (shared reference)
+      - [Start distribution defines the test](CONCEPTS.md#reset_evaluation) — documented (shared reference)
+    - [Sampler numerical and bookkeeping settings](CONCEPTS.md#gap_sampler) — undocumented (shared reference)
+    - [Global formula versus GPU-local banks](CONCEPTS.md#gap_distributed_sampler) — undocumented
+  - [What behavior the objective favors](CONCEPTS.md#reward) — documented
+    - [Terminal full-assembly reward](CONCEPTS.md#success) — documented
+      - [Goal configuration and assembly coordinate](CONCEPTS.md#goal) — documented (shared reference)
+      - [Exact success distance and symmetry handling](CONCEPTS.md#gap_metric) — undocumented (shared reference)
+    - [Dense action, speed and torque cost](CONCEPTS.md#control_cost) — documented
+      - [Squared Euclidean norm](CONCEPTS.md#norm) — documented
+      - [Torque penalty is not measured energy](CONCEPTS.md#energy) — documented
+      - [Term weighting versus numerical normalization](CONCEPTS.md#reward_scaling) — documented
+        - [Squared Euclidean norm](CONCEPTS.md#norm) — documented (shared reference)
+        - [PopArt target normalization](CONCEPTS.md#popart) — documented
+        - [Control-cost coefficient and units](CONCEPTS.md#gap_cost) — undocumented
+      - [Control-cost coefficient and units](CONCEPTS.md#gap_cost) — undocumented (shared reference)
+    - [Term weighting versus numerical normalization](CONCEPTS.md#reward_scaling) — documented (shared reference)
+    - [Progress shaping and policy invariance](CONCEPTS.md#shaping) — documented (shared reference)
+    - [Discount and the incentive to finish early](CONCEPTS.md#discount) — documented (shared reference)
+    - [Success, timeout and unsafe termination](CONCEPTS.md#termination) — documented (shared reference)
+    - [Exact success distance and symmetry handling](CONCEPTS.md#gap_metric) — undocumented (shared reference)
+    - [Control-cost coefficient and units](CONCEPTS.md#gap_cost) — undocumented (shared reference)
+    - [Reward timing and termination masks](CONCEPTS.md#gap_reward_timing) — undocumented (shared reference)
+  - [How experience changes the policy](CONCEPTS.md#learning) — documented
+    - [Likelihood-ratio policy gradient](CONCEPTS.md#policy_gradient) — documented
+      - [Actor, critic and advantage](CONCEPTS.md#value) — documented (shared reference)
+      - [Gaussian action distribution](CONCEPTS.md#gaussian) — documented
+        - [Gaussian exploration and action processing](CONCEPTS.md#gap_noise) — undocumented
+      - [Minibatches, gradients and Adam](CONCEPTS.md#optimization) — documented
+        - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented (shared reference)
+    - [Proximal Policy Optimization](CONCEPTS.md#ppo) — documented
+      - [Fresh rollouts and bounded data reuse](CONCEPTS.md#on_policy) — documented (shared reference)
+      - [Action-probability ratio](CONCEPTS.md#importance) — documented
+        - [Probability, expectation and empirical frequency](CONCEPTS.md#probability) — documented (shared reference)
+      - [Generalized Advantage Estimation](CONCEPTS.md#gae) — documented
+        - [Bootstrapping and Bellman recursion](CONCEPTS.md#bellman) — documented (shared reference)
+        - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented (shared reference)
+      - [TRPO and conservative policy iteration](CONCEPTS.md#trpo) — documented
+        - [Kullback–Leibler divergence](CONCEPTS.md#kl) — documented
+      - [Exploration entropy](CONCEPTS.md#entropy) — documented
+        - [Gaussian action distribution](CONCEPTS.md#gaussian) — documented (shared reference)
+        - [Gaussian exploration and action processing](CONCEPTS.md#gap_noise) — undocumented (shared reference)
+        - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented (shared reference)
+      - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented (shared reference)
+    - [Actor, critic and advantage](CONCEPTS.md#value) — documented (shared reference)
+    - [Bootstrapping and Bellman recursion](CONCEPTS.md#bellman) — documented (shared reference)
+    - [Generalized Advantage Estimation](CONCEPTS.md#gae) — documented (shared reference)
+    - [Minibatches, gradients and Adam](CONCEPTS.md#optimization) — documented (shared reference)
+    - [Synchronous distributed PPO](CONCEPTS.md#distributed) — documented
+      - [Parallelism changes the optimization batch](CONCEPTS.md#batch_scale) — derived
+        - [Interaction budget and GPU-hours](CONCEPTS.md#compute) — documented
+          - [Full compute accounting](CONCEPTS.md#gap_compute) — undocumented
+      - [Global formula versus GPU-local banks](CONCEPTS.md#gap_distributed_sampler) — undocumented (shared reference)
+    - [How skills can connect across reset states](CONCEPTS.md#credit) — derived (shared reference)
+    - [Full PPO and optimization configuration](CONCEPTS.md#gap_ppo) — undocumented (shared reference)
+  - [What the policy observes and computes](CONCEPTS.md#network) — documented
+    - [Geometry conditioning through point clouds](CONCEPTS.md#point_cloud) — documented
+      - [Point-cloud encoder specification](CONCEPTS.md#encoder) — documented
+        - [ELU activation](CONCEPTS.md#elu) — documented
+          - [Exact neural layer settings](CONCEPTS.md#gap_network_details) — undocumented
+        - [Point-cloud construction and encoder aggregation](CONCEPTS.md#gap_encoder) — undocumented
+      - [Point-cloud construction and encoder aggregation](CONCEPTS.md#gap_encoder) — undocumented (shared reference)
+      - [Proprioception packing and history](CONCEPTS.md#gap_observation) — undocumented (shared reference)
+    - [Robot measurements and previous action](CONCEPTS.md#proprioception) — documented
+      - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+      - [Proprioception packing and history](CONCEPTS.md#gap_observation) — undocumented (shared reference)
+    - [SimBa-style residual architecture](CONCEPTS.md#simba) — documented
+      - [Running observation normalization](CONCEPTS.md#running_norm) — documented
+        - [Proprioception packing and history](CONCEPTS.md#gap_observation) — undocumented (shared reference)
+      - [Layer normalization](CONCEPTS.md#layer_norm) — documented
+      - [Residual connection](CONCEPTS.md#residual) — documented
+      - [Swish activation](CONCEPTS.md#swish) — documented
+        - [Exact neural layer settings](CONCEPTS.md#gap_network_details) — undocumented (shared reference)
+    - [Gaussian action distribution](CONCEPTS.md#gaussian) — documented (shared reference)
+    - [Point-cloud construction and encoder aggregation](CONCEPTS.md#gap_encoder) — undocumented (shared reference)
+    - [Proprioception packing and history](CONCEPTS.md#gap_observation) — undocumented (shared reference)
+    - [Gaussian exploration and action processing](CONCEPTS.md#gap_noise) — undocumented (shared reference)
+  - [How a sampled action moves the robot](CONCEPTS.md#control) — documented
+    - [Panda embodiment](CONCEPTS.md#robot) — documented
+      - [Driven and coupled finger](CONCEPTS.md#gripper) — documented
+        - [Friction model and combine rule](CONCEPTS.md#friction) — documented (shared reference)
+        - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+    - [Relative joint-position targets](CONCEPTS.md#joint_targets) — documented
+      - [Joint impedance and implicit actuation](CONCEPTS.md#impedance) — documented
+        - [System identification and drivetrain effects](CONCEPTS.md#system_id) — documented
+          - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+          - [PACE calibration pipeline](CONCEPTS.md#pace) — documented
+            - [Covariance matrix adaptation evolution strategy](CONCEPTS.md#cmaes) — documented
+            - [Parameter identifiability](CONCEPTS.md#identifiability) — documented
+              - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+        - [Physics step versus policy step](CONCEPTS.md#timestep) — documented (shared reference)
+        - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+      - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+    - [Joint impedance and implicit actuation](CONCEPTS.md#impedance) — documented (shared reference)
+    - [Joint-speed and torque limits](CONCEPTS.md#limits) — documented (shared reference)
+    - [System identification and drivetrain effects](CONCEPTS.md#system_id) — documented (shared reference)
+    - [Driven and coupled finger](CONCEPTS.md#gripper) — documented (shared reference)
+    - [Controller gains and identified robot model](CONCEPTS.md#gap_controller) — undocumented (shared reference)
+  - [What generates transitions](CONCEPTS.md#physics) — documented
+    - [Isaac Lab environment framework](CONCEPTS.md#isaaclab) — documented
+      - [GPU-native parallel simulation lineage](CONCEPTS.md#isaacgym) — documented
+        - [Synchronous distributed PPO](CONCEPTS.md#distributed) — documented (shared reference)
+      - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented (shared reference)
+    - [GPU-native parallel simulation lineage](CONCEPTS.md#isaacgym) — documented (shared reference)
+    - [Factory contact simulation](CONCEPTS.md#factory) — documented
+      - [Signed distance field](CONCEPTS.md#sdf) — documented (shared reference)
+      - [Contact patch reduction](CONCEPTS.md#contact_reduction) — documented
+      - [Iterative contact solver](CONCEPTS.md#solver) — documented (shared reference)
+    - [Rigid-body dynamics](CONCEPTS.md#rigid_body) — documented
+      - [Nonpenetration and contact constraints](CONCEPTS.md#contact) — documented (shared reference)
+      - [Friction model and combine rule](CONCEPTS.md#friction) — documented (shared reference)
+      - [Iterative contact solver](CONCEPTS.md#solver) — documented (shared reference)
+      - [Kinematic Jacobian and wrench mapping](CONCEPTS.md#jacobian) — documented
+        - [Rigid pose and coordinate frames](CONCEPTS.md#pose) — documented (shared reference)
+    - [Signed distance field](CONCEPTS.md#sdf) — documented (shared reference)
+    - [Friction model and combine rule](CONCEPTS.md#friction) — documented (shared reference)
+    - [Iterative contact solver](CONCEPTS.md#solver) — documented (shared reference)
+    - [Physics step versus policy step](CONCEPTS.md#timestep) — documented (shared reference)
+    - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented (shared reference)
+  - [What the reported evidence establishes](CONCEPTS.md#evaluation) — documented
+    - [Training success versus evaluation success](CONCEPTS.md#metrics) — documented
+      - [Start distribution defines the test](CONCEPTS.md#reset_evaluation) — documented (shared reference)
+    - [Start distribution defines the test](CONCEPTS.md#reset_evaluation) — documented (shared reference)
+    - [Reported sampling and scale ablation](CONCEPTS.md#scale) — documented
+      - [Parallelism changes the optimization batch](CONCEPTS.md#batch_scale) — derived (shared reference)
+      - [What an ablation identifies](CONCEPTS.md#ablation) — documented
+        - [The tested dense reward is one choice](CONCEPTS.md#dense_ablation) — documented (shared reference)
+    - [Interaction budget and GPU-hours](CONCEPTS.md#compute) — documented (shared reference)
+    - [One-to-ten pair results](CONCEPTS.md#multi_pair_result) — documented
+      - [Several pairs in one episode](CONCEPTS.md#multi_pair) — documented (shared reference)
+      - [Multi-pair observation and reset construction](CONCEPTS.md#gap_multi_pair) — undocumented (shared reference)
+    - [Observed dexterity and planning-like behavior](CONCEPTS.md#emergence) — documented
+      - [Why transfer and planning-like behavior emerge](CONCEPTS.md#gap_causality) — undocumented (shared reference)
+    - [What an ablation identifies](CONCEPTS.md#ablation) — documented (shared reference)
+    - [Evaluation independence and uncertainty](CONCEPTS.md#gap_eval) — undocumented (shared reference)
+    - [Why transfer and planning-like behavior emerge](CONCEPTS.md#gap_causality) — undocumented (shared reference)
+    - [AlphaNIST hardware and unseen-condition performance](CONCEPTS.md#gap_hardware) — undocumented
+  - [Related methods and conversation trails](CONCEPTS.md#context) — documented
+    - [Alternative assembly pipelines](CONCEPTS.md#related_assembly) — documented
+      - [IndustReal](CONCEPTS.md#industreal) — documented (shared reference)
+      - [AutoMate assembly by disassembly](CONCEPTS.md#automate) — documented
+        - [Behavior cloning and state-distribution shift](CONCEPTS.md#imitation) — documented
+          - [DAgger data aggregation](CONCEPTS.md#dagger) — documented
+      - [Refinery active initialization](CONCEPTS.md#refinery) — documented
+        - [Bayesian optimization and acquisition functions](CONCEPTS.md#bayesopt) — documented
+          - [Gaussian-process surrogate](CONCEPTS.md#gaussian_process) — documented
+        - [Gaussian mixture model](CONCEPTS.md#gmm) — documented
+      - [ARCH explicit hierarchical assembly](CONCEPTS.md#arch) — documented
+    - [Multi-task optimization alternatives](CONCEPTS.md#multitask_alternatives) — documented
+      - [PCGrad gradient projection](CONCEPTS.md#pcgrad) — documented
+      - [PopArt target normalization](CONCEPTS.md#popart) — documented (shared reference)
+      - [Ordinary scalarized multi-task training](CONCEPTS.md#unitary) — documented
+    - [Predecessor sim-to-real pipeline](CONCEPTS.md#transfer) — documented
+      - [Asymmetric actor-critic](CONCEPTS.md#asymmetric) — documented
+        - [Partial observation and history](CONCEPTS.md#pomdp) — documented (shared reference)
+      - [Generalized state-dependent exploration](CONCEPTS.md#gsde) — documented
+        - [Gaussian action distribution](CONCEPTS.md#gaussian) — documented (shared reference)
+      - [Teacher-to-student policy distillation](CONCEPTS.md#distillation) — documented
+        - [Kullback–Leibler divergence](CONCEPTS.md#kl) — documented (shared reference)
+        - [Behavior cloning and state-distribution shift](CONCEPTS.md#imitation) — documented (shared reference)
+        - [ResNet visual encoder](CONCEPTS.md#resnet_student) — documented
+          - [Residual connection](CONCEPTS.md#residual) — documented (shared reference)
+        - [DAgger data aggregation](CONCEPTS.md#dagger) — documented (shared reference)
+      - [Domain randomization](CONCEPTS.md#randomization) — documented
+        - [Physics versions, assets and numerical settings](CONCEPTS.md#gap_simulator) — undocumented (shared reference)
+      - [Curricula in predecessor transfer experiments](CONCEPTS.md#transfer_curriculum) — documented
+        - [Exact adaptation from OmniReset and SGS](CONCEPTS.md#gap_adaptation) — undocumented (shared reference)
+      - [Friction, distillation and seed-selection caveats](CONCEPTS.md#transfer_limits) — documented
+        - [Friction model and combine rule](CONCEPTS.md#friction) — documented (shared reference)
+        - [AlphaNIST hardware and unseen-condition performance](CONCEPTS.md#gap_hardware) — undocumented (shared reference)
+      - [Operational-space control](CONCEPTS.md#osc) — documented
+        - [Kinematic Jacobian and wrench mapping](CONCEPTS.md#jacobian) — documented (shared reference)
+    - [AlphaGo Zero is motivation, not the algorithm](CONCEPTS.md#alphago) — documented
+      - [Proximal Policy Optimization](CONCEPTS.md#ppo) — documented (shared reference)
+      - [Monte Carlo tree search](CONCEPTS.md#mcts) — documented
+        - [Self-play learning](CONCEPTS.md#selfplay) — documented
+    - [DeepMind soccer and reward weights](CONCEPTS.md#soccer) — documented
+      - [Term weighting versus numerical normalization](CONCEPTS.md#reward_scaling) — documented (shared reference)
+    - [Audit of the shared conversation](CONCEPTS.md#conversation) — documented
+      - [DeepMind soccer and reward weights](CONCEPTS.md#soccer) — documented (shared reference)
+      - [Published AlphaNIST and SGS formulas differ](CONCEPTS.md#sampler_difference) — derived (shared reference)
+      - [Initial-state distribution is an inductive bias](CONCEPTS.md#reset_prior) — derived (shared reference)

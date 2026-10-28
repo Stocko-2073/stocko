@@ -1,0 +1,12 @@
+Offline verification — 2026-10-14
+
+$ python3 research/check_graph.py
+PASS: 165 unique reachable concepts, 311 acyclic links, all evidence and closure requirements present.
+PASS: archive hashes and sizes match; 40 PDFs readable (787 pages); extracted text present.
+PASS: 1320 local document links/anchors checked; embedded explorer data matches graph and catalog; no external scripts.
+
+$ node research/check_explorer.cjs
+PASS: JavaScript parses and starts; all 165 node selections, view counts, search, sources, expand/collapse and escaping checked.
+LIMIT: minimal DOM checks only; no browser visual, CSS layout, accessibility or PDF-link navigation test.
+
+No training reproduction or browser visual inspection performed.

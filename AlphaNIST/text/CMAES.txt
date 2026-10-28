@@ -1,0 +1,2153 @@
+                                                            The CMA Evolution Strategy: A Tutorial
+                                                                             Nikolaus Hansen
+
+
+
+
+arXiv:1604.00772v2 [cs.LG] 10 Mar 2023
+                                                                                   Inria
+                                                                   Research centre Saclay–Île-de-France
+
+                                         Contents
+                                         Nomenclature                                                                                  2
+
+                                         0     Preliminaries                                                                           3
+                                               0.1 Eigendecomposition of a Positive Definite Matrix . . . . . . . . . . . . . . .      4
+                                               0.2 The Multivariate Normal Distribution . . . . . . . . . . . . . . . . . . . . .      5
+                                               0.3 Randomized Black Box Optimization . . . . . . . . . . . . . . . . . . . . .         6
+                                               0.4 Hessian and Covariance Matrices . . . . . . . . . . . . . . . . . . . . . . . .     7
+
+                                         1     Basic Equation: Sampling                                                                8
+
+                                         2     Selection and Recombination: Moving the Mean                                           8
+
+                                         3     Adapting the Covariance Matrix                                                         10
+                                               3.1 Estimating the Covariance Matrix From Scratch . . . . . . . . . . . . . . . .      10
+                                               3.2 Rank-µ-Update . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    12
+                                               3.3 Rank-One-Update . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    15
+                                                   3.3.1 A Different Viewpoint . . . . . . . . . . . . . . . . . . . . . . . . .      15
+                                                   3.3.2 Cumulation: Utilizing the Evolution Path . . . . . . . . . . . . . . .       16
+                                               3.4 Combining Rank-µ-Update and Cumulation . . . . . . . . . . . . . . . . . .         18
+
+                                         4     Step-Size Control                                                                      19
+
+                                         5     Discussion                                                                             22
+
+                                         A Algorithm Summary: The CMA-ES                                                              28
+
+                                         B Implementational Concerns                                                                  32
+                                           B.1 Multivariate normal distribution . . . . . . . . . . . . . . . . . . . . . . . .       33
+                                           B.2 Strategy internal numerical effort . . . . . . . . . . . . . . . . . . . . . . . .     33
+                                           B.3 Termination criteria . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     33
+                                           B.4 Flat fitness . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   34
+                                           B.5 Boundaries and Constraints . . . . . . . . . . . . . . . . . . . . . . . . . . .       34
+
+                                         C MATLAB Source Code                                                                         36
+
+                                         D Reformulation of Learning Parameter ccov                                                   38
+                                         Compiled March 13, 2023
+                                                                                        1
+Nomenclature
+We adopt the usual vector notation, where bold letters, v, are column vectors, capital bold
+letters, A, are matrices, and a transpose is denoted by v T . A list of used abbreviations and
+symbols is given in alphabetical order.
+
+Abbreviations
+ CMA Covariance Matrix Adaptation
+ EMNA Estimation of Multivariate Normal Algorithm
+ ES Evolution Strategy
+ (µ/µ{I,W} , λ)-ES, Evolution Strategy with µ parents, with recombination of all µ parents,
+     either Intermediate or Weighted, and λ offspring.
+ RHS Right Hand Side.
+
+Greek symbols
+ λ ≥ 2, population size, sample size, number of offspring, see (5).
+ µ ≤ λ parent number, number of (positively) selected search points in the population, num-
+      ber of strictly positive recombination weights, see (6).
+                   2 −1
+          Pµ        
+ µeff =     i=1 wi      , the variance effective selection mass for the mean, see (8).
+ P        Pλ
+   wj = i=1 wi , sum of all weights, note that wi ≤ 0 for i > µ, see also (30) and (53).
+              Pµ
+    |wi |+ = i=1 wi = 1, sum of all positive weights.
+ P
+                                              Pλ
+    |wi |− = −( wj −            |wi |+ ) = − i=µ+1 wi ≥ 0, minus the sum of all negative
+ P                 P         P
+      weights.
+ σ (g) ∈ R>0 , step-size.
+
+Latin symbols
+ B ∈ Rn , an orthogonal matrix. Columns of B are eigenvectors of C with unit length and
+    correspond to the diagonal elements of D.
+ C (g) ∈ Rn×n , covariance matrix at generation g.
+ cii , diagonal elements of C.
+ c1 ≤ 1 − cµ , learning rate for the rank-one update of the covariance matrix update, see (28),
+     (30), and (47), and Table 1.
+ cµ ≤ 1 − c1 , learning rate for the rank-µ update of the covariance matrix update, see (16),
+     (30), and (47), and Table 1.
+ cσ < 1, decay rate for the cumulation path for the step-size control, see (31) and (43), and
+     Table 1.
+ cc ≤ 1, decay rate for cumulation path for the rank-one update of the covariance matrix, see
+     (24) and (45), and Table 1.
+
+
+                                              2
+ cm = 1, learning rate for the mean.
+ D ∈ Rn , a diagonal matrix. The diagonal elements of D are square roots of eigenvalues of
+    C and correspond to the respective columns of B.
+ di > 0, diagonal elements of diagonal matrix D, d2i are eigenvalues of C.
+ dσ ≈ 1, damping parameter for step-size update, see (32), (37), and (44).
+ E Expectation value
+ f : Rn → R, x 7→ f (x), objective function (fitness function) to be minimized.
+                                         Pn
+ fsphere : Rn → R, x 7→ kxk2 = xT x = i=1 x2i .
+ g ∈ N0 , generation counter, iteration number.
+ I ∈ Rn×n , Identity matrix, unity matrix.
+ m(g) ∈ Rn , mean value of the search distribution at generation g.
+ n ∈ N, search space dimension, see f .
+ N (0, I), multivariate normal distribution with zero mean and unity covariance matrix. A
+     vector distributed according to N (0, I) has independent, (0, 1)-normally distributed
+     components.
+ N (m, C) ∼ m + N (0, C), multivariate normal distribution with mean m ∈ Rn and
+     covariance matrix C ∈ Rn×n . The matrix C is symmetric and positive definite.
+ R>0 , strictly positive real numbers.
+ p ∈ Rn , evolution path, a sequence of successive (normalized) steps, the strategy takes over
+     a number of generations.
+ wi , where i = 1, . . . , λ, recombination weights, see (6) and (16) and (49)–(53).
+    (g+1)
+ xk        ∈ Rn , k-th offspring/individual from generation g + 1. We also refer to x(g+1) , as
+        search point, or object parameters/variables, commonly used synonyms are candidate
+        solution, or design variables.
+    (g+1)                                     (g+1)           (g+1)
+ xi:λ     , i-th best individual out of x1    , . . . , xλ    , see (5). The index i : λ denotes the
+                                                         (g+1)          (g+1)                (g+1)
+        index of the i-th ranked individual and f (x1:λ ) ≤ f (x2:λ ) ≤ · · · ≤ f (xλ:λ ),
+        where f is the objective function to be minimized.
+    (g+1)        (g+1)
+ yk         = (xk        − m(g) )/σ (g) corresponding to xk = m + σy k .
+
+
+0       Preliminaries
+This tutorial introduces the CMA Evolution Strategy (ES), where CMA stands for Covariance
+Matrix Adaptation.1 The CMA-ES is a stochastic, or randomized, method for real-parameter
+(continuous domain) optimization of non-linear, non-convex functions (see also Section 0.3
+   1 Parts of this material have also been presented in [15] and [17], in the context of Estimation of Distribution
+
+Algorithms and Adaptive Encoding, respectively. An introduction deriving CMA-ES from the information-geometric
+concept of a natural gradient can be found in [19].
+
+
+
+
+                                                        3
+below).2 We try to motivate and derive the algorithm from intuitive concepts and from re-
+quirements of non-linear, non-convex search in continuous domain. For a concise algorithm
+description see Appendix A. A respective Matlab source code is given in Appendix C.
+    Before we start to introduce the algorithm in Sect. 1, a few required fundamentals are
+summed up.
+
+0.1     Eigendecomposition of a Positive Definite Matrix
+A symmetric, positive definite matrix, C ∈ Rn×n , is characterized in that for all x ∈ Rn \{0}
+holds xT Cx > 0. The matrix C has an orthonormal basis of eigenvectors, B = [b1 , . . . , bn ],
+with corresponding eigenvalues, d21 , . . . , d2n > 0.
+        That means for each bi holds
+                                              Cbi = d2i bi .                                  (1)
+        The important message from (1) is that eigenvectors are not rotated by C. This feature
+        uniquely distinguishes eigenvectors.
+                                            Because we assume the orthogonal eigenvectors to be
+                         T                1 if i = j
+        of unit length, bi bj = δij =                     , and B T B = I (obviously this means
+                                          0 otherwise
+        B −1 = B T , and it follows BB T = I). An basis of eigenvectors     is practical, because
+                 v ∈ Rn we can find coefficients αi , such that v = i αi bi , and then we have
+                                                                     P
+        for anyP
+        Cv = i d2i αi bi .
+The eigendecomposition of C obeys
+                                               C = BD 2 B T ,                                                   (2)
+where
+ B is an orthogonal matrix, B T B = BB T = I. Columns of B form an orthonormal basis
+     of eigenvectors.
+ D 2 = DD = diag(d1 , . . . , dn )2 = diag(d21 , . . . , d2n ) is a diagonal matrix with eigenvalues
+     of C as diagonal elements.
+ D = diag(d1 , . . . , dn ) is a diagonal matrix with square roots of eigenvalues of C as diagonal
+     elements.
+
+The matrix decomposition (2) is unique, apart from signs of columns of B and permutations
+of columns in B and D 2 respectively, given all eigenvalues are different.3
+    Given the eigendecomposition (2), the inverse C −1 can be computed via
+                                                −1
+                        C −1 = BD 2 B T
+                                                   −1
+                                         = BT           D −2 B −1
+                                         = B D −2BT                 
+                                                   1              1
+                                         = B diag      , . . . ,       BT .
+                                                   d21           d2n
+   2 While CMA variants for multi-objective optimization and elitistic variants have been proposed, this tutorial is
+
+solely dedicated to single objective optimization and non-elitistic truncation selection, also referred to as comma-
+selection.
+    3 Given m eigenvalues are equal, any orthonormal basis of their m-dimensional subspace can be used as column
+
+vectors. For m > 1 there are infinitely many such bases.
+
+
+                                                         4
+                                                    
+          N 0, σ 2 I                      N 0, D 2                       N (0, C)
+
+Figure 1: Ellipsoids depicting one-σ lines of equal density of six different normal distribu-
+tions, where σ ∈ R>0 , D is a diagonal matrix, and C is a positive definite full covariance
+matrix. Thin lines depict possible objective function contour lines
+
+
+From (2) we naturally define the square root of C as
+                                          1
+                                       C 2 = BDB T                                          (3)
+
+and therefore
+                               1
+                           C− 2    =   BD −1 B
+                                               T
+                                                            
+                                                1         1
+                                   =   B diag      ,...,      BT
+                                                d1       dn
+
+0.2   The Multivariate Normal Distribution
+A multivariate normal distribution, N (m, C), has a unimodal, “bell-shaped” density, where
+the top of the bell (the modal value) corresponds to the distribution mean, m. The distribution
+N (m, C) is uniquely determined by its mean m ∈ Rn and its symmetric and positive definite
+covariance matrix C ∈ Rn×n . Covariance (positive definite) matrices have an appealing
+geometrical interpretation: they can be uniquely identified with the (hyper-)ellipsoid {x ∈
+Rn | xT C −1 x = 1}, as shown in Fig. 1. The ellipsoid is a surface of equal density of the
+distribution. The principal axes of the ellipsoid correspond to the eigenvectors of C, the
+squared axes lengths correspond to the eigenvalues. The eigendecomposition is denoted by
+               2
+C = B (D) B T (see Sect. 0.1). If D = σI, where σ ∈ R>0 and I denotes the identity
+matrix, C = σ 2 I and the ellipsoid is isotropic (Fig. 1, left). If B = I, then C = D 2 is a
+diagonal matrix and the ellipsoid is axis parallel oriented (middle). In the coordinate system
+given by the columns of B, the distribution N (0, C) is always uncorrelated.
+
+
+
+
+                                              5
+    The normal distribution N (m, C) can be written in different ways.
+                               N (m, C) ∼           m + N (0, C)
+                                                             1
+                                               ∼    m + C 2 N (0, I)
+                                               ∼    m + BD B T N (0, I)
+                                                           | {z }
+                                                                   ∼ N(0,I)
+
+                                               ∼ m + B DN (0, I) ,                                         (4)
+                                                       | {z }
+                                                              ∼ N(0,D 2 )
+
+                                                             1
+where “∼” denotes equality in distribution, and C 2 = BDB T . The last row can be well
+interpreted, from right to left
+N (0, I) produces an spherical (isotropic) distribution as in Fig. 1, left.
+D scales the spherical
+                      distribution within the coordinate axes as in Fig. 1, middle. DN (0, I) ∼
+    N 0, D 2 has n independent components. The matrix D can be interpreted as (indi-
+    vidual) step-size matrix and its diagonal entries are the standard deviations of the com-
+    ponents.
+B defines a new orientation for the ellipsoid, where the new principal axes of the ellipsoid
+                                                         2
+     correspond to the columns of B. Note that B has n 2−n degrees of freedom.
+Equation (4) is useful to compute N (m, C) distributed vectors, because N (0, I) is a vector
+of independent (0, 1)-normally distributed numbers that can easily be realized on a computer.
+
+0.3     Randomized Black Box Optimization
+We consider the black box search scenario, where we want to minimize an objective function
+(or cost function or fitness function)
+                                           f    : Rn → R
+                                                    x 7→ f (x) .
+The objective is to find one or more search points (candidate solutions), x ∈ Rn , with a func-
+tion value, f (x), as small as possible. We do not state the objective of searching for a global
+optimum, as this is often neither feasible nor relevant in practice. Black box optimization
+refers to the situation, where function values of evaluated search points are the only acces-
+sible information on f .4 The search points to be evaluated can be freely chosen. We define
+the search costs as the number of executed function evaluations, in other words the amount
+of information we needed to acquire from f 5 . Any performance measure must consider the
+search costs together with the achieved objective function value.6
+    A randomized black box search algorithm is outlined in Fig. 2. In the CMA Evolution
+   4 Knowledge about the underlying optimization problem might well enter the composition of f and the chosen
+
+problem encoding.
+   5 Also f is sometimes denoted as cost function, but it should not to be confused with the search costs.
+   6 A performance measure can be obtained from a number of trials as, for example, the mean number of function
+
+evaluations to reach a given function value, or the median best function value obtained after a given number of
+function evaluations.
+
+
+                                                      6
+Initialize distribution parameters θ (0)
+For generation g = 0, 1, 2, . . .                                   
+   Sample λ independent points from distribution P x|θ (g) → x1 , . . . , xλ
+   Evaluate the sample x1 , . . . , xλ on f
+   Update parameters θ (g+1) = Fθ (θ (g) , (x1 , f (x1 )), . . . , (xλ , f (xλ )))
+   break, if termination criterion met
+
+
+         Figure 2: Randomized black box search. f : Rn → R is the objective function
+
+
+Strategy the search distribution, P , is a multivariate normal distribution. Given all variances
+and covariances, the normal distribution has the largest entropy of all distributions in Rn .
+Furthermore, coordinate directions are not distinguished in any way. Both makes the normal
+distribution a particularly attractive candidate for randomized search.
+    Randomized search algorithms are regarded to be robust in a rugged search landscape,
+which can comprise discontinuities, (sharp) ridges, or local optima. The covariance matrix
+adaptation (CMA) in particular is designed to tackle, additionally, ill-conditioned and non-
+separable7 problems.
+
+0.4     Hessian and Covariance Matrices
+We consider the convex-quadratic objective function fH : x 7→ 12 xT Hx, where the Hessian
+matrix H ∈ Rn×n is a positive definite matrix. Given a search distribution N (m, C), there is
+                                                        −1
+a close relation between H and C: Setting C     P= H         on fH is equivalent to optimizing the
+                                    1 T       1       2
+isotropic function fsphere (x) = 2 x x = 2 i xi (where H = I) with C = I.8 That is, on
+convex-quadratic objective functions, setting the covariance matrix of the search distribution
+to the inverse Hessian matrix is equivalent to rescaling the ellipsoid function into a spherical
+one. Consequently, we assume that the optimal covariance matrix equals to the inverse Hessian
+matrix, up to a constant factor.9 Furthermore, choosing a covariance matrix or choosing a
+respective affine linear transformation of the search space (i.e. of x) is equivalent [14], because
+for any full rank n × n-matrix A we find a positive definite Hessian such that 21 (Ax)T Ax =
+1 T T            1 T
+2 x A Ax = 2 x Hx.
+    The final objective of covariance matrix adaptation is to closely approximate the contour
+lines of the objective function f . On convex-quadratic functions this amounts to approximating
+the inverse Hessian matrix, similar to a quasi-Newton method.
+    In Fig. 1 the solid-line distribution in the right figure follows the objective function con-
+tours most suitably, and it is easy to foresee that it will aid to approach the optimum the most.
+    The condition number of a positive definite matrix A is defined via the Euclidean norm:
+           def
+cond(A) = kAk × kA−1 k, where kAk = supkxk=1 kAxk. For a positive definite (Hessian
+or covariance) matrix A holds kAk = λmax and cond(A) = λλmax            min
+                                                                            ≥ 1, where λmax and
+λmin are the largest and smallest eigenvalue of A.
+    7 An n-dimensional separable problem can be solved by solving n 1-dimensional problems separately, which is a
+
+far easier task.
+    8 Also the initial mean value m has to be transformed accordingly.
+    9 Even though there is good intuition and strong empirical evidence for this statement, a rigorous proof is missing.
+
+
+
+
+                                                           7
+1       Basic Equation: Sampling
+In the CMA Evolution Strategy, a population of new search points (individuals, offspring) is
+generated by sampling a multivariate normal distribution.10 The basic equation for sampling
+the search points, for generation number g = 0, 1, 2, . . . , reads11
+                                                                
+                        (g+1)
+                      xk           ∼     m(g) + σ (g) N 0, C (g)                  for k = 1, . . . , λ                   (5)
+
+where
+ ∼ denotes the same distribution on the left and right side.
+ N(0, C (g) ) is a multivariate normal distribution with zero mean and covariance         (g)
+                                                                                 matrix C ,
+                                 (g)    (g)         (g)         (g)   (g) 2 (g)
+     see Sect. 0.2. It holds m + σ N(0, C ) ∼ N m , (σ ) C                       .
+     (g+1)
+ xk          ∈ Rn , k-th offspring (individual, search point) from generation g + 1.
+ m(g) ∈ Rn , mean value of the search distribution at generation g.
+ σ (g) ∈ R>0 , “overall” standard deviation, step-size, at generation g.
+                                                                                                           2
+ C (g) ∈ Rn×n , covariance matrix at generation g. Up to the scalar factor σ (g) , C (g) is the
+      covariance matrix of the search distribution.
+ λ ≥ 2, population size, sample size, number of offspring.
+
+
+To define the complete iteration step, the remaining question is, how to calculate m(g+1) ,
+C (g+1) , and σ (g+1) for the next generation g + 1. The next three sections will answer
+these questions, respectively. An algorithm summary with all parameter settings and MAT-
+LAB source code are given in Appendix A and C, respectively.
+
+
+
+2       Selection and Recombination: Moving the Mean
+The new mean m(g+1) of the search distribution is a weighted average of µ selected points
+                 (g+1)            (g+1)
+from the sample x1     , . . . , xλ     :
+                                                                µ
+                                                                           (g+1)
+                                                                X
+                                                (g+1)
+                                            m             =           wi xi:λ                                            (6)
+                                                                i=1
+
+
+                               µ
+                               X
+                                     wi = 1,          w1 ≥ w2 ≥ · · · ≥ wµ > 0                                           (7)
+                               i=1
+
+where
+    10 Recall that, given all (co-)variances, the normal distribution has the largest entropy of all distributions in Rn .
+    11 Framed equations belong to the final algorithm of a CMA Evolution Strategy.
+
+
+
+
+                                                              8
+ µ ≤ λ is the parent population size, i.e. the number of selected points.
+ wi=1...µ ∈ R>0 , positive weight coefficients for recombination. For wi=1...µ = 1/µ, Equa-
+     tion (6) calculates the mean value of µ selected points.
+   (g+1)                                     (g+1)           (g+1)
+ xi:λ     , i-th best individual out of x1   , . . . , xλ      from (5). The index i : λ denotes the
+                                                         (g+1)          (g+1)                (g+1)
+        index of the i-th ranked individual and f (x1:λ ) ≤ f (x2:λ ) ≤ · · · ≤ f (xλ:λ ),
+        where f is the objective function to be minimized.
+
+
+Equation (6) implements truncation selection by choosing µ < λ out of λ offspring points.
+Assigning different weights wi should also be interpreted as a selection mechanism. Equation
+(6) implements weighted intermediate recombination by taking µ > 1 individuals into account
+for a weighted average.
+    The measure12
+                                2                Pµ
+                                       kwk21     ( i=1 |wi |)2
+                        
+                          kwk1                                          1
+                 µeff =            =        2 =    Pµ       2   = Pµ       2             (8)
+                          kwk2         kwk2           i=1 wi          i=1 wi
+
+will be repeatedly used in the following and can be paraphrased as effective sample size of
+the selected samples or variance effective selection mass. From the definition of wi in (7) we
+derive 1 ≤ µeff ≤ µ, and µeff = µ for equal recombination weights, i.e. wi = 1/µ for all
+i = 1 . . . µ.
+        The notion of µeff with different recombination weights generalizes the notion of µ with
+        equal recombination weights in several aspects. The number µ (with equal recombination
+        weights) is the amount of information used, expressed as number of independent sources.
+        Taking the weighted average of independent samples reduces the original variance by a
+        factor of µ for equal weights and by a factor of µeff for any weights, hence µeff can
+        be considered as the amount of used information. To keep the variance unchanged, the
+                                         √
+        average must be multiplied by µeff . However, the optimal step-size (given µ < n)
+        is proportional to µ [6, 33] for equal weights and proportional to 1.25 µeff for optimal
+        recombination weights [4], respectively, see also Section 4.
+Usually, µeff ≈ λ/4 indicates a reasonable setting of wi . A simple and reasonable setting is
+wi ∝ µ − i + 1, and µ ≈ λ/2, where µeff ≈ 3λ/8.
+   The final equation rewrites (6) as an update of m,
+                                               µ
+                                                       (g+1)
+                                              X
+                       m(g+1) = m(g) + cm         wi (xi:λ − m(g) )                       (9)
+                                                       i=1
+
+where
+ cm is a learning rate, usually set to 1.13
+
+                                   Pµ
+Equation (9) generalizes (6). If cm i=1 wi = 1, as it is the case with the default parameter
+setting (compare Table 1 in Appendix A), −m(g) cancels out m(g) , and Equations (9) and (6)
+are identical.
+  12 Later, the vector w will have λ ≥ µ elements. Here, for computing the norm, we assume that any additional
+
+λ − µ elements are zero.
+  13 In the literature the notation κ = 1/c is also common and κ is used as multiplier in (5) instead of in (9).
+                                           m
+
+
+
+                                                       9
+       Choosing cm < 1 can be advantageous on noisy functions. With optimal step-size we
+       have roughly σ ∝ 1/cm , hence the “test steps” in (5) are in effect increased whereas the
+       update step in (9) remains unchanged. However, too large test steps negatively impact
+       the performance because the ranking indices i : λ are determined too far away from the
+       (current) region of relevance. Arbitrary small test steps (when cm → ∞) work generally
+       well, within the limits of numerical precision, on unimodal and noisefree functions [1, 11].
+
+
+
+
+3     Adapting the Covariance Matrix
+In this section, the update of the covariance matrix, C, is derived. We will start out estimating
+the covariance matrix from a single population of one generation (Sect. 3.1). For small pop-
+ulations this estimation is unreliable and an adaptation procedure has to be invented (rank-µ-
+update, Sect. 3.2). In the limit case only a single point can be used to update (adapt) the covari-
+ance matrix at each generation (rank-one-update, Sect. 3.3). This adaptation can be enhanced
+by exploiting dependencies between successive steps applying cumulation (Sect. 3.3.2). Fi-
+nally we combine the rank-µ and rank-one updating methods (Sect. 3.4).
+
+3.1     Estimating the Covariance Matrix From Scratch
+For the moment we assume that the population contains enough information to reliably es-
+timate a covariance matrix from the population.14 For the sake of convenience we assume
+σ (g) = 1 (see (5)) in this section. For σ (g) 6= 1 the formulae hold except for a constant factor.
+     We can (re-)estimate the original covariance matrix C (g) using the sampled population
+            (g+1)        (g+1)
+from (5), x1      . . . xλ     , via the empirical covariance matrix
+                                                                                            T
+                          λ                    λ                                 λ
+                    1     X
+                            xi(g+1) −        1X
+                                              (g+1)   (g+1)         (g+1)    1X
+      C (g+1)
+        emp =                               x          xi     −      x                                .    (10)
+                  λ − 1 i=1            λ j=1 j                  λ j=1 j
+
+                                            (g+1)
+The empirical covariance matrix C emp is an unbiased estimator of C (g) : assuming the
+ (g+1)
+xi      , i = 1 . . . λ, to be random variables (rather than a realized sample), we have that
+  (g+1)            
+E C emp C (g) = C (g) . Consider now a slightly different approach to get an estimator for
+C (g) .
+                                    λ                                    T
+                        (g+1)    1 X  (g+1)           
+                                                            (g+1)
+                      Cλ      =        xi      − m(g) xi          − m(g)                 (11)
+                                 λ i=1
+                      (g+1)
+Also the matrix C λ       is an unbiased estimator of C (g) . The remarkable difference between
+                                                    (g+1)
+(10) and (11) is the reference mean value. For C emp it is the mean of the actually realized
+                (g+1)
+sample. For C λ        it is the true mean value, m(g) , of the sampled distribution (see (5)).
+                               (g+1)        (g+1)                                          (g+1)
+Therefore, the estimators C emp and C λ           can be interpreted differently: while C emp
+   14 To re-estimate the covariance matrix, C, from a N (0, I) distributed sample such that cond(C) < 10 a sample
+
+size λ ≥ 4n is needed, as can be observed in numerical experiments.
+
+
+
+
+                                                      10
+                                                                                 (g+1)
+estimates the distribution variance within the sampled points, C λ                       estimates variances of
+                 (g+1)
+sampled steps, xi       − m(g) .
+                                                                                  1
+        A minor difference between (10) and (11) is the different normalizations λ−1 versus λ1 ,
+        necessary to get an unbiased estimator in both cases. In (10) one degree of freedom is
+        already taken by the inner summand. In order to get a maximum likelihood estimator, in
+        both cases λ1 must be used.
+   Equation (11) re-estimates the original covariance matrix. To “estimate” a “better” covari-
+ance matrix, the same, weighted selection mechanism as in (6) is used [21].
+                                   µ                             T
+                                             (g+1)        (g+1)
+                                   X
+                      C (g+1)
+                        µ     =          wi xi:λ − m(g) xi:λ − m(g)                                             (12)
+                                   i=1
+
+                 (g+1)                                                                                  (g+1)
+The matrix C µ      is an estimator for the distribution of selected steps, just as C λ     is an
+                                                                                   (g+1)
+estimator of the original distribution of steps before selection. Sampling from C µ      tends to
+reproduce selected, i.e. successful steps, giving a justification for what a “better” covariance
+matrix means.
+        Following [15], we compare (12) with the Estimation of Multivariate Normal Algorithm
+        EMNAglobal [30, 31]. The covariance matrix in EMNAglobal reads, similar to (10),
+                                         µ
+                    (g+1)            1 X  (g+1)        
+                                                           (g+1)
+                                                                       T
+                 C EMNAglobal =            xi:λ − m(g+1) xi:λ − m(g+1)    ,                              (13)
+                                     µ i=1
+                              Pµ  (g+1)
+        where m(g+1) = µ1    i=1 xi:λ   . Similarly, applying the so-called Cross-Entropy method
+                                                                               µ    (g+1)
+        to continuous domain optimization [34] yields the covariance matrix µ−1   C EMNAglobal ,
+        i.e. the unbiased empirical covariance matrix of the µ best points. In both cases the subtle,
+        but most important difference to (12) is, again, the choice of the reference mean value.15
+        Equation (13) estimates the variance within the selected population while (12) estimates
+        selected steps. Equation (13) reveals always smaller variances than (12), because its ref-
+        erence mean value is the minimizer for the variances. Moreover, in most conceivable
+        selection situations (13) decreases the variances compared to C (g) .
+             Figure 3 demonstrates the estimation results on a linear objective function for λ = 150,
+        µ = 50, and wi = 1/µ. Equation (12) geometrically increases the expected variance
+        in direction of the gradient (where the selection takes place, here the diagonal), given
+        ordinary settings for parent number µ and recombination weights w1 , . . . , wµ . Equation
+        (13) always decreases the variance in gradient direction geometrically fast! Therefore, (13)
+        is highly susceptible to premature convergence, in particular with small parent populations,
+        where the population cannot be expected to bracket the optimum at any time. However,
+        for large values of µ in large populations with large initial variances, the impact of the
+        different reference mean value can become marginal.
+                                                                 (g+1)
+    In order to ensure with (5), (6), and (12), that C µ   is a reliable estimator, the variance
+effective selection mass µeff (cf. (8)) must be large enough: getting condition numbers (cf.
+                                   (g)                  Pn
+Sect. 0.4) smaller than ten for C µ on fsphere (x) = i=1 x2i , requires µeff ≈ 10n. The next
+step is to circumvent this restriction on µeff .
+  15 Taking a weighted sum,
+                              Pµ                                   1 Pµ
+                               i=1 wi . . . , instead of the mean, µ  i=1 . . . , is an appealing, but less important,
+difference.
+
+
+                                                        11
+                                                                                             (g+1)
+                                                                                           Cµ
+
+
+
+
+                                                                                             (g+1)
+                                                                                           C EMNAglobal
+
+
+
+
+          sampling                      estimation                 new distribution
+
+                                                                      P2
+Figure 3: Estimation of the covariance matrix on flinear (x) = − i=1 xi to be minimized.
+Contour lines (dotted) indicate that the strategy should move toward the upper right corner.
+                           (g+1)
+Above: estimation of C µ         according to (12), where wi = 1/µ. Below: estimation of
+   (g+1)
+C EMNAglobal according to (13). Left: sample of λ = 150 N (0, I) distributed points. Middle:
+the µ = 50 selected points (dots) determining the entries for the estimation equation (solid
+straight lines). Right: search distribution of the next generation (solid ellipsoids). Given wi =
+                        (g+1)
+1/µ, estimation via C µ       increases the expected variance in gradient direction for all µ <
+                              (g+1)
+λ/2, while estimation via C EMNAglobal decreases this variance for any µ < λ geometrically
+fast
+
+3.2    Rank-µ-Update
+To achieve fast search (opposite
+                              P to2 more robust or more global search), e.g. competitive per-
+formance on fsphere : x 7→       xi , the population size λ must be small. Because typically
+(and ideally) µeff ≈ λ/4 also µeff must be small and we may assume, e.g., µeff ≤ 1 + ln n.
+Then, it is not possible to get a reliable estimator for a good covariance matrix from (12).
+As a remedy, information from previous generations is used additionally. For example, after
+a sufficient number of generations, the mean of the estimated covariance matrices from all
+generations,
+                                                 g
+                                            1 X 1
+                              C (g+1) =                    C (i+1)                       (14)
+                                          g + 1 i=0 σ (i) 2 µ
+                                                                  (g)
+becomes a reliable estimator for the selected steps. To make C µ from different generations
+comparable, the different σ (i) are incorporated. (Assuming σ (i) = 1, (14) resembles the
+covariance matrix from the Estimation of Multivariate Normal Algorithm EMNAi [31].)
+   In (14), all generation steps have the same weight. To assign recent generations a higher
+
+
+                                               12
+weight, exponential smoothing is introduced. Choosing C (0) = I to be the unity matrix and a
+learning rate 0 < cµ ≤ 1, then C (g+1) reads
+                                                                       1
+                      C (g+1)    =        (1 − cµ )C (g) + cµ              2   C (g+1)
+                                                                                 µ
+                                                                     σ (g)
+                                                                     µ
+                                                                                  (g+1) (g+1) T
+                                                                     X
+                                 =        (1 − cµ )C (g) + cµ              wi y i:λ    y i:λ       ,                (15)
+                                                                     i=1
+
+where
+ cµ ≤ 1 learning rate for updating the covariance matrix. For cµ = 1, no prior information is
+                                 1    (g+1)
+      retained and C (g+1) = σ(g)  2 Cµ     . For cµ = 0, no learning takes place and C (g+1) =
+        (0)                             2
+      C . Here, cµ ≈ min(1, µeff /n ) is a reasonably choice.
+                                                 P
+ w1...µ ∈ R such that w1 ≥ · · · ≥ wµ > 0 and i wi = 1.
+  (g+1)         (g+1)
+ y i:λ     = (xi:λ      − m(g) )/σ (g) .
+  (g+1)           −1/2 (g+1)
+ z i:λ     = C (g)      y i:λ is the mutation vector expressed in the unique coordinate system
+         where the sampling is isotropic and the respective coordinate system transformation
+         does not rotate the original principal axes of the distribution.
+
+
+This covariance matrix update is called rank-µ-update [23], because the sum of outer products
+in (15) is of rank min(µ, n) with probability one (given µ non-zero weights). This sum can
+even consist of a single term, if µ = 1.
+    Finally, we generalize (15) to λ weight values which need neither sum to 1, nor be non-
+negative anymore [28, 27],
+                                                                λ
+                                                                               (g+1) (g+1) T
+                                                                X
+            C (g+1)                         wi ) C (g) + cµ
+                                      P
+                        =   (1 − cµ                                    wi y i:λ     y i:λ                           (16)
+                                                                i=1
+                                                     λ                                   !
+                                (g) 1/2                               (g+1) (g+1) T                       1/2
+                                                     X
+                        =   C               I + cµ         wi       z i:λ z i:λ     −I            C (g)         ,
+                                                     i=1
+
+where
+                                                                                                   Pµ
+ w1...λ ∈ R such that w1 ≥ · · · ≥ wµ > 0 ≥ wµ+1 ≥ wλ , and usually                                    i=1 wi = 1 and
+      Pλ
+        i=1 wi ≈ 0.
+ P       Pλ
+   wi = i=1 wi
+
+
+The second line of (16) expresses the update in the natural coordinate system, an idea already
+considered in [12]. The identity covariance matrix is updated and a coordinate system trans-
+                                                              1/2
+formation is applied afterwards by multiplication with C (g)      on both sides. Equation (16)
+uses λ weights,  w i , of which about half are negative.  If the  weights are chosen such that
+   wi = 0, the decay on C (g) disappears and changes are only made along axes in which
+P
+samples are realized.
+
+
+                                                           13
+       Negative values for the recombination weights in the covariance matrix update have been
+       introduced in the seminal paper of Jastrebski and Arnold [28] as active covariance matrix
+       adaptation. Non-equal negative weight values have been used in [27] together with a rather
+       involved mechanism to make up for different vector lengths. The default recombination
+       weights as defined in Table 1 in Appendix A are somewhere in between these two propos-
+       als, but closer to [28]. Slightly deviating from (16) later on, vector lengths associated with
+       negative weights will be rescaled to a (direction dependent) constant, see (46) and (47) in
+       Appendix A. This allows to guaranty positive definiteness of C (g+1) . Conveniently, it also
+       alleviates a selection error which usually makes directions associated with longer vectors
+       worse.
+The number 1/cµ is the backward time horizon that contributes roughly 63% of the overall
+information.
+       Because (16) expands to the weighted sum
+                                                               g
+                                                            X                        1
+                    C (g+1) = (1 − cµ )g+1 C (0) + cµ               (1 − cµ )g−i            (i+1)
+                                                                                         2 Cµ     ,       (17)
+                                                              i=0                  σ (i)
+
+       the backward time horizon, ∆g, where about 63% of the overall weight is summed up, is
+       defined by
+                                   g
+                                  X                                1
+                           cµ           (1 − cµ )g−i ≈ 0.63 ≈ 1 −     .                (18)
+                              i=g+1−∆g
+                                                                   e
+       Resolving the sum yields
+                                                        1
+                                                (1 − cµ )∆g ≈
+                                                           ,                                              (19)
+                                                         e
+       and resolving for ∆g, using the Taylor approximation for ln, yields
+                                                             1
+                                                    ∆g ≈       .                                          (20)
+                                                            cµ
+
+       That is, approximately 37% of the information in C (g+1) is older than 1/cµ generations,
+       and, according to (19), the original weight is reduced by a factor of 0.37 after approxi-
+       mately 1/cµ generations.16
+The choice of cµ is crucial. Small values lead to slow learning, too large values lead to a
+failure, because the covariance matrix degenerates. Fortunately, a good setting seems to be
+largely independent of the function to be optimized.17 A first order approximation for a good
+choice is cµ ≈ µeff /n2 . Therefore, the characteristic time horizon for (16) is roughly n2 /µeff .
+    Experiments suggest that cµ ≈ µeff /n2 is a rather conservative setting for large values of
+n, whereas µeff /n1.5 appears to be slightly beyond the limit of stability. The best, yet robust
+choice of the exponent remains to be an open question.
+    Even for the learning rate cµ = 1, adapting the covariance matrix cannot be accomplished
+within one generation. The effect of the original sample distribution does not vanish until a
+sufficient number of generations. Assuming fixed search costs (number of function evalua-
+tions), a small population size λ allows a larger number of generations and therefore usually
+leads to a faster adaptation of the covariance matrix.
+  16 This can be shown more easily, because (1 − c )g = exp ln(1 − c )g = exp(g ln(1 − c )) ≈ exp(−gc )
+                                                     µ                     µ                       µ                µ
+for small cµ , and for g ≈ 1/cµ we get immediately   (1 − cµ )g ≈ exp(−1).
+  17 We use the sphere model f                     2
+                                            P
+                               sphere (x) =    i xi to empirically find a good setting for the parameter cµ , dependent
+on n and µeff . The found setting was applicable to any non-noisy objective function we tried so far.
+
+
+                                                         14
+3.3     Rank-One-Update
+In Section 3.1 we started by estimating the complete covariance matrix from scratch, using all
+selected steps from a single generation. We now take an opposite viewpoint. We repeatedly
+update the covariance matrix in the generation sequence using a single selected step only.
+First, this perspective will give another justification of the adaptation rule (16). Second, we
+will introduce the so-called evolution path that is finally used for a rank-one update of the
+covariance matrix.
+
+3.3.1    A Different Viewpoint
+We consider a specific method to produce n-dimensional normal distributions with zero mean.
+Let the vectors y 1 , . . . , y g0 ∈ Rn , g0 ≥ n, span Rn and let N (0, 1) denote independent (0, 1)-
+normally distributed random numbers, then
+                                                                        g0
+                                                                                  !
+                                                                       X
+                     N (0, 1) y 1 + · · · + N (0, 1) y g0 ∼ N 0,            yi yT
+                                                                                i               (21)
+                                                                          i=1
+                                                                                   Pg0
+is a normally distributed random vector with zero mean and covariance matrix i=1          yi yT
+                                                                                              i.
+The random vector (21) is generated by adding “line-distributions” N (0, 1) y i . The singu-
+lar distribution N (0, 1) y i ∼ N(0, y i y T
+                                           i ) generates the vector y i with maximum likelihood
+considering all normal distributions with zero mean.
+        The line distribution that generates a vector y with the maximum likelihood must “live” on
+        a line that includes y, and therefore the distribution must obey N(0, 1)σy ∼ N(0, σ 2 yy T ).
+        Any other line distribution with zero mean cannot generate y at all. Choosing σ reduces to
+        choosing the maximum likelihood of kyk for the one-dimensional gaussian N(0, σ 2 kyk2 ),
+        which is σ = 1.
+             The covariance matrix yy T has rank one, its only eigenvectors are {αy | α ∈ R\0 }
+        with eigenvalue kyk2 . Using equation (21), any normal distribution can be realized if
+        y i are chosen appropriately. For example, (21) resembles (4) with m = 0, using the
+        orthogonal eigenvectors y i = dii bi , for i = 1, . . . , n, where bi are the columns of B.
+        In general, the vectors y i need not to be eigenvectors of the covariance matrix, and they
+        usually are not.
+    Considering (21) and a slight simplification of (16), we try to gain insight into the adapta-
+tion rule for the covariance matrix. Let the sum in (16) consist of a single summand only (e.g.
+                                (g+1)
+                              x1:λ      −m(g)
+µ = 1), and let y g+1 =              σ (g)
+                                              .   Then, the rank-one update for the covariance matrix
+reads
+
+                            C (g+1)      =    (1 − c1 )C (g) + c1 y g+1 y g+1 T                         (22)
+
+The right summand is of rank one and adds the maximum likelihood term for y g+1 into the
+covariance matrix C (g) . Therefore the probability to generate y g+1 in the next generation
+increases.
+    An example of the first two iteration steps of (22) is shown in Figure 4. The distribution
+N(0, C (1) ) tends to reproduce y 1 with a larger probability than the initial distribution N(0, I);
+the distribution N(0, C (2) ) tends to reproduce y 2 with a larger probability than N(0, C (1) ),
+and so forth. When y 1 , . . . , y g denote the formerly selected, favorable steps, N(0, C (g) )
+
+
+                                                       15
+                                                                                        
+            N 0, C (0)                                N 0, C (1)             N 0, C (2)
+
+Figure 4: Change of the distribution according to the covariance matrix update (22). Left:
+vectors e1 and e2 , and C (0) = I = e1 eT             T
+                                              1 + e2 e2 . Middle: vectors 0.91 e1 , 0.91 e2 , and
+0.41 y 1 (the coefficients deduce from c1 = 0.17), and C (1) = (1 − c1 ) I + c1 y 1 y T   1 , where
+y 1 = −0.59
+         −2.2 . The distribution ellipsoid is elongated into the direction of y 1 , and therefore
+                                                                                              0.97
+                                                                                                   
+increases the likelihood of y 1 . Right: C (2) = (1 − c1 ) C (1) + c1 y 2 y T
+                                                                            2 , where y 2 =    1.5 .
+
+
+
+tends to reproduce these steps. The process leads to an alignment of the search distribution
+N(0, C (g) ) to the distribution of the selected steps. If both distributions become alike, as
+under random selection, in expectation no further change of the covariance matrix takes place
+[13].
+
+3.3.2    Cumulation: Utilizing the Evolution Path
+                                              (g+1)          (g+1)
+We have used the selected steps, y i:λ = (xi:λ − m(g) )/σ (g) , to update the covariance
+matrix in (16) and (22). Because yy T = −y(−y)T , the sign of the steps is irrelevant for the
+update of the covariance matrix — that is, the sign information is lost when calculating C (g+1) .
+To reintroduce the sign information, a so-called evolution path is constructed [24, 26].
+    We call a sequence of successive steps, the strategy takes over a number of generations,
+an evolution path. An evolution path can be expressed by a sum of consecutive steps. This
+summation is referred to as cumulation. To construct an evolution path, the step-size σ is
+disregarded. For example, an evolution path of three steps of the distribution mean m can be
+constructed by the sum
+
+                     m(g+1) − m(g)   m(g) − m(g−1)   m(g−1) − m(g−2)
+                                   +               +                 .                         (23)
+                         σ (g)          σ (g−1)          σ (g−2)
+In practice, to construct the evolution path, pc ∈ Rn , we use exponential smoothing as in (16),
+                 (0)
+and start with pc = 0.18
+                                              p                  m(g+1) − m(g)
+                  p(g+1)
+                    c     =  (1 − cc )p (g)
+                                        c   +   cc (2 − cc )µeff                            (24)
+                                                                    cm σ (g)
+
+where
+  18 In the final algorithm (24) is still slightly modified, compare (45).
+
+
+
+
+                                                           16
+  (g)
+ pc     ∈ Rn , evolution path at generation g.
+ cc ≤ 1. Again, 1/cc is the backward time horizon of the evolution path pc that contains
+     roughly
+     √       63% of the overall weight (compare derivation of (20)). A time horizon between
+       n and n is effective.
+
+           p
+The factor cc (2 − cc )µeff is a normalization constant for pc . For cc = 1 and µeff = 1, the
+                            (g+1)     (g+1)
+factor reduces to one, and pc     = (x1:λ − m(g) )/σ (g) .
+                     p
+        The factor       cc (2 − cc )µeff is chosen, such that
+
+                                                        pc(g+1) ∼ N (0, C)                                               (25)
+
+        if
+                                     (g+1)
+                                   xi:λ         − m(g)
+                         p(g)
+                          c   ∼                            ∼ N (0, C)              for all i = 1, . . . , µ .            (26)
+                                           σ (g)
+        To derive (25) from (26) and (24) remark that
+                                                                 µ
+                            p                2                   X                     1
+             (1 − cc )2 +       cc (2 − cc ) = 1          and         wi Ni (0, C) ∼ √      N(0, C) .                    (27)
+                                                                  i=1
+                                                                                      µ eff
+
+
+
+                                                                                                                 (g+1)
+The (rank-one) update of the covariance matrix C (g) via the evolution path pc                                           reads [24]
+                                                                                                  T
+                                C (g+1) = (1 − c1 )C (g) + c1 p(g+1)
+                                                               c     p(g+1)
+                                                                      c                               .                         (28)
+
+An empirically validated choice for the learning rate in (28) is c1 ≈ 2/n2 . For cc = 1 and
+µ = 1, Equations (28), (22), and (16) are identical.
+    Using the evolution path for the update of C is a significant improvement of (16) for
+small µeff , because correlations between consecutive steps are heavily exploited. The leading
+signs of steps, and the dependencies between consecutive steps play a significant role for the
+                           (g+1)
+resulting evolution path pc      .
+        We consider the two most extreme situations, fully correlated steps and entirely anti-
+        correlated steps. The summation in (24) reads for positive correlations
+                                       g
+                                       X                         1
+                                                (1 − cc )i →          (for g → ∞) ,
+                                          i=0
+                                                                 cc
+
+        and for negative correlations
+               g                                   bg/2c                     (g−1)/2
+               X                                   X                           X
+                 (−1)i (1 − cc )i          =               (1 − cc )2i −                 (1 − cc )2i+1
+               i=0                                 i=0                         i=0
+                                                   bg/2c                                 (g−1)/2
+                                                   X                                        X
+                                           =               (1 − cc )2i − (1 − cc )                 (1 − cc )2i
+                                                   i=0                                      i=0
+                                                        bg/2c
+                                                                            2 i
+                                                         X
+                                           =       cc           (1 − cc )          + (1 − cc )g ((g + 1) mod 2)
+                                                         i=0
+                                                        cc            1
+                                           →                      =                        (for g → ∞) .
+                                                   1 − (1 − cc )2   2 − cc
+
+
+                                                                 17
+                             p
+        Multipling these by cc (2 − cc ), which is applied to each input vector, we find that the
+        length of the evolution path is modulated by the factor of up to
+                                            r
+                                               2 − cc       1
+                                                       ≈ √                                  (29)
+                                                 cc         cc
+
+        due to the positive correlations, or its inverse due to negative correlations, respectively [19,
+        Equations (48) and (49)].
+      √
+With n ≤ 1/cc ≤ n/2 the number of function evaluations needed to adapt a nearly optimal
+covariance matrix on cigar-like objective functions becomes O(n), despite a learning rate of
+c1 ≈ 2/n2 [19]. A plausible interpretation of this effect is two-fold. First, the desired axis is
+represented in the path (much) more accurately than in single steps. Second, the learning rate
+c1 is modulated: the increased length of the evolution path as computed in (29) acts in effect
+                                                            −1/2
+similar to an increased learning rate by a factor of up to cc    .
+    As a last step, we combine (16) and (28).
+
+3.4     Combining Rank-µ-Update and Cumulation
+The final CMA update of the covariance matrix combines (16) and (28).
+
+             C (g+1)                             wj ) C (g)
+                                                P
+                         =    (1 − c1 − cµ
+                                 |     {z         }
+                                can be close or equal to 0
+                                                                 λ                       T
+                                                  (g+1) T
+                                                                               
+                                                                         (g+1)     (g+1)
+                                                               X
+                                    + c1 p(g+1) p         + cµ     w i y         y                         (30)
+                                         | c {z c }                      i:λ       i:λ
+                                                               i=1
+                                        rank-one update        |            {z           }
+                                                                    rank-µ update
+
+where
+ c1 ≈ 2/n2 .
+ cµ ≈ min(µeff /n2 , 1 − c1 ).
+  (g+1)          (g+1)
+ y i:λ = (xi:λ − m(g) )/σ (g) .
+ P       Pλ
+     wj = i=1 wi ≈ −c1 /cµ , but see also (53) and(46) in Appendix A.
+
+
+Equation (30) reduces to (16) for c1 = 0 and to (28) for cµ = 0. The equation combines the
+advantages of (16) and (28). On the one hand, the information from the entire population is
+used efficiently by the so-called rank-µ update. On the other hand, information of correlations
+between generations is exploited by using the evolution path for the rank-one update. The for-
+mer is important in large populations, the latter is particularly important in small populations.
+
+
+
+
+                                                             18
+4       Step-Size Control
+The covariance matrix adaptation, discussed in the last section, does not explicitly control the
+“overall scale” of the distribution, the step-size. The covariance matrix adaptation increases
+or decreases the scale only in a single direction for each selected step—or it decreases the
+scale by fading out old information by a given, non-adaptive factor. Less informally, we have
+two specific reasons to introduce a step-size control in addition to the adaptation rule (30) for
+C (g) .
+     1. The optimal overall step length cannot be well approximated by (30), in particular if
+        µeff is chosen larger than one.
+                                               Pn       2
+               For example, on fsphere (x) =       i=1 xip, given C (g) = I and λ ≤ n, the opti-
+               mal step-size σ equals approximately
+                                            p         µ fsphere (x)/n with equal recombination
+               weights [6, 33] and 1.25 µeff fsphere (x)/n with optimal recombination weights
+               [4].19 This dependency on µ or µeff can not be realized by (16) or (30).
+
+     2. The largest reliable learning rate for the covariance matrix update in (30) is too slow to
+        achieve competitive change rates for the overall step length.
+               To achieve optimal performance on fsphere with an Evolution Strategy with weighted
+               recombination, the overall step length must decrease by a factor of about exp(0.25) ≈
+               1.28 within n function evaluations, as can be derived from progress formulas as in
+               [4] and [6, p. 229]. That is, the time horizon for the step length change must be pro-
+               portional to n or shorter. From the learning rates c1 and cµ in (30) follows that the
+               adaptation is too slow to perform competitive on fsphere whenever µeff  n. This
+               can be validated by simulations even for moderate dimensions, n ≥ 10, and small
+               µeff ≤ 1 + ln n.
+
+To control the step-size σ (g) we utilize an evolution path, i.e. a sum of successive steps (see
+also Sect. 3.3.2). The method can be applied independently of the covariance matrix update
+and is denoted as cumulative path length control, cumulative step-size control, or cumulative
+step length adaptation (CSA). The length of an evolution path is exploited, based on the
+following reasoning, as depicted in Fig. 5.
+
+      • Whenever the evolution path is short, single steps cancel each other out (Fig. 5, left).
+        Loosely speaking, they are anti-correlated. If steps extinguish each other, the step-size
+        should be decreased.
+      • Whenever the evolution path is long, the single steps are pointing to similar directions
+        (Fig. 5, right). Loosely speaking, they are correlated. Because the steps are similar, the
+        same distance can be covered by fewer but longer steps into the same directions. In the
+        limit case, when consecutive steps have identical direction, they can be replaced by any
+        of the enlarged single step. Consequently, the step-size should be increased.
+      • In the desired situation the steps are (approximately) perpendicular in expectation and
+        therefore uncorrelated (Fig. 5, middle).
+    19 Because recombination then reduces the size of the realized step by a factor of √µ or √µ
+                                                                                               eff (under random
+                                                                                    √            √
+selection or in large dimension), the effective optimal steps are proportional to       µ or 1.25 µeff , respectively.
+
+
+
+                                                          19
+Figure 5: Three evolution paths of respectively six steps from different selection situations
+(idealized). The lengths of the single steps are all comparable. The length of the evolution
+paths (sum of steps) is remarkably different and is exploited for step-size control
+
+
+To decide whether the evolution path is “long” or “short”, we compare the length of the path
+with its expected length under random selection20 , where consecutive steps are independent
+and therefore uncorrelated (uncorrelated steps are the desired situation). If selection biases the
+evolution path to be longer then expected, σ is increased, and, vice versa, if selection biases
+the evolution path to be shorter than expected, σ is decreased. In the ideal situation, selection
+does not bias the length of the evolution path and the length equals its expected length under
+random selection.
+     In practice, to construct the evolution path, pσ , the same techniques as in (24) are applied.
+In contrast to (24), a conjugate evolution path is constructed, because the expected length
+of the evolution path pc from (24) depends on its direction (compare (25)). Initialized with
+  (0)
+pσ = 0, the conjugate evolution path reads
+                                                    p                            − 12   m(g+1) − m(g)
+               p(g+1)
+                σ               =   (1 − cσ )p(g)
+                                              σ +       cσ (2 − cσ )µeff C (g)                            (31)
+                                                                                           cm σ (g)
+where
+    (g)
+ pσ ∈ Rn is the conjugate evolution path at generation g.
+ cσ < 1. Again, 1/cσ is the backward time  √ horizon of the evolution path (compare (20)). For
+      small µeff , a time horizon between n and n is reasonable.
+ p
+   cσ (2 − cσ )µeff is a normalization constant, see (24).
+      − 1 def             −1     T                              2     T
+ C (g) 2 = B (g) D (g) B (g) , where C (g) = B (g) D (g) B (g) is an eigendecompo-
+      sition of C (g) , where B (g) is an orthonormal basis of eigenvectors, and the diagonal
+      elements of the diagonal matrix D (g) are square roots of the corresponding positive
+      eigenvalues (cf. Sect. 0.1).
+  20 Random selection means that the index i : λ (compare (6)) is independent of the value of x(g+1) for all i =
+                                                                                               i:λ
+1, . . . , λ, e.g. i : λ = i.
+
+
+
+
+                                                           20
+                                          −1                                                                             − 21
+For C (g) = I, we have C (g) 2 = I and (31) replicates (24). The transformation C (g)
+re-scales the step m(g+1) − m(g) within the coordinate system given by B (g) .
+                                                                      −1                   −1         T
+        The single factors of the transformation C (g)                 2
+                                                                           = B (g) D (g)        B (g) can be explained
+        as follows (from right to left):
+                   T
+         B (g) rotates the space such that the columns of B (g) , i.e. the principal axes of the
+              distribution N(0, C (g) ), rotate into the coordinate axes. Elements of the resulting
+              vector relate to projections onto the corresponding eigenvectors.
+                   −1
+         D (g)          applies a (re-)scaling such that all axes become equally sized.
+             (g)
+         B       rotates the result back into the original coordinate system. This last transforma-
+               tion ensures that the principal axes of the distribution are not rotated by the overall
+               transformation and directions of consecutive steps are comparable.
+
+                                                    −1                                                    (g+1)
+Consequently, the transformation C (g) 2 makes the expected length of pσ          independent of
+                                                                      (g)
+its direction, and for any sequence of realized covariance matrices C g=0,1,2,... we have under
+                            (g+1)                               (0)
+random selection pσ       ∼ N (0, I), given pσ ∼ N (0, I) [13].
+                                      (g+1)
+   To update σ (g) , we “compare” kpσ       k with its expected length EkN (0, I) k, that is
+                                                                     !
+                                                         (g+1)
+                                              cσ      kp σ     k
+                      ln σ (g+1) = ln σ (g) +                     −1 ,                       (32)
+                                              dσ EkN (0, I) k
+
+where
+ dσ ≈ 1, damping parameter, scales the change magnitude of ln σ (g) . The factor cσ /dσ /EkN (0, I) k
+     is based on in-depth investigations of the algorithm [13].
+                √                     √
+ EkN (0, I) k = 2 Γ( n+1        n
+                         2 )/Γ( 2 ) ≈   n + O(1/n), expectation of the Euclidean norm of a
+     N (0, I) distributed random vector.
+
+        (g+1)
+For kpσ     k = EkN (0, I) k the second summand in (32) is zero, and σ (g) is unchanged,
+                            (g+1)                                                (g+1)
+       (g)
+while σ is increased for kpσ      k > EkN (0, I) k, and σ (g) is decreased for kpσ     k<
+EkN (0, I) k.
+                                                                            (g+1) 2
+        Alternatively, we might use the squared norm kpσ                           k in (32) and compare with its
+        expected value n [5]. In this case (32) would read
+                                                                                                  !
+                                                                                (g+1) 2
+                                      (g+1)               (g)      cσ        kpσ       k
+                               ln σ            =   ln σ         +                          −1         .           (33)
+                                                                  2dσ              n
+
+        This update performs rather similar to (32), while it presumable leads to faster step-size
+        increments and slower step-size decrements.
+                                                                                
+    The step-size change is unbiased on the log scale, because E ln σ (g+1) σ (g) = ln σ (g)
+     (g+1)
+for pσ      ∼ N (0, I). The role of unbiasedness is discussed in Sect. 5. Equations (31)
+                                                                                        −1
+and (32) cause successive steps of the distribution mean m(g) to be approximately C (g) -
+conjugate.
+
+
+                                                                21
+                                                                                  −1
+         In order to show that successive steps are approximately C (g) -conjugate first we re-
+                                                                    (g+1)
+         mark that (31) and (32) adapt σ such that the length of pσ       equals approximately
+                                                                         (g+1) 2            (g+1) T    (g+1)
+         EkN (0, I) k.     Starting from (EkN (0, I) k)2 ≈ kpσ                k     = pσ              pσ           =
+                                                                                                  1
+               T                                                                            (g) − 2        (g+1)
+         RHS RHS of (31) and assuming that the expected squared length of C                           (m           −
+         m(g) ) is unchanged by selection (unlike its direction) we get
+                                          T         −1
+                                     p(g)
+                                      σ   C (g)      2
+                                                          (m(g+1) − m(g) ) ≈ 0 ,                               (34)
+         and                                T
+                                     1                −1
+                                                                       
+                               C (g) 2 pσ(g)    C (g)      m(g+1) − m(g) ≈ 0 .                                 (35)
+
+                                                                    (g−1) T    −1
+         Given 1/(c1 + cµ )  1 and (34) we assume also pσ    C (g) 2 (m(g+1) − m(g) ) ≈ 0
+         and derive                       T     −1
+                                                                  
+                           m(g) − m(g−1) C (g)        m(g+1) − m(g) ≈ 0 .              (36)
+                                                                                                −1
+         That is, the steps taken by the distribution mean become approximately C (g)                 -conjugate.
+
+
+Because σ (g) > 0, (32) is equivalent to
+                                                                                       !!
+                                                                     (g+1)
+                                 (g+1)        (g)           cσ     kpσ     k
+                             σ           =σ         exp                        −1                                      (37)
+                                                            dσ    EkN (0, I) k
+
+
+   The length of the evolution path is an intuitive and empirically well validated goodness
+measure for the overall step length. For µeff > 1 it is the best measure to our knowledge.21
+Nevertheless, it fails to adapt nearly optimal step-sizes on very noisy objective functions [7].
+
+
+5       Discussion
+The CMA-ES is an attractive option for non-linear optimization, if “classical” search meth-
+ods, e.g. quasi-Newton methods (BFGS) and/or conjugate gradient methods, fail due to a
+non-convex or rugged search landscape (e.g. sharp bends, discontinuities, outliers, noise, and
+local optima). Learning the covariance matrix in the CMA-ES is analogous to learning the in-
+verse Hessian matrix in a quasi-Newton method. In the end, any convex-quadratic (ellipsoid)
+objective function is transformed into the spherical function fsphere . This can reduce the num-
+ber of f -evaluations needed to reach a target f -value on ill-conditioned and/or non-separable
+problems by orders of magnitude.
+    The CMA-ES overcomes typical problems that are often associated with evolutionary al-
+gorithms.
+     1. Poor performance on badly scaled and/or highly non-separable objective functions.
+        Equation (30) adapts the search distribution to badly scaled and non-separable prob-
+        lems.
+    21 Recently, two-point adaptation has shown to achieve similar performance [20].
+
+
+
+
+                                                             22
+   2. The inherent need to use large population sizes. A typical, however intricate to diagnose
+      reason for the failure of population based search algorithms is the degeneration of the
+      population into a subspace.22 This is usually prevented by non-adaptive components in
+      the algorithm and/or by a large population size (considerably larger than the problem
+      dimension). In the CMA-ES, the population size can be freely chosen, because the
+      learning rates c1 and cµ in (30) prevent the degeneration even for small population sizes,
+      e.g. λ = 9. Small population sizes usually lead to faster convergence, large population
+      sizes help to avoid local optima.
+   3. Premature convergence of the population. Step-size control in (37) prevents the pop-
+      ulation to converge prematurely. It does not prevent the search to end up in a local
+      optimum.
+Therefore, the CMA-ES is highly competitive on a considerable number of test functions
+[13, 21, 23, 25, 26] and was successfully applied to many real world problems.23
+    Finally, we discuss a few basic design principles that were applied in the previous sec-
+tions.
+
+Change rates We refer to a change rate as the expected parameter change per sampled
+search point, given a certain selection situation. To achieve competitive performance on a
+wide range of objective functions, the possible change rates of the adaptive parameters need
+to be adjusted carefully. The CMA-ES separately controls change rates for the mean value of
+the distribution, m, the covariance matrix, C, and the step-size, σ.
+
+     • The change rate for the mean value m, relative to the given sample distribution, is
+       determined by cm , and by the parent number and the recombination weights. The larger
+       µeff , the smaller is the possible change rate of m.24 Similar holds for most evolutionary
+       algorithms.
+     • The change rate of the covariance matrix C is explicitly controlled by the learning rates
+       c1 and cµ and therefore detached from parent number and population size. The learning
+       rate reflects the model complexity. In evolutionary algorithms, the explicit control of
+       change rates of the covariances, independently of population size and mean change, is
+       a rather unique feature.
+     • The change rate of the step-size σ is explicitly controlled by the damping parameter dσ
+       and is in particular independent from the change rate of C. The time constant 1/cσ ≤ n
+       ensures a sufficiently fast change of the overall step length in particular with small
+       population sizes.
+  22 The same problem can be observed with the downhill simplex method [32] in dimension, say, larger than ten.
+  23 The author stopped to maintain the growing list of (at the time 120) published references to applications in 2009.
+   24 Given λ 6 n, then the mean change per generation is roughly proportional to σ/√µ , while the optimal
+                                                                                                  eff
+                                                                                                                 √
+step-size σ is roughly proportional to µeff . Therefore, the net change with optimal step-size is proportional to µeff
+per generation. Now considering the effect on the resulting convergence rate, a closer approximation of the gradient
+                       √
+adds another factor of µeff , such that the generational progress rate is proportional to µeff . Given λ/µeff ≈ 4, we
+have the remarkable result that the convergence rate per f -evaluation is roughly independent of λ.
+
+
+
+
+                                                         23
+Invariance Invariance properties of a search algorithm denote identical behavior on a set, or
+a class of objective functions. Invariance is an important property of the CMA-ES.25 Trans-
+lation invariance should be taken for granted in continuous domain optimization. Translation
+invariance means that the search behavior on the function x 7→ f (x + a), x(0) = b − a, is
+independent of a ∈ Rn . Further invariances, e.g. invariance to certain linear transformations
+of the search space, are highly desirable: they imply uniform performance on classes of func-
+tions26 and therefore allow for generalization of empirical results. In addition to translation
+invariance, the CMA-ES exhibits the following invariances.
+     • Invariance to order preserving (i.e. strictly monotonic) transformations of the objective
+       function value. The algorithm only depends on the ranking of function values.
+     • Invariance to angle preserving (rigid) transformations of the search space (rotation, re-
+       flection, and translation) if the initial search point is transformed accordingly.
+     • Scale invariance if the initial scaling, e.g. σ (0) , and the initial search point, m(0) , are
+       chosen accordingly.
+     • Invariance to a scaling of variables (diagonal invariance) if the initial diagonal covari-
+       ance matrix C (0) , and the initial search point, m(0) , are chosen accordingly.
+     • Invariance to any invertible linear transformation of the search space, A, if the initial
+                                                 T
+       covariance matrix C (0) = A−1 A−1 , and the initial search point, m(0) , are trans-
+       formed accordingly. Together with translation invariance, this can also be referred to as
+       affine invariance, i.e. invariance to affine search space transformations.
+Invariance should be a fundamental design criterion for any search algorithm. Together with
+the ability to efficiently adapt the invariance governing parameters, invariance is a key to
+competitive performance.
+
+Stationarity or Unbiasedness An important design criterion for a randomized search proce-
+dure is unbiasedness of variations of object and strategy parameters [8, 26]. Consider random
+selection, e.g. the objective function f (x) = rand to be independent of x. Then the popula-
+tion
+   mean is unbiased if its expected value remains unchanged in the next generation, that is
+E m(g+1) m(g) = m(g) . For the population mean, stationarity under random selection is
+a rather intuitive concept. In the CMA-ES, stationarity is respected for all parameters that ap-
+pear in the basic equation (5). The distribution mean m, the covariance matrix C, and ln σ are
+unbiased.
+           Unbiasedness
+                          of ln σ does not imply that σ is unbiased. Under random selection,
+E σ (g+1) σ (g) > σ (g) , compare (32).27
+    For distribution variances (or step-sizes) a bias toward increase or decrease entails the
+risk of divergence or premature convergence, respectively, whenever the selection pressure is
+low or when no improvements are observed. On noisy problems, a properly controlled bias
+towards increase can be appropriate. It has the non-negligible disadvantage that the decision
+for termination becomes more difficult.
+  25 Special acknowledgments to Iván Santibán̄ez-Koref for pointing this out to me.
+   26 However, most invariances are linked to a state space transformation. Therefore, uniform performance is only
+
+observed after the state of the algorithm has been adapted.
+   27 Alternatively, if (37) were designed to be unbiased for σ (g+1) , this would imply that E ln σ (g+1) σ (g)
+                                                                                                                
+                                                                                                                   <
+ln σ (g) , in our opinion a less desirable alternative.
+
+
+                                                         24
+Acknowledgments
+The author wishes to gratefully thank Anne Auger, Christian Igel, Stefan Kern, and Fabrice
+Marchal for the many valuable comments on the manuscript.
+
+
+References
+ [1] Akimoto Y, Auger A, Hansen N. Quality gain analysis of the weighted recombination
+     evolution strategy on general convex quadratic functions. In Proceedings of the 14th
+     ACM/SIGEVO Conference on Foundations of Genetic Algorithms (FOGA ’17), pages
+     111–126. ACM, New York, NY, USA, 2017.
+ [2] Akimoto Y, Hansen N. Diagonal acceleration for covariance matrix adaptation evolution
+     strategies. Evolutionary computation, 28(3):405–435, 2020.
+ [3] Auger A, Hansen N. A restart CMA evolution strategy with increasing population size.
+     In Proceedings of the IEEE Congress on Evolutionary Computation, 2005.
+ [4] Arnold DV. Weighted multirecombination evolution strategies. Theoretical computer
+     science, 361.1:18–37, 2006.
+ [5] Arnold DV, Beyer HG. Performance analysis of evolutionary optimization with cumu-
+     lative step length adaptation. IEEE Transactions on Automatic Control, 49(4):617–622,
+     2004.
+ [6] Beyer HG. The Theory of Evolution Strategies. Springer, Berlin, 2001.
+
+ [7] Beyer HG, Arnold DV. Qualms regarding the optimality of cumulative path length con-
+     trol in CSA/CMA-evolution strategies. Evolutionary Computation, 11(1):19–28, 2003.
+ [8] Beyer HG, Deb K. On self-adaptive features in real-parameter evolutionary algorithms.
+     IEEE Transactions on Evolutionary Computation, 5(3):250–270, 2001.
+
+ [9] Collange G, Delattre N, Hansen N, Quinquis I, Schoenauer M. Multidisciplinary op-
+     timisation in the design of future space launchers. In Breitkopf and Coelho, editors,
+     Multidisciplinary Design Optimization in Computational Mechanics, chapter 12, pages
+     487–496. Wiley, 2010.
+[10] Dufossé P, Hansen N. Augmented Lagrangian, penalty techniques and surrogate mod-
+     eling for constrained optimization with CMA-ES. In Proceedings of the Genetic and
+     Evolutionary Computation Conference (GECCO ’21), pages 519–527, 2021.
+[11] Gissler A, Auger A, Hansen N. Learning rate adaptation by line search in evolution
+     strategies with recombination. In Proceedings of the Genetic and Evolutionary Compu-
+     tation Conference (GECCO ’22), pages 630–638. ACM, New York, NY, USA, 2022.
+
+[12] Glasmachers T, Schaul T, Yi S, Wierstra D, Schmidhuber J. Exponential natural evolu-
+     tion strategies. In Proceedings of the 12th annual Genetic and Evolutionary Computation
+     Conference, GECCO, pages 393–400. ACM, 2010.
+
+
+                                            25
+[13] Hansen N. Verallgemeinerte individuelle Schrittweitenregelung in der Evolutionsstrate-
+     gie. Mensch und Buch Verlag, Berlin, 1998.
+[14] Hansen N. Invariance, self-adaptation and correlated mutations in evolution strategies.
+     In Schoenauer M, Deb K, Rudolph G, Yao X, Lutton E, Merelo JJ, Schwefel HP, editors,
+     Parallel Problem Solving from Nature - PPSN VI, pages 355–364. Springer, 2000.
+[15] Hansen N. The CMA evolution strategy: a comparing review. In Lozano JA, Larranaga P,
+     Inza I, and Bengoetxea E, editors, Towards a new evolutionary computation. Advances
+     on estimation of distribution algorithms, pages 75–102. Springer, 2006.
+[16] Hansen N. Benchmarking a BI-Population CMA-ES on the BBOB-2009 Function
+     Testbed. In the workshop Proceedings of the Genetic and Evolutionary Computation
+     Conference, GECCO, pages 2389–2395. ACM, 2009.
+[17] Hansen N. Variable Metrics in Evolutionary Computation. Habilitation à diriger des
+     recherches, Université Paris-Sud, 2010.
+[18] Hansen N. Injecting External Solutions Into CMA-ES. CoRR, arXiv:1110.4181, 2011.
+[19] Hansen N, Auger A. Principled design of continuous stochastic search: From theory
+     to practice. In Y Borenstein and A Moraglio, eds.: Theory and Principled Methods for
+     Designing Metaheustics. Springer, pages 145–180, 2014.
+[20] Hansen N, Atamna A, Auger A. How to Assess Step-Size Adaptation Mechanisms in
+     Randomised Search. In Parallel Problem Solving from Nature – PPSN XIII, pages 60–69.
+     Springer, 2014.
+[21] Hansen N, Kern S. Evaluating the CMA evolution strategy on multimodal test functions.
+     In Xin Yao et al., editors, Parallel Problem Solving from Nature – PPSN VIII, pages
+     282–291. Springer, 2004.
+[22] Hansen N, Niederberger SPN, Guzzella L, Koumoutsakos P. A method for handling
+     uncertainty in evolutionary optimization with an application to feedback control of com-
+     bustion. IEEE Transactions on Evolutionary Computation, 13(1):180–197, 2009.
+[23] Hansen N, Müller SD, Koumoutsakos P. Reducing the time complexity of the deran-
+     domized evolution strategy with covariance matrix adaptation (CMA-ES). Evolutionary
+     Computation, 11(1):1–18, 2003.
+[24] Hansen N, Ostermeier A. Adapting arbitrary normal mutation distributions in evolution
+     strategies: The covariance matrix adaptation. In Proceedings of the 1996 IEEE Confer-
+     ence on Evolutionary Computation (ICEC ’96), pages 312–317, 1996.
+[25] Hansen N, Ostermeier A. Convergence properties of evolution strategies with the deran-
+     domized covariance matrix adaptation: The (µ/µI , λ)-CMA-ES. In Proceedings of the
+     5th European Congress on Intelligent Techniques and Soft Computing, pages 650–654,
+     1997.
+[26] Hansen N, Ostermeier A. Completely derandomized self-adaptation in evolution strate-
+     gies. Evolutionary Computation, 9(2):159–195, 2001.
+
+
+                                             26
+[27] Hansen N, Ros R. Benchmarking a weighted negative covariance matrix update on the
+     BBOB-2010 noiseless testbed. In Proceedings companion of the 12th annual Genetic
+     and Evolutionary Computation Conference, GECCO, pages 1673–1680. ACM, 2010.
+[28] Jastrebski G, Arnold DV. Improving evolution strategies through active covariance ma-
+     trix adaptation. In Proceedings of the 2006 IEEE Congress on Evolutionary Computa-
+     tion, CEC, pages 2814–2821. IEEE, 2006.
+[29] Kern S, Müller SD, Hansen N, Büche D, Ocenasek J, Koumoutsakos P. Learning proba-
+     bility distributions in continuous evolutionary algorithms – a comparative review. Natu-
+     ral Computing, 3:77–112, 2004.
+
+[30] Larrañaga P. A review on estimation of distribution algorithms. In P. Larrañaga and J. A.
+     Lozano, editors, Estimation of Distribution Algorithms, pages 80–90. Kluwer Academic
+     Publishers, 2002.
+[31] Larrañaga P, Lozano JA, Bengoetxea E. Estimation of distribution algorithms based
+     on multivariate normal and Gaussian networks. Technical report, Dept. of Computer
+     Science and Artificial Intelligence, University of the Basque Country, 2001. KZAA-IK-
+     1-01.
+[32] Nelder JA, Mead R. A simplex method for function minimization. The Computer Journal
+     7.4:308-313, 1965.
+[33] Rechenberg I. Evolutionsstrategie ’94. Frommann-Holzboog, Stuttgart, Germany, 1994.
+
+[34] Rubenstein RY, Kroese DP. The Cross-Entropy Method: a unified approach to combina-
+     torial optimization, Monte-Carlo simulation, and machine learning. Springer, 2004.
+[35] Suttorp T, Hansen N, Igel C. Efficient Covariance Matrix Update for Variable Metric
+     Evolution Strategies. Machine Learning 75(2): 167–197, 2009.
+
+
+
+
+                                              27
+A         Algorithm Summary: The (µ/µW , λ)-CMA-ES
+Figure 6 outlines the complete algorithm28 , summarizing (5), (9), (24), (30), (31), and (37).
+Used symbols, in order of appearance, are:
+ y k ∼ N (0, C), for k = 1, . . . , λ, are realizations from a multivariate normal distribution
+      with zero mean and covariance matrix C.
+ B, D result from an eigendecomposition of the covariance matrix C with C = BD 2 B T =
+     BDDB T (cf. Sect. 0.1). Columns of B are an orthonormal basis of eigenvectors. Di-
+     agonal elements of the diagonal matrix D are square roots of the corresponding positive
+     eigenvalues. While (39) can certainly be implemented using a Cholesky decomposition
+                                                                         1
+     of C, the eigendecomposition is needed to correctly compute C − 2 = BD −1 B T for
+     (43) and (46).
+ xk ∈ Rn , for k = 1, . . . , λ. Sample of λ search points.
+        Pµ
+ hyiw = i=1 wi y i:λ , step of the distribution mean disregarding step-size σ.
+ y i:λ = (xi:λ − m)/σ, see xi:λ below.
+ xi:λ ∈ Rn , i-th best point out of x1 , . . . , xλ from (40). The index i : λ denotes the index of
+      the i-th ranked point, that is f (x1:λ ) ≤ f (x2:λ ) ≤ · · · ≤ f (xλ:λ ).
+                          Pλ
+ µ = |{wi | wi > 0}| = i=1 1(0,inf) (wi ) ≥ 1 is the number of strictly positive recombina-
+      tion weights.
+                  2 −1
+          Pµ                                                                         Pµ
+ µeff =      i=1 wi     is the variance effective selection mass, see (8). Because i=1 |wi | =
+      1, we have 1 ≤ µeff ≤ µ.
+      1   def
+ C − 2 = BD −1 B T , see B, D above. The matrix D can be inverted by inverting its di-
+                                                                − 12                    − 21
+         Pµ elements. From the definitions we find that C y i = Bz i , and C hyiw =
+      agonal
+      B i=1 wi z i:λ .
+                  √                      √
+ EkN (0, I) k = 2 Γ( n+1           n                1      1
+                                                              
+                           2 )/Γ( 2 ) ≈    n 1 − 4n   + 21n  2 .
+
+                          kpσ k
+         (
+                                                  2
+            1 if √                    < (1.4 + n+1   )EkN (0, I) k
+ hσ =                 1−(1−cσ )2(g+1)                                , where g is the generation
+            0 otherwise
+      number. The Heaviside function hσ stalls the update of pc in (45) if kpσ k is large.
+      This prevents a too fast increase of axes of C in a linear surrounding, i.e. when the
+      step-size is far too small. This is useful when the initial step-size is chosen far too small
+      or when the objective function changes in time.
+ δ(hσ ) = (1 − hσ )cc (2 − cc ) ≤ 1 is of minor relevance. In the (unusual) case of hσ = 0, it
+      substitutes for the second summand from (45) in (47).
+ P       Pλ
+   wjP = i=1 wi is the sum of the recombination weights, see (49)–(53). We have −c   P 1 /cµ ≤
+        wj ≤ 1 and for the default population size λ, we meet the lower bound cµ wj =
+      −c1 .
+
+
+
+  28 With negative recombination weights in the covariance matrix, chosen here by default, the algorithm is sometimes
+
+denoted as aCMA-ES for active CMA [28].
+
+
+                                                        28
+Set parameters
+      Set parameters λ, wi=1...λ , cm , cσ , dσ , cc , c1 , and cµ according to Table 1.
+Initialization
+
+      Set evolution paths pσ = 0, pc = 0, covariance matrix C = I, and g = 0.
+      Choose distribution mean m ∈ Rn and step-size σ ∈ R>0 problem dependent.1
+Until termination criterion met, g ← g + 1
+    Sample new population of search points, for k = 1, . . . , λ
+
+                                   zk      ∼      N (0, I)                                                     (38)
+                                  yk       =      BDz k            ∼ N (0, C)                                  (39)
+                                                                                       2
+                                                                                           
+                                  xk       =      m + σy k            ∼ N m, σ C                               (40)
+
+    Selection and recombination
+                                µ
+                                X                                 µ
+                                                                  X
+                  hyiw    =            wi y i:λ       where              wi = 1, wi > 0 for i = 1 . . . µ      (41)
+                                 i=1                               i=1
+                                                                            µ
+                                                                            X
+                    m     ←     m + cm σ hyiw                 equals              wi xi:λ if cm = 1            (42)
+                                                                            i=1
+
+    Step-size control
+                                                                     1
+                                ← (1 − cσ )pσ + cσ (2 − cσ )µeff C − 2 hyiw
+                                                p
+                          pσ                                                                                   (43)
+                                                               
+                                             cσ     kpσ k
+                           σ    ← σ × exp                    −1                                                (44)
+                                             dσ EkN (0, I) k
+
+    Covariance matrix adaptation
+                                                p
+             pc    ← (1 − cc )pc + hσ            cc (2 − cc )µeff hyiw                                         (45)
+                                                                    − 21
+            wi◦    =     wi × (1 if wi ≥ 0 else n/kC                              2
+                                                                           y i:λ k )                           (46)
+                                                                                         Xλ
+                                                                  wj ) C + c1 pc pT          wi◦ y i:λ y T
+                                                              P
+             C     ← (1 + c1 δ(hσ ) − c1 − cµ                                     c + cµ                 i:λ (47)
+                          |           {z                           }                     i=1
+                                        usually equals to 0
+
+        1
+           The optimum should presumably be within the initial cube m ± 3σ(1, . . . , 1)T . If the optimum is ex-
+    pected to be in the initial search interval [a, b]n we may choose the initial search point, m, uniformly randomly
+    in [a, b]n , and σ = 0.3(b − a). Different search intervals ∆si for different variables can be reflected by a
+    different initialization of C, in that the diagonal elements of C obey cii = (∆si )2 . However, the ∆si should
+    not disagree by several orders of magnitude. Otherwise a scaling of the variables should be applied.
+
+
+            Figure 6: The (µ/µW , λ)-CMA Evolution Strategy. Symbols: see text
+
+
+                                                         29
+Default Parameters The (external) strategy parameters are λ, wi=1...λ , cm , cσ , dσ , cc , c1 ,
+and cµ . Default strategy parameter values are given in Table 1. An in-depth discussion of most
+parameters is given in [26].
+    The given setting for the default negative weights was introduced in 2016. The setting is
+somewhere between uniform weights [28] and mirrors of the positive weight values [4, 27].
+The choice is a compromise between avoiding increasingly large negative values which lead
+to a large variance reduction in a single direction in C while still giving emphasis on the
+selection differences in particular for weights close to the median rank. We attempt to scale
+all negative weights such that the factor in front of C in (47) becomes 1. That is, we have by
+default no decay on C and the variance added to the covariance matrix by the positive updates
+equals, in expectation, to the variance removed by the negative updates.
+                                              P
+      Specifically, we want to achieve c1 + cµ   wj = 0, that is
+                                                P
+                                       c1 = −cµ wj
+                                              X            X           
+                                   c1 /cµ = −      |wj |+ −      |wj |−
+                                                 X
+                                   c1 /cµ = −1 +     |wj |−
+                                            X
+                               1 + c1 /cµ =    |wj |− ,
+
+      hence the multiplier αµ− in (53) is set to 1 + c1 /cµ .
+                                                                                     P            2 P
+                                                                                          λ
+           Choosing |wj |− in the order of 1 is only viable if µeff 6 µ−                             / λi=µ+1 wi 2 ,
+                       P
+                                                                              eff =       i=µ+1 wi
+      that is, if the variance effective update information from positive weights, µeff , is not much
+      larger than that from negative weights, µ−                                  −
+                                                   eff . In the default setting, µeff is about 1.2 to 1.5
+      times larger than µeff , because the curve wi versus i flattens out for increasing i. In (53)
+      we use the bound αµ−eff , see (51), to (i) get a meaningful value for any choices of wi0 , and
+      (ii) preserve the effect from letting cµ go to zero (eventually turning off the covariance
+      matrix adaptation entirely).
+           The apparent circular dependency between wi , αµ− , cµ , µeff , and again wi can be re-
+      solved: the variance effective selection mass µeff depends only on thePrelative relation        be-
+      tween the positive weights, such that µeff (w1...λ ) = µeff (w1...µ ) = ( µ              2 Pµ
+                                                                                      i=1 wi ) /
+                                                                                                         2
+                                                                                                   i=1 wi =
+              0
+      µeff (w1...µ  ). That is, µeff and µ−
+                                          eff can be computed    already  from   w 0
+                                                                                   i of (49), from which
+      cµ can be computed, from which αµ− can be computed, from which the remaining negative
+      weights wi can be computed.
+
+Finally, we also bound the negative weights via (53) to guaranty positive definiteness of C
+via (46), thereby, possibly, re-introducing a decay on C. With the default setting for popu-
+                                                   −
+lation size λ and the default raw weight values, αpos def in Equation (53) leaves the weights
+unchanged.
+
+      Specifically, to guaranty positive definiteness of the covariance matrix, we can bound the
+      maximal variance subtracted in a single direction by the variance remaining after the
+      decay  on C P is applied in (47), disregarding any added variance (worst case). Defining
+         |wi |− = λi=µ+1 |wi | to be the sum of the absolute values of all negative weights, and
+      P
+      assuming a (Mahalanobis-)variance of n from each negative summand of the weighted
+      sum in (47), we require
+                      X                                                    X
+                         |wi |− < 1 − c1 − wj cµ = 1 − c1 − cµ + cµ             |wi |− .
+                                             P
+                ncµ                                                                         (59)
+
+
+                                                     30
+                                                                                            ( µ   w0 )2
+                                                                                             P
+Table 1: Default Parameters (in 2016), where µ = |{wi > 0}| = bλ/2c, µeff = Pi=1   µ
+                                                                                        i
+                                                                                        02  ∈
+                                                                                   i=1 wi
+                  Pλ       0 2
+                 ( i=µ+1 wi )   Pµ
+[1, µ], µ−                                             |wj |+ is the sum of all positive, and
+                                                    P
+         eff =
+                  Pλ
+                         wi02
+                               , i=1 wi = 1, and
+                   i=µ+1
+− |wj |− the sum of all negative wj -values, i.e., αµ− =
+   P                                                          P 0 −
+                                                                 |wj | ≥ 0. Apart from wi
+for i > µ, all parameters are taken from [16] with only minor modifications
+ Selection and Recombination:
+
+                             λ     =    4 + b3 ln nc         can be increased                         (48)
+
+                           λ+1
+          wi0     =   ln       − ln i      for i = 1, . . . , λ     preliminary convex shape          (49)
+                            2
+
+                αµ− = 1 + c1 /cµ                                                    |wi |− be 0
+                                                       P                        P
+                                         let c1 + cµ       wi = c1 + cµ − cµ                          (50)
+                              2µ−
+            αµ−eff = 1 +        eff
+                                                         |wi |− to be compliant with cµ (µeff )
+                                                    P
+                                            bound                                                     (51)
+                        µeff + 2
+                    1 − c1 − cµ             bound |wi |− to guaranty positive
+                                                   P
+          −
+         αpos def =                                                                                   (52)
+                        n cµ                definiteness
+
+               1        0
+            P |w0 |+ wi
+           
+                                                      if wi0 ≥ 0     positive weights sum to one
+                  j
+    wi   =                       −
+             min(αµ− , αµ−eff , αpos                                                                  (53)
+                                     def ) 0                          negative weights usually
+                                          wi           if wi0 < 0
+           
+                                                                      sum to −αµ−
+                   P 0 −
+                        |wj |
+           
+
+                                                  cm = 1                                              (54)
+Step-size control:
+                                     µeff + 2
+                            cσ =
+                                   n + µeff + 5
+                                                                                                      (55)
+                                                       r                 !
+                                                           µeff − 1
+                            dσ = 1 + 2 max 0,                       −1       + cσ
+                                                            n+1
+Covariance matrix adaptation:
+                                                   4 + µeff /n
+                                          cc =                                                        (56)
+                                                 n + 4 + 2µeff /n
+                                             αcov
+                              c1 =                            with αcov = 2                           (57)
+                                       (n + 1.3)2 + µeff
+                                                               
+                                       1/4 + µeff + 1/µeff − 2
+                cµ = min 1 − c1 , αcov                                        with αcov = 2           (58)
+                                        (n + 2)2 + αcov µeff /2
+
+
+
+
+                                                    31
+                         |wi |− yields
+                     P
+       Solving for
+                                          X              1 − c1 − cµ
+                                              |wi |− <               .                              (60)
+                                                          (n − 1)cµ
+                         1−c1 −cµ
+       We use min(. . . ,   ncµ
+                                  ) as multiplier for setting wi=µ+1...λ in (53) and normalize
+       the variance from each respective summand y i:λ y Ti:λ via (46) to n, thereby bounding the
+       variance reduction from negative weight values to the factor n−1
+                                                                      n
+                                                                         .
+A Python implementation of the slightly intricate computation of the weights (49)–(53) can
+be found here.
+    The cumulation parameter cc for (56) √ is chosen ∝ 1/n. For learning a single direction in
+(almost) linear time, the setting cc ∝ 1/ n seems sufficient [19]. Larger values are in general
+more robust to avoid feedback oscillations or instabilities and might allow for more freedom in
+the setting of c1 . However, on the cigar function the relationship between cc times dimension
+(cc × n) and the evaluations divided by dimension to reach a given target becomes perfectly
+invariant with increasing dimension.29
+    Adopting a technique from [35, Eq. (11)], a generalized setting reads
+
+                                              αc (n) + (µeff /n)βc
+                                   cc =                                .                                   (61)
+                                          nβc + αc (n) + 2 (µeff /n)βc
+                          −1/3
+With αc (n) = 101−n        and βc = 1, the setting is slightly more robust in larger dimension
+but remains invariant, see Figure 7. When not all parameters of C are subject to adaptation
+and 1/c1 = o(n1.5 ), we suspect that βc < 1 is the reasonable choice. The last summand of the
+denominator of (61) is chosen such that cc approaches 1/2 when µeff /n approaches infinity.
+    Similarly, the second summand of the denominator of (58), αcov µeff /2, is chosen such that
+cµ approaches one when αcov µeff approaches 2 = 2/(2 − 1) times the first summand.
+    Another technique, namely setting parameters depending on the degrees of freedom is
+developed in [2].
+    The default parameters of (53)–(58) are in particular chosen to be a robust setting and
+therefore, to our experience, applicable to a wide range of functions to be optimized. We do
+not recommend to change this setting, apart from increasing the population size λ in (48),30
+and possibly decreasing αcov on noisy functions. If the λ-dependent default values for wi are
+used as given, the population size λ has a significant influence on the global search perfor-
+mance [21]. Increasing λ usually improves the global search capability and the robustness
+of the CMA-ES, at the price of a reduced convergence speed. The convergence speed (per
+function evaluation) decreases at most linearly with λ. Independent restarts with increasing
+population size [3], automated or manually conducted, are a useful policy to perform well on
+most problems.
+
+
+B      Implementational Concerns
+We discuss a few implementational questions.
+  29 This invariance remains almost perfect when the learning rates c and c are chosen ∝ n−1.5 instead of ∝ n−2
+                                                                     1     µ
+(∝ n−1.5 is however not a reliable setting). It changes to about cc × n1/2 when only the diagonal elements of the
+covariance matrix are adapted with a learning rate of ∝ 1/n.
+  30 Decreasing λ is not recommended. Too small values have strong adverse effects on the performance.
+
+
+
+
+                                                      32
+                       0.6
+                                                                  n=5
+                       0.4                                        n = 10
+                                                                                     10 2
+
+
+
+recombination weight
+                                                                  n = 25
+                       0.2                                        n = 100
+                       0.0                                                    1/cc   10 1
+                       0.2                                     17, − 0. 28
+
+                       0.4                                 13, − 0. 42
+
+                       0.6
+                                                 10, − 0. 63                         10 0
+                       0.80   2   4   6
+                                          8, − 0. 95
+                                          8 10 12 14 16 18                             10 0   10 1        10 2   10 3
+                                          index                                                      dimension
+
+Figure 7: Left: recombination weights from (53) in Table 1 for n = 5, 10, 25, 100. Also
+given are the (default) population size λ (corresponding to the last index) and the sum of
+weights. Positive weights sum to one.√ Right: backward time horizon 1/cc according to (56)
+(blue) and (61) (green), and n/4 and n (both dashed) plotted against dimension n. The blue
+line is above the green line by a factor of about 1.5, 2, 2.5 = 10/4 for n = 100, 1000, ∞,
+respectively.
+
+
+B.1                       Multivariate normal distribution
+Let the vector z ∼ N (0, I) have independent, (0, 1)-normally distributed components that
+can easily be sampled on a computer. To generate a random vector y ∼ N(0, C) for (39),
+we set y = BDz (see above symbol descriptions of B and D and Sects. 0.1 and 0.2, and
+                                                                                     1
+compare lines 52–53 and 83–84 in thePsource code below). Given y k = BDz k and C − 2 =
+                       1              µ
+BD −1 B T we have C − 2 hyiw = B i=1 wi z i:λ (compare (43) and lines 61 and 64 in the
+source code below).
+
+B.2                       Strategy internal numerical effort
+In practice, the re-calculation of B and D needs to be done not until about max(1, b1/(10n(c1 +
+cµ ))c) generations. For reasonable c1 + cµ values, this reduces the numerical effort due to the
+eigendecomposition from O(n3 ) to O(n2 ) per generated search point, that is the effort of a
+matrix vector multiplication.
+    On a Pentium 4, 2.5 GHz processor the overall strategy internal time consumption is
+roughly 3 × (n + 5)2 × 10−8 seconds per function evaluation [29].
+    Remark that it is not sufficient to compute a Cholesky decomposition of C, because then
+(43) cannot be computed correctly.
+
+B.3                       Termination criteria
+In general, the algorithm should be stopped whenever it becomes a waste of CPU-time to con-
+tinue, and it would be better to restart (eventually with increased population size [3]) or to
+reconsidering the encoding and/or objective function formulation. We recommend the follow-
+ing termination criteria [3, 16] that are mostly related to numerical stability:
+
+
+
+                                                                             33
+    • NoEffectAxis: stop if adding a 0.1-standard deviation vector in any principal axis
+      direction of C does not change m.31
+    • NoEffectCoord: stop if adding 0.2-standard deviations in any single coordinate does
+      not change m (i.e. mi equals mi + 0.2 σci,i for any i).
+
+    • ConditionCov: stop if the condition number of the covariance matrix exceeds 1014 .
+    • EqualFunValues: stop if the range of the best objective function values of the last
+      10 + d30n/λe generations is zero.
+    • Stagnation: we track a history of the best and the median fitness in each iteration
+      over the last 20% but at least 120 + 30n/λ and no more than 20 000 iterations. We stop,
+      if in both histories the median of the last (most recent) 30% values is not better than the
+      median of the first 30%.
+    • TolXUp: stop if σ ×max(diag(D)) increased by more than 104 . This usually indicates
+      a far too small initial σ, or divergent behavior.
+
+    Two other useful termination criteria should be considered problem dependent:
+
+    • TolFun: stop if the range of the best objective function values of the last 10+d30n/λe
+      generations and all function values of the recent generation is below TolFun. Choosing
+      TolFun depends on the problem, while 10−12 is a conservative first guess.
+    • TolX: stop if the standard deviation of the normal distribution is smaller than TolX
+      in all coordinates and σpc is smaller than TolX in all components. By default we set
+      TolX to 10−12 times the initial σ.
+
+B.4     Flat fitness
+In the case of equal function values for several individuals in the population, it is feasible
+to increase the step-size (see lines 92–96 in the source code below). This method can inter-
+fere with the termination criterion TolFun. In practice, observation of a flat fitness should
+be rather a termination criterion and consequently lead to a reconsideration of the objective
+function formulation.
+
+B.5     Boundaries and Constraints
+The handling of boundaries and constraints is to a certain extend problem dependent. We
+discuss a few principles and useful approaches.
+
+Best solution strictly inside the feasible domain If the optimal solution is not too close to
+      the infeasible domain, a simple and sufficient way to handle any type of boundaries and
+      constraints is
+   31 More formally, we terminate if m equals to m + 0.1 σd b , where i = (g mod n) + 1, and d2 and b are
+                                                               ii i                           ii     i
+respectively the i-th eigenvalue and eigenvector of C, with kbi k = 1.
+
+
+
+
+                                                   34
+        1. setting the fitness as
+                                    ffitness (x) = fmax + kx − xfeasible k ,                (62)
+           where fmax is larger than the worst fitness in the feasible population or in the
+           feasible domain (in case of minization) and xfeasible is a constant feasible point,
+           preferably in the middle of the feasible domain.
+        2. re-sampling any infeasible solution x until it become feasible.
+Repair available as for example with box-constraints.
+      Simple repair It is possible to simply repair infeasible individuals before the update
+          equations are applied. This is not recommended, because the CMA-ES makes
+          implicit assumptions on the distribution of solution points, which can be heavily
+          violated by a repair. The main resulting problem might be divergence or too fast
+          convergence of the step-size. However, a (re-)repair of changed or injected so-
+          lutions for their use in the update seems to solve the problem of divergence [18]
+          (clipping
+          √         the Mahalanobis distance of the step length to obey kx − mkσ2 C ≤
+             n + 2n/(n + 2) seems to be sufficient). Note also that repair mechanisms might
+          be intricate to implement, in particular if y or z are used for implementing the
+          update equations in the original code.
+      Penalization We evaluate the objective function on a repaired search point, xrepaired ,
+          and add a penalty depending on the distance to the repaired solution.
+                            ffitness (x) = f (xrepaired ) + α kx − xrepaired k2 .           (63)
+           The repaired solution is disregarded afterwards.
+           In case of box-boundaries, xrepaired is set to the feasible solution with the smallest
+           distance kx − xrepaired k. In other words, components that are infeasible in x are
+           set to the (closest) boundary value in xrepaired . A similar boundary handling with
+           a component-wise adaptive α is described in [22].
+No repair mechanism available The fitness of the infeasible search point x might similarly
+     compute to                                   X
+                       ffitness (x) = foffset + α    11ci >0 × ci (x)2                (64)
+                                                         i
+      where, w.l.o.g., the (non-linear) constraints ci : Rn → R, x 7→ ci (x) are satisfied for
+      ci (x) ≤ 0 , and the indicator function 11ci >0 equals to one for ci (x) > 0, zero oth-
+      erwise, and foffset = mediank f (xk ) equals, for example, to the median or 25%-tile
+      or best function value of the feasible points in the same generation. If no other infor-
+      mation is available, ci (x) might be computed as the squared distance of x to the best
+      or the closest feasible solution in the population or the closest known feasible solution.
+      The latter is reminiscent to the boundary repair above. This approach has not yet been
+      experimentally evaluated by the author. A different, slightly more involved approach
+      is given in [9]. Similar and more recent approaches [10] have already found there way
+      into the Python cma package.
+    In either case of (63) and (64), α should be chosen such that the differences in f and the
+differences in the second summand have a similar magnitude.
+
+
+                                                35
+C     MATLAB Source Code
+This code does not implement negative weights, that is, wi = 0 for i > µ in Table 1.
+  1 function xmin=purecmaes
+  2   % CMA-ES: Evolution Strategy with Covariance Matrix Adaptation for
+  3   % nonlinear function minimization.
+  4   %
+  5   % This code is an excerpt from cmaes.m and implements the key parts
+  6   % of the algorithm. It is intendend to be used for READING and
+  7   % UNDERSTANDING the basic flow and all details of the CMA *algorithm*.
+  8   % Computational efficiency is sometimes disregarded.
+  9
+ 10   % -------------------- Initialization --------------------------------
+ 11
+ 12   % User defined input parameters (need to be edited)
+ 13   strfitnessfct = ’felli’; % name of objective/fitness function
+ 14   N = 10;                   % number of objective variables/problem dimension
+ 15   xmean = rand(N,1);        % objective variables initial point
+ 16   sigma = 0.5;              % coordinate wise standard deviation (step-size)
+ 17   stopfitness = 1e-10; % stop if fitness < stopfitness (minimization)
+ 18   stopeval = 1e3*Nˆ2;    % stop after stopeval number of function evaluations
+ 19
+ 20   % Strategy parameter setting: Selection
+ 21   lambda = 4+floor(3*log(N)); % population size, offspring number
+ 22   mu = lambda/2;   % lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
+ 23   weights = log(mu+1/2)-log(1:mu)’;      % muXone recombination weights
+ 24   mu = floor(mu);       % number of parents/points for recombination
+ 25   weights = weights/sum(weights);        % normalize recombination weights array
+ 26   mueff=sum(weights)ˆ2/sum(weights.ˆ2); % variance-effective size of mu
+ 27
+ 28   % Strategy parameter setting: Adaptation
+ 29   cc = (4+mueff/N) / (N+4 + 2*mueff/N); % time constant for cumulation for C
+ 30   cs = (mueff+2)/(N+mueff+5); % t-const for cumulation for sigma control
+ 31   c1 = 2 / ((N+1.3)ˆ2+mueff); % learning rate for rank-one update of C and
+ 32   cmu = min(1-c1, 2*(mueff-2+1/mueff) / ((N+2)ˆ2+2*mueff/2)); % for rank-mu update
+ 33   damps = 1 + 2*max(0, sqrt((mueff-1)/(N+1))-1) + cs; % damping for sigma
+ 34
+ 36   % Initialize dynamic (internal) strategy parameters and constants
+ 37   pc = zeros(N,1); ps = zeros(N,1);    % evolution paths for C and sigma
+ 38   B = eye(N);                          % B defines the coordinate system
+ 39   D = eye(N);                          % diagonal matrix D defines the scaling
+ 40   C = B*D*(B*D)’;                      % covariance matrix
+ 41   eigeneval = 0;                       % B and D updated at counteval == 0
+ 42   chiN=Nˆ0.5*(1-1/(4*N)+1/(21*Nˆ2)); % expectation of
+ 43                                        %   ||N(0,I)|| == norm(randn(N,1))
+ 44
+ 45   % -------------------- Generation Loop --------------------------------
+ 46
+ 47   counteval = 0; % the next 40 lines contain the 20 lines of interesting code
+ 48   while counteval < stopeval
+ 49
+ 50     % Generate and evaluate lambda offspring
+ 51     for k=1:lambda,
+ 52       arz(:,k) = randn(N,1); % standard normally distributed vector
+ 53       arx(:,k) = xmean + sigma * (B*D * arz(:,k));    % add mutation     % Eq. 40
+ 54       arfitness(k) = feval(strfitnessfct, arx(:,k)); % objective function call
+ 55       counteval = counteval+1;
+ 56     end
+ 57
+ 58     % Sort by fitness and compute weighted mean into xmean
+ 59     [arfitness, arindex] = sort(arfitness); % minimization
+ 60     xmean = arx(:,arindex(1:mu))*weights;    % recombination             % Eq. 42
+ 61     zmean = arz(:,arindex(1:mu))*weights;    % == Dˆ-1*B’*(xmean-xold)/sigma
+ 62
+ 63     % Cumulation: Update evolution paths
+ 64     ps = (1-cs)*ps + (sqrt(cs*(2-cs)*mueff)) * (B * zmean);              % Eq. 43
+ 65     hsig = norm(ps)/sqrt(1-(1-cs)ˆ(2*counteval/lambda))/chiN < 1.4+2/(N+1);
+
+
+
+                                             36
+ 66     pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean);         % Eq. 45
+ 67
+ 68     % Adapt covariance matrix C
+ 69     C = (1-c1-cmu) * C ...                  % regard old matrix          % Eq. 47
+ 70          + c1 * (pc*pc’ ...                 % plus rank one update
+ 71                  + (1-hsig) * cc*(2-cc) * C) ... % minor correction
+ 72          + cmu ...                          % plus rank mu update
+ 73            * (B*D*arz(:,arindex(1:mu))) ...
+ 74            * diag(weights) * (B*D*arz(:,arindex(1:mu)))’;
+ 75
+ 76     % Adapt step-size sigma
+ 77     sigma = sigma * exp((cs/damps)*(norm(ps)/chiN - 1));                 % Eq. 44
+ 78
+ 79     % Update B and D from C
+ 80     if counteval - eigeneval > lambda/(cone+cmu)/N/10 % to achieve O(Nˆ2)
+ 81       eigeneval = counteval;
+ 82       C=triu(C)+triu(C,1)’; % enforce symmetry
+ 83       [B,D] = eig(C);        % eigen decomposition, B==normalized eigenvectors
+ 84       D = diag(sqrt(diag(D))); % D contains standard deviations now
+ 85     end
+ 86
+ 87     % Break, if fitness is good enough
+ 88     if arfitness(1) <= stopfitness
+ 89       break;
+ 90     end
+ 91
+ 92     % Escape flat fitness, or better terminate?
+ 93     if arfitness(1) == arfitness(ceil(0.7*lambda))
+ 94       sigma = sigma * exp(0.2+cs/damps);
+ 95       disp(’warning: flat fitness, consider reformulating the objective’);
+ 96     end
+ 97
+ 98     disp([num2str(counteval) ’: ’ num2str(arfitness(1))]);
+ 99
+100   end % while, end generation loop
+101
+102   % -------------------- Final Message ---------------------------------
+103
+104   disp([num2str(counteval) ’: ’ num2str(arfitness(1))]);
+105   xmin = arx(:, arindex(1)); % Return best point of last generation.
+106                               % Notice that xmean is expected to be even
+107                               % better.
+108
+109 % ---------------------------------------------------------------
+110 function f=felli(x)
+111   N = size(x,1); if N < 2 error(’dimension must be greater one’); end
+112   f=1e6.ˆ((0:N-1)/(N-1)) * x.ˆ2; % condition number 1e6
+
+
+
+
+                                            37
+D     Reformulation of Learning Parameter ccov
+For sake of consistency and clarity, we have reformulated the learning coefficients in (47) and
+replaced
+                                     ccov
+                                          with       c1                                    (65)
+                                     µcov
+                                       
+                                     1
+                        ccov 1 −          with       cµ   and                              (66)
+                                   µcov
+                                 1 − ccov   with     1 − c1 − cµ ,                         (67)
+
+and chosen (in (57) and (58))
+                                         2
+                       c1   =                                                              (68)
+                                 (n + 1.3)2 + µcov
+                                                     1
+                                                                       !
+                                         µcov − 2 + µcov
+                       cµ   =    min 2                      , 1 − c1       ,               (69)
+                                          (n + 2)2 + µcov
+
+The resulting coefficients are quite similar to the previous. In contrast to the previous formu-
+lation, c1 becomes monotonic in µ−1 eff and c1 + cµ becomes virtually monotonic in µeff .
+    Another alternative, depending only on the degrees of freedom in the covariance matrix
+and additionally correcting for very small λ, reads
+
+                                   min(1, λ/6)
+                       c1   =         √                                                    (70)
+                                 m + 2 m + µneff
+                                           αµ0 + µeff − 2 + µ1eff
+                                                                           !
+                       cµ   = min 1 − c1 ,         √                                       (71)
+                                             m + 4 m + µ2eff
+                      αµ0   =   0.3 ,                                                      (72)
+               2
+where m = n 2+n is the degrees of freedom in the covariance matrix. For µeff = 1, the
+coefficient cµ is now chosen to be larger than zero, as αµ0 > 0. Figure 8 compares the new
+learning rates with the old ones.
+
+
+
+
+                                              38
+           0
+       10
+
+
+
+
+           −1
+       10
+
+
+
+
+           −2
+       10
+
+
+
+
+           −3
+       10
+                2    4       6       8      10      12      14      16     18      20
+
+
+
+        0
+      10
+
+
+
+
+        −1
+      10
+
+
+
+
+        −2
+      10
+
+
+
+
+        −3
+      10
+
+
+
+
+                2    4       6       8      10      12      14     16      18      20
+
+
+Figure 8: Learning rates c1 , cµ (solid) and ccov (dash-dotted) versus µeff . Above: Equations
+(68) etc. for n = 3; 10. Below: Equations (70) etc. for n = 2; 40. Black: c1 √       + cµ and
+ccov ; blue: c1 and ccov /µcov ; green: cµ and (1 − 1/µcov )ccov ; cyan: 2/(n2 + 2); red:
+(c1 + cµ )/ccov , above divided by ten. For µcov ≈ 2 the difference is maximal, because c1
+decreases much slower with increasing µcov and ccov is non-monotonic in µcov (a main reason
+for the new formulation).
+
+
+                                             39
+

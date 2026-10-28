@@ -1,0 +1,2001 @@
+                                                                                                                                                             2024-4-12
+
+
+
+                                         Learning Agile Soccer Skills for a Bipedal
+                                         Robot with Deep Reinforcement Learning1
+                                         Tuomas Haarnoja,1∗+ Ben Moran,1∗ Guy Lever,1∗+ Sandy H. Huang,1∗ Dhruva Tirumala,12 Jan Humplik,1
+                                         Markus Wulfmeier,1 Saran Tunyasuvunakool,1 Noah Y. Siegel,1 Roland Hafner,1 Michael Bloesch,1 Kristian
+                                         Hartikainen,3 Arunkumar Byravan,1 Leonard Hasenclever,1 Yuval Tassa,1 Fereshteh Sadeghi,4 Nathan
+                                         Batchelor,1 Federico Casarini,1 Stefano Saliceti,1 Charles Game,1 Neil Sreendra, Kushal Patel, Marlon Gwira,
+                                         Andrea Huber,1 Nicole Hurley,5 Francesco Nori,1 Raia Hadsell,1 Nicolas Heess,1
+                                         1 Google DeepMind
+                                         2 University College London
+                                         3 Work completed at DeepMind; current affiliation: University of Oxford
+                                         4 Work completed at DeepMind; current affiliation: Google
+                                         5 Work completed at DeepMind; current affiliation: Isomorphic Labs
+
+
+
+
+arXiv:2304.13653v2 [cs.RO] 11 Apr 2024
+                                         ∗ Equal contribution
+                                         + To whom correspondence should be addressed;
+
+                                         E-mail: tuomash@google.com, guylever@google.com
+
+
+
+                                         We investigate whether Deep Reinforcement Learning (Deep RL) is able to synthesize sophisticated
+                                         and safe movement skills for a low-cost, miniature humanoid robot that can be composed into complex
+                                         behavioral strategies in dynamic environments. We used Deep RL to train a humanoid robot with 20
+                                         actuated joints to play a simplified one-versus-one (1v1) soccer game. The resulting agent exhibits
+                                         robust and dynamic movement skills such as rapid fall recovery, walking, turning, kicking and more;
+                                         and it transitions between them in a smooth, stable, and efficient manner. The agent’s locomotion
+                                         and tactical behavior adapts to specific game contexts in a way that would be impractical to manually
+                                         design. The agent also developed a basic strategic understanding of the game, and learned, for instance,
+                                         to anticipate ball movements and to block opponent shots. Our agent was trained in simulation and
+                                         transferred to real robots zero-shot. We found that a combination of sufficiently high-frequency control,
+                                         targeted dynamics randomization, and perturbations during training in simulation enabled good-quality
+                                         transfer. Although the robots are inherently fragile, basic regularization of the behavior during training
+                                         led the robots to learn safe and effective movements while still performing in a dynamic and agile
+                                         way—well beyond what is intuitively expected from the robot. Indeed, in experiments, they walked
+                                         181 % faster, turned 302 % faster, took 63 % less time to get up, and kicked a ball 34 % faster than a
+                                         scripted baseline, while efficiently combining the skills to achieve the longer term objectives.
+
+
+                                         Introduction
+                                         Creating general embodied intelligence, that is, creating agents that can act in the physical world
+                                         with agility, dexterity, and understanding—as animals or humans do—is one of the long-standing
+                                         goals of AI researchers and roboticists alike. Animals and humans are not just masters of their bodies,
+                                         able to perform and combine complex movements fluently and effortlessly, but they also perceive and
+                                         understand their environment and use their bodies to effect complex outcomes in the world.
+                                            Attempts at creating intelligent embodied agents with sophisticated motor capabilities go back
+                                         many years, both in simulation [1] and in the real world [2, 3]. Progress has recently accelerated
+                                         considerably, and learning-based approaches have contributed substantially to this acceleration [4, 5,
+                                            1 This is the author’s version of the work. It is posted here by permission of the AAAS for personal use, not for redistribu-
+                                         tion. The definitive version https://www.science.org/doi/10.1126/scirobotics.adi8022 was published in
+                                         Science Robotics on 2024-04-10, DOI: 10.1126/scirobotics.adi8022.
+
+
+
+                                         Corresponding author(s): tuomash@google.com, guylever@google.com
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning2
+
+
+
+6]. In particular, deep reinforcement learning (deep RL) has proven capable of solving complex motor
+control problems for both simulated characters [7, 8, 9, 10, 11] and physical robots. High-quality
+quadrupedal legged robots have become widely available and have been used to demonstrate behaviors,
+ranging from robust [12, 13] and agile [14, 15] locomotion to fall recovery [16], climbing [17], and
+basic soccer skills such as dribbling [18, 19], shooting [20], intercepting [21] or catching [22] a ball,
+and simple manipulation with legs [23]. On the other hand, much less work has been dedicated to the
+control of humanoids and bipeds, which impose additional challenges around stability, robot safety,
+number of degrees of freedom, and availability of suitable hardware. The existing learning-based
+work has been more limited and focused on learning and transfer of distinct basic skills such as
+walking [24], running [25], stair climbing [26], and jumping [27]. The state-of-the-art in humanoid
+control uses targeted model-based predictive control [28], thus limiting the generality of the method.
+    Our work focuses on learning-based full-body control of humanoids for long-horizon tasks. In
+particular, we used deep RL to train low-cost off-the-shelf robots to play multi-robot soccer well beyond
+the level of agility and fluency that is intuitively expected from this type of robot. Sports like soccer
+showcase many of the hallmarks of human sensorimotor intelligence, which has been recognized in
+the robotics community, especially through the RoboCup [29, 30] initiative. We consider a subset of
+the full soccer problem, and trained an agent to play simplified one-vs-one (1v1) soccer in simulation
+and directly deployed the learned policy on real robots (Figure 1). We focused on sensorimotor
+full-body control from proprioceptive and motion capture observations.
+
+
+
+
+Figure 1 | The robot soccer environment. We created matching simulated (left) and real (right) soccer environments. The
+pitch is 5m long by 4m wide. The real environment was also equipped with a motion capture (mocap) system for tracking
+the two robots and the ball.
+
+
+    The trained agent exhibited agile and dynamic movements, including walking, side stepping,
+kicking, fall recovery, ball interaction and more, and composed these skills smoothly and flexibly. The
+agent discovers surprising strategies which make more use of the full capabilities of the system than
+scripted alternatives, and which we may not even conceive of. An example of this is the emergent
+turning behavior, in which the robot pivots on the corner of a foot and spins, which would be
+challenging to script, and outperforms the more conservative baseline (see Comparison to Scripted
+Baseline Controllers). One further problem in robotics generally and robot soccer in particular is
+the fact that optimal behaviors are often context dependent in a way that can be hard to predict
+
+
+                                                                                                                     2
+                       Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning3
+
+
+
+and manually implement. We demonstrate that the learning approach can discover behaviors which
+are optimized to the specific game situation. Examples include context-dependent agile skills such
+as kicking a moving ball, emergent tactics such as subtle defensive running patterns, and footwork
+which adapts to the game situation such as taking shorter steps when approaching an attacker in
+possession of the ball compared to when chasing a loose ball (see Behavior Analysis). The agent
+learned to make predictions about the ball and the opponent, to adapt movements to the game context,
+and to coordinate them over long timescales for scoring, while being reactive to ensure dynamic
+stability. Our results also indicate that with appropriate regularization, domain randomization,
+and noise injected during training, safe sim-to-real transfer is possible even for low-cost robots.
+Example behaviors and game-play can be seen in the accompanying movies and on the website:
+https://sites.google.com/view/op3-soccer.
+    Our training pipeline consists of two stages: In the first stage, we trained two skill policies; one
+for getting up from the ground, and another for scoring a goal against an untrained opponent. In the
+second stage, we trained agents for the full 1v1 soccer task by distilling the skills and using multi-agent
+training in a form of self-play, where the opponent was drawn from a pool of partially-trained copies
+of the agent itself. Thus in the second stage, the agent learned to combine previously learned skills,
+refine them to the full soccer task, and predict and anticipate the opponent’s behavior. We utilized
+a small set of shaping rewards, domain randomization, and random pushes and perturbations to
+improve exploration and to facilitate safe transfer to real robots. An overview of the learning method
+is shown in Figure 2, Movie 1, discussed in Materials and Methods.
+
+
+
+
+Figure 2 | Agent training setup. We trained agents in two stages. In the first stage (left), we train a separate soccer skill
+and get-up skill (Stage 1: Skill Training). In the second stage (right), we distill these two skills into a single agent that
+can both get up from the ground and play soccer (Stage 2: Distillation and Self-Play). The second stage also incorporates
+self-play: the opponent is uniformly randomly sampled from saved policy snapshots from earlier in training. We found that
+this two-stage approach leads to qualitatively better behavior and improved sim-to-real transfer, compared to training an
+agent from scratch for the full 1v1 soccer task.
+
+
+    We found that pre-training separate soccer and get-up skills was the minimal set needed to succeed
+at the task. Learning end-to-end without separate soccer and get-up skills resulted in two degenerate
+solutions depending on the exact set-up: converging to either a poor locomotion local optimum of
+rolling on the ground or focusing on standing upright and failing to learn to score; see Ablations for
+more details. Using a pre-trained get-up skill simplified the reward design and exploration problem,
+and avoids poor locomotion local optima. More skills could be used, but we use pre-trained skills only
+when necessary since using a minimal set of skills allows emergent behaviors to be discovered by the
+
+
+                                                                                                                           3
+                     Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning4
+
+
+
+agent and optimized for specific contexts (highlighted in Comparison to Scripted Baseline Controllers
+and Behavior Analysis), rather than learning to sequence pre-specified behaviors.
+
+
+Results
+
+
+
+
+Figure 3 | Gallery of robot behaviors. Each row gives an example of a type of behavior that is observed when trained
+policies are deployed on real robots.
+
+
+
+
+                                                                                                                  4
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning5
+
+
+
+We evaluated the agent in a 1v1 soccer match on physical Robotis OP3 miniature humanoid robots
+[31], and analyzed the emergent behaviors. We isolated certain behaviors (walking, turning, getting
+up, and kicking), compared them to corresponding scripted baseline controllers (Comparison to
+Scripted Baseline Controllers), and qualitatively analyzed the behaviors in a latent space (Behavior
+Embeddings). To assess reliability, gauge performance gaps between simulation and reality, and study
+the sensitivity of the policy to game state, we also investigated selected set pieces (Behavior Analysis).
+Finally, we investigated the agent’s sensitivity to the observations of the ball, goal, and the opponent
+using value function analyses (Value Function Analysis).
+   Selected extracts from the 1v1 matches can be seen in Figure 3 and Movie 2. The agent exhibited
+a variety of emergent behaviors, including agile movement behaviors such as getting up from the
+ground, quick recovery from falls, running, and turning; object interaction such as ball control and
+shooting, kicking a moving ball, and blocking shots; and strategic behaviors such as defending by
+consistently placing itself between the attacking opponent and its own goal, and protecting the ball
+with its body. During play the agents transitioned between all of these behaviors fluidly.
+
+
+Comparison to Scripted Baseline Controllers
+
+Certain key locomotion behaviors, including getting up, kicking, walking, and turning are available
+for the OP3 robot [32], and we used these as baselines. The baselines are parameterized open-loop
+trajectories. For example, the walking controller, which can also perform turning, has tunable step
+length, step angle, step time, and joint offsets. We optimized the behaviors by performing a grid
+search over step length (for walking), step angle (for turning), and step time (for both) on a real
+robot. We adjusted the joint offsets where necessary to prevent the robot from losing balance or the
+feet colliding with each other. The kick and the get-up controllers are specifically designed for this
+robot and have no tunable parameters. To measure how well the learned deep RL agent performed
+on these key behaviors, we compared it both quantitatively and qualitatively against the baselines.
+See Movie 3 for an illustration of the baselines and a side-by-side comparison with the corresponding
+learned behaviors.
+
+                                                 Set Piece Performance
+                                   Scoring success rate                                 Mean time to first touch
+                              Sim env.              Real env.                         Sim env.           Real env.
+ Get-up and shoot           0.70 (0.07)                   0.58 (0.07)               4.6s (0.16s)              4.7s (0.14s)
+
+                                                    Behavior Analysis
+                          Walking speed                Turning speed               Get-up time              Kicking speed
+                          mean (std. err.)             mean (std. err.)           mean (std. err.)          mean (std. err.)
+ Scripted baseline     0.20m/s (0.005m/s)          0.71rad/s (0.04rad/s)           2.52s (0.006s)          2.07m/s (0.05m/s)
+ Learned policy
+                       0.57m/s (0.003m/s)          2.85rad/s (0.19rad/s)            0.93s (0.12s)          2.02m/s (0.26m/s)
+ (real robot)
+ With run up                       -                            -                          -               2.77m/s (0.11m/s)
+ Learned policy
+                        0.51m/s (0.01m/s)          3.19rad/s (0.12rad/s)            0.73s (0.01s)          2.12m/s (0.07m/s)
+ (simulation)
+
+Table 1 | Performance in the get-up-and-shoot set piece and at specific behaviors. Performance in simulation and on the
+real robot are compared, and the learned behavior is compared to the scripted baseline at the four behaviors. Values in
+braces are standard errors. The learned policy’s mean kicking power was roughly equivalent to the scripted behavior from
+a standing pose, but with an additional run up approach to the ball the learned policy achieved a more powerful kick.
+
+
+    Details of the comparison experiments are given in Suppl. Baseline Behavior Comparisons:
+
+
+                                                                                                                               5
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning6
+
+
+
+Experiment Details, and results are given in Table 1. The learned policy performed better than the
+specialized manually-designed controller: it walked 181 % faster, turned 302 % faster, and took 63 %
+less time to get up. When initialized near the ball, the learned policy kicked the ball with 3 % less
+speed; both achieved a ball speed of around 2 m/s. However, with an additional run-up approach to
+the ball, the learned policy’s mean kicking speed was 2.8 m/s (34 % faster than the scripted controller)
+and the maximum kicking speed across episodes was 3.4 m/s. As well as outperforming the scripted
+get-up behavior, in practice the learned policy also reacts to prevent falling in the first instance, see
+Suppl. Movie S4.
+    Close observation of the learned policy (as shown in Movie 3, Movie 4, Suppl. Figure S5, and
+Suppl. Figure S6) reveals it has learned to use a highly dynamic gait. Unlike the scripted controller,
+which centers the robot’s weight over the feet and keeps the foot plates almost parallel to the ground,
+the learned policy leans forward and actively pushes off from the edges of the foot plate at each step,
+landing on the heels.
+    The forward running speed of 0.57 m/s and turning speed of 2.85 rad/s achieved by the learned
+policy on the real OP3 compare favorably with the values of 0.45 m/s and 2.01 rad/s reported in
+[33], on simulated OP3 robots. This latter work optimized parametric controllers of the type used by
+top-performing RoboCup teams. It was evaluated only in the RoboCup simulation, and the authors
+note that the available OP3 model featured unrealistically powerful motors. Although those results
+are not precisely comparable due to methodological differences, this gives an indication of how our
+learned policy compares to parameterized controllers implemented on the OP3 in simulation.
+
+
+Behavior Embeddings
+
+A motivation for adopting end-to-end learning for the 1v1 soccer task was to obtain a policy that
+could blend many behaviors continuously, to react smoothly during play. To illustrate how the learned
+policy does this, we took inspiration from the analysis of Drosophila motion [34], and treated the
+motions as paths through 20-dimensional joint space. We used Uniform Manifold Approximation and
+Projection (UMAP) [35] to approximately embed these paths into three-dimensional space to better
+visualize the behaviors.
+     Figure 4 compares the scripted and learned embeddings. The scripted walking controller is based
+on sinusoidal motions of the end effectors, and this periodicity means that the gait traces a cyclic path
+through joint space. This topological structure appears in the UMAP embedding, with the angular
+coordinate around the circle defined by the phase within the periodic gait (Figure 4A). In contrast,
+embeddings of short trajectories from the learned policy reveal richer variation (Figure 4B). Footsteps
+still appear as loops, but the gaits are no longer exactly periodic, so the embedded trajectories are
+helical rather than cyclic. Different conditions also elicit different gaits, such as fast running and
+slower walking, and these embed as different components. A kick common to these trajectory snippets
+appears as a smooth arc.
+    Finally, Figure 4C shows embeddings for long episodes of 1v1 play. The figure reveals a wide range
+of different cyclic gaits that map in a dense ball in this low-dimensional embedding space. However,
+kicking and getting up shows much less variation, resulting in four distinct loops. This could be a
+result of the regularization to the scripted get-up controller: even though the final policy could in
+principle converge to any behavior, regularization steers learning towards a specific way of getting up.
+On the other hand, kick motion is dominated by swinging one of the legs as fast as possible, allowing
+less room for variations.
+
+
+
+
+                                                                                                        6
+                       Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning7
+
+
+
+
+Figure 4 | Joint angle embeddings. Embedding of the joint angles recorded while executing different policies, as described
+in Behavior Embeddings. A: The embedding for the scripted baseline walking policy. B: The embedding for the soccer skill.
+C: The embedding for the full 1v1 agent.
+
+
+
+Behavior Analysis
+
+Reliability and Sim-to-Real Analysis: To gauge the reliability of the learned agent, we designed a
+get-up-and-shoot set piece, implemented in both the simulation (training) environment and the real
+environment. This set piece is a short episode of 1v1 soccer in which the agent must get up from the
+ground and score within 10 seconds; see Suppl. Set Piece: Experiment Details for full details.
+    We played 50 episodes of the set piece each in the simulation and the real environment. In the
+real environment, the robot scored 29 out of 50 (58 %) of goals, and was able to get up from the
+ground and kick the ball every time. In simulation, the agent scored more consistently, scoring 35 out
+of 50 (70 %) of goals. This indicates a drop in performance due to transfer to the real environment,
+but the robot was still able to reliably get up, kick the ball, and score the majority of the time. Results
+are given in Figure 5A and Table 1.
+
+
+
+                                                                                                                        7
+                        Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning8
+
+
+
+
+Figure 5 | Behavior analysis. A-C: Set pieces. Top rows: Example initializations for the set piece tasks in sim and on the
+real robot. Second rows: Overlayed plots of the 10 trajectories collected from the set piece experiments showing the robot
+trajectory before kicking (solid lines), after kicking (dotted lines), the ball trajectory (dashed lines), final ball position
+(white circle), final robot position (red-pink circles) and opponent position (blue circle). Each red-pink shade corresponds
+to one of the 10 trajectories. D: Adaptive footwork set piece. Right foot trajectory (orange), left foot trajectory (red), ball
+trajectory (white), point of the kick (yellow), and footsteps highlighted with dots. E: Turn-and-kick set piece. Right 3: a
+sequence of frames from the set piece. Left: a plot of the footsteps from the corresponding trajectory. The agent turned,
+walked approximately 2 m, turned, kicked, and finally balanced using 10 footsteps. Please refer to Behavior Analysis for a
+discussion of these results.
+
+
+    To further gauge the sim-to-real gap, we also analyzed the four behaviors discussed in Comparison
+to Scripted Baseline Controllers (walking, turning, getting up and kicking) in simulation and compared
+the results to those obtained using the real OP3. Results are shown in Table 1: when implemented
+on the real robot the learned policy walked (13 %) faster, turned (11 %) more slowly, took (28 %)
+more time to get up, and kicked (5 %) more slowly than when implemented in simulation. These
+results indicate no extreme sim-to-real gap in the execution of any behavior. The gap with the baseline
+behavior performance is substantially larger, for instance. The turning behavior is highly optimized
+(pivoting on a corner of the foot) and can be seen both in simulation and on the real robot in Movie 4.
+
+
+
+                                                                                                                             8
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning9
+
+
+
+Opponent Awareness: To gauge the learned behavior’s reaction to the opponent in a controlled
+setting, we implemented interception and opponent-obstacle set pieces in the simulation and real
+environments respectively.
+    The interception set piece is an 8 second episode of 1v1 soccer in which the opponent is initialized
+in possession of the ball, and remains stationary throughout the episode. In 10 trials the agent first
+walked to the path between the ball and its own goal, to block a potential shot from the opponent,
+before turning towards the ball and approaching the ball and opponent. This type of defensive
+behavior is manually implemented in some RoboCup teams to defend the goal against an attacker
+with possession [36]. Our learned policy, in contrast, discovered this tactic “on its own” by optimizing
+for task reward (which includes minimizing opponent scoring), rather than via manual specification.
+In 10 control trials the opponent was initialized away from the ball, and in these situations the agent
+approached the ball directly.
+    The opponent-obstacle set piece is a 10 second episode of 1v1 soccer in which the opponent
+is initialized midway between the ball and the agent, 1.5 m from each, and remains stationary
+throughout the episode, and the ball is 1.5 m from the goal. In 10 trials the agent walked around the
+opponent every time in order to reach the ball, and scored in 9 out of 10 trials. In 14 control trials,
+the opponent was initialized to either side of the pitch, not obstructing the agent’s path to the ball,
+and in this case the agent approached the ball directly, and scored in 13 of the 14 trials.
+   These results demonstrate that behaviors which subtly adapt to the position of the opponent
+emerge during training, resulting in a policy that is optimized for specific contexts. Results and initial
+configurations are given in Figure 5B-C.
+
+
+Adaptive Footwork: In the adaptive footwork set piece, the opponent is initialized in possession
+of the ball and remains stationary throughout the episode, and the agent is placed in a defensive
+position. In 10 trials the agent took an average of 30 short footsteps to approach the attacker and
+ball. In comparison, in 10 control trials, in which the opponent is positioned away from the ball, the
+agent took an average of 20 longer strides as it rushed to the ball. The particular short-stepping tactic
+discovered by the agent is reminiscent of human 1v1 defensive play in which short quick steps are
+preferred to long strides in order to maximize reactivity. Although the reason for using short footsteps
+is unclear in our environment (it could be, for example, that the agent takes extra care to stay on
+the path between ball and goal and so moves more slowly), this result demonstrates that the agent
+adapts its gait to the specific context of the game. Results are illustrated in Figure 5D.
+    To further demonstrate the efficiency and fluidity of the discovered gait, we analyzed the footstep
+pattern of the agent in a turn-and-kick set piece. In this task the agent is initialized near the sideline
+and facing parallel with it, with the ball in the center. The natural strategy for the agent to score
+is therefore to turn to face the ball, then walk around the ball and turn again to kick, in a roughly
+mirrored “S” pattern. As seen in Figure 5E, the agent achieved this with only 10 footsteps. Turning,
+walking and kicking were seamlessly combined, and the agent adapted its footwork by taking a single
+penultimate shorter step to position itself to turn and kick.
+
+
+Value Function Analysis
+
+Next, we investigated the learned value function in several setups, to understand what game states
+the agent perceives as advantageous versus disadvantageous. For Figure 6A, we created a synthetic
+observation with the robot located centrally on the court at coordinates (0, 0), facing toward the
+opponent goal with the ball 0.1 m in front of it at location (0.1, 0). The opponent was placed to one
+side, at location (0, 1.5). The plot shows the predicted value as a function of the ball’s velocity vector;
+
+
+                                                                                                         9
+                          Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning10
+
+
+
+high value is assigned to ball velocities directed toward the goal, and also to ball velocities consistent
+with keeping the ball in the area under the agent’s control.
+
+
+
+
+  A              Expected values versus ball velocity (m/s)              B             Expected values versus opponent position
+
+
+
+
+  C     Expected values versus robot position (opponent far from ball)   D    Expected values versus robot position (opponent next to ball)
+
+
+Figure 6 | Critic’s predicted values. Projections of the expected values learned by the critic, in selected game states. (In
+each figure, the ball is marked in white, opponent in black, the agent in grey, and brighter colors indicate preferred states.)
+A: Varying the ball (x,y) velocity (instantaneous velocity in m/s, mapped to the position after one second). High value
+states are those when the ball is either traveling toward the goal, or remaining near the agent. B: Varying the opponent
+position around the pitch. The predicted value is lower when the opponent is located between the ball and the target goal.
+C: Varying the agent position, when the opponent is far from the ball. (High value at positions near where the agent shoot,
+low value around the opponent reflecting the interference penalty). D: Varying the agent position, when the opponent is
+close to the ball. (The value function has higher value ridges at locations blocking the opponent’s shot.)
+
+
+    A similar analysis shows that the value function also captures that the opponent impedes scoring
+(Figure 6B). We used the same positions for the agent and ball, and plot the predicted value as a
+function of the opponent position. States in which the opponent is positioned between the ball and
+the goal have a much lower value.
+   Figures 6C-D plot the predicted value as a function of the agent’s location, in scenarios like those
+used for the interception behavior described above in Behavior Analysis. When the opponent is far
+from the ball, the agent prefers to be in a position from which it can shoot, and contour gradients
+tend to point directly toward this location. In contrast, when the opponent is near the ball, the agent’s
+
+
+                                                                                                                                              10
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning11
+
+
+
+preferred positions are between the ball and the defended goal, and the rigid contours favor curved
+paths that guide the agent to this defensive line. This behavior was seen in the interception set piece
+in Figure 5B.
+
+
+Discussion
+
+Comparison to Robot Learning Literature
+
+Reinforcement learning for robots has been studied for decades (see [6, 5] for an overview), but has
+only recently gained more popularity due to the development of better hardware and algorithms
+[4, 37]. In particular, high-quality quadrupedal robots have become widely available, which have
+been used to demonstrate robust, efficient, and practical locomotion in a variety of environments
+[12, 38, 13, 39]. For example, Lee et al. [12] applied zero-shot sim-to-real deep RL to deploy
+learned locomotion policies in natural environments, including mud, snow, vegetation, and streaming
+water. Our work similarly relies on zero-shot sim-to-real transfer and model randomization, but
+instead focuses on a range of dynamic motions, stability, long horizon tasks, object manipulation, and
+multi-agent competitive play. Indeed, the vast majority of recent work in this area relies on some
+form of sim-to-real transfer [40, 15, 27, 41, 17, 19, 14, 17, 42], which can help to reduce the safety
+and data efficiency concerns associated with training directly on hardware. A common theme is that
+a surprisingly small number of techniques can be sufficient to reduce the sim-to-real gap[37, 43],
+which is also supported by our results. However, there have also been successful attempts at training
+legged robots to walk with deep RL directly on hardware [44, 45, 46, 47, 48]. Training on hardware
+can lead to better performance, but the range of behaviors that can be learned has so far been limited
+due to safety and data efficiency concerns. Similar to our work, prior work has shown that learned
+gaits can achieve higher velocities compared to scripted gaits [49, 50, 51]. However, the gaits have
+been specifically trained to attain high speeds, instead of emerging as a result of optimizing for a
+higher level goal.
+    Quadrupedal platforms constitute the majority of legged locomotion research, but an increasing
+number of works consider bipedal platforms. Recent works have produced behaviors including walking
+and running [24, 25], stair climbing [26], and jumping [27]. Most recent works have focused on
+high-quality, full-sized bipeds and humanoids, with a much smaller number [52, 53, 54, 48] targeting
+more basic platforms whose simpler and less precise actuators and sensors pose additional challenges
+in terms of sim-to-real transfer. Additionally, there is a growing interest in whole body control, that is,
+tasks in which the whole body is used in flexible ways to interact with the environment. Examples
+include getting-up from the ground [55] and manipulation of objects with legs [23, 56]. Recently,
+reinforcement learning has been applied to learn simple soccer skills, including goalkeeping [21],
+ball manipulation [19, 18], and shooting [20]. These works focus on a narrower set of skills than the
+1v1 soccer game, and the quadrupedal platform is inherently more stable and therefore presents an
+easier learning challenge.
+
+
+Comparison to RoboCup
+
+Robot soccer has been a longstanding grand challenge for AI and robotics, since at least the formation
+of the RoboCup competition [30, 29] in 1996, and it has also inspired our 1v1 soccer task. The OP3
+robot has been used for the humanoid RoboCup league, but our environment and task are substantially
+simpler than the full RoboCup problem. The main differences are that we focused on 1v1 soccer
+instead of multi-player teams; our environment does not align with the field or ball specifications nor
+follow the rules of RoboCup (for example, the kick-off, player substitutions, explicit communication
+channels, fouls, and game length); and we use full state information rather than rely solely on vision.
+
+
+                                                                                                         11
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning12
+
+
+
+    The majority of successful reinforcement learning approaches to RoboCup focus on learning
+specific components of the system and often feature manually designed components or high-level
+strategies. In Simulation 2D League, reinforcement learning has been used to learn various ball
+handling skills [57, 58] and multi-agent behaviors such as defense [59] and ball control [60, 61, 62].
+One successful learning-based approach applied to the Simulation 3D League is Layered Learning
+[63, 64]. There, RL was used to train multiple skills, including ball control and pass selection, which
+were combined via a pre-defined hierarchy. Our system pre-defines fewer skills (leaving the agent
+to discover useful skills like kicking) and we focused on learning to combine the skills seamlessly.
+Additionally, RL has been used for fast running [65, 66], but compared to our work, the learned
+behaviors were not demonstrated on hardware. A smaller set of works has focused on applying RL to
+real robots. Policy gradient methods have been used to optimize parameterized walking [67] and
+kicking [68] on a quadrupedal robot for the RoboCup Four-Legged League. Riedmiller et al. [59]
+applied RL to learn low-level motor speed control, as well as a separate dribbling controller for the
+wheeled Middle Size League. Simulation grounding by sim-to-real transfer for humanoids has also
+been investigated by Farchy et al. [69]. However, they focus on learning the parameters of a manually
+designed walk engine, whereas we learn a neural network policy to output joint angles for the full
+soccer task directly.
+
+
+Limitations
+
+Our work provides a step towards practical use of deep RL for agile control of humanoid robots in
+a dynamic multi-agent setting. However, there are several topics that could be addressed further.
+First, our learning pipeline relies on some domain-specific knowledge and domain randomization,
+as is common in the robot learning literature [12, 37, 6, 5, 43]. Domain-specific knowledge is used
+for reward function design and for training the get-up skill, which requires access to hand-designed
+key poses, which can be difficult or impractical to choose for more dynamic platforms. In addition,
+the distillation step assumes we can manually choose the correct skill (either get-up or soccer) for
+each state, although a method in which the distillation target is automatically selected has been
+demonstrated in prior work [11], which we anticipate would work in this application. Second, we
+do not leverage real data for transfer; instead, our approach relies solely on sim-to-real transfer.
+Fine-tuning on real robots or mixing in real data during training in simulation could help improve
+transfer and enable an even wider spectrum of stable behaviors. Third, we applied our method to a
+small robot and did not consider additional challenges that would be associated with a larger form
+factor.
+    Our current system could be improved in a number of ways. We found that tracking a ball with
+motion capture was particularly challenging: detection of the reflective tape markers is sensitive to
+the angle at which they face the motion capture cameras; only the markers on the upper hemisphere
+of the ball can be registered; and the walls of the soccer pitch can occlude the markers, especially
+near the corners. We believe moving away from motion capture is an important avenue for future
+work and discuss potential avenues for this in Future Work. We also found that the performance
+of the robots degraded quickly over time, mainly due to the hip joints becoming loose or the joint
+position encoders becoming miscalibrated; thus we needed to regularly perform robot maintenance
+routines. Further, our control stack was not optimized for speed. Our nominal control time step was
+25 ms, but in practice the agent often failed to produce an action within that time. The time step was
+selected as a compromise between speed and consistency, but we believe that a higher control rate
+would result in improved performance. Finally, we did not model the servo motors in simulation, but
+instead approximated them with ideal actuators that can produce the exact torque requested by a
+position feedback controller. As a consequence, for example, we found that the agent’s behaviors are
+very sensitive to the battery charge level, limiting the operation time per charge to 5 to 10 minutes in
+
+
+                                                                                                         12
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning13
+
+
+
+practice.
+    On the training side, we found our self-play setup sometimes resulted in unstable learning. A
+population-based training scheme [11] could have improved stability and led to better multi-agent
+performance. Second, our method includes several auxiliary reward terms, some of which are needed
+for improved transfer (for example, upright reward and knee torque penalty), and some for better
+exploration (for example, forward speed). We chose to use a weighted average of the different terms
+as the training reward, and tuned the weights via an extensive hyperparameter search. However,
+multi-objective RL [70, 71] or constrained RL [72] might be able to obtain better solutions.
+
+
+Future Work
+
+Multi-agent Soccer: An exciting direction of future work would be to train teams of two or more
+agents. It is straightforward to apply our proposed method to train agents in this setting. In our
+preliminary experiments for 2v2 soccer, we saw that the agent learned division of labor, a simple form
+of collaboration: if its teammate was closer to the ball, the agent did not approach the ball. However,
+it also learned less agile behaviors. Insights from prior work in simulation [11] could be applied to
+improve performance in this setting.
+    Playing Soccer from Raw Vision: Another important direction for future work is learning
+from on-board sensors only, without external state information from a motion capture system. In
+comparison to state-based agents that have direct access to the ball, goal, and opponent locations,
+vision-based agents need to infer information from a limited history of high-dimensional egocentric
+camera observations, and integrate the partial state information over time, which makes the problem
+significantly harder [73].
+    As a first step, we investigated how to train vision-based agents that only use onboard RGB camera
+and proprioception. We created a visual rendering of our lab using a Neural Radiance Field (NeRF)
+model [74] based on the approach introduced by Byravan et al. [75]. The robot learned behaviors
+including ball tracking and situational awareness of the opponent and goal. See Suppl. Playing Soccer
+from Raw Vision for our preliminary results with this approach.
+
+
+Materials and Methods
+
+Environment
+
+We trained the agent in simulation in a custom soccer environment and then transferred to a cor-
+responding real environment as shown in Figure 1. The simulation environment uses the MuJoCo
+physics engine [76] and is based on the DeepMind Control Suite [77]. The environment consists of a
+soccer pitch that is 5 m long by 4 m wide, and two goals that each have an opening width of 0.8 m. In
+both the simulated and real environments, the pitch is bordered by ramps, which ensures that the
+ball returns to the bounds of the pitch. The real pitch is covered with rubber floor tiles to reduce the
+risk of falls damaging the robots and to increase the ground friction.
+    The agent acts at 40 Hz. The action is 20-dimensional and corresponds to the joint position set
+points of the robot. The actions are clipped to a manually selected range (see Suppl. Environment
+Details) and passed through an exponential action filter to remove high frequency components:
+𝒖𝑡 = 0.8𝒖𝑡 −1 + 0.2𝒂𝑡 , where 𝒖𝑡 is the filtered control applied to the robot at time step 𝑡 , and 𝒂𝑡 is the
+action output by the policy. The filtered actions are fed to PID controllers that then drive the joints
+(torques in simulation and voltages on the real robot) to attain the desired positions.
+    The agent’s observations consist of proprioception and game state information. The proprioception
+
+
+                                                                                                          13
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning14
+
+
+
+consists of joint positions, linear acceleration, angular velocity, gravity direction, and the state of the
+exponential action filter. The game state information, obtained via a motion capture setup in the real
+environment, consists of the agent’s velocity, ball location and velocity, opponent location and velocity,
+and location of the two goals, which enables the agent to infer its global position. The locations are
+given as two-dimensional vectors corresponding to horizontal coordinates in the egocentric frame, and
+the velocities are obtained via finite differentiation from the positions. All proprioceptive observations,
+as well as the observation of the agent’s velocity, are stacked over the five most recent timesteps to
+account for delays and potentially noisy or missing observations. We found stacking of proprioceptive
+observations to be sufficient for learning high-performing policies, so we chose not to stack the game
+state (opponent, ball, and goal observations) to reduce the size of the observation space. However,
+including a full observation history could be important for improving the agent’s ability to react and
+adapt to the opponent in more subtle ways. A more detailed description of the observations is given
+in Suppl. Environment Details.
+
+
+Robot Hardware and Motion Capture
+
+We used the Robotis OP3 robot [31], which is a low-cost battery-powered, miniature humanoid
+platform. It is 51 cm tall, weighs 3.5 kg, and is actuated by 20 Robotis Dynamixel XM430-350-R
+servomotors. We controlled the servos by sending target angles using position control mode with only
+proportional gain (in other words, without any integral or derivative terms). Each actuator has a
+magnetic rotary encoder that provides the joint position observations to the agent. The robot also
+has an inertial measurement unit (IMU), which provides angular velocity and linear acceleration
+measurements. We found that the default robot control software was sometimes unreliable and caused
+nondeterministic control latency, so we wrote a custom driver that allows the agent to communicate
+directly and reliably with the servos and IMU via the Dynamixel SDK Python API. The control software
+runs on an embedded Intel Core i3 dual-core NUC with Linux. The robot lacks GPUs or other dedicated
+accelerators, so all neural network computations were run on the CPU. The robot’s “head” is a Logitech
+C920 web camera, which can optionally provide an RGB video stream at 30 frames per second.
+    The robot and ball positions and orientations were provided by a motion capture system based
+on Motive 2 software [78]. This system uses 14 Optitrack PrimeX 22 Prime cameras mounted on
+a truss around the soccer pitch. We tracked the robots using reflective passive markers attached to
+a 3D printed “vest” covering the robot torso, and tracked the ball using attached reflective stickers
+(Figure 1). The positions of these three objects were streamed over the wireless network using the
+VRPN protocol and made available to the robots via ROS.
+    We made small modifications to the robot to reduce damage from the evaluation of a wide range
+of prototype agent policies. We added 3D-printed safety bumpers at the front and rear of the torso,
+to reduce the impact of falls. We also replaced the original sheet metal forearms with 3D-printed
+alternatives, with the shape based on the convex hull of the original arms, because the original
+hook-shaped limbs would sometimes snag on the robot’s own cabling. We also made small mechanical
+modifications to the hip joints to spread the off-axis loads more evenly, to minimize fatigue breakages.
+
+
+Policy Optimization
+
+We modeled the soccer environment as a Partially Observable Markov Decision Process (POMDP)
+defined by (S , A , P , 𝑟, 𝜇 0 , 𝛾 ), with states 𝑠 ∈ S, actions 𝑎 ∈ A, transition probabilities P ( 𝒔′ | 𝒔, 𝒂),
+reward function 𝑟 ( 𝒔), distribution over initial states 𝜇 0 , and discount factor 𝛾 ∈ [0, 1). At each
+timestep 𝑡 , the agent observes features 𝒐𝑡 ≜ 𝜙 ( 𝒔𝑡 ), extracted from the state 𝒔𝑡 ∈ S as described in
+Environment. Actions are 20-dimensional and continuous, corresponding to the desired positions of
+
+
+
+                                                                                                             14
+                       Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning15
+
+
+                                                                                                         Í𝐾
+the robot’s joints. The reward is a weighted sum of 𝐾 reward components, 𝑟 ( 𝒔) =                                  ˆ𝑘 ( 𝒔); Suppl.
+                                                                                                             𝑘=1 𝛼𝑘 𝑟
+Reward Functions describes the components we use for each stage of training.
+      A trajectory is defined as 𝜉 = {( 𝒔𝑡 , 𝒂𝑡 , 𝑟𝑡+1 )}∞          𝑡 =0 . A policy 𝜋 ( 𝒂 | 𝒔), along with the system dy-
+namics P and initial state distribution 𝜇 0 , gives rise to a distribution over trajectories: 𝜇 𝜋 ( 𝜉) =
+𝜇 0 ( 𝒔0 ) ∞
+          Î
+           𝑡 =0 𝜋 ( 𝒂𝑡 | 𝒔𝑡 )P ( 𝒔𝑡 +1 | 𝒔𝑡 , 𝒂𝑡 ). The aim is to obtain a policy 𝜋 that maximizes the expected dis-
+counted cumulative reward, or return:
+                                                                      " 𝑇              #
+                                                                       ∑︁
+                                                      J ( 𝜋) ≜ 𝔼𝜉∼𝜇𝜋       𝛾 𝑡 𝑟 ( 𝒔𝑡 ) .                             (1)
+                                                                   𝑡 =0
+
+We parameterized the policy as a deep feed-forward neural network with parameters 𝜃, that outputs the
+mean and diagonal covariance of a multivariate Gaussian. We trained this policy to optimize Equation 1
+using Maximum a posteriori Policy Optimization [79] (MPO), which is an off-policy actor-critic RL
+algorithm. MPO alternates between policy evaluation and policy improvement. In the policy evaluation
+step, the critic (or 𝑄 -function) is trained to estimate 𝑄 𝜋𝜃 ( 𝒔, 𝒂), which describes the expected return
+                                                                                                         Í
+from taking action 𝒂 in state 𝒔 and then following policy 𝜋𝜃 : 𝑄 𝜋𝜃 ( 𝒔, 𝒂) ≜ 𝔼𝜉∼𝜇𝜃 ( 𝜉 | 𝒔0 =𝒔,𝒂0 =𝒂 ) [ 𝑇𝑡=0 𝛾 𝑡 𝑟 ( 𝒔𝑡 )].
+We use a distributional critic [80], and refer to the overall algorithm as Distributional MPO, or DMPO.
+In the policy improvement step, the actor (or policy) is trained to improve in performance with respect
+to the 𝑄 -values predicted by the critic. Details of the DMPO algorithm, learning hyperparameters,
+and the agent architecture are given in Suppl. Agent Training and Architecture.
+    Note that the choice of opponent affects the transition probabilities P, and thus the trajectory
+distribution 𝜇 𝜋 . When training the soccer skill, the opponent is fixed, but when training the full 1v1
+agent in the second stage, we sampled the opponent from a pool of previous snapshots of the agent,
+rendering the objective both non-stationary and partially observed. In practice though, the agent
+was able to learn and eventually converge to a well-performing policy. Similar approaches have been
+explored in prior work on multi-agent deep RL [8, 81, 82].
+
+
+Training
+
+Our training pipeline has two stages. This is because directly training agents on the full 1v1 task leads
+to sub-optimal behavior, as described in Ablations. In the first stage, separate skill policies for scoring
+goals and getting up from the ground are trained. In the second stage, the skills are distilled into a
+single 1v1 agent, and the agent is trained via self-play. Distillation to skills stops after the agent’s
+performance surpasses a pre-set threshold, which enabled the final behaviors to be more diverse,
+fluent, and robust than simply composing the skills. Self-play provides an automatic curriculum, and
+expands the set of environment states encountered by the agent. Suppl. Training Curves contains
+learning curves and training times for each of the skills and the full 1v1 agent.
+
+Stage 1: Skill Training
+
+Soccer Skill Training: The soccer skill is trained to score as many goals as possible. Episodes
+terminate when the agent falls over, goes out of bounds, enters the goal penalty area (marked with
+red in Figure 1), the opponent scores, or a timelimit of 50 seconds is reached. At the start of each
+episode, the players and the ball are initialized randomly on the pitch. Both players are initialized
+in a default standing pose. The opponent is initialized with an untrained policy, which falls almost
+immediately and remains on the ground. The reward is a weighted sum over reward components.
+This included components to encourage forward velocity and ball interaction, to make exploration
+easier, as well as components to improve sim-to-real transfer and reduce robot breakages, as discussed
+in Regularization for Safe Behaviors.
+
+
+                                                                                                                               15
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning16
+
+
+
+Get-Up Skill Training: The get-up skill is trained using a sequence of target poses, to bias the policy
+towards a stable and collision-free trajectory. We used the pre-programmed get-up trajectory [32]
+to extract three key poses for getting up from either the front or the back (see Suppl. Get-up Skill
+Training for an illustration of the key poses).
+    We trained the get-up skill to reach any target pose interpolated between the key poses. We
+conditioned both the actor and critic on the target pose, which consists of target joint angles ptarget
+and target torso orientation gtarget . The target torso orientation is expressed as the gravity direction
+in the egocentric frame. This is independent of the robot yaw angle (heading), which is irrelevant for
+the get-up task. Conditioning on the joint angles steers the agent towards collision free and stable
+poses, whereas conditioning on the gravity direction ensures the robot intends to stand up rather than
+just matching the target joint angles while lying on the ground. The robot is initialized on the ground,
+and a new target pose is sampled uniformly at random every 1.5 seconds on average. The sampling
+intervals are exponentially distributed, to make the probability of a target pose switch independent
+of time, in order to preserve   the Markov property. The agent is trained to maximize 𝑟ˆ⊺pose ( 𝒔𝑡 ) = −˜𝑝𝑡 𝑔˜𝑡 ,
+where 𝑝˜𝑡 = 𝜋− ∥ptarget −p𝑡 ∥ 2 /𝜋 is the scaled error in joint positions, and 𝑔˜𝑡 = 𝜋−arccos ( g𝑡 gtarget ) /𝜋 is the
+scaled angle between the desired and actual gravity direction. p𝑡 and g𝑡 are the actual joint positions
+and gravity direction at timestep 𝑡 , respectively.
+   Conditioning the converged policy on the last key pose, corresponding to standing, makes the
+agent get up. We used this conditioned version as a get-up skill in the next stage of training.
+
+Stage 2: Distillation and Self-Play
+
+In the second stage, the agent competes against increasingly stronger opponents, while initially
+regularizing its behavior to the skill policies. This resulted in a single 1v1 agent that is capable of a
+range of soccer skills: walking, kicking, getting up from the ground, scoring, and defending. The
+setup is the same as for training the soccer skill, except episodes terminate only when either the agent
+or the opponent scores, or after 50 seconds. When the agent is on the ground, out of bounds, or in
+the goal penalty area, it receives a fixed penalty per timestep and all positive reward components are
+ignored. For instance, if the agent is on the ground when a goal is scored, then it receives a zero for
+the scoring reward component. At the beginning of an episode, the agent is initialized either laying
+on the ground on its front, on its back, or in a default standing pose, with equal probability.
+
+
+Distillation: We use policy distillation [83, 84] to enable the agent to learn from the skill policies, by
+adding a regularization term that encourages the output of the agent’s policy to be similar to that of
+the skills’. This approach is related to prior work that regularizes a student policy to either a common
+shared policy across tasks [85] or a default policy that receives limited state information [86], as
+well as work on kickstarting [87] and reusing learned skills for humanoid soccer in simulation [11].
+    Unlike most prior work, in our setting the skill policies are useful in mutually exclusive sets of
+states: the soccer skill is useful only when the agent is standing up, otherwise the get-up skill is
+more useful. Thus in each state, we regularize the agent’s policy 𝜋𝜃 to only one of the two skills. We
+achieve this by replacing the critic’s predicted Q-values used in the policy improvement step with a
+weighted sum of the predicted Q-values and KL-regularization to the relevant skill policy:
+                                                𝜋                                      
+                      (1 − 𝜆 s ) 𝔼𝒂∼𝜋 (· | 𝒔 ) 𝑄 𝜃 ( 𝒔, 𝒂) − 𝜆 s KL 𝜋𝜃 (·|s) ∥ 𝜋s (·|s)      if 𝒔 ∈ U
+                     
+                     
+                     
+                                                                                                               (2)
+                      (1 − 𝜆 g ) 𝔼𝒂∼𝜋 (· | 𝒔 ) 𝑄 𝜋𝜃 ( 𝒔, 𝒂) − 𝜆 g KL 𝜋𝜃 (·|s) ∥ 𝜋g (·|s)
+                     
+                                                                                              if 𝒔 ∉ U ,
+                     
+where U is the set of all states in which the agent is upright.
+
+
+                                                                                                                   16
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning17
+
+
+
+      To enable the agent to outperform the skill policies, the weights 𝜆 s and 𝜆 g are adaptively adjusted
+such that there is no regularization once the predicted Q-values are above the pre-set thresholds 𝑄 s
+and 𝑄 g , respectively. This approach was proposed by Abdolmaleki et al. [88] for a similar setting and
+is closely related to the Lagrangian multiplier method used in constrained RL [89]. Specifically, 𝜆 s (or
+𝜆 g ) is updated by stochastic gradient descent to minimize
+                                                                       
+                                     𝑐 ( 𝜆 s ) = 𝜆 s 𝔼𝜉 𝑄 𝜋𝜃 (s, a) − 𝑄 s ,                             (3)
+
+using a softplus transform and clipping to enforce that 0 ≤ 𝜆 s ≤ 1. When the agent’s predicted return
+is less than 𝑄 s , then 𝜆 s increases to 1, at which point the agent effectively performs behavioral cloning
+to the soccer skill. Once the agent’s predicted return surpasses 𝑄 s , then 𝜆 s decreases to 0, at which
+point the agent learns using pure RL on the soccer training objective. This enabled the agent to
+improve beyond any simple scheduling of the skill policies; our agents learned effective transitions
+between the two skills and finetuned the skills themselves.
+
+
+Self-Play: The performance and learned strategy of an agent depends on its opponents during
+training. The soccer skill plays against an untrained opponent, and thus this policy had limited
+awareness of the opponent. To improve agents’ high level game play, we used self-play, where the
+opponent is drawn from a pool of partially trained copies of the agent itself [8, 81, 82]. Snapshots of
+the agent are regularly saved, and the first quarter of the snapshots is included in the pool, along
+with an untrained agent. We found that using the first quarter, rather than all snapshots, improved
+stability of training by ensuring that the performance of the opponent improves slowly over time. In
+our experiments, self-play training led to agents that were agile and defended against the opponent
+scoring.
+    Playing against a mixture of opponents results in significant partial observability due to aliasing
+with respect to the opponent in each episode. This can cause significant problems for critic learning,
+since value functions fundamentally depend upon the opponent’s strategy and ability [90]. To address
+this, we condition the critic on an integer identification of the opponent.
+
+
+Sim-to-Real Transfer
+
+Our approach relies on zero-shot transfer of trained policies to real robots. This section details the
+approaches we took to maximize the success of zero-shot transfer: we reduced the sim-to-real gap via
+simple system identification, improved the robustness of the policies via domain randomization and
+perturbations during training, and included shaping reward terms to obtain behaviors that are less
+likely to damage the robot.
+
+System Identification
+
+We identified the actuator parameters by applying a sinusoidal control signal of varying frequencies
+to a motor with a known load attached to it, and optimized over the actuator model parameters
+in simulation to match the resulting joint angle trajectory. For simplicity, we chose a position
+controlled actuator model with torque feedback and with only damping (1.084 Nm/(rad/s)), armature
+(0.045 kg m2 ), friction (0.03), maximum torque (4.1 Nm), and proportional gain (21.1 N/rad) as free
+parameters. The values in parentheses correspond to the final values after applying this process. This
+model does not exactly correspond to the servos’ operating mode, which controls the coil voltage
+instead of output torque, but we found it matched the training data sufficiently well. We believe
+this is because using a position control mode hides model mismatch from the agent by applying fast
+stabilizing feedback at a high frequency. Indeed, we also experimented with direct current control,
+
+
+                                                                                                          17
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning18
+
+
+
+but found the sim-to-real gap was too large, which caused zero-shot transfer to fail. We expect that
+the sim-to-real gap could be further reduced by considering a more accurate model.
+
+Domain Randomization and Perturbations
+
+To further improve transfer, we applied domain randomization and random perturbations during
+training. Domain randomization helps overcome the remaining sim-to-real gap and the inherent
+variation in dynamics across robots, due to wear and other factors such as battery state. We selected a
+small number of axes to vary, since excess randomization could result in a conservative policy, which
+would reduce the overall performance. Specifically, we randomized the floor friction (0.5 to 1.0) and
+joint angular offsets (± 2.9◦ ); varied the orientation (up to 2◦ ) and position (up to 5 mm) of the IMU;
+and attached a random external mass (up to 0.5 kg) to a randomly chosen location on the robot
+torso. We also added random time delays (10 to 50 ms) to the observations to emulate latency in the
+control loop. These domain randomization settings were re-sampled at the beginning of each episode
+and then kept constant for the whole episode. In addition to domain randomization, we found that
+applying random perturbations to the robot during training substantially improved the robustness of
+the agent, leading to better transfer. Specifically, we applied an external impulse force of 5 to 15 Nm
+lasting for 0.05 to 0.15 s, to a randomly selected point on the torso every 1 to 3 s.
+    Zero-shot transfer did not work for agents trained without domain randomization and perturba-
+tions: when deployed on physical robots, these agents would fall over with every one or two steps,
+and were unable to score.
+
+Regularization for Safe Behaviors
+
+We limited the range of possible actions for each joint to allow sufficient range of motion while
+minimizing the risk of self-collisions (Table S1 in Suppl. Environment Details). We also included
+two shaping reward terms to improve sim-to-real transfer and reduce robot breakages (see Table S3
+in Suppl. Training Details). In particular, we found that highly dynamic gaits and kicks often led
+to excessive stress on the knee joints from the impacts between the feet and the ground or the ball,
+which caused gear breakage. We mitigated this by regularizing the policies via a penalty term to
+minimize the time integral of torque peaks (thresholded above 5 Nm) as calculated by MuJoCo for the
+constraint forces on the targeted joints. In addition to the knee breakages, we noticed the agent would
+often lean forward when walking. This made the gait faster and more dynamic, but when transferred
+to a real robot, it would often cause the robot to loose balance and fall forward. To mitigate this effect
+we added a reward term for keeping an upright pose within the threshold of 11.5◦ . Incorporating
+these two reward components led to robust policies for transfer that rarely broke knee gears, and
+performed well at scoring goals and defending against the opponent.
+
+
+Ablations
+
+We ran ablations to investigate the importance of regularization to skill policies and using self-play,
+described below. We also ran ablations on the reward components (Suppl. Reward Ablations).
+
+Importance of Regularization to Skill Policies
+
+First, we trained agents without regularization to skill policies. When we gave agents a sparse reward,
+only for scoring or conceding goals, they learned a local optimum of rolling to the ball and knocking
+it into the goal with a leg (Figure 7, right). Whereas with the reward shaping used in our method,
+with a penalty for being on the ground, agents only learned to get up and stand still. They never
+
+
+                                                                                                         18
+                        Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning19
+
+
+
+learned to walk around or score, despite the inclusion of shaping reward terms for walking forward
+and towards the ball. These results suggest that in this setting, the exploration problem was too
+difficult when the agent needed to learn to both get up and play soccer. Our method overcomes this
+by first separately training policies for these two skills.
+
+
+
+
+Figure 7 | Comparison against ablations. A: The plot compares our full method (1) against ablations: at regular intervals
+across training, each policy was evaluated against a fixed set of six opponents, playing 100 matches against each. The
+first player to score in the episode wins the match; if neither player scores within 50 seconds, then it is a tie. The y-axis
+corresponds to the fraction of wins (with a draw counting as 1/2 of a win), averaged across the six opponents. We ran
+five seeds per method, and the error bars show 95% confidence intervals. Our full method (1) includes both self-play and
+regularization to pre-trained skills. In (2), instead of self-play, agents are trained against the same fixed set of six opponents
+as in the evaluation. Interestingly, agents trained with self-play in (1) performed better when evaluated against this fixed
+set of opponents, despite not playing directly against them during training. In (3), self-play consists of training against all
+saved snapshots, rather than the first quarter. This led to less stable learning and converged to worse performance. In (4),
+agents are trained without regularization to skills and without reward shaping. B: Two sequences of frames taken from an
+agent trained with (4). These agents did not learn to get up from the ground; instead, they learned to score by rolling to
+the ball and knocking it into the goal.
+
+
+Importance of Self-Play
+
+We also ablated the use of self-play in the second stage, while keeping the skill policy regularization
+and the shaped reward the same. For evaluation, we played agents against a fixed set of six diverse
+opponents, trained with a variety of approaches; this set includes the final 1v1 agent trained with
+our full pipeline. Figure 7 shows a comparison of our full training method against two alternatives:
+training directly against the fixed set of opponents throughout learning, rather than using self-play,
+and using self-play but sampling opponents from all previous snapshots of the policy, rather than the
+first quarter. The latter led to unstable learning and converged to poor performance. The former,
+interestingly, performed slightly worse than agents trained with our self-play method, despite having
+the advantage of training directly against the opponents used for evaluation.
+
+
+
+
+Acknowledgments: We would like to thank Daniel Hennes at Google DeepMind for developing the
+plotting tools used for the soccer matches, and Martin Riedmiller and Michael Neunert at Google
+DeepMind for their helpful comments. Funding: This research was funded by Google DeepMind.
+
+
+
+                                                                                                                               19
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning20
+
+
+
+Author contributions: Algorithm development: T.H., B.M., G.L., S.H.H., D.T., J.H., M.W., S.T.,
+N.Y.S., R.H., M.B., K.H., A.B., L.H., Y.T., F.S.; Software infrastructure and environment development:
+T.H., B.M., G.L., S.H.H., J.H., S.T., N.Y.S., R.H., M.B., Y.T.; Agent analysis: T.H., B.M., G.L., S.H.H.;
+Experimentation: T.H., B.M., G.L., S.H.H., D.T., J.H., N.Y.S.; Article writing: T.H., B.M., G.L., S.H.H.,
+D.T., M.W., N.He.; Infrastructure support: N.B., F.C., S.S., C.G., N.S., K.P., M.G.; Management support:
+N.B., F.C., A.H., N.Hu.; Project supervision: F.N., R.H., N.He.; Project design: T.H., N.He. Data
+availability: The data used for our quantitative figures and tables has been made available for
+download at https://zenodo.org/records/10793725 [91].
+
+
+References
+  [1] K. Sims, “Evolving virtual creatures,” in Proceedings of the 21st Annual Conference on Computer
+      Graphics and Interactive Techniques, SIGGRAPH ’94, (New York, NY, USA), p. 15–22, Association
+      for Computing Machinery, 1994.
+
+  [2] M. H. Raibert, Legged robots that balance. MIT press, 1986.
+
+  [3] S. Kuindersma, R. Deits, M. Fallon, A. Valenzuela, H. Dai, F. Permenter, T. Koolen, P. Marion,
+      and R. Tedrake, “Optimization-based locomotion planning, estimation, and control design for
+      the atlas humanoid robot,” Autonomous Robots, vol. 40, no. 3, pp. 429–455, 2016.
+
+  [4] J. Peters and S. Schaal, “Reinforcement learning of motor skills with policy gradients,” Neural
+      networks, vol. 21, no. 4, pp. 682–697, 2008.
+
+  [5] M. P. Deisenroth, G. Neumann, J. Peters, et al., “A survey on policy search for robotics,”
+      Foundations and Trends® in Robotics, vol. 2, no. 1–2, pp. 1–142, 2013.
+
+  [6] J. Kober, J. A. Bagnell, and J. Peters, “Reinforcement learning in robotics: A survey,” The
+      International Journal of Robotics Research, vol. 32, no. 11, pp. 1238–1274, 2013.
+
+  [7] N. Heess, D. Tirumala, S. Sriram, J. Lemmon, J. Merel, G. Wayne, Y. Tassa, T. Erez, Z. Wang,
+      A. Eslami, M. Riedmiller, et al., “Emergence of locomotion behaviours in rich environments,”
+      arXiv preprint arXiv:1707.02286, 2017.
+
+  [8] T. Bansal, J. Pachocki, S. Sidor, I. Sutskever, and I. Mordatch, “Emergent complexity via
+      multi-agent competition,” in 6th International Conference on Learning Representations (ICLR),
+      2018.
+
+  [9] X. B. Peng, P. Abbeel, S. Levine, and M. van de Panne, “DeepMimic: Example-guided deep
+      reinforcement learning of physics-based character skills,” ACM Transactions on Graphics (TOG),
+      vol. 37, no. 4, 2018.
+
+ [10] J. Merel, S. Tunyasuvunakool, A. Ahuja, Y. Tassa, L. Hasenclever, V. Pham, T. Erez, G. Wayne,
+      and N. Heess, “Catch & Carry: Reusable Neural Controllers for Vision-Guided Whole-Body
+      Tasks,” ACM Transactions on Graphics (TOG), vol. 39, no. 4, 2020.
+
+ [11] S. Liu, G. Lever, Z. Wang, J. Merel, S. M. A. Eslami, D. Hennes, W. M. Czarnecki, Y. Tassa,
+      S. Omidshafiei, A. Abdolmaleki, N. Y. Siegel, L. Hasenclever, L. Marris, S. Tunyasuvunakool,
+      H. F. Song, M. Wulfmeier, P. Muller, T. Haarnoja, B. D. Tracey, K. Tuyls, T. Graepel, and
+      N. Heess, “From motor control to team play in simulated humanoid football,” Science Robotics,
+      vol. 7, no. 69, 2022.
+
+
+
+
+                                                                                                         20
+                  Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning21
+
+
+
+[12] J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter, “Learning quadrupedal locomotion
+     over challenging terrain,” Science robotics, vol. 5, no. 47, p. eabc5986, 2020.
+
+[13] S. Choi, G. Ji, J. Park, H. Kim, J. Mun, J. H. Lee, and J. Hwangbo, “Learning quadrupedal
+     locomotion on deformable terrain,” Science Robotics, vol. 8, no. 74, p. eade2256, 2023.
+
+[14] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V. Tsounis, V. Koltun, and M. Hutter, “Learning
+     agile and dynamic motor skills for legged robots,” Science Robotics, vol. 4, no. 26, 2019.
+
+[15] X. B. Peng, E. Coumans, T. Zhang, T.-W. Lee, J. Tan, and S. Levine, “Learning agile robotic
+     locomotion skills by imitating animals,” arXiv preprint arXiv:2004.00784, 2020.
+
+[16] J. Lee, J. Hwangbo, and M. Hutter, “Robust recovery controller for a quadrupedal robot using
+     deep reinforcement learning,” arXiv preprint arXiv:1901.07517, 2019.
+
+[17] N. Rudin, D. Hoeller, M. Bjelonic, and M. Hutter, “Advanced skills by learning locomotion and
+     local navigation end-to-end,” in 2022 IEEE/RSJ International Conference on Intelligent Robots
+     and Systems (IROS), pp. 2497–2503, IEEE, 2022.
+
+[18] Y. Ji, G. B. Margolis, and P. Agrawal, “DribbleBot: Dynamic legged manipulation in the wild,”
+     arXiv preprint arXiv:2304.01159, 2023.
+
+[19] S. Bohez, S. Tunyasuvunakool, P. Brakel, F. Sadeghi, L. Hasenclever, Y. Tassa, E. Parisotto,
+     J. Humplik, T. Haarnoja, R. Hafner, et al., “Imitate and repurpose: Learning reusable robot
+     movement skills from human and animal behaviors,” arXiv preprint arXiv:2203.17138, 2022.
+
+[20] Y. Ji, Z. Li, Y. Sun, X. B. Peng, S. Levine, G. Berseth, and K. Sreenath, “Hierarchical reinforcement
+     learning for precise soccer shooting skills using a quadrupedal robot,” in 2022 IEEE/RSJ
+     International Conference on Intelligent Robots and Systems (IROS), pp. 1479–1486, IEEE, 2022.
+
+[21] X. Huang, Z. Li, Y. Xiang, Y. Ni, Y. Chi, Y. Li, L. Yang, X. B. Peng, and K. Sreenath,
+     “Creating a dynamic quadrupedal robotic goalkeeper with reinforcement learning,” CoRR,
+     vol. abs/2210.04435, 2022.
+
+[22] B. Forrai, T. Miki, D. Gehrig, M. Hutter, and D. Scaramuzza, “Event-based agile object catching
+     with a quadrupedal robot,” arXiv preprint arXiv:2303.17479, 2023.
+
+[23] X. Cheng, A. Kumar, and D. Pathak, “Legs as manipulator: Pushing quadrupedal agility beyond
+     locomotion,” arXiv preprint arXiv:2303.11330, 2023.
+
+[24] Z. Xie, P. Clary, J. Dao, P. Morais, J. W. Hurst, and M. van de Panne, “Iterative reinforcement
+     learning based design of dynamic locomotion skills for Cassie,” CoRR, vol. abs/1903.09537,
+     2019.
+
+[25] Agility Robotics, “Cassie sets world record for 100m run,” 2022. https://www.youtube.
+     com/watch?v=DdojWYOK0Nc.
+
+[26] J. Siekmann, K. Green, J. Warila, A. Fern, and J. Hurst, “Blind bipedal stair traversal via
+     sim-to-real reinforcement learning,” arXiv preprint arXiv:2105.08328, 2021.
+
+[27] Z. Li, X. B. Peng, P. Abbeel, S. Levine, G. Berseth, and K. Sreenath, “Robust and versatile bipedal
+     jumping control through multi-task reinforcement learning,” CoRR, vol. abs/2302.09450, 2023.
+
+[28] R. Deits and T. Koolen, “Picking up momentum,” Web blog post, Boston Dynamics, January 2023.
+     https://www.bostondynamics.com/resources/blog/picking-momentum.
+
+
+                                                                                                        21
+                  Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning22
+
+
+
+[29] H. Kitano, M. Asada, Y. Kuniyoshi, I. Noda, and E. Osawa, “RoboCup: The robot world cup
+     initiative,” in Proceedings of the first international conference on Autonomous agents, pp. 340–347,
+     1997.
+
+[30] RoboCup Federation, “Robocup project.” https://www.robocup.org, May 2022.
+
+[31] Robotis, “Robotis OP3 manual.” https://emanual.robotis.com/docs/en/
+     platform/op3/introduction, March 2023.
+
+[32] Robotis, “Robotis OP3                 source       code.”      https://github.com/ROBOTIS-GIT/
+     ROBOTIS-OP3, April 2023.
+
+[33] M. Bestmann and J. Zhang, “Bipedal walking on humanoid robots through parameter opti-
+     mization,” in RoboCup 2022: - Robot World Cup XXV [Bangkok, Thailand, July 11-17, 2022]
+     (A. Eguchi, N. Lau, M. Paetzel-Prüsmann, and T. Wanichanon, eds.), vol. 13561 of Lecture
+     Notes in Computer Science, pp. 164–176, Springer, 2022.
+
+[34] B. D. DeAngelis, J. A. Zavatone-Veth, and D. A. Clark, “The manifold structure of limb coordi-
+     nation in walking Drosophila,” eLife, vol. 8, p. e46409, jun 2019.
+
+[35] L. McInnes, J. Healy, and J. Melville, “UMAP: Uniform Manifold Approximation and Projection
+     for Dimension Reduction,” ArXiv e-prints, Feb. 2018.
+
+[36] T. Röfer, T. Laue, A. Baude, J. Blumenkamp, G. Felsch, J. Fiedler, A. Hasselbring, T. Haß, J. Opper-
+     mann, P. Reichenberg, N. Schrader, and D. Weiß, “B-Human team report and code release 2019,”
+     2019. Only available online: http://www.b-human.de/downloads/publications/
+     2019/CodeRelease2019.pdf.
+
+[37] J. Ibarz, J. Tan, C. Finn, M. Kalakrishnan, P. Pastor, and S. Levine, “How to train your robot with
+     deep reinforcement learning: lessons we have learned,” The International Journal of Robotics
+     Research, vol. 40, no. 4-5, pp. 698–721, 2021.
+
+[38] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter, “Learning robust perceptive
+     locomotion for quadrupedal robots in the wild,” Science Robotics, vol. 7, no. 62, p. eabk2822,
+     2022.
+
+[39] A. Agarwal, A. Kumar, J. Malik, and D. Pathak, “Legged locomotion in challenging terrains
+     using egocentric vision,” in Conference on Robot Learning, pp. 403–415, PMLR, 2023.
+
+[40] I. Radosavovic, T. Xiao, B. Zhang, T. Darrell, J. Malik, and K. Sreenath, “Learning humanoid
+     locomotion with transformers,” CoRR, vol. abs/2303.03381, 2023.
+
+[41] A. Kumar, Z. Fu, D. Pathak, and J. Malik, “RMA: Rapid motor adaptation for legged robots,”
+     arXiv preprint arXiv:2107.04034, 2021.
+
+[42] L. Smith, J. C. Kew, T. Li, L. Luu, X. B. Peng, S. Ha, J. Tan, and S. Levine, “Learning and
+     adapting agile locomotion skills by transferring experience,” arXiv preprint arXiv:2304.09834,
+     2023.
+
+[43] F. Muratore, F. Ramos, G. Turk, W. Yu, M. Gienger, and J. Peters, “Robot learning from
+     randomized simulations: A review,” Frontiers in Robotics and AI, p. 31, 2022.
+
+[44] P. Wu, A. Escontrela, D. Hafner, P. Abbeel, and K. Goldberg, “DayDreamer: World models for
+     physical robot learning,” in Conference on Robot Learning, pp. 2226–2240, PMLR, 2023.
+
+
+
+                                                                                                        22
+                 Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning23
+
+
+
+[45] T. Haarnoja, S. Ha, A. Zhou, J. Tan, G. Tucker, and S. Levine, “Learning to walk via deep
+     reinforcement learning,” in Proceedings of Robotics: Science and Systems (RSS), 2019.
+
+[46] S. Ha, P. Xu, Z. Tan, S. Levine, and J. Tan, “Learning to walk in the real world with minimal
+     human effort,” in Conference on Robot Learning, pp. 1110–1120, PMLR, 2021.
+
+[47] L. Smith, I. Kostrikov, and S. Levine, “A walk in the park: Learning to walk in 20 minutes with
+     model-free reinforcement learning,” arXiv preprint arXiv:2208.07860, 2022.
+
+[48] M. Bloesch, J. Humplik, V. Patraucean, R. Hafner, T. Haarnoja, A. Byravan, N. Y. Siegel,
+     S. Tunyasuvunakool, F. Casarini, N. Batchelor, et al., “Towards real robot learning in the wild:
+     A case study in bipedal locomotion,” in Conference on Robot Learning, pp. 1502–1511, PMLR,
+     2022.
+
+[49] G. Ji, J. Mun, H. Kim, and J. Hwangbo, “Concurrent training of a control policy and a state
+     estimator for dynamic and robust legged locomotion,” IEEE Robotics and Automation Letters,
+     vol. 7, no. 2, pp. 4630–4637, 2022.
+
+[50] G. B. Margolis, G. Yang, K. Paigwar, T. Chen, and P. Agrawal, “Rapid locomotion via reinforce-
+     ment learning,” arXiv preprint arXiv:2205.02824, 2022.
+
+[51] Y. Jin, X. Liu, Y. Shao, H. Wang, and W. Yang, “High-speed quadrupedal locomotion by imitation-
+     relaxation reinforcement learning,” Nature Machine Intelligence, vol. 4, no. 12, pp. 1198–1208,
+     2022.
+
+[52] I. Mordatch, K. Lowrey, and E. Todorov, “Ensemble-CIO: Full-body dynamic motion planning
+     that transfers to physical humanoids,” in 2015 IEEE/RSJ International Conference on Intelligent
+     Robots and Systems (IROS), pp. 5307–5314, IEEE, 2015.
+
+[53] W. Yu, V. C. Kumar, G. Turk, and C. K. Liu, “Sim-to-real transfer for biped locomotion,” in 2019
+     ieee/rsj international conference on intelligent robots and systems (IROS), pp. 3503–3510, IEEE,
+     2019.
+
+[54] S. Masuda and K. Takahashi, “Sim-to-real learning of robust compliant bipedal locomotion on
+     torque sensor-less gear-driven humanoid,” arXiv preprint arXiv:2204.03897, 2022.
+
+[55] Y. Ma, F. Farshidian, and M. Hutter, “Learning arm-assisted fall damage reduction and recovery
+     for legged mobile manipulators,” arXiv preprint arXiv:2303.05486, 2023.
+
+[56] O. Nachum, M. Ahn, H. Ponte, S. Gu, and V. Kumar, “Multi-agent manipulation via locomotion
+     using hierarchical sim2real,” arXiv preprint arXiv:1908.05224, 2019.
+
+[57] M. Riedmiller, A. Merke, D. Meier, A. Hoffmann, A. Sinner, O. Thate, and R. Ehrmann, “Karl-
+     sruhe Brainstormers - a reinforcement learning approach to robotic soccer,” in RoboCup-2000:
+     Robot Soccer World Cup IV, LNCS, pp. 367–372, Springer, 2000.
+
+[58] K. Tuyls, S. Maes, and B. Manderick, “Reinforcement learning in large state spaces,” in RoboCup
+     2002: Robot Soccer World Cup VI (G. A. Kaminka, P. U. Lima, and R. Rojas, eds.), vol. 2752 of
+     Lecture Notes in Computer Science, pp. 319–326, Springer, 2002.
+
+[59] M. Riedmiller, T. Gabel, R. Hafner, and S. Lange, “Reinforcement learning for robot soccer,”
+     Autonomous Robots, vol. 27, pp. 55–73, 2009.
+
+[60] P. Stone, R. S. Sutton, and G. Kuhlmann, “Reinforcement learning for RoboCup-soccer keep-
+     away,” Adaptive Behavior, vol. 13, no. 3, pp. 165–188, 2005.
+
+
+                                                                                                       23
+                  Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning24
+
+
+
+[61] S. Kalyanakrishnan and P. Stone, “Learning complementary multiagent behaviors: A case
+     study,” in RoboCup 2009: Robot Soccer World Cup XIII (J. Baltes, M. G. Lagoudakis, T. Naruse,
+     and S. S. Ghidary, eds.), pp. 153–165, Springer Verlag, 2010.
+
+[62] S. Kalyanakrishnan, Y. Liu, and P. Stone, “Half field offense in RoboCup soccer: A multiagent
+     reinforcement learning case study,” in RoboCup-2006: Robot Soccer World Cup X (G. Lakemeyer,
+     E. Sklar, D. Sorenti, and T. Takahashi, eds.), vol. 4434 of Lecture Notes in Artificial Intelligence,
+     pp. 72–85, Berlin: Springer Verlag, 2007.
+
+[63] P. Stone and M. Veloso, “Layered learning,” in European conference on machine learning,
+     pp. 369–381, Springer, 2000.
+
+[64] P. MacAlpine and P. Stone, “Overlapping layered learning,” Artificial Intelligence, vol. 254,
+     pp. 21–43, 2018.
+
+[65] M. Abreu, L. P. Reis, and N. Lau, “Learning to run faster in a humanoid robot soccer environment
+     through reinforcement learning,” in Robot World Cup, pp. 3–15, Springer, 2019.
+
+[66] L. C. Melo, D. C. Melo, and M. R. Maximo, “Learning humanoid robot running motions with
+     symmetry incentive through proximal policy optimization,” Journal of Intelligent & Robotic
+     Systems, vol. 102, no. 3, p. 54, 2021.
+
+[67] M. Saggar, T. D’Silva, N. Kohl, and P. Stone, “Autonomous learning of stable quadruped
+     locomotion,” in RoboCup-2006: Robot Soccer World Cup X (G. Lakemeyer, E. Sklar, D. Sorenti,
+     and T. Takahashi, eds.), vol. 4434 of Lecture Notes in Artificial Intelligence, pp. 98–109, Berlin:
+     Springer Verlag, 2007.
+
+[68] M. Hausknecht and P. Stone, “Learning powerful kicks on the Aibo ERS-7: The quest for a
+     striker,” in RoboCup-2010: Robot Soccer World Cup XIV (J. R. del Solar, E. Chown, and P. G.
+     Plöger, eds.), vol. 6556 of Lecture Notes in Artificial Intelligence, pp. 254–65, Berlin: Springer
+     Verlag, 2011.
+
+[69] A. Farchy, S. Barrett, P. MacAlpine, and P. Stone, “Humanoid robots learning to walk faster:
+     From the real world to simulation and back,” in Proc. of 12th Int. Conf. on Autonomous Agents
+     and Multiagent Systems (AAMAS), May 2013.
+
+[70] D. M. Roijers, P. Vamplew, S. Whiteson, and R. Dazeley, “A survey of multi-objective sequential
+     decision-making,” Journal of Artificial Intelligence Research, vol. 48, pp. 67–113, 2013.
+
+[71] A. Abdolmaleki, S. Huang, L. Hasenclever, M. Neunert, F. Song, M. Zambelli, M. Martins,
+     N. Heess, R. Hadsell, and M. Riedmiller, “A distributional view on multi-objective policy
+     optimization,” in International conference on machine learning, pp. 11–22, PMLR, 2020.
+
+[72] A. Ray, J. Achiam, and D. Amodei, “Benchmarking safe exploration in deep reinforcement
+     learning,” arXiv preprint arXiv:1910.01708, vol. 7, no. 1, p. 2, 2019.
+
+[73] Y. Tassa, Y. Doron, A. Muldal, T. Erez, Y. Li, D. de Las Casas, D. Budden, A. Abdolmaleki,
+     J. Merel, A. Lefrancq, T. P. Lillicrap, and M. A. Riedmiller, “Deepmind control suite,” CoRR,
+     vol. abs/1801.00690, 2018.
+
+[74] B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoorthi, and R. Ng, “NeRF:
+     Representing scenes as neural radiance fields for view synthesis,” Communications of the ACM,
+     vol. 65, no. 1, pp. 99–106, 2021.
+
+
+
+                                                                                                        24
+                  Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning25
+
+
+
+[75] A. Byravan, J. Humplik, L. Hasenclever, A. Brussee, F. Nori, T. Haarnoja, B. Moran, S. Bohez,
+     F. Sadeghi, B. Vujatovic, and N. Heess, “NeRF2Real: Sim2real transfer of vision-guided bipedal
+     motion skills using neural radiance fields,” in Proceedings of IEEE International Conference on
+     Robotics and Automation (ICRA), arXiv, 2023.
+
+[76] E. Todorov, T. Erez, and Y. Tassa, “Mujoco: A physics engine for model-based control,” in 2012
+     IEEE/RSJ International Conference on Intelligent Robots and Systems, pp. 5026–5033, 2012.
+
+[77] S. Tunyasuvunakool, A. Muldal, Y. Doron, S. Liu, S. Bohez, J. Merel, T. Erez, T. Lillicrap,
+     N. Heess, and Y. Tassa, “dm_control: Software and tasks for continuous control,” Software
+     Impacts, vol. 6, p. 100022, 2020.
+
+[78] Optitrack, “Motive optical motion capture software.” https://optitrack.com/
+     software/motive/, March 2023.
+
+[79] A. Abdolmaleki, J. T. Springenberg, Y. Tassa, R. Munos, N. Heess, and M. Riedmiller, “Maximum
+     a posteriori policy optimisation,” in Proceedings of the 6th International Conference on Learning
+     Representations (ICLR), 2018.
+
+[80] M. G. Bellemare, W. Dabney, and R. Munos, “A distributional perspective on reinforcement
+     learning,” in Proceedings of the 34th International Conference on Machine Learning, 2017.
+
+[81] J. Heinrich, M. Lanctot, and D. Silver, “Fictitious self-play in extensive-form games,” in Pro-
+     ceedings of the 32nd International Conference on Machine Learning, ICML 2015, Lille, France,
+     6-11 July 2015 (F. R. Bach and D. M. Blei, eds.), vol. 37 of JMLR Workshop and Conference
+     Proceedings, pp. 805–813, JMLR.org, 2015.
+
+[82] M. Lanctot, V. Zambaldi, A. Gruslys, A. Lazaridou, K. Tuyls, J. Pérolat, D. Silver, and T. Graepel,
+     “A unified game-theoretic approach to multiagent reinforcement learning,” in Advances in neural
+     information processing systems, pp. 4190–4203, 2017.
+
+[83] A. A. Rusu, S. G. Colmenarejo, C. Gulcehre, G. Desjardins, J. Kirkpatrick, R. Pascanu, V. Mnih,
+     K. Kavukcuoglu, and R. Hadsell, “Policy distillation,” arXiv preprint arXiv:1511.06295, 2015.
+
+[84] E. Parisotto, J. L. Ba, and R. Salakhutdinov, “Actor-mimic: Deep multitask and transfer rein-
+     forcement learning,” arXiv preprint arXiv:1511.06342, 2015.
+
+[85] Y. Teh, V. Bapst, W. M. Czarnecki, J. Quan, J. Kirkpatrick, R. Hadsell, N. Heess, and R. Pascanu,
+     “Distral: Robust multitask reinforcement learning,” in Advances in Neural Information Processing
+     Systems, 2017.
+
+[86] A. Galashov, S. Jayakumar, L. Hasenclever, D. Tirumala, J. Schwarz, G. Desjardins, W. M.
+     Czarnecki, Y. W. Teh, R. Pascanu, and N. Heess, “Information asymmetry in KL-regularized
+     RL,” in International Conference on Learning Representations, 2019.
+
+[87] S. Schmitt, J. J. Hudson, A. Zídek, S. Osindero, C. Doersch, W. M. Czarnecki, J. Z. Leibo,
+     H. Küttler, A. Zisserman, K. Simonyan, and S. M. A. Eslami, “Kickstarting deep reinforcement
+     learning,” ArXiv, vol. abs/1803.03835, 2018.
+
+[88] A. Abdolmaleki, S. H. Huang, G. Vezzani, B. Shahriari, J. T. Springenberg, S. Mishra, D. TB,
+     A. Byravan, K. Bousmalis, A. Gyorgy, C. Szepesvari, R. Hadsell, N. Heess, and M. Riedmiller,
+     “On multi-objective policy optimization as a tool for reinforcement learning,” arXiv preprint
+     arXiv:2106.08199, 2021.
+
+
+
+                                                                                                        25
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning26
+
+
+
+ [89] A. Stooke, J. Achiam, and P. Abbeel, “Responsive safety in reinforcement learning by pid
+      lagrangian methods,” in Proceedings of the 37th International Conference on Machine Learning
+      (ICML), 2020.
+
+ [90] S. Liu, G. Lever, J. Merel, S. Tunyasuvunakool, N. Heess, and T. Graepel, “Emergent coordination
+      through competition,” ICLR, 2019.
+
+ [91] T. Haarnoja, B. Moran, G. Lever, S. H. Huang, D. Tirumala, J. Humplik, M. Wulfmeier, S. Tun-
+      yasuvunakool, N. Y. Siegel, R. Hafner, M. Bloesch, K. Hartikainen, A. Byravan, L. Hasen-
+      clever, T. Y., F. Sadeghi, N. Batchelor, F. Casarini, S. Saliceti, C. Game, N. Sreendra, K. Patel,
+      M. Gwira, A. Huber, N. Hurley, F. Nori, R. Hadsell, and N. Heess, “Data release for: Learning
+      agile soccer skills for a bipedal robot with deep reinforcement learning [data set].,” 2024.
+      https://doi.org/10.5281/zenodo.10793725.
+
+ [92] S. Thrun and A. Schwartz, “Finding structure in reinforcement learning,” Advances in neural
+      information processing systems, vol. 7, 1994.
+
+ [93] M. Bowling and M. Veloso, “Reusing learned policies between similar problems,” in Proceedings
+      of the AI* AI-98 Workshop on New Trends in Robotics, Citeseer, 1998.
+
+ [94] X. B. Peng, M. Chang, G. Zhang, P. Abbeel, and S. Levine, “MCP: learning composable hierar-
+      chical control with multiplicative compositional policies,” in Advances in Neural Information
+      Processing Systems (H. M. Wallach, H. Larochelle, A. Beygelzimer, F. d’Alché-Buc, E. B. Fox,
+      and R. Garnett, eds.), pp. 3681–3692, 2019.
+
+ [95] M. Wulfmeier, D. Rao, R. Hafner, T. Lampe, A. Abdolmaleki, T. Hertweck, M. Neunert, D. Tiru-
+      mala, N. Siegel, N. Heess, et al., “Data-efficient hindsight off-policy option learning,” in
+      International Conference on Machine Learning, pp. 11340–11350, PMLR, 2021.
+
+ [96] J. Won, D. Gopinath, and J. K. Hodgins, “Control strategies for physically simulated characters
+      performing two-player competitive sports,” ACM Trans. Graph., vol. 40, no. 4, pp. 146:1–146:11,
+      2021.
+
+ [97] R. S. Sutton, D. Precup, and S. Singh, “Between mdps and semi-mdps: A framework for temporal
+      abstraction in reinforcement learning,” Artificial intelligence, vol. 112, no. 1-2, pp. 181–211,
+      1999.
+
+ [98] S. Salter, M. Wulfmeier, D. Tirumala, N. Heess, M. Riedmiller, R. Hadsell, and D. Rao, “Mo2:
+      Model-based offline options,” in Conference on Lifelong Learning Agents, pp. 902–919, PMLR,
+      2022.
+
+ [99] S. Ross, G. Gordon, and D. Bagnell, “A reduction of imitation learning and structured prediction
+      to no-regret online learning,” in Proceedings of the fourteenth international conference on artificial
+      intelligence and statistics, pp. 627–635, JMLR Workshop and Conference Proceedings, 2011.
+
+[100] D. Tirumala, A. Galashov, H. Noh, L. Hasenclever, R. Pascanu, J. Schwarz, G. Desjardins, W. M.
+      Czarnecki, A. Ahuja, Y. W. Teh, et al., “Behavior priors for efficient reinforcement learning,”
+      The Journal of Machine Learning Research, vol. 23, no. 1, pp. 9989–10056, 2022.
+
+[101] M. Riedmiller, R. Hafner, T. Lampe, M. Neunert, J. Degrave, T. van de Wiele, V. Mnih, N. Heess,
+      and J. T. Springenberg, “Learning by playing solving sparse reward tasks from scratch,” in
+      Proceedings of the 35th International Conference on Machine Learning, pp. 4344–4353, 2018.
+
+
+
+
+                                                                                                         26
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning27
+
+
+
+[102] G. Vezzani, D. Tirumala, M. Wulfmeier, D. Rao, A. Abdolmaleki, B. Moran, T. Haarnoja,
+      J. Humplik, R. Hafner, M. Neunert, et al., “Skills: Adaptive skill sequencing for efficient
+      temporally-extended exploration,” arXiv preprint arXiv:2211.13743, 2022.
+
+[103] A. A. Team, J. Bauer, K. Baumli, S. Baveja, F. M. P. Behbahani, A. Bhoopchand, N. Bradley-
+      Schmieg, M. Chang, N. Clay, A. Collister, V. Dasagi, L. Gonzalez, K. Gregor, E. Hughes, S. Kashem,
+      M. Loks-Thompson, H. Openshaw, J. Parker-Holder, S. Pathak, N. P. Nieves, N. Rakicevic,
+      T. Rocktäschel, Y. Schroecker, J. Sygnowski, K. Tuyls, S. York, A. Zacherl, and L. M. Zhang,
+      “Human-timescale adaptation in an open-ended task space,” ArXiv, vol. abs/2301.07608, 2023.
+
+[104] R. Hafner, T. Hertweck, P. Klöppner, M. Bloesch, M. Neunert, M. Wulfmeier, S. Tunyasuvunakool,
+      N. Heess, and M. Riedmiller, “Towards general and autonomous learning of core skills: A case
+      study in locomotion,” in Conference on Robot Learning, pp. 1084–1099, PMLR, 2021.
+
+[105] M. Wulfmeier, A. Abdolmaleki, R. Hafner, J. T. Springenberg, M. Neunert, T. Hertweck,
+      T. Lampe, N. Siegel, N. Heess, and M. Riedmiller, “Compositional transfer in hierarchical
+      reinforcement learning,” arXiv preprint arXiv:1906.11228, 2019.
+
+[106] D. Balduzzi, M. Garnelo, Y. Bachrach, W. Czarnecki, J. Pérolat, M. Jaderberg, and T. Graepel,
+      “Open-ended learning in symmetric zero-sum games,” in Proceedings of the 36th International
+      Conference on Machine Learning (ICML) (K. Chaudhuri and R. Salakhutdinov, eds.), vol. 97 of
+      Proceedings of Machine Learning Research, pp. 434–443, PMLR, 2019.
+
+[107] G. W. Brown, “Iterative solution of games by fictitious play,” in Activity Analysis of Production
+      and Allocation (T. C. Koopmans, ed.), New York: Wiley, 1951.
+
+[108] O. Vinyals, I. Babuschkin, W. M. Czarnecki, M. Mathieu, A. Dudzik, J. Chung, D. H. Choi,
+      R. Powell, T. Ewalds, P. Georgiev, J. Oh, D. Horgan, M. Kroiss, I. Danihelka, A. Huang, L. Sifre,
+      T. Cai, J. P. Agapiou, M. Jaderberg, A. S. Vezhnevets, R. Leblond, T. Pohlen, V. Dalibard,
+      D. Budden, Y. Sulsky, J. Molloy, T. L. Paine, Ç. Gülçehre, Z. Wang, T. Pfaff, Y. Wu, R. Ring,
+      D. Yogatama, D. Wünsch, K. McKinney, O. Smith, T. Schaul, T. P. Lillicrap, K. Kavukcuoglu,
+      D. Hassabis, C. Apps, and D. Silver, “Grandmaster level in StarCraft II using multi-agent
+      reinforcement learning,” Nature, vol. 575, no. 7782, pp. 350–354, 2019.
+
+[109] B. Baker, I. Kanitscheider, T. Markov, Y. Wu, G. Powell, B. McGrew, and I. Mordatch, “Emer-
+      gent tool use from multi-agent autocurricula,” in 8th International Conference on Learning
+      Representations (ICLR), 2020, 2020.
+
+[110] R. S. Sutton and A. G. Barto, Reinforcement Learning: An Introduction. Cambridge, MA, USA: A
+      Bradford Book, 2018.
+
+[111] J. Schulman, S. Levine, P. Abbeel, M. Jordan, and P. Moritz, “Trust region policy optimization,”
+      in Proceedings of the 32nd International Conference on Machine Learning (ICML), 2015.
+
+[112] V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G. Bellemare, A. Graves, M. Ried-
+      miller, A. K. Fidjeland, G. Ostrovski, et al., “Human-level control through deep reinforcement
+      learning,” Nature, vol. 518, no. 7540, p. 529, 2015.
+
+
+
+
+                                                                                                         27
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning28
+
+
+
+                             Supplementary Materials
+Contents
+
+ Suppl. Methods
+ Suppl. Figure S1             The OP3 Robot
+ Suppl. Figure S2             Get-Up Skill Training Poses
+ Suppl. Figure S3             Learning Curves
+ Suppl. Figure S4             Reward Ablations
+ Suppl. Figure S5             Learned Gait
+ Suppl. Figure S6             Scripted Gait
+ Suppl. Figure S7             Vision Analysis
+ Suppl. Table S1              Joint Limits
+ Suppl. Table S2              Observations
+ Suppl. Table S3              Reward Components
+ Suppl. Table S4              Hyperparameters
+ Suppl. Table S5              Training Time
+ Suppl. Movie S1              Episodes from training in simulation of the skills and 1v1 policy.
+ Suppl. Movie S2              Compilation of several continuous real-world 1v1 matches.
+ Suppl. Movie S3              Compilation of penalty kick and get-up-and-shoot set pieces.
+ Suppl. Movie S4              Examples of recovery from pushes and falling.
+ Suppl. Movie S5              Description of training and set pieces for vision-based agents.
+
+
+
+
+                                                                                                          28
+                    Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning29
+
+
+
+Supplementary Methods
+
+Related Work
+
+Skill and Transfer Learning
+
+Skill learning and transfer of learned behaviors has been a long-standing active area of research
+[92, 93, 63, 64]. The data requirements for training neural networks as policies have recently
+emphasized the requirement for increased data efficiency. Different mechanisms for transfer have been
+proposed, ranging from direct reuse of parameters in flat or hierarchical agents [94, 95, 84, 96, 97, 98],
+auxiliary objectives [99, 100, 11], to transfer via a skill’s generated experience [101, 102]. A related
+line of work is kickstarting, which makes use of a trained teacher policy to enable a student policy
+to learn more quickly and obtain better performance, on the same task [87, 86, 88, 103]. These
+approaches transfer knowledge from the teacher to the student via a distillation loss, defined as either
+the cross-entropy or KL-divergence between the output of the student and teacher networks [84, 83].
+[88] frames kickstarting as a multi-objective problem, that must trade off between regularization to
+the teacher policy versus the RL objective of maximizing expected return. Our approach builds on the
+linear scalarization (or weighted-sum) approach to combining reward and kickstarting proposed in
+[88], and we follow their proposal to adjust the level of regularization to the teacher depending on
+the student’s performance. We extend this approach to work in our setting, where we have more than
+one teacher, or skill policy. In particular on real robotics platforms, skill transfer has been critical for
+increased data efficiency [104, 105].
+
+Multi-agent Reinforcement Learning
+
+Our approach to training against a mixture of previous opponents is motivated by established methods
+for multi-agent training. Reinforcement learning with pure self-play can exhibit unstable or cyclic
+behavior, since learning focuses on the exploitation of a single current policy [106], and by overfitting
+can become exploitable. Therefore many applications of reinforcement learning to multi-agent
+domains train against a mixture of opponents. In normal form games Fictitious Play [107]—in
+which successive best responses to the mixture of previous policies are computed—converges to a
+Nash equilibrium for two-player, zero-sum games, and it has been generalized to extensive form
+games using reinforcement learning by, for example, [82, 81]. Alternatively, but similarly, [108]
+achieved stability and robustness by playing against a league of opponents. Our work is an efficient
+implementation of these ideas since we train against a mixture of previous opponents, but using one
+continuous training epoch, rather than successive generations. This improves efficiency, but could
+carry an increased risk of getting stuck in a local optima. Orthogonally, self-play provides a natural
+auto-curriculum in multi-agent RL [8, 109], which can be important since finding the best response
+to a set of strong opponents from scratch can be challenging for RL in some domains. For example, in
+soccer, strong opponents could dominate play and a learner might get very little experience of ball
+interaction. Our method effectively features a similar auto-curriculum property, since we trained in
+one continuous epoch in which the opponents are initially weak, and, subsequently, are automatically
+calibrated to the strength of the current agent as earlier agent checkpoints are successively added to
+the opponent pool.
+
+
+Environment Details
+
+Suppl. Figure S1 shows one of the OP3 robots we used in our experiments. The robot has mechanical
+improvements to reduce damage from testing different, potentially unsafe, policies on the robot,
+including 3D printed bumpers and arms. We also installed a 3D printed vest for motion capture
+
+
+                                                                                                          29
+                                  Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning30
+
+
+
+markers for tracking. We limited the achievable joint range programmatically to reduce the risk of
+self-collisions, as listed in Suppl. Table S1. The limits are applied to each joint independently. The
+joints corresponding to the left and right side are prefixed with “l” and “r”, respectively. Zero joint
+angles correspond to the T-pose. Note that these limits don’t completely eliminate collisions, as we
+wanted to keep the limits wide enough to allow agile and dynamics behaviors. Suppl. Table S2 lists
+all observations that are available for the agent.
+
+
+
+                                                                                             ID     Joint Name          Min     Max
+                                                                                             19     head_pan            -0.79   0.79
+                                                                                             20     head_tilt           -0.63   -0.16
+                                                                                             16     l_ank_pitch         -0.4    1.8
+                                                                                             18     l_ank_roll          -0.4    0.4
+                                                                                              6     l_el                -1.4    0.2
+                                                                                             12     l_hip_pitch         -1.6    0.5
+                                                                                             10     l_hip_roll          -0.4    -0.1
+                                                                                              8     l_hip_yaw           -0.3    0.3
+                                                                                             14     l_knee              -0.2    2.2
+                                                                                              2     l_sho_pitch         -2.2    2.2
+                                                                                              4     l_sho_roll          -0.8    1.6
+                                                                                             16     r_ank_pitch         -1.8    0.4
+                                                                                             17     r_ank_roll          -0.4    0.4
+                                                                                              5     r_el                -0.2    1.4
+                                                                                             11     r_hip_pitch         -0.5    1.6
+                                                                                              9     r_hip_roll          0.1     0.4
+                                                                                              7     r_hip_yaw           -0.3    0.3
+                                                                                             13     r_knee              -2.2    0.2
+                                                                                              1     r_sho_pitch         -2.2    2.2
+                                                                                              3     r_sho_roll          -1.6    0.8
+         Figure S1 | OP3 robot. One of the OP3 robots we used in
+         our experiments.                                                        Table S1 | Joint Limits
+
+
+                    Observation                  Dimension        Note
+                    joint positions              5 · 20           Joint positions in radians (stacked last 5 timesteps)
+
+
+
+   Proprioception
+                    linear acceleration          5·3              Linear acceleration from IMU (stacked)
+                    angular velocity             5·3              Angular velocity (roll, pitch, yaw) from IMU (stacked)
+                    gravity                      5·3              Gravity direction, derived from angular velocity and linear
+                                                                  acceleration using Madgwick filter (stacked)
+                    previous action              5 · 20           Action filter state (stacked)
+                    ball position                2
+                    opponent position            2
+
+
+   Game State
+                                                                  All positions and velocities are 2-dimensional vectors corre-
+                    goal position                2
+                                                                  sponding to the planar coordinates expressed in the agent’s
+                    opponent goal position       2
+                                                                  frame. The velocities are derived from positions via finite
+                    agent velocity               5·2
+                                                                  differentiation. Agent velocity is stacked over five timesteps.
+                    ball velocity                2
+                    opponent velocity            2
+
+Table S2 | The agent’s observations.
+
+
+
+
+                                                                                                                                        30
+                                Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning31
+
+
+
+Training Details
+
+Reward Functions
+
+Reward components for training the skills and the final policy is given in Suppl. Table S3. The last
+three columns denote the weight of each reward component constituting the total reward for each
+training stage.
+
+
+
+
+                                                                                                                  Soccer skill   Get-up skill    Full 1v1 agent
+    Type             Reward 𝑟ˆ𝑘            Description and purpose
+
+
+
+                     Scoring               +1 when the agent scores a goal and 0 otherwise.                     1000             —              1000
+                     Conceding             −1 when the opponent scores a goal and 0 otherwise.                        0          —              1000
+                     Velocity to ball      The magnitude of the agent’s velocity toward the ball.                0.05            —              0.05
+                     Velocity              The magnitude of the player’s forward velocity.                        0.1            —              0.1
+
+
+    Shaping
+                     Interference          A penalty, equal to the cosine of the angle between the                    1          —                 1
+                                           player’s velocity vector and the heading of the opponent,
+                                           if the player is within 1 m of the opponent. This discour-
+                                           ages the agents from interfering with and fouling the
+                                           opponent.
+                     Termination           A penalty, equal to −1 if the player is on the ground, out             —              —              0.5
+                                           of bounds, or in the goal penalty area. This encourages
+                                           agents to get up from the ground quickly, avoid falling,
+                                           and stay in bounds.
+
+                     Upright               0 if the robot is upside down or if the tilt angle is greater        0.015            —              0.02
+                                           than 0.4 radians. Increases linearly, and is equal to +1
+                                           if the tilt angle is less than 0.2 radians.
+
+
+    Sim-to-real
+                     Joint torque          A penalty, equal to the magnitude of the torque mea-                  0.01            —              0.01
+                                           sured at the player’s knees. This discourages the player
+                                           from learning gaits which cause high forces on the knees,
+                                           for example during ground impacts, which can damage
+                                           a physical robot.
+
+                     Target pose          The negative of the product of joint angle error and                    —                1             —
+                                          gravity error, where the reference target pose is sampled
+                                          from a scripted get-up trajectory. Joint angle error is
+
+
+
+    Skill Training
+                                          the L2 norm of the difference of target joint angles and
+                                          actual joint angles, scaled and clipped to [0, 1], where 0
+                                          denotes an error of 𝜋 and 1 denotes no error. Similarly,
+                                          gravity error is the angle between the target gravity
+                                          vector and the actual gravity vector, scaled and clipped
+                                          to [0, 1], where 0 denotes an error of 𝜋/2 and 1 denotes
+                                          full alignment.
+
+
+Table S3 | The reward components used for training the skills and the full 1v1 agent.
+
+
+
+
+                                                                                                                                                                  31
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning32
+
+
+
+Get-up Skill Training
+
+Suppl. Figure S2 shows the three key poses for getting up from the front and back we used to guide
+training of the get-up skill.
+
+
+
+
+Figure S2 | Get-up poses. The key poses used to train the get-up skill, taken from a scripted get-up controller [32].
+
+
+Agent Training and Architecture
+
+Distributional MPO: We trained agents using MPO with a distributional critic, which we refer
+to as Distributional MPO (DMPO). MPO, or Maximum a Posteriori Policy Optimization [79], is an
+actor-critic deep RL algorithm based on policy iteration. Policy iteration algorithms alternate between
+performing policy evaluation and policy improvement. Policy evaluation estimates the Q-function (or
+critic) given the current policy (or actor). Policy improvement updates the policy given the current
+Q-function.
+
+
+Policy Evaluation: In policy evaluation, the Q-function is learned for the current policy 𝜋t , param-
+eterized by the target policy network. Any off-the-shelf Q-learning algorithm can be used to learn
+the Q-function. We chose to use n-step Q-learning [110] with 𝑛 = 5. In addition, we parameterize
+the Q-function as a deep feed-forward neural network that outputs a categorical distribution, as
+introduced in [80].
+
+
+Policy Improvement: In policy improvement, the aim is to improve the policy with respect to the
+current Q-function 𝑄 𝑡 and current policy 𝜋𝑡 . MPO has a two-step policy improvement procedure. The
+first step computes an improved action distribution 𝑞 ( 𝒂 | 𝒔) that optimizes the standard RL objective
+together with a KL-divergence constraint to the current policy:
+                                           ∫                           
+                                   max 𝔼𝜉        𝑞 ( 𝒂 | 𝒔) 𝑄 ( 𝒔, 𝒂)d𝒂                             (4)
+                                     𝑞         𝒂
+                                           h                         i
+                                    s.t. 𝔼𝜉 KL 𝑞 (·| 𝒔) ∥ 𝜋𝑡 (·| 𝒔) < 𝜖 .
+
+The KL-divergence constraint ensures that the improved action distribution does not deviate too much
+from the current policy, which stabilizes learning. Equation 4 has a closed-form solution for each
+state 𝒔, where                                                            
+                                                                 𝑄 ( 𝒔, 𝒂)
+                                  𝑞 ( 𝒂 | 𝒔) ∝ 𝜋𝑡 ( 𝒂 | 𝒔) exp               ,                   (5)
+                                                                           𝜂
+and the temperature 𝜂 is the solution to the convex dual function involving 𝜖:
+                                            "   ∫                          #
+                                                                 𝑄 ( 𝒔, 𝒂)
+                       𝜂 = argmin 𝜂𝜖 + 𝜂𝔼𝜉 log 𝜋𝑡 ( 𝒂 | 𝒔) exp              d𝒂 .                                        (6)
+                                      𝜂                        𝒂                     𝜂
+
+
+
+
+                                                                                                                         32
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning33
+
+
+
+               Hyperparameter                                                                  Setting
+               Q-function / critic network:
+                   layer sizes                                                          (400, 400, 400, 300)
+                   support                                                                  [−150, 150]
+                   number of atoms                                                               51
+                   n-step returns                                                                5
+                   discount factor 𝛾                                                            0.99
+               policy / actor network:
+                    layer sizes                                                            (256, 256, 128)
+                    minimum variance                                                           0.001
+               policy and Q-function networks:
+                    layer norm on first layer?                                                   yes
+                    tanh on output of layer norm?                                                yes
+                    activation (after each hidden layer)                                         ELU
+               MPO for policy improvement:
+                  actions sampled per state                                                      20
+                     𝜖                                                                           0.1
+                     KL-constraint on mean, 𝛽 𝜇                                                0.0025
+                     KL-constraint on covariance, 𝛽Σ                                            10−6
+                     Adam learning rate for dual variables                                      10−2
+                     Adam learning rate for policy and Q-function networks                      10−4
+               training
+                     batch size, 𝐵                                                               256
+                     trajectory segment length, 𝑇                                                 48
+                     replay buffer size                                                          106
+                     target network update period for actor                                       25
+                     target network update period for critic                                     100
+
+Table S4 | Hyperparameters for agent architectures and training.
+
+
+In practice, rather than setting 𝜂 to the exact solution of the convex dual function, it is effective to
+optimize 𝜂 via gradient descent, initializing with the solution found in the previous iteration.
+   The second step distills the improved action distribution 𝑞 into a new parametric policy 𝜋𝑡+1 (with
+parameters 𝜃𝑡+1 ) via a supervised learning loss:
+                                                 ∫                               
+                              𝜃𝑡+1 = argmax 𝔼𝜉       𝑞 ( 𝒂 | 𝒔) log 𝜋𝜃 ( 𝒂 | 𝒔)d𝒂                  (7)
+                                        𝜃          𝒂
+                                                 h                        i
+                                          s.t. 𝔼𝜉 KL 𝜋𝑡 (·| 𝒔) ∥ 𝜋𝜃 (·| 𝒔) < 𝛽 .
+
+The additional KL-divergence constraint enforces that the policy does not change too much in a single
+iteration of policy improvement, which avoids premature convergence and improves learning stability
+[111, 79].
+
+
+Agent Hyperparameters: Suppl. Table S4 lists the hyperparameters we used for agent architectures
+and training. Both the policy and critic were feed-forward neural networks. During training we
+sample a batch of trajectory segments from the replay buffer, of size 𝐵 and segment length 𝑇 , perform
+one step each of policy evaluation and policy improvement on this batch, and repeat. To stabilize
+learning, we maintain a separate online and target network for the policy and the Q-function [112].
+The policy evaluation and improvement steps update the parameters of the online network, and the
+online network parameters are copied to the target network at fixed intervals.
+
+
+                                                                                                               33
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning34
+
+
+
+
+Figure S3 | Learning curves for the get-up and soccer skills. (Figure 7 shows learning curves for the full 1v1 task.) The
+get-up and soccer policies at the end of training are used as the pre-trained skills for the 1v1 task. For the soccer agent,
+the orange line denotes the scoring reward of the agent, where 1 corresponds to scoring a goal. The blue line denotes
+the negative of the conceding penalty, where 1 corresponds to the opponent scoring a goal. The error bars show 95%
+confidence intervals over ten seeds.
+
+
+                    Agent               Environment Steps Simulation Time Wall-Clock Time
+                    Get-up Skill              2.4 ∗ 108                70 days              14 hours
+                    Soccer Skill              2.0 ∗ 109               580 days              158 hours
+                    Full 1v1 Agent            9.0 ∗ 108               262 days              68 hours
+
+Table S5 | The time spent training each agent.
+
+
+Training Curves
+
+Suppl. Figure S3 shows learning curves for training the skill policies in simulation, and Suppl. Table S5
+shows the time spent training each agent. Both the get-up and soccer skills learned relatively quickly.
+Although the learning curve plateaus, we found that soccer agents trained for longer were better at
+anticipating ball movement and handling the ball, for instance kicking a moving ball.
+    The control frequency is 40 Hz, so each environment step corresponds to 0.025 seconds of
+simulation time. Wall-clock time refers to the amount of time it takes to train the agent. This is
+significantly shorter than the simulation time because we use distributed training, in that multiple
+copies of the agent interact with the simulated environment in parallel.
+
+Reward Ablations
+
+The reward we use for training the skills and full 1v1 agent consists of several components. We ran
+ablations to investigate which components are necessary for learning. Suppl. Figure S4 shows the
+learning curves for the soccer skill and full 1v1 agent, when the forward velocity reward component
+and/or the velocity-to-ball component is ablated. Recall that the soccer skill is trained against an
+untrained opponent, so scoring is much easier. We chose to ablate only the velocity-based reward
+components because the other reward components are either necessary for sim-to-real transfer or
+for defining the task (for example, scoring and staying in-bounds). For both the soccer skill and full
+1v1 agent, leaving out the forward velocity reward hinders learning; in fact the soccer skill does not
+learn at all. This suggests that the forward velocity component is important for making exploration
+easier. For the soccer skill, leaving out the velocity-to-ball reward or using a smaller weight on the
+forward velocity reward delays learning initially, but the policies eventually converge to slightly higher
+performance. For the full 1v1 agent though, leaving out the velocity-to-ball reward converges to
+slightly worse performance.
+
+
+
+
+                                                                                                                         34
+                       Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning35
+
+
+
+
+Figure S4 | Reward term ablations. Ablations of the velocity-based reward terms for training the soccer skill (left) and the
+full 1v1 agent (right).
+
+
+Behavior Analysis Experiment Details
+
+Baseline Behavior Comparisons: Experiment Details
+
+Here we provide experiment details for the results in Comparison to Scripted Baseline Controllers.
+
+
+Walking: To compare walking speed, we ran 10 episodes with both the learned agent and the
+scripted walking controller. For each episode, we initialized the robot in the standard “walking ready”
+pose, and ran both the agent or baseline for 10 seconds. We measured the speed using the distance
+traveled over the five second window of time starting from the 2nd second to the 7th second. Since
+the scripted controller does not actively correct the robot’s heading, it often quickly veered off course.
+Therefore, to make the comparison fair for the baseline, we approximated the distance traveled over
+the five second window by summing the distances traveled in each of the 5 one second windows
+comprising the whole window.
+    The agent does not have a specific walking behavior that can be executed in isolation, so we
+encouraged it to walk forwards by initializing the robot close to its own goal, and placed the ball in
+the opponent’s goal area.
+
+
+Get-Up Ability: Similar to walking, the learned agent does not have a specific get-up behavior that
+can be executed in isolation. However, the agent prefers to stay upright, so simply initializing the
+robot on the floor triggers the get-up behavior. To compare the get-up behaviors, we thus placed the
+robot on the floor, face down in a T-pose (where all joint positions are set to zero), and activated
+either the agent or the scripted get-up controller. We considered the robot as standing as soon as
+it reached a height of 36 cm, measured at the motion capture marker on the shoulder. Note that
+when the robot is fully upright, the motion capture marker on the shoulder reaches a height of 41 cm.
+Hence a threshold of 36 cm corresponds to approximately a 5 cm tolerance in shoulder height. This is
+necessary since in general the learned policy, after getting up, quickly starts moving away from the
+standing position, towards the ball for example. We collected 10 episodes from both behaviors and
+compared the time required to reach the specified get-up threshold. Both the scripted behavior and
+the agent succeeded in standing up on every trial.
+
+
+
+                                                                                                                         35
+                   Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning36
+
+
+
+Kicking Speed: To compare kicking ability, we placed the ball 1 m from the opponent’s goal and
+placed the robot behind the ball, facing the goal. For the scripted controller, which is “blind” in
+the sense that it does not take into account the ball’s location, we were careful to place the robot
+such that the swung leg was exactly behind the ball, to maximize the impact. The learned policy
+is conditioned on the ball position, so we aligned the ball between the legs, allowing the agent to
+choose which leg to use for the kick. We collected 10 episodes from both behaviors. The learned
+policy attempted to kick the ball directly towards the goal on every trial. Initializations in which
+some other strategy (for instance dribbling) would be chosen are easily avoided. We determined the
+kicking speed by calculating the total distance traveled in the 0.2 s window following the first contact
+with the ball. We observed that the learned policy can kick more powerfully if we initialize the ball
+further away from the robot, to allow it to take a few steps before the kick. Therefore, we collected
+10 additional episodes with the ball 0.5 m from the goal and an approach distance of 2.5 m. This
+latter setup was not possible to replicate with the scripted controller, since it cannot take into account
+the ball’s location.
+
+
+Turning Speed: To compare turning ability, we placed the ball 1 m from the opponent’s goal and
+placed the robot in its own half 1.5 m from its own goal, facing 180 degrees away from the ball.
+We determined the turning speed by measuring the time taken to change orientation from ±45◦ to
+±135◦ (depending on the direction the agent turned). For the scripted controller distributed with
+the OP3, we optimized the step length and step speed parameters to maximize turning speed while
+remaining upright on most trials. Episodes in which the robot fell were discounted and re-run, until
+we had collected 10 episodes from both behaviors. The learned behavior fell in 3 out of 13 trials,
+whereas the scripted controller remained upright on 10 consecutive trials.
+
+Set Piece: Experiment Details
+
+Here we provide additional experiment details for the results in Behavior Analysis.
+    The get-up-and-shoot set piece is a short episode of 1v1 soccer in which the ball is initialized
+at the center of the pitch (2.5 m from the goal), and the agent is initialized face down in a default
+T-pose behind the ball at a random position. The initial position of the robot was sampled uniformly
+from a grid of positions in the center of the robot’s own half; the positions used in the simulation and
+real environments were identical. The opponent is initialized in a T-pose 0.5 m away from the goal
+line and the sideline, in its own half, and remains stationary throughout the episode. The episode
+ends after 10 seconds or after a goal is scored. Example initial configuration is shown in Figure 5.
+
+
+Learned Gaits
+
+Suppl. Figure S5 and Suppl. Figure S6 show representative sequences of walking gaits obtained from
+the Deep RL learned policy, and from the scripted walking controller of [32] respectively. The scripted
+controller behaves conservatively and remains close to statically stable configurations. By contrast,
+the learned gait makes more aggressive use of the robot dynamics by using the arms to balance and
+making contact primarily with the edges of the feet.
+
+
+
+
+                                                                                                         36
+                      Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning37
+
+
+
+
+Figure S5 | Policy walking. Stills 100ms apart, walking with the Deep RL policy.
+
+
+
+
+Figure S6 | Baseline controller walking. Stills at 96ms apart, straight line walking with the controller of [32].
+
+
+
+Playing Soccer from Raw Vision
+
+Training Details
+
+To create a realistic visual simulation of the real world, we created a NeRF model [74] of our soccer
+pitch inspired by the approach of [75]. The NeRF model captures static properties of the scene
+including the background, goal locations and the pitch itself. We overlaid these images with renders
+from the MuJoCo camera of dynamic objects, that is, the ball and opponent. For robustness, we
+randomized over visual properties of the ball, including color. In addition, we randomized training
+over NeRF models captured at different points in time to be robust to changes in the background
+and lighting conditions. The reward and environment setup was otherwise identical to that used for
+state. To increase learning efficiency, for every iteration of training a new agent, we mixed offline
+data gathered from previous iterations with online replay data.
+    We used the same agent (MPO with distributional critic) for vision as for our state-based analysis.
+The policy was conditioned on visual information and proprioception while the critic was given the
+same information as in state-based training. For our policy we used the same network configuration
+as [75].
+
+Set Piece Analysis
+
+We conducted a simulated penalty shootout using a vision trained policy as shown in Suppl. Figure S7
+(left). The penalty kick set piece is a short episode of 1v1 soccer in which the ball is initialized at the
+center of the pitch, offset 1.5 m behind the ball closer to its own goal. The opponent is initialized
+1 m away from the goal line and the sideline, in its own half, and remains stationary throughout the
+episode. The episode ends after 6 seconds or after a goal is scored. The robot consistently scored
+across 10 trials in the set piece configuration. The robot scored 6 out of 10 times (60 %) when
+transferred to the real world and hit the post 3 times. Variations in the visual elements of the scene
+and sensor noise could explain the discrepancy.
+    In addition in Suppl. Figure S7 (right) we plot a trajectory where the ball is initialized moving
+in the negative y-direction. The robot predicts the movement of the ball and proactively alters its
+
+
+                                                                                                                    37
+                       Learning Agile Soccer Skills for a Bipedal Robot with Deep Reinforcement Learning38
+
+
+
+
+Figure S7 | Set piece with the vision-based policy. Overlaid plots of the trajectories collected from the simulated vision
+set piece experiment. We refer the reader to our supplementary website for videos of experiments on real robots. Robot
+trajectory before kick (solid red lines), after kick (dotted red line) and corresponding ball trajectory (dashed red line), ball
+(white circle) and opponent (blue circle). (Left) Analysis of penalty kick from fixed starting positions of ball and robots.
+The robot scored in all trials. (Right) A single trajectory showing adaptive movement behavior when the ball is initialized
+to be rolling along the negative y-axis.
+
+
+gait to strike at a particular location. Examples of agent behavior from vision can be found in Suppl.
+Movie S5.
+
+
+
+
+                                                                                                                             38
+

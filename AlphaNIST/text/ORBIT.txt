@@ -1,0 +1,594 @@
+                                                                   O RBIT: A Unified Simulation Framework for
+                                                                     Interactive Robot Learning Environments
+                                                    Mayank Mittal1,2 , Calvin Yu3 , Qinxi Yu3 , Jingzhou Liu3 , Nikita Rudin1,2 , David Hoeller1,2 ,
+                                                Jia Lin Yuan3 , Ritvik Singh3 , Yunrong Guo2 , Hammad Mazhar2 , Ajay Mandlekar2 , Buck Babich2 ,
+                                                                         Gavriel State2 , Marco Hutter1 , Animesh Garg2,3
+
+
+
+
+arXiv:2301.04195v2 [cs.RO] 16 Feb 2024
+                                         Fig. 1: O RBIT framework provides a large set of robots, sensors, rigid and deformable objects, motion generators, and teleoperation
+                                         interfaces. Through these, we aim to simplify the process of defining new and complex environments, thereby providing a common
+                                         platform for algorithmic research in robotics and robot learning.
+                                            Abstract— We present O RBIT, a unified and modular frame-             simplify low-level interaction intricacies such as grasping.
+                                         work for robot learning powered by N VIDIA Isaac Sim. It                 On the other hand, physics simulators for robotics, such as
+                                         offers a modular design to easily and efficiently create robotic         Isaac Gym [13] or SAPIEN [11], provide fast and reasonably
+                                         environments with photo-realistic scenes and high-fidelity rigid
+                                         and deformable body simulation. With O RBIT, we provide a                accurate rigid-body contact dynamics but do not include
+                                         suite of benchmark tasks of varying difficulty– from single-             physically-based rendering (PBR), deformable objects simu-
+                                         stage cabinet opening and cloth folding to multi-stage tasks             lation or ROS support [15] out-of-the-box. Recently, N VIDIA
+                                         such as room reorganization. To support working with diverse             released a new simulator Omniverse Isaac Sim [16] that aims
+                                         observations and action spaces, we include fixed-arm and                 to fulfill these gaps through GPU-accelerated real-time PBR
+                                         mobile manipulators with different physically-based sensors
+                                         and motion generators. O RBIT allows training reinforcement              and state-of-the-art physics engine.
+                                         learning policies and collecting large demonstration datasets               This work presents O RBIT, an open-source framework for
+                                         from hand-crafted or expert solutions in a matter of minutes             robotics research that exploits the latest simulation capabil-
+                                         by leveraging GPU-based parallelization. In summary, we offer            ities through Isaac Sim to allow intuitive designing of tasks
+                                         an open-sourced framework that readily comes with 16 robotic             with photo-realistic scenes and state-of-the-art rigid and de-
+                                         platforms, 4 sensor modalities, 10 motion generators, more than
+                                         20 benchmark tasks, and wrappers to 4 learning libraries. With           formable body simulation. To prevent a scattering of efforts
+                                         this framework, we aim to support various research areas,                for building the necessary tooling to use the simulator for
+                                         including representation learning, reinforcement learning, imi-          robot learning, we design a unified and modular framework
+                                         tation learning, and task and motion planning. We hope it helps          that supports a wide variety of robotic platforms, sensors, and
+                                         establish interdisciplinary collaborations in these communities,         objects and allows designing tasks not only programmatically
+                                         and its modularity makes it easily extensible for more tasks
+                                         and applications in the future. For videos, documentation, and           but also interactively through the GUI. We design the system
+                                         code: https://isaac-orbit.github.io/.                                    bottom-up – from incorporating user-defined models for the
+                                                              I. I NTRODUCTION                                    actuator dynamics to modularizing task specifications for
+                                                                                                                  learning with different levels of observations and action
+                                           An ideal robot simulator needs to provide fast and ac-                 spaces. In O RBIT, we also include a collection of features,
+                                         curate physics, high-fidelity sensor simulation, diverse asset           such as different robot platforms, motion generators, and a
+                                         handling, and easy-to-use interfaces for integrating new tasks           suite of tasks that help serve not only as a benchmark but
+                                         and environments. However, existing platforms often need                 also as examples for designing a new task. Through this
+                                         to make a trade-off between these aspects. For instance,                 framework, we support various robotic applications, such as
+                                         simulators designed mainly for vision, such as Habitat [14] or           reinforcement learning (RL), learning from demonstrations
+                                         ManipulaTHOR [12], offer decent rendering throughput but                 (LfD), and motion planning, thereby providing a common
+                                           1 ETH Zurich, Switzerland, 2 NVIDIA, 3 University of Toronto, Canada   platform for researchers in these communities to benefit from
+                                           Corresponding author: Mayank Mittal (email: mittalma@ethz.ch)          this consolidated effort.
+TABLE I: Comparison between different simulation frameworks and O RBIT. The check (✓) and cross (X) denote presence or absence of
+the feature. In Robotic Platforms column, M stands for manipulator. In Scene Authoring column, G stands for game-based designing,
+M for mesh-scan scenes, and P for procedural-generation.
+                                                                  Vectorization              Supported Dynamics        PBR                                   Sensors                              Robotic Platforms            Scene
+        Name              Physics Engine          Renderer
+                                                                  CPU     GPU      Rigid    Cloth  Soft Fluid         Tracing     RGBD      Semantic     LiDAR Contact          Acoustic    Fixed-M Mobile-M Legged          Authoring
+
+MetaWorld [1]            MuJoCo                OpenGL               ✓       X       ✓         X       X       X          X          X           X           X          X           X           ✓            X           X    P
+RoboSuite [2]            MuJoCo                OpenGL, OptiX        ✓       X       ✓         X       X       X          X          ✓           ✓           X          ✓           X           ✓            X           X    P
+DoorGym [3]              MuJoCo                Unity                X       X       ✓         X       X       X          ✓          ✓           ✓           X          X           X           ✓            X           X    P, G
+DEDO [4]                 Bullet                OpenGL               ✓       X       ✓         ✓       ✓       X          X          ✓           X           X          X           X           ✓            X           X    P, G
+RLBench [5]              Bullet/ODE            OpenGL               X       X       ✓         X       X       X          X          ✓           ✓           X          ✓           X           ✓            X           X    P
+iGibson [6]              Bullet                MeshRenderer         ✓       X       ✓         X       X       X          ✓          ✓           ✓           ✓          X           X           X            ✓           X    M
+Habitat 2.0 [7]          Bullet                Magnum               X       X       ✓         X       X       X          ✓          ✓           ✓           X          X           X           ✓            ✓           ✓    P, M
+SoftGym [8]              FleX                  OpenGL               ✓       X       ✓         ✓       ✓       ✓          X          X           X           X          X           X           ✓            X           X    P
+ThreeDWorld [9]          PhysX 4/FleX/Obi      Unity3D              X       X       ✓∗        ✓∗      ✓∗      ✓∗         ✓          ✓           ✓           X          X           ✓           X            ✓           X    P
+ManiSkill2 [10]           PhysX 4/Warp         SAPIEN [11]          ✓       X       ✓         X       ✓†      ✓          ✓          ✓           ✓           X          ✓           X           ✓            ✓           X    P
+ManipulatorThor [12]     PhysX 4               Unity                X       X       ✓         X       X       X          ✓          ✓           ✓           X          X           X           X            ✓           X    P, G
+IsaacGymEnvs [13]        PhysX 5               Vulkan               ✓       ✓       ✓         X       X       X          X          ✓           ✓           X          ✓           X           ✓            X           ✓    P
+O RBIT (ours)            PhysX 5.1             Omniverse RTX        ✓       ✓        ✓        ✓       ✓†       ✓         ✓          ✓           ✓           ✓          ✓           X           ✓            ✓           ✓    P, M, G
+ * ThreeDWorld supports simulation of rigid bodies and deformable bodies based on whether PhysX 4 or FleX/Obi is enabled respectively. Thus, it is limited in simulating interactions between rigid and deformable bodies.
+ † ManiSkill2 supports a Warp-based Material Point Method (MPM) solver that helps simulate cutting and plastic deformations of soft objects. Currently, this feature is under development for O RBIT .
+
+
+
+
+   Our main contributions are as follows:                                                                                 need CPU clusters to achieve massive parallelization [13].
+  1) We design a unified and modular open-source frame-                                                                   On the other hand, frameworks for deformable bodies [4],
+     work for fast and flexible development, that leverages                                                               [8] mainly employ Bullet [18] or FleX [19], which use
+     the latest advances in simulators for photo-realistic                                                                particle-based dynamics for soft bodies and cloth simulation.
+     scenes and high-fidelity physics.                                                                                    Recently, SofaGym [20], an RL framework specifically for
+  2) It provides a batteries-included experience for roboti-                                                              soft robotics, shows the benefits of using finite-element-
+     cists with models readily available for different robots                                                             methods (FEM) for deformation models. . However, limited
+     and sensors. This helps reduce the entry barrier to using                                                            tooling exists in these frameworks compared to those for
+     the framework and its features.                                                                                      rigid object tasks. O RBIT aims to bridge this gap by pro-
+  3) We include a suite of standardized tasks for benchmark                                                               viding an integrated robotics framework that supports rigid
+     purposes. These include eleven rigid object manipula-                                                                and deformable body simulation via PhysX SDK 5 [21]. In
+     tion, thirteen deformable object manipulation, and two                                                               contrast to other engines, PhysX SDK 5 features GPU-based
+     locomotion environments. Within each task, we allow                                                                  hardware acceleration for high throughput, signed-distance
+     switching robots, objects, and sensors easily.                                                                       field (SDF) collision checking [22], and more stable solvers
+  4) Through experiments, we demonstrate the accuracy                                                                     based on FEM for deformable body simulation [23], [24].
+     of the simulator for rigid and soft body simulation.                                                                       b) Sensor simulation: Various existing frameworks [2],
+     Compared to existing frameworks, we show that O RBIT                                                                 [5], [13] use classic rasterization that limits the photo-realism
+     is able to obtain up to ∼10x and ∼3x the throughput                                                                  in the generated images. Recent techniques [25] simulate
+     for rigid and deformable body manipulation tasks re-                                                                 the interaction of rays with object’s textures in a physically
+     spectively. Additionally, we demonstrate the sim-to-real                                                             correct manner. These methods help capture fine visual prop-
+     transfer of a locomotion policy for the quadruped robot,                                                             erties such as transparency and reflection, thereby promising
+     ANYmal.                                                                                                              for bridging the sim-to-real visual domain gap. While recent
+                                                                                                                          frameworks [11], [7], [12] include physically-based render-
+   In the remainder of the paper, we describe the available
+                                                                                                                          ers, they mainly support camera-based sensors (RGB, depth).
+simulator choices (Sec. II), the framework’s design deci-
+                                                                                                                          This is insufficient for certain mobile robot applications that
+sions and abstractions (Sec. III), and its highlighted features
+                                                                                                                          need range sensors, such as LiDARs. Leveraging the ray-
+(Sec. IV). We demonstrate the framework’s applicability
+                                                                                                                          tracing technology in N VIDIA Isaac Sim, O RBIT supports
+on different robotics workflows (Sec. V), show sim-to-real
+                                                                                                                          all these modalities and includes APIs to obtain additional
+experiments for locomotion and manipulation, and evaluate
+                                                                                                                          information such as semantic annotations.
+the obtained accuracy and simulation throughput in Sec. V-E.
+                                                                                                                                c) Scene designing and asset handling: Frameworks
+                                     II. R ELATED W ORK                                                                   support scene creation procedurally [1], [2], [11], via mesh
+                                                                                                                          scans [6], [7] or through game-engine style interfaces [26],
+   Recent years have seen several simulation frameworks,                                                                  [9]. While mesh scans simplify generating large amounts
+each specializing in particular robotic applications. In this                                                             of scenes, they often suffer from geometric artifacts and
+section, we highlight the design choices crucial for building                                                             lighting problems. On the other hand, procedural generation
+a unified simulation platform and how O RBIT compares to                                                                  allows leveraging object datasets for diverse scenes. While
+other frameworks (also summarized in Table I).                                                                            Isaac Sim mainly focuses on GUI-based scene designing, we
+     a) Physics Engine: Increasing the complexity and re-                                                                 choose to not be restrictive and build upon its interfaces to
+alism of physically simulated environments is essential for                                                               support all three methods for scene design.
+advancing robotics research. This includes improving the
+contact dynamics, having better collision handling for non-                                                                 III. O RBIT : A BSTRACTIONS AND I NTERFACES D ESIGN
+convex geometries (such as threads), stable solvers for de-                                                                  At a high level, the framework design comprises a world
+formable bodies, and high simulation throughput.                                                                          and an agent, similar to the real world and the software
+   Prior frameworks [2], [5] using MuJoCo [17] or Bul-                                                                    stack running on the robot. The agent receives raw observa-
+let [18] focus mainly on rigid object manipulation tasks.                                                                 tions from the world and computes the actions to apply to the
+Since their underlying physics engines are CPU-based, they                                                                embodiment (robot). Typically in learning, it is assumed
+Fig. 3: O RBIT’s abstractions comprise World, analogous to the real world, and Agent, the computation graph behind the embodied system.
+The nodes in the agent’s graph can perform observation-based or action-based processing. Through a graph-cut over this computation
+graph and specifying an extrinsic goal, it is feasible to design different tasks within the same World definition. For instance, to perform
+RL, this would define the task with ot , at , and rt corresponding to the observation, action, and reward signals respectively.
+
+that all the perception and motion generation occurs at the
+same frequency. However, in the real world, that is rarely
+the case: (1) sensors update at differing frequencies, (2)
+depending on the control architecture, actions are applied
+at different time-scales [27], and (3) unmodeled sources of
+delays and noises are present in the system. In O RBIT, we
+thoughtfully design its interfaces and abstractions to support
+these functionalities and allow the inclusion of actuator and
+noise models to bridge the sim-to-real gap.
+                                                                                   Fig. 4: Illustration of actuator groups for a legged mobile manipula-
+      a) World: Analogous to the real world, we define                             tor. This allows decomposing a complex system into sub-groups and
+a world where robots, sensors, objects (static                                     defining of specific transmission models for each of them flexibly.
+or dynamic), and visualization markers exist on                                    The number inside (·) is the dimension of the command vector.
+the same stage. The world can be designed procedurally
+(script-based), via scanned meshes [28], or interactively                          delays or torque saturation. This can help facilitate the sim-
+through the game-based GUI of Isaac Sim, or a combination                          to-real transfer of control policies on hardware (Sec. V-D). To
+of them. This flexibility reaps the benefits of 3D recon-                          apply actions on the robot, the joint-level controller processes
+structed meshes, which capture various architectural layouts,                      input commands through actuator models before applying
+with game-based designing, that simplifies the experience                          the desired joint position, velocity, or torque commands to
+of creating and verifying the scene physics properties by                          the simulator (as shown in Fig. 4). Currently, we include
+playing the simulation.                                                            actuator models for Direct Control (DC) motors and Series
+   Robots are a crucial component of the world since                               Elastic Actuators (SEA) [29]. However, it is easy for users
+they serve as the embodiment for interaction. They consist of                      to integrate the actuator model for their robot into O RBIT
+articulation, actuator models, and low-level joint controllers.                    after identifying its dynamics characteristics.
+We design these interfaces such that a single interface (such
+                                                                                      Sensors (proprioceptive or exteroceptive) may exist
+as LeggedRobot) supports a variety of robots belonging to
+                                                                                   both for the robot or externally (such as third-person
+the same category (such as ANYmal C or Unitree A1). This
+                                                                                   cameras). While O RBIT relies on Isaac Sim for differ-
+simplifies setting up a new robot with the simulator and using
+                                                                                   ent physics-based (range, force, and contact sensor) and
+it in an existing World. The robot class loads the robot
+                                                                                   rendering-based (RGB, depth, normals) sensors, it unifies
+model from a USD file1 . It creates and manages the necessary
+                                                                                   them under a common interface to simplify creating and
+physics handles to set and read the simulation state. The
+                                                                                   configuring them into a scene at runtime. We diverge from
+actuator models play an important role in injecting real-
+                                                                                   the recommended USD practice in Isaac Sim where sensors
+world actuator characteristics into the simulation, such as
+                                                                                   are expected to be specified in a USD file and all of them are
+   1 Universal Scene Description (USD) is a hierarchical file format, used         updated at every simulation step. While this practice doesn’t
+in Omniverse, that allows storing assets, materials definitions, and various       cause a huge issue for the traditional robotics paradigm,
+attributes (such as for physics, semantics, rendering) efficiently and flexibly.   it leads to significant overhead when having parallelized
+O RBIT includes scripts to convert assets of different formats (URDF, obj,
+stl) into USD from the command line and adds various physics properties            scenes as there would exist undesired sensors updating in
+to them automatically, such as colliders and friction materials.                   the scene. Through a common sensor management system
+Fig. 5: Overview of features included in O RBIT. We provide models of different sensors, robotic platforms, objects from different
+datasets, motion generators, and teleoperation devices. Using RTX-accelerated ray-tracing, we can obtain high-fidelity images in real-time
+for different modalities such as RGB, depth, surface normal, instance, and semantic segmentation (pixel-wise and bounding boxes).
+
+in the world, O RBIT configures the sensors required only             overhead of service-client protocols.
+for a given task. To simulate sensing at different frequencies,             c) Learning task and agent: Paradigms such as RL
+each sensor instance has its own internal timer that governs          require specifying a task, a world and may include some
+the operating frequency for reading the simulator buffers.            computation nodes of the agent. The task logic helps
+Between the timesteps, the sensor returns the previously              specify the goal for the agent, compute metrics (rewards) to
+obtained values.                                                      evaluate the agent’s performance, and manage resets. With
+   Objects are passive entities in the world. While several           this component as a separate module, it becomes feasible to
+objects may exist in the scene, the user can define objects           use the same world definition for different tasks, similar
+of interest for a specified task and set and retrieve proper-         to learning in the real world, where tasks are specified
+ties/states only for them. For any given object, we support the       through extrinsic reward signals. The task definition may
+randomization of its textures and physics properties, such as         also contain different nodes of the agent. An intuitive way to
+friction material and joint parameters. Similar to the robots         formalize this is by considering that learning for a particular
+class, we also include interfaces to augment the simulator            node happens through a graph cut on the agent’s computation
+with models for active motion components in an object. For            graph.
+instance, in a refrigerator, the hinge joint is stiff initially          To further concretize the design motivation, consider the
+due to a magnetic seal but becomes free once the seal is              example of learning over task space instead of low-level joint
+broken. Accounting for these hybrid models in the simulation          actions for lifting a cube [27]. In this case, the task-space
+allows for developing and verifying methods to deal with the          controller, such as inverse kinematics (IK), would typically
+varying object dynamics in the real world.                            run at 50 Hz, while the joint controller requires commands
+   Addition to above, the world also constitutes                      at 1000 Hz. Although the task-space controller is a part of
+visualization markers. We allow programmatic                          the agent’s and not the world’s computation, it is possible
+additions of various primitive shapes to the simulator’s GUI,         to encapsulate that into the task design. This functionality
+such as axes, spheres, and meshes. These are often useful             easily allows switching between motion generators, such as
+for development purposes, such as displaying the goal state           IK, operational space control (OSC), or reactive planners.
+or visualizing different coordinate frames. We integrate
+these markers into different robots and controller interfaces                             IV. O RBIT : F EATURES
+to readily allow visualization of useful frames such as the              While various robotic benchmarks have been proposed [4],
+feet or end-effector poses.                                           [1], [5], the right choice of necessary and sufficient tasks to
+      b) Agent: An agent refers to the decision-making                demonstrate “intelligent” behaviors remains an open ques-
+process (“intelligence”) guiding the embodied system. While           tion. Instead of being prescriptive about tasks, we provide
+roboticists have embraced the modularity of ROS [15],                 O RBIT as a platform to easily design new tasks. To facilitate
+most robot learning frameworks often focus only on the                the same, we include a diverse set of supported robots,
+environment (or MDP) definition. This practice leads to code          peripheral devices, and motion generators and a large set
+replication and adds friction to switching between different          of tasks for rigid and soft object manipulation for essential
+implementations.                                                      skills such as folding cloth, opening the dishwasher, and
+   Keeping modularity at its core, an agent in O RBIT com-            screwing a nut into a bolt. Each task showcases aspects of
+prises various nodes that formulate a computation graph               physics and renderer that we believe will facilitate answering
+exchanging information between them. Broadly, we consider             crucial research questions, such as building representations
+nodes are of two types: 1) perception-based i.e., they process        for deformable object manipulation and learning skills that
+inputs into another representation (such as RGB-D image               generalize to different objects and robots.
+to point-cloud/TSDF), or 2) action-based i.e., they process                 a) Robots: We support 4 mobile platforms (one om-
+inputs into action commands (such as task-level commands              nidirectional drive base and three quadrupeds), 7 robotic
+to joint commands). Similar to sensors, nodes also contain            arms (two 6-DoF and five 7-DoF), and 6 end-effectors (four
+their own internal timers that control their update frequency.        parallel-jaw grippers and two robotic hands). We provide
+Currently, the flow of information between nodes happens              tools to compose different combinations of these articulations
+synchronously via Python, which avoids the data exchange              into a complex robotic system such as a legged mobile
+Fig. 6: Demonstration of the designed tasks using hand-crafted state machines and task-space controllers. Leveraging recent advances
+in physics engines, we support high-fidelity simulation of rigid and deformable objects. We include environments that allow switching
+between robots, objects, observations, and action spaces through configuration files (videos).
+
+manipulator. This provides a large set of robot platforms,                   V. E XEMPLAR W ORKFLOWS WITH O RBIT
+each of which can be switched in the World.
+                                                                       O RBIT is a unified simulation infrastructure that provides
+      b) I/O Devices: Devices define the interface to periph-
+                                                                    both pre-built environments and easy-to-use interfaces that
+eral controllers that teleoperate the robot in real-time. The
+                                                                    enables extendability and customization. Owing to high-
+interface reads the input commands from an I/O device and
+                                                                    quality physics, sensor simulation, and rendering, O RBIT is
+parses them into control commands for subsequent nodes.
+                                                                    useful for multiple robotics challenges in both perception
+This helps not only in collecting demonstrations but also in
+                                                                    and decision-making. We outline a subset of such use cases
+debugging the task designs. Currently, we include support for
+                                                                    through exemplar workflows.
+Keyboard, Gamepad (Xbox controller), and Spacemouse.
+      c) Motion Generators: Motion generators transform             A. Reinforcement Learning
+high-level actions into lower-level commands by treating
+input actions as reference tracking signals. For instance,             Since the framework primarily stores data as tensors, the
+inverse kinematics (IK) [30] interprets commands as the             data needs to be formatted and converted to data types for
+desired end-effector poses and computes the desired joint           different learning frameworks. We provide wrappers to rl-
+positions. Employing these controllers, particularly in task        games [35], RSL-rl [34], and stable-baselines-3 [36]. These
+space, has been shown to help sim-to-real transferability of        wrappers make the underlying environment RL framework
+robot manipulation policies [2], [27].                              agnostic and provide users access to a larger set of algorithms
+   With O RBIT, we include GPU-based implementations                for research.
+for differential IK [30], operational-space control [31], and          In Fig. 7, we show the training of Franka-Reach and
+joint-level control, which compute commands for several             Franka-Cabinet-Opening with PPO [37] using differ-
+robots efficiently. Additionally, we provide CPU implementa-        ent RL frameworks and action spaces. Although we ensure
+tion of state-of-the-art model-based planners such as RMP-          the same parameter settings for PPO in the frameworks, we
+Flow [32] for fixed-arm manipulators and OCS2 [33] for              notice a difference in their performance and training time due
+whole-body control of mobile manipulators. To facilitate            to implementation differences. Since RSL-rl and rl-games are
+research in legged robot navigation, such as traversability         optimized for GPU, we observe a training speed of 50,000-
+estimation and path-planning, we also include pre-trained           75,000 frames per second (FPS) with 2048 environments,
+policies for legged locomotion [34] that track base velocity        while with stable-baselines3, we receive 6,000-18,000 FPS.
+commands.
+                                                                    B. Teleoperation and Imitation Learning
+      d) Rigid- and Deformable-body Tasks: O RBIT includes
+a suite of tasks for deformable and rigid object manipulation,         Many manipulation tasks are computationally expensive
+as well as legged robot control and in-hand manipulation.           or beyond the reach of current RL algorithms. In these
+These tasks serve not only as benchmarks for robotics               scenarios, bootstrapping from user demonstrations provides a
+research but also as examples for users to design new               viable path to skill learning. O RBIT provides a data collection
+tasks easily. While some of these tasks have existed in             interface that is useful for interacting with environments
+prior works [1], [5], [22], [34], we enhance them using the         using I/O devices and collecting data similar to roboturk [38].
+framework’s interfaces to simplify switching between dif-           We also support storing the data in the format desired by
+ferent robots, objects, motion generators, observations, and        robomimic [39], which provides access to training various
+domain randomization. We also extend manipulation tasks             imitation learning (IL) models through it.
+for fixed-arm robots to mobile manipulators. Currently, the            As     an    example,      we     show    LfD      for    the
+tasks mainly focus on a diverse set of skills such as grasping,     Franka-LiftCube task. For each of the four settings of
+screwing, stacking, pushing/pulling, pouring, folding, and          initial and desired object positions (fixed or random start
+walking (shown in Fig. 6). A complete and growing list of           and desired positions), we collect 2000 trajectories. Using
+environments is available on our website.                           these demonstrations, we train policies using Behavior
+                         PPO on Franka-Reach                                     RSLRL PPO on Franka-Cabinet-Opening
+             10
+                                                                             120                                                                             1                 2
+                                                                             100
+
+
+
+
+Average Return                                                  Average Return
+                 9
+                                                                                 80
+
+                                                                                 60
+                 8
+                                           Stable Baselines3                     40
+                                           RL Games                                                      Joint, position
+                 7                         RSL RL                                20                      Joint, velocity                                     3                 4
+                         0.5         1.0              1.5                                 0.5   1.0        1.5        2.0
+                                 Steps                   ×107                                   Steps                ×107
+
+
+Fig. 7: Example showing RL integration. We include wrappers to
+various RL frameworks. Additionally, it is possible to easily switch
+action spaces for training policies with different controllers. The
+plot shows the mean of the average return over five seeds.
+                                                                                                                            Fig. 8: Interactive grasp and motion planning demonstration using
+          TABLE II: Showcase of collecting demonstrations using teleop-                                                     O RBIT. The World comprises objects for table-top manipulation.
+          eration and performing imitation learning with them. We evaluate                                                  The user can select an object from the GUI to grasp. This triggers an
+          the trained policies for Franka-LiftCube in the same setting                                                      image-based grasp generator and allows previewing of the generated
+          (No Change), changing initial states (I), goal states (G), and                                                    grasps and the robot motion sequence. The user can then choose
+          changing both initial and goal states (Both). The success rate                                                    the grasp and execute the motion on the robot.
+          and trajectory lengths are reported over 100 trials.
+
+                     Algorithm             Avg. Traj. Len                             Succ. Rate        Eval. Setup
+
+                                               234 |      249                         1.00 | 1.00       No Change
+                 BC | BC-RNN                   307 |      251                         0.89 | 1.00           G
+                                               321 |      286                         0.47 | 0.88           I
+                                               324 |      293                         0.43 | 0.87         Both
+
+
+Cloning (BC) and BC with an RNN policy (BC-RNN), and
+show their performance in Table II.
+
+C. Motion planning
+   Motion planning is one of the well-studied domains                                                                       Fig. 9: Using the simulator as a digital twin to compute and
+in robotics. The traditional Sense-Model-Plan-Act (SMPA)                                                                    apply the same commands on the simulated and real robot via
+                                                                                                                            ZMQ connection. We show the Franka Panda arm with an Allegro
+methodology decomposes the complex problem of reasoning                                                                     hand lifting two objects simultaneously, showcasing the realism in
+and control into possible sub-components. O RBIT supports                                                                   contact simulation. For videos, please check the website.
+doing this both procedurally and interactively via the GUI.
+     a) Hand-crafted policies: We create a state machine                                                                          a) Using ZMQ: To maintain lightweight and efficient
+for a given task to perform sequential planning as a separate                                                               communication, we use ZMQ to send joint commands from
+node in the agent. It provides the goal states for reaching a                                                               O RBIT to a computer running the real-time kernel for Franka
+target object, closing the gripper, interacting with the object,                                                            Emika robot. To abide by the real-time safety constraints,
+and maneuvering to the next target position. We demonstrate                                                                 we use a quintic interpolator to upsample the 60 Hz joint
+this paradigm for several tasks in Fig. 6. These hand-crafted                                                               commands from the simulator to 1000 Hz for execution on
+policies can also be utilized for collecting expert demonstra-                                                              the robot (shown in Fig. 9).
+tions for challenging tasks such as cloth manipulation.                                                                        We run experiments on two configurations of the Franka
+     b) Interactive motion planning: We define a system of                                                                  robot: one with the Franka Emika hand and the other
+nodes for grasp generation, teleoperation, task-space control,                                                              with an Allegro hand. For each configuration, we showcase
+and motion previewing (shown in Fig. 8). Through the GUI,                                                                   three tasks: 1) teleoperation using a Spacemouse device, 2)
+the user can select an object to grasp and view the possible                                                                deployment of a state machine and 3) waypoint tracking with
+grasp poses and the robot motion sequences generated using                                                                  obstacle avoidance. The modular nature of the agent makes
+the RMP controller. After confirming the grasp pose, the                                                                    it easy to switch between different control architectures for
+robot executes the motion and lifts the object. Following this,                                                             each task while using the same interface for the real robot.
+the user obtains teleoperation control of the robot.                                                                              b) Using ROS: A variety of existing robots come with
+                                                                                                                            their ROS software stack. In this demonstration, we focus on
+D. Deployment on real robot                                                                                                 how policies trained using O RBIT can be exported and de-
+   Deploying an agent on a real robot faces various chal-                                                                   ployed on a robotic platform, particularly for the quadrupedal
+lenges, such as dealing with real-time control and safety con-                                                              robot from ANYbotics, ANYmal-D.
+straints. Different data transport layers, such as ROSTCP [15]                                                                 We train a locomotion policy entirely in simulation using
+or ZeroMQ (ZMQ) [40], exist for connecting a robotic stack                                                                  an actuator network [29] for the legged base. To make the
+to a real platform. We showcase how these mechanisms can                                                                    policy robust, we randomize the base mass (22 ± 5 kg) and
+be used with O RBIT to run policies on a real robot.                                                                        add simulated random pushes. We use the contact reporter to
+                                                                                                                 ×105     Franka-LiftCube                                     ×105 ANYmal-Locomotion
+ 1                       2                       3
+                                                                                                                        RoboSuite                                                    IsaacGym
+                                                                                                                                                                          3
+
+
+
+
+                                                                                        Throughput (FPS)
+                                                                                                                        ManiSkill2                                                   Ours
+                                                                                                           1.5
+                                                                                                                        IsaacGym
+                                                                                                                        Ours                                              2
+                                                                                                           1.0
+
+Fig. 10: Deployment of an RL policy on ANYmal-D robot using                                                                                                               1
+                                                                                                           0.5
+ROS connection (video). The policy is trained in simulation and
+runs at 50 Hz while the actuator net functions at 200 Hz.
+                                                                                                           0.0                                                            0
+                                                                                                                  256     512 1024 2048 4096                                   256     512   1024 2048 4096
+                                                                                                                  Number of environments                                       Number of environments
+                                                                           Fig. 12: Simulation throughput for rigid body tasks2 . CPU-based
+                                                                           vectorization is limited to the available memory and scales poorly
+                                                                           compared to GPU-accelerated simulation. O RBIT performs at par
+                                                                           with IsaacGym since they use the same physics engine.
+                                                                                                                   a. Franka-HangCloth                                        b. Effect of cloth mesh resolution
+     Tetrahedral Mesh (Sim)                                                                   4000                                                                        4000
+
+
+
+
+                                                                           Throughput (FPS)                                                            Throughput (FPS)
+Fig. 11: Comparison of real and simulated data for a clamped beam
+                                                                                              3000                                                                        3000
+scenario. The real data is collected using motion markers (shown
+on left). The simulated data is obtained using the FEM-solver [23]                            2000                                                                        2000
+                                                                                                                                     DEDO (574 pts)
+in Isaac Sim over different hexahedral mesh resolutions (m).                                                                         DEDO (294 pts)
+                                                                                                                                                                                                         294 pts
+                                                                                                                                                                                                         574 pts
+                                                                                              1000                                   Ours (574 pts)                       1000                           2203 pts
+obtain the contact forces and use them in reward design. The                                                                         Ours (294 pts)                                                      8623 pts
+                                                                                                           0                                                                   0
+learned policy is deployed on the robot using the ANYmal                                                    0       100        200       300          400                       0     250    500   750    1000
+                                                                                                                   Number of environments                                            Number of environments
+ROS stack, (Fig. 10). This sim-to-real transfer indicates the
+viability of the simulated contact dynamics and its suitability            Fig. 13: Simulation throughput for cloth hanging task2 . O RBIT
+for contact-rich tasks in O RBIT.                                          obtains 3× the throughput than DEDO while using PBD solver [42].
+                                                                           However, increasing the number of nodes or points (pts) in the
+E. Simulation Evaluation and Comparison                                    cloth mesh adversely affects its performance. The dotted line shows
+                                                                           where the system ran out of memory.
+      a) Evaluation of simulation accuracy: Quantitatively
+measuring the accuracy of physics solvers is an arduous task                  Frameworks that rely on CPU-vectorization ([2], [4],
+due to the large variations and unknown mechanics of the                   [10]) show an increase in throughput with the number of
+real world. Thus, prior frameworks resort to qualitatively                 environments. However, at around 200-300 environments,
+comparing the simulation to the physical world by rolling                  their programs crash due to insufficient memory. In contrast,
+out the same action sequences [8], [10]. While Sec. V-D                    GPU-based parallelization scales better to a larger number
+follows a similar practice to show realism in the rigid body               of environments and achieves a throughput of ∼10x faster
+simulation, we discuss the accuracy of deformable body                     for rigid body environments (Fig. 12) and ∼3x faster for
+simulation through a controlled experiment.                                deformable body environments (Fig. 13). For the cloth task,
+   We consider a clamped beam made of highly deformable                    we also examine the impact of using meshes of different
+silicone elastomer. Following the setup used in [41], we                   resolutions on the throughput. We observe that a higher mesh
+attach motion capture markers to the beam to collect de-                   resolution produces more accurate simulation but requires
+formation data under gravity’s effect. In the simulation, we               more computation time. To address this challenge, we intend
+create a similar scenario by attaching a soft beam to a rigid              to provide best practices for tuning the simulation and
+wall and setting the same material properties (Young’s modu-               various sim-ready assets.
+lus, density, and incompressibility) as the physical beam. As
+shown in Fig. 11, we observe that the damped oscillations in                                                                          VI. D ISCUSSION
+the simulated data follow closely to the collected real-world                 In this paper, we proposed O RBIT: an interactive and
+data. This showcases the solver’s accuracy [23] and indicates              intuitive framework to simplify environment designing, en-
+its potential for sim-to-real deformable body manipulation.                able easy task specifications, and lower the entry barrier
+      b) Comparison of simulation throughput: We compare                   into robotics and robot learning. O RBIT exploits the latest
+the throughput of the tasks in O RBIT with those in other                  state-of-the-art simulation capabilities through Isaac Sim
+frameworks for rigid (robosuite, Maniskill2, IsaacGymEnvs)                 and extends them further to incorporate different actuator
+and deformable body interactions (DEDO). To ensure a fair                  and sensor noise models into the simulation, and advance
+comparison, we adapt the environments to have the same                     sensors, actuators, and motion generators at varying oper-
+action space, simulation frequency, and control decimation.                ating frequencies. It readily comes with different robotic
+The evaluation is performed on a workstation with a 16-core                platforms, sensors, CPU and GPU-based motion generators,
+AMD Ryzen 5950X, 64 GB RAM, and NVIDIA 3090RTX.                            and benchmark tasks that aim to provide a batteries-included
+  2 For rigid object environments, the numbers were computed using robo-   experience for roboticists. The breadth of environments
+suite v1.4, ManiSkill2 v0.4, Isaac Gym Preview 4, and Isaac Sim 2022.1.    and robotic paradigms possible, as demonstrated in part
+For the cloth environment, we used DEDO v0.1 and Isaac Sim 2022.2.         in Sec. IV and Sec. V, make O RBIT useful for a broad set
+of research questions in robotics. Through experiments, we                   [7] A. Szot, A. Clegg, E. Undersander, E. Wijmans, Y. Zhao, J. Turner,
+show a significant throughput improvement on tasks designed                      N. Maestre, M. Mukadam, D. Chaplot, O. Maksymets, A. Gokaslan,
+                                                                                 V. Vondrus, S. Dharur, F. Meier, W. Galuba, A. Chang, Z. Kira,
+in O RBIT with respect to those in other frameworks, and its                     V. Koltun, J. Malik, M. Savva, and D. Batra, “Habitat 2.0: Training
+potential to facilitate sim-to-real transfer.                                    home assistants to rearrange their habitat,” in Advances in Neural
+   By open-sourcing this framework3 , we aim to reduce the                       Information Processing Systems (NeurIPS), 2021.
+                                                                             [8] X. Lin, Y. Wang, J. Olkin, and D. Held, “Softgym: Benchmarking
+overhead for developing new applications and provide a                           deep reinforcement learning for deformable object manipulation,” in
+unified platform for robot learning research. As we continue                     Conference on Robot Learning (CoRL). PMLR, 2020.
+to enhance and incorporate more features into the framework,                 [9] C. Gan, J. Schwartz, S. Alter, D. Mrowca, M. Schrimpf, J. Traer,
+                                                                                 J. De Freitas, J. Kubilius, A. Bhandwaldar, N. Haber, M. Sano, K. Kim,
+we encourage researchers to contribute to transforming it into                   E. Wang, M. Lingelbach, A. Curtis, K. Feigelis, D. Bear, D. Gutfreund,
+a comprehensive solution for robotics research.                                  D. Cox, A. Torralba, J. J. DiCarlo, J. Tenenbaum, J. McDermott,
+                                                                                 and D. Yamins, “Threedworld: A platform for interactive multi-modal
+                     VII. F UTURE W ORK                                          physical simulation,” in Proceedings of the Neural Information Pro-
+                                                                                 cessing Systems Track on Datasets and Benchmarks, vol. 1. Curran,
+   O RBIT can notably simulate physics at up to 125,000 FPS;                     2021.
+however, camera rendering is currently bottlenecked to a total              [10] J. Gu, F. Xiang, X. Li, Z. Ling, X. Liu, T. Mu, Y. Tang, S. Tao, X. Wei,
+of 270 FPS for ten cameras rendering 640 × 480 images on                         Y. Yao, X. Yuan, P. Xie, Z. Huang, R. Chen, and H. Su, “Maniskill2:
+                                                                                 A unified benchmark for generalizable manipulation skills,” in Inter-
+an RTX 3090. While this number is comparable to other                            national Conference on Learning Representations (ICLR), 2023.
+frameworks, we are actively improving the rendering speed                   [11] F. Xiang, Y. Qin, K. Mo, Y. Xia, H. Zhu, F. Liu, M. Liu, H. Jiang,
+through GPU-based acceleration.                                                  Y. Yuan, H. Wang, et al., “Sapien: A simulated part-based interactive
+   While our experiments demonstrate the effectiveness of                        environment,” in IEEE/CVF Conference on Computer Vision and
+                                                                                 Pattern Recognition (CVPR), 2020.
+rigid-contact modeling and FEM for soft bodies, quanti-                     [12] K. Ehsani, W. Han, A. Herrasti, E. VanderBilt, L. Weihs, E. Kolve,
+tatively studying the fidelity of the entire simulator (such                     A. Kembhavi, and R. Mottaghi, “Manipulathor: A framework for
+as rendering, sensors, and physics) remains an area for                          visual object manipulation,” in IEEE/CVF Conference on Computer
+                                                                                 Vision and Pattern Recognition (CVPR), 2021.
+future exploration. It is important to note that robotics                   [13] V. Makoviychuk, L. Wawrzyniak, Y. Guo, M. Lu, K. Storey,
+research, particularly in deformable-body manipulation, has                      M. Macklin, D. Hoeller, N. Rudin, A. Allshire, A. Handa,
+infrequently used sim-to-real due to difficulties in achieving                   and G. State, “Isaac gym: High performance gpu based physics
+                                                                                 simulation for robot learning,” in Proceedings of the Neural
+fast and accurate simulation and realistic rendering. We                         Information Processing Systems Track on Datasets and Benchmarks,
+believe that O RBIT can help address these challenges and                        J. Vanschoren and S. Yeung, Eds., vol. 1. Curran, 2021.
+facilitate answering open research questions in these fields.               [14] M. Savva, A. Kadian, O. Maksymets, Y. Zhao, E. Wijmans, B. Jain,
+                                                                                 J. Straub, J. Liu, V. Koltun, J. Malik, D. Parikh, and D. Batra, “Habitat:
+   Further enhancements to the framework include integrat-                       A Platform for Embodied AI Research,” in IEEE/CVF International
+ing tactile sensors and 6-axis force-torque sensors. Addition-                   Conference on Computer Vision (ICCV), 2019.
+ally, we plan to add support for loading assets directly in their           [15] M. Quigley, K. Conley, B. Gerkey, J. Faust, T. Foote, J. Leibs,
+                                                                                 R. Wheeler, A. Y. Ng, et al., “Ros: an open-source robot operating
+native formats (such as URDF and OBJ) instead of USDs to                         system,” in ICRA workshop on open source software, vol. 3, 2009.
+make the framework more versatile and user-friendly.                        [16] NVIDIA, “Isaac sim - robotics simulation and synthetic data genera-
+                                                                                 tion,” https://developer.nvidia.com/isaac-sim, 2023, (accessed on May
+                     ACKNOWLEDGMENT                                              2, 2023).
+                                                                            [17] E. Todorov, T. Erez, and Y. Tassa, “Mujoco: A physics engine
+   We thank the N VIDIA PhysX and Omniverse teams for                            for model-based control,” in IEEE/RSJ International Conference on
+their assistance with the simulator, as well as Farbod Farshid-                  Intelligent Robots and Systems (IROS), 2012.
+ian and Mike Y. Michelis for their contributions to OCS2 and                [18] E. Coumans, , and Y. Bai, “Pybullet, a python module for physics
+                                                                                 simulation for games, robotics and machine learning,” https://pybullet.
+data collection of the deformable beam, respectively.                            org/wordpress/, 2023, (accessed on May 2, 2023).
+                            R EFERENCES                                     [19] M. Macklin, M. Müller, N. Chentanez, and T.-Y. Kim, “Unified
+                                                                                 particle physics for real-time applications,” ACM Trans. Graph.,
+ [1] T. Yu, D. Quillen, Z. He, R. Julian, K. Hausman, C. Finn, and               vol. 33, no. 4, jul 2014.
+     S. Levine, “Meta-world: A benchmark and evaluation for multi-task      [20] E. Ménager, P. Schegg, E. Khairallah, D. Marchal, J. Dequidt, P. Preux,
+     and meta reinforcement learning,” in Conference on Robot Learning           and C. Duriez, “SofaGym: An open platform for Reinforcement
+     (CoRL). PMLR, 2020.                                                         Learning based on Soft Robot simulations,” Soft Robotics, 2022.
+ [2] Y. Zhu, J. Wong, A. Mandlekar, and R. Martín-Martín, “robosuite: A     [21] NVIDIA, “Physx sdk,” https://developer.nvidia.com/physx-sdk, 2023,
+     modular simulation framework and benchmark for robot learning,” in          (accessed on May 2, 2023).
+     arXiv preprint arXiv:2009.12293, 2020.                                 [22] Y. Narang, K. Storey, I. Akinola, M. Macklin, P. Reist, L. Wawrzyniak,
+ [3] Y. Urakami, A. Hodgkinson, C. Carlin, R. Leu, L. Rigazio, and               Y. Guo, A. Moravanszky, G. State, M. Lu, et al., “Factory: Fast contact
+     P. Abbeel, “Doorgym: A scalable door opening environment and                for robotic assembly,” Robotics: Science and Systems (RSS), 2022.
+     baseline agent,” CoRR, vol. abs/1908.01887, 2019.                      [23] M. Macklin and M. Muller, “A constraint-based formulation of stable
+ [4] R. Antonova, p. shi, H. Yin, Z. Weng, and D. Kragic, “Dynamic               neo-hookean materials,” in ACM SIGGRAPH Conference on Motion,
+     environments with deformable objects,” in Proceedings of the Neural         Interaction and Games, New York, NY, USA, 2021.
+     Information Processing Systems Track on Datasets and Benchmarks,       [24] M. Macklin, K. Storey, M. Lu, P. Terdiman, N. Chentanez, S. Jeschke,
+     J. Vanschoren and S. Yeung, Eds., vol. 1. Curran, 2021.                     and M. Müller, “Small steps in physics simulation,” in ACM SIG-
+ [5] S. James, Z. Ma, D. Rovick Arrojo, and A. J. Davison, “Rlbench: The         GRAPH/Eurographics Symposium on Computer Animation, 2019.
+     robot learning benchmark & learning environment,” IEEE Robotics        [25] S. G. Parker, J. Bigler, A. Dietrich, H. Friedrich, J. Hoberock,
+     and Automation Letters, 2020.                                               D. Luebke, D. McAllister, M. McGuire, K. Morley, A. Robison,
+ [6] C. Li, F. Xia, R. Martín-Martín, M. Lingelbach, S. Srivastava,              and M. Stich, “Optix: A general purpose ray tracing engine,” ACM
+     B. Shen, K. E. Vainio, C. Gokmen, G. Dharan, T. Jain, A. Kurenkov,          Transactions On Graphics, vol. 29, no. 4, 2010.
+     K. Liu, H. Gweon, J. Wu, L. Fei-Fei, and S. Savarese, “igibson 2.0:    [26] S. Shah, D. Dey, C. Lovett, and A. Kapoor, “Airsim: High-fidelity
+     Object-centric simulation for robot learning of everyday household          visual and physical simulation for autonomous vehicles,” in Field
+     tasks,” in Conference on Robot Learning (CoRL). PMLR, 2021.                 and Service Robotics, 2017.
+                                                                            [27] R. Martín-Martín, M. Lee, R. Gardner, S. Savarese, J. Bohg, and
+  3 N VIDIA Isaac Sim is free with an individual license. O RBIT is open-        A. Garg, “Variable impedance control in end-effector space. an action
+sourced on GitHub and available at https://isaac-orbit.github.io.                space for reinforcement learning in contact rich tasks,” in IEEE/RSJ
+     International Conference of Intelligent Robots and Systems (IROS),          • Conducted sim-to-real experiments on ANYmal robot:
+     2019.                                                                         M. Mittal, D. Hoeller
+[28] J. Straub, T. Whelan, L. Ma, Y. Chen, E. Wijmans, S. Green, J. J.
+     Engel, R. Mur-Artal, C. Ren, S. Verma, et al., “The replica dataset:        • Provided NVIDIA Isaac Sim support: Y. Guo, H.
+     A digital replica of indoor spaces,” arXiv preprint arXiv:1906.05797,         Mazhar, B. Babich, G. State
+     2019.                                                                       • Managed or advised on the project: A. Mandlekar, M.
+[29] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V. Tsounis,
+     V. Koltun, and M. Hutter, “Learning agile and dynamic motor skills            Hutter, A. Garg
+     for legged robots,” Science Robotics, vol. 4, no. 26, 2019.                 • Wrote the paper: M. Mittal, A. Garg
+[30] S. R. Buss and J.-S. Kim, “Selectively damped least squares for inverse
+     kinematics,” Journal of Graphics Tools, vol. 10, 2005.                             A PPENDIX B: M OTIVATION BEHIND O RBIT
+[31] O. Khatib, “Inertial properties in robotic manipulation: An object-
+     level framework,” The International Journal of Robotics Research,            Over the years, NVIDIA has developed a number of tools
+     vol. 14, no. 1, 1995.                                                     for robotics and AI. These tools leverage the power of GPUs
+[32] C.-A. Cheng, M. Mukadam, J. Issac, S. Birchfield, D. Fox, B. Boots,       to accelerate the simulation both in terms of speed and
+     and N. Ratliff, “Rmpflow: A geometric framework for generation of
+     multitask motion policies,” IEEE Transactions on Automation Science       realism. They show great promise in the field of simulation
+     and Engineering, vol. 18, no. 3, 2021.                                    technology and are being used by many researchers and
+[33] M. Mittal, D. Hoeller, F. Farshidian, M. Hutter, and A. Garg, “Ar-        companies worldwide.
+     ticulated object interaction in unknown scenes with whole-body mo-
+     bile manipulation,” IEEE/RSJ International Conference on Intelligent         Isaac Gym [13] provides a high-performance GPU-based
+     Robots and Systems (IROS), 2022.                                          physics simulation for robot learning. It is built on top of
+[34] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to walk          PhysX which supports GPU-accelerated simulation of rigid
+     in minutes using massively parallel deep reinforcement learning,” in
+     Conference on Robot Learning (CoRL). PMLR, 2022.                          bodies and a Python API to directly access physics simula-
+[35] D. Makoviichuk and V. Makoviychuk, “rl-games: A high-performance          tion data. Through an end-to-end GPU pipeline, it is possible
+     framework for reinforcement learning,” https://github.com/Denys88/rl_     to achieve high frame rates compared to CPU-based physics
+     games, May 2022.
+[36] A. Raffin, A. Hill, A. Gleave, A. Kanervisto, M. Ernestus, and            engines. The tool has been used successfully in a number of
+     N. Dormann, “Stable-baselines3: Reliable reinforcement learning           research projects, including legged locomotion [34], in-hand
+     implementations,” Journal of Machine Learning Research, 2021.             manipulation [43], and industrial assembly [22].
+[37] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,
+     “Proximal policy optimization algorithms,” arXiv preprint                    Despite Isaac Gym’s success and adoption, it is not
+     arXiv:1707.06347, 2017.                                                   designed to be a general-purpose simulator for robotics. For
+[38] A. Mandlekar, Y. Zhu, A. Garg, J. Booher, M. Spero, A. Tung, J. Gao,      instace, it does not include interaction between deformable
+     J. Emmons, A. Gupta, E. Orbay, et al., “Roboturk: A crowdsourcing
+     platform for robotic skill learning through imitation,” in Conference     and rigid objects, high-fidelity rendering, and support for
+     on Robot Learning (CoRL). PMLR, 2018.                                     ROS. The tool has been primarily designed as a preview
+[39] A. Mandlekar, D. Xu, J. Wong, S. Nasiriany, C. Wang, R. Kulkarni,         release to showcase the capabilities of the underlying physics
+     L. Fei-Fei, S. Savarese, Y. Zhu, and R. Martin-Martin, “What matters
+     in learning from offline human demonstrations for robot manipula-         engine. With the release of Isaac Sim, NVIDIA is building
+     tion,” in Conference on Robot Learning (CoRL). PMLR, 2022.                a general-purpose simulator for robotics and has integrated
+[40] P. Hintjens, ZeroMQ: messaging for many applications. " O’Reilly          the functionalities of Isaac Gym into Isaac Sim.
+     Media, Inc.", 2013.
+[41] M. Dubied, M. Y. Michelis, A. Spielberg, and R. K. Katzschmann,              Isaac Sim is a robot simulation toolkit built on top of
+     “Sim-to-real for soft robots using differentiable fem: Recipes for        Omniverse, which is a general-purpose platform that aims to
+     meshing, damping, and actuation,” IEEE Robotics and Automation            unite complex 3D workflows. Isaac Sim leverages the latest
+     Letters, vol. 7, no. 2, 2022.
+[42] M. Macklin and M. Müller, “Position based fluids,” ACM Transactions       advances in graphics and physics simulation to provide a
+     on Graphics, vol. 32, no. 4, 2013.                                        high-fidelity simulation environment for robotics. It supports
+[43] A. Allshire, M. Mittal, V. Lodaya, V. Makoviychuk, D. Makoviichuk,        ROS/ROS2, various sensor simulations, tools for domain
+     F. Widmaier, M. Wüthrich, S. Bauer, A. Handa, and A. Garg,
+     “Transferring dexterous manipulation from gpu simulation to a remote      randomization, and synthetic data creation. Overall, it is a
+     real-world trifinger,” IEEE/RSJ International Conference on Intelligent   powerful tool for roboticists and is a huge step forward in
+     Robots and Systems (IROS), 2022.                                          the field of robotics simulation.
+                                                                                  With the release of the above two tools, NVIDIA also
+           A PPENDIX A: AUTHOR C ONTRIBUTIONS                                  released an open-sourced set of RL environments called
+   The following lists author contributions by the type:                       IsaacGymEnvs and OmniIsaacGymEnvs, which use Isaac
+   • Designed and built the core infrastructure: M. Mittal,                    Gym and Isaac Sim respectively. These environments have
+     D. Hoeller, N. Rudin                                                      been designed to display the capabilities of the underlying
+   • Integrated robots into the simulator: M. Mittal, J. Liu                   simulators and provide a great starting point to understand
+   • Implemented motion generators: M. Mittal, J. Liu                          what is possible with the simulators for robot learning.
+   • Added environments for locomotion: M. Mittal, D.                          However, these repositories are constrained by their limited
+     Hoeller, N. Rudin                                                         integration with different RL libraries (beyond RL-Games),
+   • Added environments for rigid object manipulation: M.                      lack of modularity for scalable environment design, and
+     Mittal, J. Liu, A. Yuan                                                   inadequate support for paradigms beyond RL. It is these
+   • Added environments for deformable object manipula-                        deficiencies that sparked the development of the O RBIT
+     tion: C. Yu, Q. Yu                                                        framework, aiming to bridge this gap and empower re-
+   • Ran workflows evaluations: J. Liu, C. Yu, Q. Yu                           searchers and developers alike.
+   • Performed throughput comparisons: C. Yu, M. Mittal
+   • Conducted sim-to-real experiments on Franka arm: R.
+     Singh, J. Liu
+

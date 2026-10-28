@@ -1,0 +1,569 @@
+                                                  Refinery: Active Fine-tuning and Deployment-time Optimization
+                                                                      for Contact-Rich Policies
+                                                        Bingjie Tang1 , Iretiayo Akinola2 , Jie Xu2 , Bowen Wen2 , Dieter Fox3 , Gaurav S. Sukhatme1 ,
+                                                                              Fabio Ramos2,4 , Abhishek Gupta3 , Yashraj Narang2
+                                                  1
+                                                      University of Southern California, 2 NVIDIA Corporation, 3 University of Washington, 4 University of Sydney
+
+                                         Pre-train (RL w. Imitation Objective)     Fine-Tune (Bayesian Optimization-Guided Active Sampling)                                   Deploy (Gaussian Mixture Model-based Sampling
+
+                                                                                                                1                                                      1
+                                                                        Evaluate
+                                                                                                                                                                               Sample from GMM
+                                                                                                                      BO-guided
+
+
+
+
+arXiv:2510.11019v1 [cs.RO] 13 Oct 2025
+                                                                        Failure                                       Active Finetuning                                              Success
+
+                                                                                                                       θ′ = arg max A(θ)
+                                                                                                                                θ
+
+
+                                                                                                                0                                                      0
+                                                                                   Success distribution (Pre-train)                        Success distribution (Finetuned)
+                                           ￼
+
+
+
+
+                                         Fig. 1: Method Overview. We pretrain RL policies for assembly and evaluate them over initial conditions. (Here, a success map is shown over initial x-
+                                         and y-coordinates). We leverage Bayesian Optimization-guided fine-tuning to improve policy performance. We then propose Gaussian Mixture Model-based
+                                         sampling during deployment to select initializations that maximize execution success.
+
+
+                                            Abstract— Simulation-based learning has enabled policies for                             standards are even more critical in multi-part assembly, as
+                                         precise, contact-rich tasks (e.g., robotic assembly) to reach high                          failure rates compound across sequential stages.
+                                         success rates (∼ 80%) under high levels of observation noise and
+                                         control error. Although such performance may be sufficient                                     This leads to a natural question: how do the current state-
+                                         for research applications, it falls short of industry standards                             of-the-art assembly policies fail? Our key observation is that
+                                         and makes policy chaining exceptionally brittle. A key limi-                                a policy with a given average success rate in simulation
+                                         tation is the high variance in individual policy performance                                does not fail with constant probability across all initial
+                                         across diverse initial conditions. We introduce Refinery, an
+                                         effective framework that bridges this performance gap, robus-
+                                                                                                                                     conditions (see Figure 1.); rather, it succeeds from certain
+                                         tifying policy performance across initial conditions. We propose                            initial states and fails from others, with high spatial variance.
+                                         Bayesian Optimization-guided fine-tuning to improve individual                              This observation suggests that minimizing the success rate
+                                         policies, and Gaussian Mixture Model-based sampling during                                  variance among all initial conditions during learning and
+                                         deployment to select initializations that maximize execution                                prioritizing high-performing ones during deployment could
+                                         success. Using Refinery, we improve mean success rates by
+                                         10.98% over state-of-the-art methods in simulation-based learn-
+                                                                                                                                     substantially improve overall task performance, potentially
+                                         ing for robotic assembly, reaching 91.51% in simulation and                                 enabling long-horizon multi-part assembly as well.
+                                         comparable performance in the real world. Furthermore, we                                      Motivated by this insight, we introduce Refinery, a frame-
+                                         demonstrate that these fine-tuned policies can be chained
+                                                                                                                                     work designed to enhance the fine-tuning and deployment
+                                         to accomplish long-horizon, multi-part assembly—successfully
+                                         assembling up to 8 parts without requiring explicit multi-step                              of learned contact-rich policies. Our core idea is simple but
+                                         training. See our project website for more details.                                         effective: (1) actively identify and fine-tune policies on initial
+                                                                                                                                     states with high uncertainty, and (2) prioritize high-success
+                                                                    I. INTRODUCTION                                                  initializations during deployment. This approach significantly
+                                            Robotic assembly is a longstanding challenge, requiring                                  improves both individual and sequence-level success, moving
+                                         high-precision, high-accuracy contact-rich manipulation, of-                                research-grade policies closer to industry-grade reliability.
+                                         ten over long horizons. Simulation and sim-to-real trans-                                      Specifically, our main contributions are: (1) Active Sam-
+                                         fer have emerged as powerful strategies for tackling these                                  pling Method: We introduce a Bayesian Optimization (BO)-
+                                         challenges. Recent advances in simulation-based learning                                    guided fine-tuning strategy that significantly improves policy
+                                         have enabled the development of robust assembly policies                                    performance by focusing on high-uncertainty initial states;
+                                         that achieve strong performance in both simulated and real                                  (2) Deployment-time Optimization Method: We propose a
+                                         environments [1–4]. Notably, these methods have achieved                                    Gaussian Mixture Model (GMM)-based sampling strategy
+                                         success rates of up to 80% on challenging benchmarks in-                                    at deployment time that maximizes the success rate of
+                                         volving 2-part assemblies [5, 6]. Despite this progress, these                              already-trained or fine-tuned policies by prioritizing effective
+                                         results fall short of the requirements in industrial settings,                              initial conditions; (3) 2-Part Assembly Results: Using our
+                                         where success rates of 95% or higher are typically expected,                                approach, we achieve a 10.98% improvement in success rate
+                                         and 90% is considered a minimum threshold [7]. These                                        on the simulated benchmark of 100 two-part assemblies from
+[5], and we demonstrate zero-shot sim-to-real transfer with      sample efficiency [44, 45]), our objective is to directly
+97% success over 10 assemblies—exceeding prior state-of-         maximize task success.
+the-art; (4) Multi-part Assembly Results: We provide 5
+multi-part assemblies (derived from [8]) and corresponding                         III. P ROBLEM D ESCRIPTION
+simulation environments, and train assembly policies to solve       Goal: Our goal is to improve the overall performance of
+these tasks. To our knowledge, this is the first work to         sequences of policies that solve challenging, long-horizon,
+demonstrate zero-shot sim-to-real for multiple long-horizon      contact-rich assembly tasks. Policy performance is highly
+multi-part assemblies.                                           sensitive to task initialization, as the tasks require high
+                                                                 precision and accuracy. Hence, we study the problem of
+                  II. RELATED WORK
+                                                                 identifying and expanding the subsets of initial states for
+A. Robotic Assembly                                              each individual policy that maximize the overall success rate
+   Robotic assembly has historically been addressed with         for the sequence.
+analytical methods [9–13]. Recent efforts have shifted to-          Assumptions: We make the following assumptions: (1)
+ward learning-based approaches for greater adaptability and      The assembly sequence is given, as is typical for industrial
+generalization. Model-based methods like GPS and iLQG            assembly workflows. (2) A CAD or mesh file is available for
+offer sample efficiency but struggle with discontinuous con-     each part, as is typical for industrial assets. (3) All parts have
+tact dynamics [14–16]. Model-free, off-policy reinforcement      size and initial pose such that at least one grasp is feasible
+learning (RL) methods (e.g., DQN, SAC, DDPG) improve             and sufficient to allow subsequent insertion.
+sample reuse but suffer from convergence instability [17–19].       Problem Setup: Given a multi-part assembly problem
+On-policy RL methods (e.g., PPO, TRPO, A3C) are more             consisting of N parts, the task is decomposed into N − 1
+stable but sample-inefficient [20, 21]. Several works leverage   sequential stages, where at each stage i ∈ 1, ..., N − 1, a new
+demonstrations to improve data efficiency using residual         part (plug) is inserted into the current partially-assembled
+learning, guided DDPG, DDPGfD, or offline RL [22–25].            structure. We first train a specialist policy πi for each stage
+However, collecting reliable demonstrations is often costly      using the approach from [5], which uses on-policy RL with
+and time-consuming. Other non-RL methods include self-           an imitation objective. We then apply the proposed fine-
+supervised learning from multimodal inputs or video-based        tuning and deployment-time optimization for each policy. 1
+imitation [26, 27]. While many methods achieve high success         Definitions: Each stage is formulated as a Markov deci-
+rates, they often rely on human input, long training times, or   sion process (MDP), where the agent is a simulated robot
+real-world resets, limiting scalability.                         operating in an environment containing the parts to be
+   Over the past few years, advances in simulation accu-         assembled. We define a state space S, observation space O,
+racy and speed have enabled large-scale policy training for      and action space A. The observation space includes robot
+robotics, including contact-rich tasks like assembly [28–31].    arm joint angles, end-effector pose, goal pose, and the delta
+There are few directly-comparable works for simulation-          between the current and goal poses, and the robot action
+based assembly policies [5, 6, 32, 33]. Most focus on two-       at each step is the delta between the current and next end-
+part assemblies or rely on human demonstrations, whereas         effector pose. Our state-transition dynamics is defined by
+our work leverages active sampling for diverse two-part and      T : S × A → S, governed by rigid-body dynamics in our
+multi-part assembly tasks.                                       simulator. We define a randomized initial state distribution
+                                                                 ρ0 , a reward function R : S → R, and a discount factor
+B. Improving Subtask Policies for Long-Horizon Tasks
+                                                                 γ ∈ (0, 1]. The episode consists of N timesteps, and the
+   Multi-part assembly can be decomposed into a sequence         horizon is T , where T ≤ N . The return G is defined as
+of two-part assembly subtasks, enabling multi-step policy                                        −1 t
+                                                                                   G(T ) = Eπ ΣTt=0
+                                                                                                                 
+chaining. Prior works address such chaining by adapting each                                           γ R(st ) ,               (1)
+sub-policy to the terminal states of its predecessor [34–37].
+                                                                 which represents the expected sum of discounted rewards
+Extensions of this idea include backpropagation through the
+                                                                 over the horizon. The objective is to train a policy π : O →
+chain using goal regression in symbolic planning [38, 39]
+                                                                 P(A) that maximizes this return.
+and bidirectional fine-tuning for long-horizon tasks [40, 41].
+                                                                    For each stage i, we define a task-success evaluation
+These approaches are most effective when terminal state
+                                                                 function Ji (θ), where θ ∈ R3 is the xyz position of the part
+distributions are broad. However, in tight-tolerance assembly,
+                                                                 relative to its goal and Ji (θ) ∈ [0, 1] represents the success
+transitions between subtasks are narrowly distributed, mak-
+                                                                 probability of executing policy πi starting from θ.
+ing such chaining brittle and sequential fine-tuning costly.
+                                                                    Dataset: We created a geometrically-diverse dataset of 5
+   Instead, our approach improves individual policy perfor-
+                                                                 multi-part assemblies based on [8] as shown in Figure 2. We
+mance without explicitly optimizing inter-policy transitions.
+                                                                 design our selecting criteria to ensure sufficient complexity
+While on-policy RL suffers from high-variance gradient
+                                                                 and compatibility with our setup. Specifically, each assembly
+estimates due to random sampling, we mitigate this by lever-
+                                                                 must consist of 5-9 mechanical components and require 4-8
+aging active sampling during fine-tuning. Unlike exploration-
+focused strategies (e.g., entropy-regularized RL [42], GPS         1 We use the same hyperparameters, randomization ranges, observation
+in high-reward regions [43], or Bayesian optimization for        noise levels and network structures for training policies with PPO as [5].
+10000                                                               10437
+
+
+
+
+12741                                                               15654
+
+
+
+
+12099
+
+
+
+
+                     Fig. 2: Multi-part Assembly Dataset. We provide 5 multi-part assemblies derived from [8].
+
+
+discrete insertion-based steps to complete. All components          However, the underlying success-rate distribution across
+must be graspable using a parallel-jaw gripper. Furthermore,        initial states is typically unknown, non-differentiable, non-
+the complete assembly must be executable in a sequential            convex, and expensive to evaluate exhaustively. Moreover,
+manner by a single arm, such that each part can be added            this distribution evolves as policy learning progresses. To
+atop the previously assembled parts placed in a static fixture.     address these challenges, we adopt Bayesian Optimization
+For each assembly, we manually define a valid assembly              (BO), a sample-efficient and gradient-free strategy for opti-
+sequence and designate the first component in this sequence         mizing black-box functions. BO is particularly well-suited
+as the base.                                                        for our setting, as it enables informed exploration of the
+   For selected assemblies, we apply a multi-step procedure         initialization space without requiring exhaustive evaluation.
+that involves (1) scaling all component meshes to fit within           In our formulation, for each stage i of a multi-part
+a 10 cm3 bounding box; (2) reorienting the assembly such            assembly, we model the success rate Jˆi of policy πi as a
+that the base component is aligned with the z-axis in an            function of θ, the initial position of the plug (i.e., the part to
+upright configuration; (3) translating the assembly to ensure       be inserted) using a Gaussian Process (GP):
+the bottom surface of the base is coplanar with the global
+                                                                                        Jˆi (θ) ∼ GP(µ(θ), k(θ, θ′ ))                       (2)
+origin; and (4) applying a depenetration step to enforce a
+                                                                                                                            ′
+0.5 mm clearance between all parts. The resulting dataset is        where µ(θ) is the mean function, and k(θ, θ ) is the covari-
+fully compatible with simulators that enforce non-penetration       ance function that captures correlations between different
+constraints [28] and is 3D-printable in the real world.             initial states. To model Jˆi , we execute the policy πi from
+                                                                    different randomly-sampled θ in simulation. 2
+                        IV. M ETHOD                                    After evaluation, BO then proposes the next sample θ′ for
+   We present Refinery, a method that leverages the policy          fine-tuning by optimizing an acquisition function:
+success rate distribution as a prior to achieve two main objec-
+                                                                                              θ′ = arg max A(θ)                             (3)
+tives. First, it enables efficient sampling of high-uncertainty                                            θ
+regions in the task initialization space during policy fine-        where A(θ) is the selected acquisition function.
+tuning, aiming to improve every individual policy perfor-              As described in Algorithm 1, this process is repeated
+mance (subsection IV-A). Second, at deployment time, it             iteratively to guide fine-tuning toward initializations most
+prioritizes promising initialization conditions to maximize the     likely to improve individual policy robustness. In each it-
+overall success probability of completing the full assembly         eration, we re-evaluate the current policy and update Jˆi ; this
+task (subsection IV-B).                                             updated distribution accounts for policy shifts and guides
+                                                                    BO-based fine-tuning. We continue this process until each
+A. Bayesian Optimization-Guided Fine-Tuning
+                                                                    policy reaches convergence, defined as < 5% variation in
+   Given a sequence of policies πi for each stage i of a multi-     success rate over 5 consecutive epochs during evaluation.
+part assembly, our goal is to improve the overall sequence             In this work, we explored three acquisition functions:
+success rate by enhancing the robustness of individual poli-           1) Upper Confidence Bound (UCB), which encourages
+cies through active fine-tuning. Before fine-tuning, we first       exploration by selecting samples with high uncertainty:
+train a specialist policy πi for each stage with RL [5]. During
+fine-tuning, we aim to actively identify and prioritize task                               AU CB = µ(θ) + βσ(θ)
+initial states with high uncertainty of success, in contrast with     2 Sampling is parallelized and conducted entirely in simulation: executing
+the uniform random sampling when training from scratch.             1000 rollouts takes only seconds on a single GPU.
+Algorithm 1 Bayesian Optimization (BO)-Guided Fine-Tuning                          initialization is selected as (x∗ = arg maxj p(x̃j )), i.e.,
+ 1: Input: Assembly steps {A1 , A2 , ..., AN }                                     the sample with the highest probability density under the
+ 2: for each assembly step Ai do                                                   GMM. This strategy enables efficient initialization selection
+ 3:     Train specialist policy πi using [5]
+ 4:     while fine-tuning not converged do                                         by leveraging learned success distributions, avoiding brute-
+ 5:         Evaluate success rate distribution Ji (θ) at different plug initial-   force search; a detailed description of the procedure is in
+    izations θ                                                                     Algorithm 2.
+ 6:         Use Active Sampling (Equation 3) to propose samples θ′
+ 7:         Fine-tune each policy by initializing at proposed θ′
+ 8:     end while                                                                  Algorithm 2 Deployment-time Optimization via GMM Sampling
+ 9: end for
+                                                                                   1: // Offline Phase: Data Collection and GMM Fitting
+                                                                                   2: Sample N plug initializations {xi }Ni=1 ∼ U (X )
+                                                                                   3: Execute π for each xi , record binary success yi ∈ {0, 1}, and collect
+                                                                                      a dataset of successful samples: Dsucc = {xi | yi = 1}
+where is a hyperparameter that controls the trade-off between                      4: Fit a Gaussian Mixture Model with K components to Dsucc :
+exploitation and exploration, and µ(θ) and σ(θ) are the
+                                                                                                                    K
+predicted mean and standard deviation from the GP. 3                                                   pGMM (x) =
+                                                                                                                    X
+                                                                                                                          ξk N (x | µk , Σk )
+   2) Probability of Improvement (PI), which selects sam-                                                           k=1
+ples based on the likelihood of exceeding the best observed
+                                                                                   5: // Online Phase: Deployment-time Plug Initialization Selection
+success rate J + :                                                                 6: Sample M candidates from the GMM: {x′j }M   j=1 ∼ pGMM (x)
+                                µ(θ) − J +                                         7: Compute GMM probability density sj = pGMM (x′j ) for each x′j
+                                          
+                 AP I (θ) = Φ                                                      8: Select x∗ = arg maxx′ sj and initialize the plug at x∗
+                                   σ(θ)                                                                     j
+                                                                                   9: Execute policy π
+where J + = max Ji (θ) is the best observed success rate,
+and Φ(·) is the cumulative distribution function (CDF) of
+the standard normal distribution.                                                                   V. E XPERIMENTAL R ESULTS
+   3) Expected Improvement (EI), which selects the sam-                               We present a detailed evaluation of our trained policies in
+ples that are expected to improve over the best observed                           both 2-part assembly and multi-part assembly settings. The
+success rate J + :                                                                 key takeaway is that our proposed approach can substan-
+                                                                                   tially improve individual policy performance, as well as the
+            AEI (θ) = (µ(θ) − J + )Φ(Z) + σ(θ)ϕ(Z)
+                                                                                   execution success of multi-step assembly sequences.
+                         +
+where Z = µ(θ)−J
+               σ(θ)   is the standardized improvement, and
+                                                                                   A. Simulation-based Evaluation
+Φ(Z) and ϕ(Z) are the CDF and the probability density
+function of the standard normal distribution.                                         1) BO-Guided Fine-Tuning: We now present the results
+                                                                                   of our proposed approach that uses Bayesian Optimization
+B. GMM Sampling for Deployment-Time Optimization                                   (BO) to propose plug initialization samples for fine-tuning.
+    While policy fine-tuning focuses on improving each pol-                           Our first evaluation question is, which acquisition func-
+icy’s performance across different plug initializations, the                       tion is the most effective for proposing plug initialization
+focus at deployment time is on identifying high-performing                         samples during fine-tuning for multi-part assembly?
+initial positions to maximize success rates. More specifically,                    We evaluate our 3 acquisition functions on all 5 multi-
+we want to sample plug initializations with high probability                       part assemblies, which consist of 26 total assembly steps.
+of execution success given the success rate distribution                           For each assembly step in each multi-part assembly, we
+approximated from evaluation rollouts.                                             train a specialist policy from scratch over 5 random seeds
+    To model the success distribution, we first collect a dataset                  using [5] until convergence, and we use these policies as
+by uniformly sampling (N = 1000) initial plug poses                                our baseline. All baselines converge within 200 epochs,
+({xi }Ni=1 ) from the predefined initialization space (X ) and                     beyond which performance does not improve. Then, for
+executing the fine-tuned policy (π) from each initialization                       each acquisition function, we follow the procedure described
+4
+  . Note that xi includes both initial plug position θi and                        in Algorithm 1 to fine-tune all 5 seeds of each specialist
+orientation. For each rollout, we record the binary success                        policy. The fine-tuning procedure requires only 50 epochs,
+outcome (yi ∈ {0, 1}). We then extract the subset Dsucc =                          which is significantly fewer than training-from-scratch. We
+{xi | yi = 1} from (D = {(xi , yi )}N      i=1 ) corresponding                     evaluate each seed for 1000 trials and report the average
+to successful executions and fit a Gaussian Mixture Model                          success rate for each policy over the 5 seeds (Figure 3). The
+(GMM) to this set to estimate the underlying distribution.                         average success rate is 83.61±9.27% for baseline policies,
+At deployment time, we sample (M = 1000) candidate                                 91.82±10.05% for policies fine-tuned with PI as acquisition
+initializations ({x̃j }M
+                       j=1 ) from the GMM and compute the                          function, 91.12±10.61% for policies fine-tuned with EI, and
+GMM probability density (p(x̃j )) for each sample. The final                       94.41±7.51% for policies fine-tuned with UCB.
+                                                                                      Our second evaluation question is, does our proposed
+    3 We evaluated several β values and empirically choose β = 2.0 in our
+                                                                                   fine-tuning approach also significantly improve policy
+experiments; however, our approach is not particularly sensitive to β.
+    4 Empirically, we found N = 1000 rollouts to enable stable mixture             performance compared to the state-of-the-art for 2-part
+fitting without overfitting.                                                       assembly? We now use UCB as acquisition function and
+        Assembly 10000                                                                                 Assembly 10437                                                                                     Assembly 10000                                                                    Assembly 10437
+                                                                  Baseline       PI   EI       UCB                                                  Baseline       PI        EI            UCB
+              1                                                                                                1                                                                                                                 Baseline          Deployment       Finetune   Refinery                               Baseline           Deployment       Finetune     Refinery
+                                                                                                                                                                                                                1                                                                                  1
+         0.8                                                                                                0.8
+                                                                                                                                                                                                           0.8                                                                                   0.8
+         0.6                                                                                                0.6
+                                                                                                                                                                                                           0.6                                                                                   0.6
+                                  1                       2                  3             4                             1                  2       3              4                   5
+                                                                                                                                                                                                                           1                   2                3              4                              1                 2             3             4           5
+
+  LoadingAssembly          12741
+          [MathJax]/extensions/MathMenu.js                                                             Assembly
+                                                                                                     Loading             15654
+                                                                                                             [MathJax]/extensions/MathMenu.js                                                             Assembly 12741                                                                    Assembly 15654
+                                                                  Baseline       PI   EI       UCB                                                  Baseline       PI        EI            UCB
+              1                                                                                                1                                                                                                                  Baseline
+                                                                                                                                                                                                    Loading [MathJax]/extensions/MathMenu.js       Deployment       Finetune   Refinery                                 Baseline
+                                                                                                                                                                                                                                                                                          Loading [MathJax]/extensions/MathMenu.js       Deployment       Finetune     Refinery
+                                                                                                                                                                                                                1                                                                                   1
+
+         0.8                                                                                                0.8
+                                                                                                                                                                                                           0.8                                                                                   0.8
+
+         0.6                                                                                                0.6
+                                                                                                                                                                                                           0.6                                                                                   0.6
+                                  1                       2                  3             4                             1                  2       3              4                   5
+                                                                                                                                                                                                                           1                   2                3              4                              1                 2             3             4           5
+
+  LoadingAssembly          12099
+          [MathJax]/extensions/MathMenu.js                                                           Loading [MathJax]/extensions/MathMenu.js
+                                                                                                                                                        Baseline        PI        EI        UCB           Assembly 12099                                                                                                   Baseline        Deployment       Finetune    Refinery
+                                                                                                                                                                                                    Loading [MathJax]/extensions/MathMenu.js                                              Loading [MathJax]/extensions/MathMenu.js
+          1                                                                                                                                                                                                 1
+
+       0.8                                                                                                                                                                                               0.8
+
+       0.6                                                                                                                                                                                               0.6
+
+                                 1                            2                  3              4                   5                           6            7                         8                                  1                        2                 3              4                   5                            6                7                8
+
+Loading [MathJax]/extensions/MathMenu.js                                                                                                                                                          Loading [MathJax]/extensions/MathMenu.js
+       Fig. 3: Comparison of success rate by using different acquisition                                                                                                                                 Fig. 5: Comparison of success rate under different fine-tuning and
+       function for fine-tuning in 5 multi-part assemblies (see Figure 2 for                                                                                                                             deployment-time sampling strategies in 5 multi-part assemblies.
+       asset IDs). X-axis corresponds to step index within each assembly.
+                                                                                                                                                                                                                Asset ID                       Baseline                    Deployment                             Fine-tune                             Refinery (Ours)
+                           Fine-tuned              AutoMate
+                  1                                                                                                                                                                                             10000                                  83.20             96.47 (+13.27)                     99.22 (+16.02)                                98.45 (+15.25)
+              0.8                                                                                                                                                                                               12099                                  31.26             91.55 (+60.29)                     91.52 (+60.26)                                97.68 (+66.42)
+              0.6
+                                                                                                                                                                                                                12741                                  21.10             56.78 (+35.68)                     48.65 (+27.55)                                60.62 (+39.52)
+              0.4
+
+              0.2
+                                                                                                                                                                                                                10437                                  49.11             86.45 (+37.34)                     98.44 (+49.33)                                98.44 (+49.33)
+                  0
+                                                                                                                                                                                                                15654                                  31.98             56.48 (+24.50)                     66.22 (+34.24)                                74.19 (+42.21)
+        Loading [MathJax]/extensions/MathMenu.js
+
+
+
+
+       Fig. 4: Average success rates of baseline policies (AutoMate) and                                                                                                                                                       TABLE I: Success rates for full assembly sequences.
+       fine-tuned policies across 100 2-part assembly tasks. Policies are
+       sorted by baseline success rate. BO-guided fine-tuning significantly
+       improves the average success rate from 80.53% to 91.51%, with
+       greatest improvements occurring for the most challenging tasks.                                                                                                                                   produced trained-from-scratch and UCB-fine-tuned policies
+                                                                                                                                                                                                         for each assembly step over 5 random seeds. For each
+                                                                                                                                                                                                         of the 4 approaches listed above, we evaluate all 5 seeds
+       again follow the procedure described in Algorithm 1 to fine-                                                                                                                                      for every assembly step over 1000 trials and calculate the
+       tune specialist policies, but now over 100 2-part assembly                                                                                                                                        average success rate (Figure 5). The initializations of all
+       tasks from an established baseline [5] 5 . We evaluate using                                                                                                                                      previously assembled parts are randomly sampled (i.e., the
+       the same procedure as for the prior evaluation. The baseline                                                                                                                                      goal configuration is randomized), and we apply uniformly-
+       policies, trained using [5] without any fine-tuning, achieve                                                                                                                                      sampled observation noise (within ±2mm on position, ±10◦
+       an average success rate of 80.53±31.43%. After applying                                                                                                                                           on orientation) on goal poses during training and evaluation.
+       our proposed fine-tuning procedure, the average success rate                                                                                                                                         The average success rate is 83.61±9.27% for Baseline,
+       increases to 91.51±14.27%, demonstrating a clear perfor-                                                                                                                                          94.41±7.51% for Fine-tune, 94.50±4.90% for Deployment,
+       mance gain (10.98% increase in mean success rate and                                                                                                                                              and 96.35±4.45% for Refinery. Specifically, we observe
+       17.16% decrease in success rate variance). Improvement is                                                                                                                                         that GMM-based initialization alone (Deployment) improves
+       consistently observed across the majority of tasks, with a                                                                                                                                        average success rates over Baseline without requiring ad-
+       number of fine-tuned policies approaching or reaching a                                                                                                                                           ditional online adaptation. This highlights the effectiveness
+       100% success rate (Figure 4).                                                                                                                                                                     of modeling success rate distributions using GMM and ex-
+          2) GMM-based Sampling for Deployment-Time Optimiza-                                                                                                                                            ploiting them for informed sampling during policy execution.
+       tion: We now present the results of our proposed approach                                                                                                                                         However, combining BO-guided fine-tuning with GMM-
+       that uses GMM-based sampling to determine plug initial-                                                                                                                                           based deployment consistently achieves the highest success
+       izations during policy deployment, as opposed to uniform                                                                                                                                          rates across all assemblies, outperforming both individual
+       sampling from the initialization space. Our evaluation ques-                                                                                                                                      components. This demonstrates that while GMM-based sam-
+       tion is, does our proposed deployment-time optimization                                                                                                                                           pling during deployment reduces the reliance on online fine-
+       approach significantly improve performance of baseline                                                                                                                                            tuning, it does not eliminate the benefits of fine-tuning. These
+       and fine-tuned policies for multi-part assembly?                                                                                                                                                  results collectively suggest that to fully maximize success
+          We compare the following 4 approaches for training and                                                                                                                                         rates (critical for industrial settings), both a BO-based fine-
+       deploying individual policies: (1) Baseline: Train policy from                                                                                                                                    tuning approach and GMM-based sampling strategy should
+       scratch using [5] and uniformly sample plug initialization,                                                                                                                                       be employed.
+       (2) Deployment: Train policy from scratch using [5] and                                                                                                                                              3) Full Assembly Sequence: To demonstrate the effec-
+       sample plug initialization with GMM, (3) Fine-tune: Fine-                                                                                                                                         tiveness of the proposed combination of BO-guided fine-
+       tune baseline policy with BO and uniformly sample plug                                                                                                                                            tuning and GMM-based sampling during deployment, we
+       initialization, (4) Refinery (Ours): Fine-tune baseline policy                                                                                                                                    evaluate the success rate of the full assembly sequence across
+       with BO and sample plug initialization with GMM.                                                                                                                                                  all 5 multi-part assemblies (Table I). In these experiments,
+          The policies are derived from Section V-A.1, which                                                                                                                                             a sequence is only considered as successful if all steps
+                                                                                                                                                                                                         are executed successfully. Our proposed method consistently
+                  5 Visualization of the dataset can be found on their project website.                                                                                                                  outperforms the baseline across all evaluated assemblies,
+                                                   Baseline                                 Fine-tune                          Refinery (Ours)
+                    Asset ID               Simulation (%)   Reality               Simulation (%)      Reality            Simulation (%)    Reality
+                    01053                        56.25              2/10                 91.41             7/10               97.66            9/10
+                    00190                        54.69              4/10                 87.34            10/10               99.22           10/10
+                    00514                        76.56              6/10                 88.28             8/10               89.84            8/10
+                    00614                        84.37              8/10                 89.69             9/10               91.86           10/10
+                    00681                        94.53              8/10                 96.87             8/10              100.00           10/10
+                    00553                        92.18              9/10                 94.53            10/10               97.66           10/10
+                    00768                        96.87              9/10                 98.44            10/10               99.22           10/10
+                    00346                        97.66             10/10                100.00            10/10              100.00           10/10
+                    01036                       100.00             10/10                100.00            10/10              100.00           10/10
+                    01129                        96.88             10/10                100.00            10/10              100.00           10/10
+                    Total                        84.99             76/100           94.66 (+9.67)      92/100 (+16)       97.54 (+12.55)   97/100 (+21)
+
+TABLE II: Real world evaluation. Comparison of policy success rates under different fine-tuning and deployment-time sampling strategies
+on 10 two-part assemblies, over a total of 300 real-world trials.
+
+
+                                            10000 (Disassembled)    10000 (Assembled)
+                                                                                                      Asset ID    Step       Fully Auto.   1 Intervention   2 Interventions
+                                                                                                      10000       37/40          8/10          10/10            10/10
+                       Franka Research 3
+                                                                                                      12099       65/70          6/10          10/10            10/10
+                       Robot Arm
+                                                                                                      15654       44/50          5/10          9/10             10/10
+
+                                                                                                    TABLE III: Success rates for full assembly and individual assembly
+                                            15654 (Disassembled)    15654 (Assembled)
+                                                                                                    in the real world across 3 multi-part assemblies.
+
+
+
+                                                                                                    tune, and Refinery approaches listed in subsubsection V-
+                                                                                                    A.2 on 10 two-part assemblies. In these experiments, only
+                                            12099 (Disassembled)    12099 (Assembled)
+                   Schunk EGK40 Gripper                                                             Refinery uses GMM-based initialization during deployment,
+                                                                                                    and the GMM is directly modeled from data collected in
+                                                                                                    simulation. For each of 10 assemblies, we deploy the corre-
+                                                                                                    sponding policy for each approach 10 times, for a total of
+                                                                                                    300 trials. Our results are shown in Table II. For assemblies
+                                                                                                    where baseline policies already achieve high success rates
+Fig. 6: Real-world experiment setup. The Franka Research 3 (FR3)
+robot and a table-mounted Schunk EGK40 gripper is used to                                           (e.g., 00346, 01036, 01129), our method maintains near-
+perform multi-part assembly tasks. 3D-printed 10000, 12099, and                                     perfect performance. In cases with moderate baseline success
+15654 are shown in disassembled and assembled configurations.                                       (e.g., 00614, 00681, 00553, 00768), the approach effectively
+                                                                                                    eliminates residual failure cases, reducing the total number of
+                                                                                                    failures from 3/40 to 0/40. For more challenging assemblies
+demonstrating its general applicability and robustness. No-                                         with low baseline success rates (e.g., 01053, 00190, 00514),
+tably, assemblies with lower baseline performance, such as                                          the improvement is substantial, increasing the real-world
+12099 (31.26%) and 15654 (31.98%), exhibit substantial                                              success count from 12/30 to 27/30. The results demonstrate
+improvements under our approach, achieving success rates                                            that our proposed approach consistently improves real-world
+of 97.68% and 74.19%, respectively. Even in assemblies                                              policy performance without additional adaptation.
+with relatively high baseline performance, such as 10000,                                              Our second evaluation question is, can we complete full
+our method yields a meaningful absolute gain of 15.25%.                                             sequences of multi-part assembly in the real world?
+Overall, these findings underscore the synergistic benefit of                                       We evaluate our approach on three multi-part assemblies
+combining uncertainty-aware fine-tuning with success-driven                                         executed by a physical robot. For each assembly, the robot
+sampling for improving sequential task performance.                                                 sequentially executes the learned policy for each subtask.
+                                                                                                    If an intermediate step fails, a human operator intervenes
+B. Real-world Evaluation                                                                            to correct the failure before continuing. Each assembly is
+   To assess the real-world effectiveness of our approach,                                          evaluated over 10 full-sequence trials, corresponding to 160
+we evaluate performance across a diverse set of two-part                                            individual subtask executions. We report fully autonomous
+and multi-part assemblies in the real world. Our real-world                                         success rates and the success rate with 1 or 2 human
+system (Figure 6) consists of a robot arm with a parallel-jaw                                       interventions from the same experiments. As shown in Ta-
+gripper, another parallel-jaw gripper mounted to the tabletop,                                      ble III, the average fully-autonomous success rate across
+and 3D-printed assemblies from our dataset (Figure 2).                                              individual subtasks is 90.6% (146/160), indicating strong per-
+   Our first evaluation question is, does the proposed ap-                                          step reliability. However, execution of the entire assembly
+proach for fine-tuning and deployment also improve real-                                            sequence is more challenging: for 10000, a notable 80%
+world policy performance? We evaluate the Baseline, Fine-                                           success rate was achieved over the sequence; for 15654,
+though, a 50% success was achieved, primarily due to a              [5]   B. Tang et al., “AutoMate: Specialist and General-
+single failing step, which is reflected in the success rates              ist Assembly Policies over Diverse Geometries,” in
+with only 1 or 2 human interventions.                                     Robotics: Science and Systems, 2024.
+                                                                    [6]   Y. Guo, B. Tang, I. Akinola, D. Fox, A. Gupta,
+C. Limitations
+                                                                          and Y. Narang, “SRSA: Skill Retrieval and Adap-
+   Across both simulation and real-world experiments, we                  tation for Robotic Assembly Tasks,” arXiv preprint
+identified the key causes of remaining failure cases. One                 arXiv:2503.04538, 2025.
+cause was grasp instability, where the parallel-jaw gripper         [7]   G. Gencer, First Pass Yield: Calculation, Examples
+slipped or introduced unintended rotations during part trans-             and Improvement Strategies, Accessed: 2025-04-30,
+port. In addition, in multi-step assembly, the robot could                Sep. 2024.
+apply large forces during policy execution, which destabi-          [8]   Y. Tian et al., “ASAP: Automated Sequence Planning
+lized or displaced previously assembled parts. Additionally,              for Complex Robotic Assembly with Physical Feasi-
+in real-world trials, failures arose from structural limitations          bility,” arXiv preprint arXiv:2309.16909, 2023.
+of 3D-printed components, such as flexing or tolerance              [9]   D. E. Whitney, Mechanical Assemblies: Their Design,
+mismatches with the 3D mesh due to printer settings, which                Manufacture, and Role in Product Development. Ox-
+could not be corrected by the policy. These observations                  ford University Press, 2004.
+suggest that addressing robustness in grasping, integrating        [10]   M. T. Mason, Mechanics of Robotic Manipulation.
+force control, and ensuring part stability may further advance            MIT Press, 2001.
+long-horizon assembly.                                             [11]   S. H. Drake, “Using compliance in lieu of sensory
+                      VI. C ONCLUSION                                     feedback for automatic assembly,” Ph.D. dissertation,
+   We presented Refinery, a framework for improving the                   Massachusetts Institute of Technology, 1978.
+fine-tuning and deployment of learned policies in multi-           [12]   T. Lozano-Pérez, M. T. Mason, and R. H. Taylor, “Au-
+part robotic assembly. By identifying high-uncertainty initial            tomatic synthesis of fine-motion strategies for robots,”
+states with Bayesian Optimization and leveraging Gaussian                 The International Journal of Robotics Research, 1984.
+Mixture Models to prioritize robust initializations at deploy-     [13]   Y. Xia, Y. Yin, and Z. Chen, “Dynamic analysis
+ment, Refinery enhances both individual policy performance                for peg-in-hole assembly with contact deformation,”
+and long-horizon execution success. Our experiments show                  The International Journal of Advanced Manufacturing
+substantial gains on two-part and multi-part assembly tasks,              Technology, 2006.
+achieving state-of-the-art results in both simulation and the      [14]   G. Thomas, M. Chien, A. Tamar, J. A. Ojea, and
+real world. Several promising directions emerge from this                 P. Abbeel, “Learning robotic assembly from CAD,”
+work. Expanding the framework to more geometrically-                      in IEEE International Conference on Robotics and
+diverse assembly tasks would test its generality beyond                   Automation (ICRA), 2018.
+the current benchmark set. Incorporating perception-driven         [15]   J. Luo et al., “Reinforcement learning on vari-
+initialization could enable more autonomous deployment                    able impedance controller for high-precision robotic
+in unstructured environments. Additionally, exploring joint               assembly,” in IEEE International Conference on
+optimization strategies across policy chains may further                  Robotics and Automation (ICRA), 2019.
+improve sequence-level reliability in long-horizon assembly.       [16]   O. Spector and M. Zacksenhouse, “Deep reinforce-
+Finally, future research will investigate how to bridge the gap           ment learning for contact-rich skills using compliant
+towards additional industrial requirements, such as stricter              movement primitives,” arXiv:2008.13223 [cs], 2020.
+tolerances and time constraints.                                   [17]   X. Zhang, S. Jin, C. Wang, X. Zhu, and M. Tomizuka,
+                                                                          “Learning insertion primitives with discrete-
+                        R EFERENCES                                       continuous hybrid action space for robotic assembly
+ [1] X. Zhang, M. Tomizuka, and H. Li, “Bridging the                      tasks,” arXiv:2110.12618 [cs], 2021.
+     sim-to-real gap with dynamic compliance tuning for            [18]   C. C. Beltran-Hernandez, D. Petit, I. G. Ramirez-
+     industrial insertion,” arXiv preprint arXiv:2311.07499,              Alpizar, and K. Harada, “Variable compliance con-
+     2023.                                                                trol for robotic peg-in-hole assembly: A deep-
+ [2] X. Zhang, C. Wang, L. Sun, Z. Wu, X. Zhu, and M.                     reinforcement-learning approach,” Applied Sciences,
+     Tomizuka, “Efficient sim-to-real transfer of contact-                2020.
+     rich manipulation skills with online admittance resid-        [19]   J. Luo et al., “Robust multi-modal policies for in-
+     ual learning,” in Conference on Robot Learning, 2023.                dustrial assembly via reinforcement learning and
+ [3] B. Tang et al., “IndustReal: Transferring contact-                   demonstrations: A large-scale study,” arXiv preprint
+     rich assembly tasks from simulation to reality,” in                  arXiv:2103.11512, 2021.
+     Robotics: Science and Systems, 2023.                          [20]   M. Hebecker, J. Lambrecht, and M. Schmitz, “To-
+ [4] M. Noseworthy et al., “FORGE: Force-guided ex-                       wards real-world force-sensitive robotic assembly
+     ploration for robust contact-rich manipulation under                 through deep reinforcement learning in simulations,”
+     uncertainty,” IEEE Robotics and Automation Letters,                  in IEEE/ASME International Conference on Advanced
+     2025.                                                                Intelligent Mechatronics (AIM), 2021.
+[21]   L. Shao, T. Migimatsu, and J. Bohg, “Learning to scaf-    [38]   L. P. Kaelbling and T. Lozano-Pérez, “Hierarchical
+       fold the development of robotic manipulation skills,”            task and motion planning in the now,” in 2011 IEEE
+       in IEEE International Conference on Robotics and                 International Conference on Robotics and Automation,
+       Automation (ICRA), 2020.                                         IEEE, 2011, pp. 1470–1477.
+[22]   T. Johannink et al., “Residual reinforcement learning     [39]   L. P. Kaelbling and T. Lozano-Pérez, “Pre-image
+       for robot control,” in International Conference on               backchaining in belief space for mobile manipulation,”
+       Robotics and Automation (ICRA), 2019.                            in Robotics Research: The 15th International Sympo-
+[23]   Y. Fan, J. Luo, and M. Tomizuka, “A learning frame-              sium ISRR, Springer, 2016, pp. 383–400.
+       work for high precision industrial assembly,” in In-      [40]   Y. Chen, C. Wang, L. Fei-Fei, and C. K.
+       ternational Conference on Robotics and Automation                Liu, “Sequential dexterity: Chaining dexterous poli-
+       (ICRA), 2019.                                                    cies for long-horizon manipulation,” arXiv preprint
+[24]   M. Vecerik et al., “Leveraging demonstrations for                arXiv:2309.00987, 2023.
+       deep reinforcement learning on robotics problems with     [41]   Z. Chen, Z. Ji, J. Huo, and Y. Gao, “Scar: Refining
+       sparse rewards,” arXiv:1707.08817 [cs], 2018.                    skill chaining for long-horizon robotic manipulation
+[25]   T. Z. Zhao et al., “Offline meta-reinforcement learning          via dual regularization,” Advances in Neural Informa-
+       for industrial insertion,” in International Conference           tion Processing Systems, vol. 37, pp. 111 679–111 714,
+       on Robotics and Automation (ICRA), 2022.                         2024.
+[26]   O. Spector and D. Di Castro, “InsertionNet: A scalable    [42]   T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine,
+       solution for insertion,” IEEE Robotics and Automation            “Soft actor-critic: Off-policy maximum entropy deep
+       Letters, 2021.                                                   reinforcement learning with a stochastic actor,” in
+[27]   B. Wen, W. Lian, K. Bekris, and S. Schaal, “You                  International conference on machine learning, Pmlr,
+       only demonstrate once: Category-level manipulation               2018, pp. 1861–1870.
+       from single visual demonstration,” arXiv preprint         [43]   S. Levine and V. Koltun, “Guided policy search,” in
+       arXiv:2201.12716, 2022.                                          International conference on machine learning, PMLR,
+[28]   NVIDIA, Isaac Lab, 2025.                                         2013, pp. 1–9.
+[29]   Y. Narang et al., “Factory: Fast contact for robotic      [44]   S. Müller, A. von Rohr, and S. Trimpe, “Local
+       assembly,” in Robotics: Science and Systems, 2022.               policy search with Bayesian optimization,” Advances
+[30]   Z. Xian, Y. Qiao, X. Zhenjia, T.-H. Wang, Z. Chen,               in Neural Information Processing Systems, vol. 34,
+       J. Zheng, et al., Genesis: A Universal and Generative            pp. 20 708–20 720, 2021.
+       Physics Engine for Robotics and Beyond, Dec. 2024.        [45]   D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient
+[31]   E. Todorov, T. Erez, and Y. Tassa, “MuJoCo: A                    global optimization of expensive black-box functions,”
+       physics engine for model-based control,” in 2012                 Journal of Global optimization, vol. 13, pp. 455–492,
+       IEEE/RSJ International Conference on Intelligent                 1998.
+       Robots and Systems, IEEE, 2012, pp. 5026–5033.
+[32]   Y. Jiang, C. Wang, R. Zhang, J. Wu, and L. Fei-Fei,
+       “TRANSIC: Sim-to-Real Policy Transfer by Learning
+       from Online Correction,” in Conference on Robot
+       Learning, 2024.
+[33]   L. Ankile, A. Simeonov, I. Shenfeld, and P.
+       Agrawal, “JUICER: Data-Efficient Imitation Learning
+       for Robotic Assembly,” arXiv, 2024.
+[34]   G. Konidaris and A. Barto, “Skill discovery in con-
+       tinuous reinforcement learning domains using skill
+       chaining,” Advances in neural information processing
+       systems, vol. 22, 2009.
+[35]   A. Bagaria and G. Konidaris, “Option discovery using
+       deep skill chaining,” in International Conference on
+       Learning Representations, 2019.
+[36]   A. Clegg, W. Yu, J. Tan, C. K. Liu, and G. Turk,
+       “Learning to dress: Synthesizing human dressing mo-
+       tion via deep reinforcement learning,” ACM Transac-
+       tions on Graphics (TOG), vol. 37, no. 6, pp. 1–10,
+       2018.
+[37]   Y. Lee, J. J. Lim, A. Anandkumar, and Y. Zhu,
+       “Adversarial skill chaining for long-horizon robot
+       manipulation via terminal state regularization,” arXiv
+       preprint arXiv:2111.07999, 2021.
+

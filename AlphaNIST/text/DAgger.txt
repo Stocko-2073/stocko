@@ -1,0 +1,710 @@
+                                                      A Reduction of Imitation Learning and Structured Prediction
+                                                                     to No-Regret Online Learning
+
+
+
+                                                       Stéphane Ross                          Geoffrey J. Gordon                         J. Andrew Bagnell
+                                                     Robotics Institute                  Machine Learning Department                      Robotics Institute
+                                                Carnegie Mellon University                Carnegie Mellon University                 Carnegie Mellon University
+                                                Pittsburgh, PA 15213, USA                 Pittsburgh, PA 15213, USA                  Pittsburgh, PA 15213, USA
+
+
+
+
+arXiv:1011.0686v3 [cs.LG] 16 Mar 2011
+                                                  stephaneross@cmu.edu                       ggordon@cs.cmu.edu                         dbagnell@ri.cmu.edu
+
+
+                                                                  Abstract                                  strations of good behavior are used to learn a controller,
+                                                                                                            have proven very useful in practice and have led to state-
+                                                                                                            of-the art performance in a variety of applications (Schaal,
+                                             Sequential prediction problems such as imitation
+                                                                                                            1999; Abbeel and Ng, 2004; Ratliff et al., 2006; Silver
+                                             learning, where future observations depend on
+                                                                                                            et al., 2008; Argall et al., 2009; Chernova and Veloso, 2009;
+                                             previous predictions (actions), violate the com-
+                                                                                                            Ross and Bagnell, 2010). A typical approach to imitation
+                                             mon i.i.d. assumptions made in statistical learn-
+                                                                                                            learning is to train a classifier or regressor to predict an ex-
+                                             ing. This leads to poor performance in theory
+                                                                                                            pert’s behavior given training data of the encountered ob-
+                                             and often in practice. Some recent approaches
+                                                                                                            servations (input) and actions (output) performed by the ex-
+                                             (Daumé III et al., 2009; Ross and Bagnell, 2010)
+                                                                                                            pert. However since the learner’s prediction affects future
+                                             provide stronger guarantees in this setting, but re-
+                                                                                                            input observations/states during execution of the learned
+                                             main somewhat unsatisfactory as they train either
+                                                                                                            policy, this violate the crucial i.i.d. assumption made by
+                                             non-stationary or stochastic policies and require
+                                                                                                            most statistical learning approaches.
+                                             a large number of iterations. In this paper, we
+                                             propose a new iterative algorithm, which trains a              Ignoring this issue leads to poor performance both in the-
+                                             stationary deterministic policy, that can be seen              ory and practice (Ross and Bagnell, 2010). In particular,
+                                             as a no regret algorithm in an online learning set-            a classifier that makes a mistake with probability  under
+                                             ting. We show that any such no regret algorithm,               the distribution of states/observations encountered by the
+                                             combined with additional reduction assumptions,                expert can make as many as T 2  mistakes in expectation
+                                             must find a policy with good performance under                 over T -steps under the distribution of states the classifier
+                                             the distribution of observations it induces in such            itself induces (Ross and Bagnell, 2010). Intuitively this is
+                                             sequential settings. We demonstrate that this                  because as soon as the learner makes a mistake, it may en-
+                                             new approach outperforms previous approaches                   counter completely different observations than those under
+                                             on two challenging imitation learning problems                 expert demonstration, leading to a compounding of errors.
+                                             and a benchmark sequence labeling problem.
+                                                                                                            Recent approaches (Ross and Bagnell, 2010) can guarantee
+                                                                                                            an expected number of mistakes linear (or nearly so) in the
+                                                                                                            task horizon T and error  by training over several itera-
+                                        1   INTRODUCTION                                                    tions and allowing the learner to influence the input states
+                                                                                                            where expert demonstration is provided (through execution
+                                        Sequence Prediction problems arise commonly in practice.            of its own controls in the system). One approach (Ross and
+                                        For instance, most robotic systems must be able to pre-             Bagnell, 2010) learns a non-stationary policy by training
+                                        dict/make a sequence of actions given a sequence of obser-          a different policy for each time step in sequence, starting
+                                        vations revealed to them over time. In complex robotic sys-         from the first step. Unfortunately this is impractical when
+                                        tems where standard control methods fail, we must often             T is large or ill-defined. Another approach called SMILe
+                                        resort to learning a controller that can make such predic-          (Ross and Bagnell, 2010), similar to SEARN (Daumé III
+                                        tions. Imitation learning techniques, where expert demon-           et al., 2009) and CPI (Kakade and Langford, 2002), trains
+                                                                                                            a stationary stochastic policy (a finite mixture of policies)
+                                        Appearing in Proceedings of the 14th International Conference on
+                                                                                                            by adding a new policy to the mixture at each iteration of
+                                        Artificial Intelligence and Statistics (AISTATS) 2011, Fort Laud-
+                                        erdale, FL, USA. Volume 15 of JMLR: W&CP 15. Copyright              training. However this may be unsatisfactory for practical
+                                        2011 by the authors.                                                applications as some policies in the mixture are worse than
+                 A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning
+
+
+others and the learned controller may be unstable.                In imitation learning, we may not necessarily know or ob-
+                                                                  serve true costs C(s, a) for the particular task. Instead,
+We propose a new meta-algorithm for imitation learning
+                                                                  we observe expert demonstrations and seek to bound J(π)
+which learns a stationary deterministic policy guaranteed
+                                                                  for any cost function C based on how well π mimics the
+to perform well under its induced distribution of states
+                                                                  expert’s policy π ∗ . Denote ` the observed surrogate loss
+(number of mistakes/costs that grows linearly in T and
+                                                                  function we minimize instead of C. For instance `(s, π)
+classification cost ). We take a reduction-based approach
+                                                                  may be the expected 0-1 loss of π with respect to π ∗ in
+(Beygelzimer et al., 2005) that enables reusing existing su-
+                                                                  state s, or a squared/hinge loss of π with respect to π ∗ in s.
+pervised learning algorithms. Our approach is simple to
+                                                                  Importantly, in many instances, C and ` may be the same
+implement, has no free parameters except the supervised
+                                                                  function– for instance, if we are interested in optimizing the
+learning algorithm sub-routine, and requires a number of
+                                                                  learner’s ability to predict the actions chosen by an expert.
+iterations that scales nearly linearly with the effective hori-
+zon of the problem. It naturally handles continuous as well       Our goal is to find a policy π̂ which minimizes the observed
+as discrete predictions. Our approach is closely related to       surrogate loss under its induced distribution of states, i.e.:
+no regret online learning algorithms (Cesa-Bianchi et al.,
+2004; Hazan et al., 2006; Kakade and Shalev-Shwartz,                              π̂ = arg min Es∼dπ [`(s, π)]                 (1)
+                                                                                          π∈Π
+2008) (in particular Follow-The-Leader) but better lever-
+ages the expert in our setting. Additionally, we show that        As system dynamics are assumed both unknown and com-
+any no-regret learner can be used in a particular fashion to      plex, we cannot compute dπ and can only sample it by exe-
+learn a policy that achieves similar guarantees.                  cuting π in the system. Hence this is a non-i.i.d. supervised
+We begin by establishing our notation and setting, discuss        learning problem due to the dependence of the input distri-
+related work, and then present the DAGGER (Dataset Ag-            bution on the policy π itself. The interaction between pol-
+gregation) method. We analyze this approach using a no-           icy and the resulting distribution makes optimization diffi-
+regret and a reduction approach (Beygelzimer et al., 2005).       cult as it results in a non-convex objective even if the loss
+Beyond the reduction analysis, we consider the sample             `(s, ·) is convex in π for all states s. We now briefly review
+complexity of our approach using online-to-batch (Cesa-           previous approaches and their guarantees.
+Bianchi et al., 2004) techniques. We demonstrate DAGGER
+is scalable and outperforms previous approaches in practice       2.1   Supervised Approach to Imitation
+on two challenging imitation learning problems: 1) learn-
+ing to steer a car in a 3D racing game (Super Tux Kart) and       The traditional approach to imitation learning ignores the
+2) and learning to play Super Mario Bros., given input im-        change in distribution and simply trains a policy π that per-
+age features and corresponding actions by a human expert          forms well under the distribution of states encountered by
+and near-optimal planner respectively. Following Daumé            the expert dπ∗ . This can be achieved using any standard
+III et al. (2009) in treating structured prediction as a de-      supervised learning algorithm. It finds the policy π̂sup :
+generate imitation learning problem, we apply DAGGER to
+                                                                                π̂sup = arg min Es∼dπ∗ [`(s, π)]               (2)
+the OCR (Taskar et al., 2003) benchmark prediction prob-                                   π∈Π
+lem achieving results competitive with the state-of-the-art
+(Taskar et al., 2003; Ratliff et al., 2007; Daumé III et al.,     Assuming `(s, π) is the 0-1 loss (or upper bound on the 0-
+2009) using only single-pass, greedy prediction.                  1 loss) implies the following performance guarantee with
+                                                                  respect to any task cost function C bounded in [0, 1]:
+                                                                  Theorem 2.1. (Ross and Bagnell, 2010)                        Let
+2   PRELIMINARIES
+                                                                  Es∼dπ∗ [`(s, π)] = , then J(π) ≤ J(π ∗ ) + T 2 .
+We begin by introducing notation relevant to our setting.
+                                                                  Proof. Follows from result in Ross and Bagnell (2010)
+We denote by Π the class of policies the learner is consid-
+                                                                  since  is an upper bound on the 0-1 loss of π in dπ∗ .
+ering and T the task horizon. For any policy π, we let dtπ
+denote the distribution of states at time t if the learner exe-
+                                                                  Note that this bound is tight, i.e. there exist problems
+                  PT time step 1 to t − 1. Furthermore, we
+cuted policy π from
+                                                                  such that a policy π with  0-1 loss on dπ∗ can incur ex-
+denote dπ = T1 t=1 dtπ the average distribution of states
+if we follow policy π for T steps. Given a state s, we de-        tra cost that grows quadratically in T . Kääriäinen (2006)
+note C(s, a) the expected immediate cost of performing ac-        demonstrated this in a sequence prediction setting1 and
+tion a in state s for the task we are considering and denote         1
+                                                                       In their example, an error rate of  > 0 when trained to
+Cπ (s) = Ea∼π(s) [C(s, a)] the expected immediate cost of         predict the next output in sequence with the previous correct
+π in s. We assume C is bounded in [0, 1]. The total cost          output as input can lead to an expected number of mistakes of
+                                                                                 T +1
+of executing policyPTπ for T -steps (i.e., the cost-to-go) is
+                                                                  T
+                                                                  2
+                                                                     − 1−(1−2)
+                                                                              4
+                                                                                      + 12 over sequences of length T at test time.
+denoted J(π) = t=1 Es∼dtπ [Cπ (s)] = T Es∼dπ [Cπ (s)].            This is bounded by T 2  and behaves as Θ(T 2 ) for small .
+                                    Stéphane Ross, Geoffrey J. Gordon, J. Andrew Bagnell
+
+
+Ross and Bagnell (2010) provided an imitation learning ex-        ditional supervised learning approach. However, in many
+ample where J(π̂sup ) = (1 − T )J(π ∗ ) + T 2 . Hence the       cases u is O(1) or sub-linear in T and the forward algo-
+traditional supervised learning approach has poor perfor-         rithm leads to improved performance. For instance if C is
+mance guarantees due to the quadratic growth in T . Instead       the 0-1 loss with respect to the expert, then u ≤ 1. Addi-
+we would prefer approaches that can guarantee growth lin-         tionally if π ∗ is able to recover from mistakes made by π, in
+ear or near-linear in T and . The following two approaches       the sense that within a few steps, π ∗ is back in a distribution
+from Ross and Bagnell (2010) achieve this on some classes         of states that is close to what π ∗ would be in if π ∗ had been
+of imitation learning problems, including all those where         executed initially instead of π, then u will be O(1). 2 A
+surrogate loss ` upper bounds C.                                  drawback of the forward algorithm is that it is impractical
+                                                                  when T is large (or undefined) as we must train T different
+2.2   Forward Training                                            policies sequentially and cannot stop the algorithm before
+                                                                  we complete all T iterations. Hence it can not be applied
+The forward training algorithm introduced by Ross and             to most real-world applications.
+Bagnell (2010) trains a non-stationary policy (one policy
+πt for each time step t) iteratively over T iterations, where     2.3   Stochastic Mixing Iterative Learning
+at iteration t, πt is trained to mimic π ∗ on the distribution
+of states at time t induced by the previously trained poli-       SMILe, proposed by Ross and Bagnell (2010), alleviates
+cies π1 , π2 , . . . , πt−1 . By doing so, πt is trained on the   this problem and can be applied in practice when T is
+actual distribution of states it will encounter during exe-       large or undefined by adopting an approach similar to
+cution of the learned policy. Hence the forward algorithm         SEARN (Daumé III et al., 2009) where a stochastic sta-
+guarantees that the expected loss under the distribution of       tionary policy is trained over several iterations. Initially
+states induced by the learned policy matches the average          SMILe starts with a policy π0 which always queries and
+loss during training, and hence improves performance.             executes the expert’s action choice. At iteration n, a pol-
+We here provide a theorem slightly more general than the          icy π̂n is trained to mimic the expert under the distribu-
+one provided by Ross and Bagnell (2010) that applies to           tion of trajectories πn−1 induces and then updates πn =
+any policy π that can guarantee  surrogate loss under its        πn−1 + α(1 − α)n−1 (π̂n − π0 ). This update is interpreted
+own distribution of states. This will be useful to bound the      as adding probability α(1 − α)n−1 to executing policy π̂n
+performance of our new approach presented in Section 3.           at any step and removing probability α(1 − α)n−1 of ex-
+       0
+                                                                  ecuting the queried expert’s action. At iteration n, πn is
+Let Qπt (s, π) denote the t-step cost of executing π in initial   a mixture of n policies and the probability of using the
+state s and then following policy π 0 and assume `(s, π) is       queried expert’s action is (1 − α)n . We can stop the al-
+the 0-1 loss (or an upper bound on the 0-1 loss), then we         gorithm at any iteration N by returning the re-normalized
+have the following performance guarantee with respect to                            −(1−α)N π0
+                                                                  policy π̃N = πN1−(1−α)       which doesn’t query the expert
+                                                                                          N
+any task cost function C bounded in [0, 1]:
+                                                                  anymore. Ross and Bagnell (2010) showed that choosing
+Theorem 2.2. Let π be such that Es∼dπ [`(s, π)] = , and          α in O( T12 ) and N in O(T 2 log T ) guarantees near-linear
+   ∗                      ∗
+QπT −t+1 (s, a) − QπT −t+1 (s, π ∗ ) ≤ u for all action a, t ∈    regret in T and  for some class of problems.
+{1, 2, . . . , T }, dπ (s) > 0, then J(π) ≤ J(π ∗ ) + uT .
+                     t
+
+
+
+Proof. We here follow a similar proof to Ross and Bagnell         3     DATASET AGGREGATION
+(2010). Given our policy π, consider the policy π1:t , which
+executes π in the first t-steps and then execute the expert       We now present DAGGER (Dataset Aggregation), an it-
+π ∗ . Then                                                        erative algorithm that trains a deterministic policy that
+                                                                  achieves good performance guarantees under its induced
+J(π)                                                              distribution of states.
+            PT −1
+= J(π ∗ ) + t=0 [J(π1:T −t ) − J(π1:T −t−1 )]
+            PT             ∗                 ∗
+= J(π ∗ ) + t=1 Es∼dtπ [QπT −t+1 (s, π) − QπT −t+1 (s, π ∗ )]     In its simplest form, the algorithm proceeds as follows.
+               T                                                  At the first iteration, it uses the expert’s policy to gather
+≤ J(π ∗ ) + u t=1 Es∼dtπ [`(s, π)]
+             P
+      ∗                                                           a dataset of trajectories D and train a policy π̂2 that best
+= J(π ) + uT 
+                                                                  mimics the expert on those trajectories. Then at iteration
+The inequality follows from the fact that `(s, π) upper           n, it uses π̂n to collect more trajectories and adds those
+bounds the 0-1 loss, and hence the probability π and π ∗          trajectories to the dataset D. The next policy π̂n+1 is the
+pick different actions in s; when they pick different actions,    policy that best mimics the expert on the whole dataset D.
+the increase in cost-to-go ≤ u.                                      2
+                                                                       This is the case for instance in Markov Desision Processes
+                                                                  (MDPs) when the Markov Chain defined by the system dynamics
+In the worst case, u could be O(T ) and the forward al-           and policy π ∗ is rapidly mixing. In particular, if it is α-mixing
+                                                                                                                 1
+gorithm wouldn’t provide any improvement over the tra-            with exponential decay rate δ then u is O( 1−exp(−δ)   ).
+                 A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning
+
+
+  Initialize D ← ∅.                                               In particular, this holds for the policy π̂               =
+                                                                                                      3
+  Initialize π̂1 to any policy in Π.                              arg minπ∈π̂1:N Es∼dπ [`(s, π)].          If the task cost
+  for i = 1 to N do                                               function C corresponds to (or is upper bounded by) the
+     Let πi = βi π ∗ + (1 − βi )π̂i .                             surrogate loss ` then this bound tells us directly that
+     Sample T -step trajectories using πi .                       J(π̂) ≤ T N + O(1). For arbitrary task cost function C,
+     Get dataset Di = {(s, π ∗ (s))} of visited states by πi      then if ` is an upper bound on the 0-1 loss with respect to
+     and actions given by expert. S                               π ∗ , combining this result with Theorem 2.2 yields that:
+     Aggregate datasets: D ← D Di .                               Theorem 3.2. For DAGGER, if N is Õ(uT ) there exists a
+     Train classifier π̂i+1 on D.                                 policy π̂ ∈ π̂1:N s.t. J(π̂) ≤ J(π ∗ ) + uT N + O(1).
+  end for
+  Return best π̂i on validation.
+                                                                  Finite Sample Results In the finite sample case, sup-
+          Algorithm 3.1: DAGGER Algorithm.                        pose we sample m trajectories with πi at each it-
+                                                                  eration i, Pand denote this dataset Di . Let ˆN =
+                                                                                N
+                                                                  minπ∈Π N1 i=1 Es∼Di [`(s, π)] be the training loss of the
+In other words, DAGGER proceeds by collecting a dataset           best policy on the sampled trajectories, then using Azuma-
+at each iteration under the current policy and trains the next    Hoeffding’s inequality leads to the following guarantee:
+policy under the aggregate of all collected datasets. The in-     Theorem 3.3. For DAGGER, if N is O(T 2 log(1/δ)) and
+tuition behind this algorithm is that over the iterations, we     m is O(1) then with probability at least 1 − δ there exists a
+are building up the set of inputs that the learned policy is      policy π̂ ∈ π̂1:N s.t. Es∼dπ̂ [`(s, π̂)] ≤ ˆN + O(1/T )
+likely to encounter during its execution based on previous
+experience (training iterations). This algorithm can be in-       A more refined analysis taking advantage of the strong con-
+terpreted as a Follow-The-Leader algorithm in that at itera-      vexity of the loss function (Kakade and Tewari, 2009) may
+tion n we pick the best policy π̂n+1 in hindsight, i.e. under     lead to tighter generalization bounds that require N only of
+all trajectories seen so far over the iterations.                 order Õ(T log(1/δ)). Similarly:
+To better leverage the presence of the expert in our imita-       Theorem 3.4. For DAGGER, if N is O(u2 T 2 log(1/δ))
+tion learning setting, we optionally allow the algorithm to       and m is O(1) then with probability at least 1 − δ there
+use a modified policy πi = βi π ∗ + (1 − βi )π̂i at iteration     exists a policy π̂ ∈ π̂1:N s.t. J(π̂) ≤ J(π ∗ )+uT ˆN +O(1).
+i that queries the expert to choose controls a fraction of the
+time while collecting the next dataset. This is often desir-
+able in practice as the first few policies, with relatively few
+                                                                  4     THEORETICAL ANALYSIS
+datapoints, may make many more mistakes and visit states
+that are irrelevant as the policy improves.                       The theoretical analysis of DAGGER only relies on the no-
+                                                                  regret property of the underlying Follow-The-Leader algo-
+We will typically use β1 = 1 so that we do not have to spec-      rithm on strongly convex losses (Kakade and Tewari, 2009)
+ify an initial policy π̂1 before getting data from the expert’s   which picks the sequence of policies π̂1:N . Hence the pre-
+behavior. Then we could choose βi = pi−1 to have a prob-          sented results also hold for any other no regret online learn-
+ability of using the expert that decays exponentially as in       ing algorithm we would apply to our imitation learning set-
+SMILe and SEARN. We show below the onlyPrequirement               ting. In particular, we can consider the results here a re-
+                                                   N
+is that {βi } be a sequence such that β N = N1 i=1 βi → 0         duction of imitation learning to no-regret online learning
+as N → ∞. The simple, parameter-free version of the al-           where we treat mini-batches of trajectories under a single
+gorithm described above is the special case βi = I(i = 1)         policy as a single online-learning example. We first briefly
+for I the indicator function, which often performs best in        review concepts of online learning and no regret that will
+practice (see Section 5). The general DAGGER algorithm is         be used for this analysis.
+detailed in Algorithm 3.1. The main result of our analysis
+in the next section is the following guarantee for DAGGER.
+                                                                  4.1   Online Learning
+Let π1:N denote the sequence of policies π1 , π2 , . . . , πN .
+Assume ` is strongly convex and bounded over Π. Suppose
+                                                                  In online learning, an algorithm must provide a policy πn at
+βi ≤ (1 − α)i−1 for all i for some constant α independent
+                                 PN                               iteration n which incurs a loss `n (πn ). After observing this
+of T . Let N = minπ∈Π N1 i=1 Es∼dπi [`(s, π)] be the             loss, the algorithm can provide a different policy πn+1 for
+true loss of the best policy in hindsight. Then the following     the next iteration which will incur loss `n+1 (πn+1 ). The
+holds in the infinite sample case (infinite number of sample
+trajectories at each iteration):                                      3
+                                                                        It is not necessary to find the best policy in the sequence
+                                                                  that minimizes the loss under its distribution; the same guarantee
+Theorem 3.1. For DAGGER, if N is Õ(T ) there exists a            holds for the policy which uniformly randomly picks one policy
+policy π̂ ∈ π̂1:N s.t. Es∼dπ̂ [`(s, π̂)] ≤ N + O(1/T )           in the sequence π̂1:N and executes that policy for T steps.
+                                      Stéphane Ross, Geoffrey J. Gordon, J. Andrew Bagnell
+
+
+loss functions `n+1 may vary in an unknown or even adver-            minπ̂∈π̂1:N Es∼dπ̂ [`(s, π̂)]
+                                                                          PN
+sarial fashion over time. A no-regret algorithm is an algo-          ≤ N1 i=1 Es∼dπ̂i (`(s, π̂i ))
+                                                                          PN
+rithm that produces a sequence of policies π1 , π2 , . . . , πN      ≤ N1 i=1 [Es∼dπi (`(s, π̂i )) + 2`max min(1, T βi )]
+such that the average regret with respect to the best policy         ≤ γN + 2`N max
+                                                                                              PN                     PN
+                                                                                    [nβ + T i=nβ +1 βi ] + minπ∈Π i=1 `i (π)
+in hindsight goes to 0 as N goes to ∞:                                                             PN
+                                                                     = γN + N + 2`N  max
+                                                                                           [nβ + T i=nβ +1 βi ]
+             N                    N
+          1 X                  1 X
+                `i (πi ) − min       `i (π) ≤ γN              (3)
+          N i=1            π∈Π N
+                                 i=1                                 Under an error reduction assumption that for any input dis-
+                                                                     tribution, there is some policy π ∈ Π that achieves sur-
+for limN →∞ γN = 0. Many no-regret algorithms guar-
+                                                                     rogate loss of , this implies we are guaranteed to find a
+antee that γN is Õ( N1 ) (e.g. when ` is strongly convex)
+                                                                     policy π̂ which achieves  surrogate loss under its own
+(Hazan et al., 2006; Kakade and Shalev-Shwartz, 2008;
+                                                                     state distribution in the limit, provided β N → 0. For in-
+Kakade and Tewari, 2009).
+                                                                     stance, if we choose βi to be of the form (1 − α)i−1 , then
+                                                                      1
+                                                                                  PN                  1
+                                                                     N [nβ + T       i=nβ +1 βi ] ≤ N α [log T + 1] and this extra
+4.2   No Regret Algorithms Guarantees
+                                                                     penalty becomes negligible for N as Õ(T ). As we need
+Now we show that no-regret algorithms can be used to find            at least Õ(T ) iterations to make γN negligible, the num-
+a policy which has good performance guarantees under its             ber of iterations required by DAGGER is similar to that re-
+own distribution of states in our imitation learning setting.        quired by any no-regret algorithm. Note that this is not
+To do so, we must choose the loss functions to be the loss           as strong as the general error or regret reductions consid-
+under the distribution of states of the current policy chosen        ered in (Beygelzimer et al., 2005; Ross and Bagnell, 2010;
+by the online algorithm: `i (π) = Es∼dπi [`(s, π)].                  Daumé III et al., 2009) which require only classification:
+                                                                     we require a no-regret method or strongly convex surrogate
+For our analysis of DAGGER, we need to bound the to-                 loss function, a stronger (albeit common) assumption.
+tal variation distance between the distribution of states en-
+countered by π̂i and πi , which continues to call the expert.        Finite Sample Case: The previous results hold if the on-
+The following lemma is useful:                                       line learning algorithm observes the infinite sample loss,
+Lemma 4.1. ||dπi − dπ̂i ||1 ≤ 2T βi .                                i.e. the loss on the true distribution of trajectories induced
+                                                                     by the current policy πi . In practice however the algorithm
+Proof. Let d the distribution of states over T steps condi-          would only observe its loss on a small sample of trajecto-
+tioned on πi picking π ∗ at least once over T steps. Since πi        ries at each iteration. We wish to bound the true loss under
+always executes π̂i over T steps with probability (1 − βi )T         its own distribution of the best policy in the sequence as a
+we have dπi = (1 − βi )T dπ̂i + (1 − (1 − βi )T )d. Thus             function of the regret on the finite sample of trajectories.
+
+               ||dπi − dπ̂i ||1                                      At each iteration i, we assume the algorithm samples m
+               = (1 − (1 − βi )T )||d − dπ̂i ||1                     trajectories using πi and then observes the loss `i (π) =
+               ≤ 2(1 − (1 − βi )T )                                  Es∼Di (`(s, π)), for Di the dataset of those m trajectories.
+                                                                                                       PN
+               ≤ 2T βi                                               The online learner guarantees N1 i=1 Es∼Di (`(s, πi )) −
+                                                                                    N
+                                                                     minπ∈Π N1 i=1 Es∼Di (`(s, π)) ≤ γN . Let ˆN =
+                                                                                 P
+The last inequality follows from the fact that (1 − β)T ≥                           N
+                                                                     minπ∈Π N1 i=1 Es∼Di [`(s, π)] the training loss of the
+                                                                                 P
+1 − βT for any β ∈ [0, 1].                                           best policy in hindsight. Following a similar analysis to
+                                                                     Cesa-Bianchi et al. (2004), we obtain:
+This is only better than the trivial bound ||dπi − dπ̂i ||1 ≤ 2      Theorem 4.2. For DAGGER, with probability at least 1−δ,
+for βi ≤ T1 . Assume βi is non-increasing and define                 there exists a policy π̂ ∈ π̂1:N s.t. Es∼dπ̂ [`(s,
+nβ the largest n ≤ N such that βn > T1 . Let N =                                                                   q π̂)] ≤ ˆN +
+                                                                                               N
+                                                                     γN + 2`N     [nβ + T i=nβ +1 βi ] + `max 2 log(1/δ)
+                                                                                            P
+            PN
+minπ∈Π N1 i=1 Es∼dπi [`(s, π)] the loss of the best pol-
+                                                                              max
+                                                                                                                        mN     , for
+icy in hindsight after N iterations and let `max be an upper         γN the average regret of π̂1:N .
+bound on the loss, i.e. `i (s, π̂i ) ≤ `max for all policies π̂i ,
+and state s such that dπ̂i (s) > 0. We have the following:           Proof. Let Yij be the difference between the expected per
+                                                                     step loss of π̂i under state distribution dπi and the aver-
+Theorem 4.1. For DAGGER, there exists a policy π̂ ∈                  age per step loss of π̂i under the j th sample trajectory
+π̂1:N s.t. Es∼dπ̂ [`(s, π̂)] ≤ N + γN + 2`N     max
+                                                     [nβ +           with πi at iteration i. The random variables Yij over all
+   PN
+T i=nβ +1 βi ], for γN the average regret of π̂1:N .                 i ∈ {1, 2, . . . , N } and j ∈ {1, 2, . . . , m} are all zero
+                                                                     mean, bounded in [−`max , `max ] and form a martingale
+Proof. The last lemma implies Es∼dπ̂i (`i (s, π̂i )) ≤               (considering the order Y11 , Y12 , . . . , Y1m
+                                                                                                                  P,NY21P
+                                                                                                                        , . . . , YN m ).
+                                                                                                              1             m
+Es∼dπi (`i (s, π̂i )) + 2`max min(1, T βi ).       Then:             By Azuma-Hoeffding’s inequality mN             i=1     j=1 Yij ≤
+                   A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning
+
+     q
+`max 2 log(1/δ)   with probability at least 1 − δ. Hence, we   We compare performance on a race track called Star Track.
+          mN
+obtain that with probability at least 1 − δ:                   As this track floats in space, the kart can fall off the track at
+                                                               any point (the kart is repositioned at the center of the track
+minπ̂∈π̂1:N Es∼dπ̂ [`(s, π̂)]                                  when this occurs). We measure performance in terms of the
+       PN
+≤ N1 i=1 Es∼dπ̂i [`(s, π̂i )]                                  average number of falls per lap. For SMILe and DAGGER,
+       PN                                      PN
+≤ N1 i=1 Es∼dπi [`(s, π̂i )] + 2`Nmax
+                                      [nβ + T i=nβ +1 βi ]     we used 1 lap of training per iteration (∼1000 data points)
+    1
+       PN                       1
+                                    PN Pm
+= N i=1 Es∼Di [`(s, π̂i )] + mN i=1 j=1 Yij                    and run both methods for 20 iterations. For SMILe we
+                       N                                       choose parameter α = 0.1 as in Ross and Bagnell (2010),
+  + 2`N
+                    P
+        max
+            [nβ + T i=nβ +1 βi ]
+                                    q                          and for DAGGER the parameter βi = I(i = 1) for I the in-
+       PN
+≤ N1 i=1 Es∼Di [`(s, π̂i )] + `max 2 log(1/δ)
+                                           mN
+                                                               dicator function. Figure 2 shows 95% confidence intervals
+      2`max         PN
+  + N [nβ + T i=nβ +1 βi ]                                     on the average falls per lap of each method after 1, 5, 10, 15
+                     q                           PN            and 20 iterations as a function of the total number of train-
+≤ ˆN + γN + `max 2 log(1/δ)
+                           mN  + 2`N  max
+                                          [nβ + T i=nβ +1 βi ] ing data collected. We first observe that with the baseline
+
+                                                                                                  4.5
+
+
+                                                                                                   4
+The use of Azuma-Hoeffding’s inequality suggests we need
+N m in O(T 2 log(1/δ)) for the generalization error to be                                         3.5
+O(1/T ) and negligible over T steps. Leveraging the strong
+
+
+
+
+                                                                          Average Falls Per Lap
+                                                                                                   3
+convexity of ` as in (Kakade and Tewari, 2009) may lead to
+a tighter bound requiring only O(T log(T /δ)) trajectories.                                       2.5
+
+
+                                                                                                   2
+5         EXPERIMENTS
+                                                                                                  1.5
+
+To demonstrate the efficacy and scalability of DAGGER, we                                          1
+apply it to two challenging imitation learning problems and                                                                             DAgger (βi = I(i=1))
+a sequence labeling task (handwriting recognition).                                               0.5
+                                                                                                                                        SMILe (α = 0.1)
+                                                                                                                                        Supervised
+                                                                                                   0
+                                                                                                    0   0.5        1         1.5            2             2.5
+5.1       Super Tux Kart                                                                                      Number of Training Data                  x 10
+                                                                                                                                                           4
+
+
+
+
+Super Tux Kart is a 3D racing game similar to the popular
+Mario Kart. Our goal is to train the computer to steer the           Figure 2: Average falls/lap as a function of training data.
+kart moving at fixed speed on a particular race track, based
+on the current game image features as input (see Figure 1).         supervised approach where training always occurs under
+A human expert is used to provide demonstrations of the             the expert’s trajectories that performance does not improve
+correct steering (analog joystick value in [-1,1]) for each of      as more data is collected. This is because most of the train-
+the observed game images. For all methods, we use a linear          ing laps are all very similar and do not help the learner to
+                                                                    learn how to recover from mistakes it makes. With SMILe
+                                                                    we obtain some improvements but the policy after 20 iter-
+                                                                    ations still falls off the track about twice per lap on aver-
+                                                                    age. This is in part due to the stochasticity of the policy
+                                                                    which sometimes makes bad choices of actions. For DAG -
+                                                                    GER , we were able to obtain a policy that never falls off
+                                                                    the track after 15 iterations of training. Though even after
+                                                                    5 iterations, the policy we obtain almost never falls off the
+                                                                    track and is significantly outperforming both SMILe and
+                                                                    the baseline supervised approach. Furthermore, the policy
+                                                                    obtained by DAGGER is smoother and looks qualitatively
+      Figure 1: Image from Super Tux Kart’s Star Track.             better than the policy obtained with SMILe. A video avail-
+                                                                    able on YouTube (Ross, 2010a) shows a qualitative com-
+controller as the base learner which updates the steering at        parison of the behavior obtained with each method.
+5Hz based on the vector of image features4 .
+      4
+    Features x: LAB color values of each pixel in a 25x19 re-       5.2                  Super Mario Bros.
+sized image of the 800x600 image; output steering: ŷ = wT x + b
+                                                                    Super Mario Bros. is a platform video game where the
+   Pn w, bT minimizes ridge
+where                           regression objective: L(w, b) =
+1
+n    i=1 (w  xi +  b − y i )2
+                              +   w w, for regularizer λ = 10−3 .
+                                λ T
+                                2
+                                                                    character, Mario, must move across each stage by avoid-
+                                      Stéphane Ross, Geoffrey J. Gordon, J. Andrew Bagnell
+
+
+ing being hit by enemies and falling into gaps, and before            nell (2010). For DAGGER we obtain results with differ-
+running out of time. We used the simulator from a recent              ent choice of the parameter βi : 1) βi = I(i = 1) for I
+Mario Bros. AI competition (Togelius and Karakovskiy,                 the indicator function (D0); 2) βi = pi−1 for all values
+2009) which can randomly generate stages of varying diffi-            of p ∈ {0.1, 0.2, . . . , 0.9}. We report the best results ob-
+culty (more difficult gaps and types of enemies). Our goal            tained with p = 0.5 (D0.5). We also report the results with
+is to train the computer to play this game based on the cur-          p = 0.9 (D0.9) which shows the slower convergence of
+rent game image features as input (see Figure 3). Our ex-             using the expert more frequently at later iterations. Simi-
+pert in this scenario is a near-optimal planning algorithm            larly for SEARN, we obtain results with all choice of α in
+that has full access to the game’s internal state and can             {0.1, 0.2, . . . , 1}. We report the best results obtained with
+simulate exactly the consequence of future actions. An ac-            α = 0.4 (Se0.4). We also report results with α = 1.0
+tion consists of 4 binary variables indicating which subset           (Se1), which shows the unstability of such a pure policy
+of buttons we should press in {left,right,jump,speed}. For            iteration approach. Figure 4 shows 95% confidence inter-
+                                                                      vals on the average distance travelled per stage at each it-
+                                                                      eration as a function of the total number of training data
+                                                                      collected. Again here we observe that with the supervised
+                                                                                                                3200
+                                                                                                                        D0   D0.5        D0.9   Se1       Se0.4   Sm0.1       Sup
+                                                                                                                3000
+
+
+
+
+                                                                         Average Distance Travelled Per Stage
+                                                                                                                2800
+
+                                                                                                                2600
+
+                                                                                                                2400
+
+                                                                                                                2200
+
+                                                                                                                2000
+    Figure 3: Captured image from Super Mario Bros.
+                                                                                                                1800
+
+all methods, we use 4 independent linear SVM as the base                                                        1600
+
+learner which update the 4 binary actions at 5Hz based on                                                       1400
+the vector of image features5 .                                                                                 1200
+
+We compare performance in terms of the average distance                                                         1000
+                                                                                                                    0   1    2       3      4   5     6       7    8      9       10
+travelled by Mario per stage before dying, running out of                                                                           Number of Training Data                   x 10
+                                                                                                                                                                                  4
+
+
+time or completing the stage, on randomly generated stages
+of difficulty 1 with a time limit of 60 seconds to complete             Figure 4: Average distance/stage as a function of data.
+the stage. The total distance of each stage varies but is
+around 4200-4300 on average, so performance can vary                  approach, performance stagnates as we collect more data
+roughly in [0,4300]. Stages of difficulty 1 are fairly easy           from the expert demonstrations, as this does not help the
+for an average human player but contain most types of en-             particular errors the learned controller makes. In particu-
+emies and gaps, except with fewer enemies and gaps than               lar, a reason the supervised approach gets such a low score
+stages of harder difficulties. We compare performance of              is that under the learned controller, Mario is often stuck at
+DAgger, SMILe and SEARN6 to the supervised approach                   some location against an obstacle instead of jumping over
+(Sup). With each approach we collect 5000 data points per             it. Since the expert always jumps over obstacles at a sig-
+iteration (each stage is about 150 data points if run to com-         nificant distance away, the controller did not learn how to
+pletion) and run the methods for 20 iterations. For SMILe             get unstuck in situations where it is right next to an ob-
+we choose parameter α = 0.1 (Sm0.1) as in Ross and Bag-               stacle. On the other hand, all the other iterative methods
+                                                                      perform much better as they eventually learn to get unstuck
+    5
+      For the input features x: each image is discretized in a grid   in those situations by encountering them at the later iter-
+of 22x22 cells centered around Mario; 14 binary features de-          ations. Again in this experiment, DAGGER outperforms
+scribe each cell (types of ground, enemies, blocks and other spe-
+                                                                      SMILe, and also outperforms SEARN for all choice of α
+cial items); a history of those features over the last 4 images is
+used, in addition to other features describing the last 6 actions     we considered. When using βi = 0.9i−1 , convergence is
+and the state of Mario (small,big,fire,touches ground), for a to-     significantly slower could have benefited from more itera-
+tal of 27152 binary features (very sparse). The kth output binary     tions as performance was still improving at the end of the
+variable ŷk = I(wkT x + bk > 0), where wk , bk optimizes the         20 iterations. Choosing 0.5i−1 yields slightly better per-
+SVM objective with regularizer λ = 10−4 using stochastic gradi-
+                                                                      formance (3030) then with the indicator function (2980).
+ent descent (Ratliff et al., 2007; Bottou, 2009).
+    6
+      We use the same cost-to-go approximation in Daumé III et al.    This is potentially due to the large number of data gener-
+(2009); in this case SMILe and SEARN differs only in how the          ated where mario is stuck at the same location in the early
+weights in the mixture are updated at each iteration.                 iterations when using the indicator; whereas using the ex-
+                   A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning
+
+                                                                                                          0.86
+pert a small fraction of the time still allows to observe those
+locations but also unstucks mario and makes it collect a                                             0.855
+
+wider variety of useful data. A video available on YouTube
+                                                                                                          0.85
+(Ross, 2010b) also shows a qualitative comparison of the
+
+
+
+
+                                                                          Test Folds Character Accuracy
+behavior obtained with each method.                                                                  0.845
+
+
+                                                                                                          0.84
+5.3       Handwriting Recognition
+                                                                                                     0.835
+
+Finally, we demonstrate the efficacy of our approach on a                                                 0.83
+structured prediction problem involving recognizing hand-
+                                                                                                                                                        DAgger (βi=I(i=1))
+written words given the sequence of images of each charac-                                           0.825
+                                                                                                                                                        SEARN (α=1)
+ter in the word. We follow Daumé III et al. (2009) in adopt-                                              0.82                                          SEARN (α=0.8)
+ing a view of structured prediction as a degenerate form of                                                                                             SEARN (α=0.1)
+                                                                                                                                                        SMILe (α=0.1)
+imitation learning where the system dynamics are deter-                                              0.815
+                                                                                                                                                        Supervised
+ministic and trivial in simply passing on earlier predictions                                             0.81
+                                                                                                                                                        No Structure
+
+made as inputs for future predictions. We use the dataset                                                     0   2   4   6     8     10   12
+                                                                                                                              Training Iteration
+                                                                                                                                                   14     16      18     20
+
+of Taskar et al. (2003) which has been used extensively in
+the literature to compare several structured prediction ap-              Figure 5: Character accuracy as a function of iteration.
+proaches. This dataset contains roughly 6600 words (for
+a total of over 52000 characters) partitioned in 10 folds.
+We consider the large dataset experiment which consists of           predicted character feature) this makes this approach not
+training on 9 folds and testing on 1 fold and repeating this         as unstable as in general reinforcement/imitation learning
+over all folds. Performance is measured in terms of the              problems (as we saw in the previous experiment). SEARN
+character accuracy on the test folds.                                and SMILe with small α = 0.1 performs similarly but sig-
+                                                                     nificantly worse than DAgger. Note that we chose the sim-
+We consider predicting the word by predicting each charac-
+                                                                     plest (greedy, one-pass) decoding to illustrate the benefits
+ter in sequence in a left to right order, using the previously
+                                                                     of the DAGGER approach with respect to existing reduc-
+predicted character to help predict the next and a linear
+                                                                     tions. Similar techniques can be applied to multi-pass or
+SVM7 , following the greedy SEARN approach in Daumé
+                                                                     beam-search decoding leading to results that are competi-
+III et al. (2009). Here we compare our method to SMILe,
+                                                                     tive with the state-of-the-art.
+as well as SEARN (using the same approximations used
+in Daumé III et al. (2009)). We also compare these ap-
+proaches to two baseline, a non-structured approach which            6              FUTURE WORK
+simply predicts each character independently and the su-
+pervised training approach where training is conducted               We show that by batching over iterations of interaction
+with the previous character always correctly labeled. Again          with a system, no-regret methods, including the presented
+we try all choice of α ∈ {0.1, 0.2, . . . , 1} for SEARN, and        DAGGER approach can provide a learning reduction with
+report results for α = 0.1, α = 1 (pure policy iteration)            strong performance guarantees in both imitation learning
+and the best α = 0.8, and run all approaches for 20 itera-           and structured prediction. In future work, we will consider
+tions. Figure 5 shows the performance of each approach on            more sophisticated strategies than simple greedy forward
+the test folds after each iteration as a function of training        decoding for structured prediction, as well as using base
+data. The baseline result without structure achieves 82%             classifiers that rely on Inverse Optimal Control (Abbeel and
+character accuracy by just using an SVM that predicts each           Ng, 2004; Ratliff et al., 2006) techniques to learn a cost
+character independently. When adding the previous charac-            function for a planner to aid prediction in imitation learn-
+ter feature, but training with always the previous character         ing. Further we believe techniques similar to those pre-
+correctly labeled (supervised approach), performance in-             sented, by leveraging a cost-to-go estimate, may provide
+creases up to 83.6%. Using DAgger increases performance              an understanding of the success of online methods for rein-
+further to 85.5%. Surprisingly, we observe SEARN with                forcement learning and suggest a similar data-aggregation
+α = 1, which is a pure policy iteration approach performs            method that can guarantee performance in such settings.
+very well on this experiment, similarly to the best α = 0.8
+and DAgger. Because there is only a small part of the in-
+                                                                     Acknowledgements
+put that is influenced by the current policy (the previous
+      7                                                              This work is supported by the ONR MURI grant N00014-
+     Each character is 8x16 binary pixels (128 input features); 26
+binary features are used to encode the previously predicted let-     09-1-1052, Reasoning in Reduced Information Spaces, and
+ter in the word. We train the multiclass SVM using the all-pairs     by the National Sciences and Engineering Research Coun-
+reduction to binary classification (Beygelzimer et al., 2005).       cil of Canada (NSERC).
+                                   Stéphane Ross, Geoffrey J. Gordon, J. Andrew Bagnell
+
+
+References                                                      S. Ross. Comparison of imitation learning approaches
+                                                                  on Super Mario Bros, 2010b. URL http://www.
+P. Abbeel and A. Y. Ng. Apprenticeship learning via in-           youtube.com/watch?v=anOI0xZ3kGM.
+   verse reinforcement learning. In Proceedings of the 21st
+   International Conference on Machine Learning (ICML),         S. Ross and J. A. Bagnell. Efficient reductions for imita-
+   2004.                                                           tion learning. In Proceedings of the 13th International
+                                                                   Conference on Artificial Intelligence and Statistics (AIS-
+B. D. Argall, S. Chernova, M. Veloso, and B. Browning. A           TATS), 2010.
+  survey of robot learning from demonstration. Robotics
+                                                                S. Schaal. Is imitation learning the route to humanoid
+  and Autonomous Systems, 2009.
+                                                                  robots? In Trends in Cognitive Sciences, 1999.
+A. Beygelzimer, V. Dani, T. Hayes, J. Langford, and
+                                                                D. Silver, J. A. Bagnell, and A. Stentz. High performance
+  B. Zadrozny. Error limiting reductions between classi-
+                                                                  outdoor navigation from overhead data using imitation
+  fication tasks. In Proceedings of the 22nd International
+                                                                  learning. In Proceedings of Robotics Science and Sys-
+  Conference on Machine Learning (ICML), 2005.
+                                                                  tems (RSS), 2008.
+L. Bottou. sgd code, 2009. URL http://www.leon.                 B. Taskar, C. Guestrin, and D. Koller. Max margin markov
+  bottou.org/projects/sgd.                                        networks. In Advances in Neural Information Processing
+N. Cesa-Bianchi, A. Conconi, and C. Gentile. On the gen-          Systems (NIPS), 2003.
+  eralization ability of on-line learning algorithms. 2004.     J. Togelius and S. Karakovskiy. Mario AI Competition,
+S. Chernova and M. Veloso. Interactive policy learning             2009. URL http://julian.togelius.com/
+  through confidence-based autonomy. 2009.                         mariocompetition2009.
+H. Daumé III, J. Langford, and D. Marcu. Search-based
+  structured prediction. Machine Learning, 2009.
+E. Hazan, A. Kalai, S. Kale, and A. Agarwal. Logarith-
+  mic regret algorithms for online convex optimization. In
+  Proceedings of the 19th annual conference on Computa-
+  tional Learning Theory (COLT), 2006.
+M. Kääriäinen. Lower bounds for reductions, 2006.
+ Atomic Learning workshop.
+S. Kakade and J. Langford. Approximately optimal ap-
+  proximate reinforcement learning. In Proceedings of
+  the 19th International Conference on Machine Learning
+  (ICML), 2002.
+S. Kakade and S. Shalev-Shwartz. Mind the duality gap:
+   Logarithmic regret algorithms for online optimization.
+   In Advances in Neural Information Processing Systems
+   (NIPS), 2008.
+S. Kakade and A. Tewari. On the generalization abil-
+  ity of online strongly convex programming algorithms.
+  In Advances in Neural Information Processing Systems
+  (NIPS), 2009.
+N. Ratliff, D. Bradley, J. A. Bagnell, and J. Chestnutt.
+  Boosting structured prediction for imitation learning.
+  In Advances in Neural Information Processing Systems
+  (NIPS), 2006.
+N. Ratliff, J. A. Bagnell, and M. Zinkevich. (Online) sub-
+  gradient methods for structured prediction. In Proceed-
+  ings of the International Conference on Artificial Intelli-
+  gence and Statistics (AISTATS), 2007.
+S. Ross. Comparison of imitation learning approaches
+  on Super Tux Kart, 2010a. URL http://www.
+  youtube.com/watch?v=V00npNnWzSU.
+

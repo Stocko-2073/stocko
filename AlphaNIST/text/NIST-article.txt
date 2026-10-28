@@ -1,0 +1,747 @@
+Benchmarking Protocols for Evaluating Small Parts Robotic Assembly Systems - PMC
+Skip to main content
+An official website of the United States government
+Here's how you know
+Here's how you know
+Official websites use .gov
+A
+.gov
+website belongs to an official
+                            government organization in the United States.
+Secure .gov websites use HTTPS
+A
+lock
+(
+Lock
+Locked padlock icon
+) or
+https://
+means you've safely
+                                connected to the .gov website. Share sensitive
+                                information only on official, secure websites.
+Search
+Log in
+Dashboard
+Publications
+Account settings
+Log out
+Search…
+Search NCBI
+Primary site navigation
+Search
+Logged in as:
+Dashboard
+Publications
+Account settings
+Log in
+Search PMC Full-Text Archive
+Search in PMC
+Journal List
+User Guide
+PERMALINK
+Copy
+As a library, NLM provides access to scientific literature. Inclusion in an NLM database does not imply endorsement of, or agreement with,
+    the contents by NLM or the National Institutes of Health.
+Learn more:
+PMC Disclaimer
+|
+PMC Copyright Notice
+IEEE Robot Autom Lett
+. Author manuscript; available in PMC: 2020 Oct 6.
+Published in final edited form as:
+IEEE Robot Autom Lett. 2020;5(2):https://doi.org/10.1109/lra.2020.2965869.
+Search in PMC
+Search in PubMed
+View in NLM Catalog
+Add to search
+Benchmarking Protocols for Evaluating Small Parts Robotic Assembly Systems
+Kenneth Kimble
+Kenneth Kimble
+1
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+Find articles by
+Kenneth Kimble
+1
+,
+Karl Van Wyk
+Karl Van Wyk
+2
+NVIDIA, 4545 Roosevelt Way, Seattle, WA 98105
+Find articles by
+Karl Van Wyk
+2
+,
+Joe Falco
+Joe Falco
+3
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+Find articles by
+Joe Falco
+3
+,
+Elena Messina
+Elena Messina
+4
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+Find articles by
+Elena Messina
+4
+,
+Yu Sun
+Yu Sun
+5
+University of South Florida (USF), 4202 E Fowler Ave., ENB. 118 Tampa, FL 33620 USA
+Find articles by
+Yu Sun
+5
+,
+Mizuho Shibata
+Mizuho Shibata
+6
+Kindai University, 1 Takaya Umenobe, Higashi-Hiroshima City, Hiroshima, 739-2116, Japan
+Find articles by
+Mizuho Shibata
+6
+,
+Wataru Uemura
+Wataru Uemura
+7
+Ryukoku University, 1-5 Seta Oh-e, Otsu City, Shiga 520-2194 Japan
+Find articles by
+Wataru Uemura
+7
+,
+Yasuyoshi Yokokohji
+Yasuyoshi Yokokohji
+8
+Kobe University, 1-1 Rokkodai-cho, Nada-ku, Kobe 657-8501, Japan
+Find articles by
+Yasuyoshi Yokokohji
+8
+Author information
+Copyright and License information
+1
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+2
+NVIDIA, 4545 Roosevelt Way, Seattle, WA 98105
+3
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+4
+National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA
+5
+University of South Florida (USF), 4202 E Fowler Ave., ENB. 118 Tampa, FL 33620 USA
+6
+Kindai University, 1 Takaya Umenobe, Higashi-Hiroshima City, Hiroshima, 739-2116, Japan
+7
+Ryukoku University, 1-5 Seta Oh-e, Otsu City, Shiga 520-2194 Japan
+8
+Kobe University, 1-1 Rokkodai-cho, Nada-ku, Kobe 657-8501, Japan
+✉
+Email:
+kenneth.kimble@nist.gov
+PMC Copyright notice
+PMCID: PMC7537423  NIHMSID: NIHMS1588385  PMID:
+33029555
+Abstract
+This paper presents a set of performance metrics, test methods, and associated artifacts to help progress the development and deployment of robotic assembly systems. The designs for three task board artifacts that replicate small part insertion and fastening operations such as threading, snap fitting, and meshing with standard screws, nuts, washers, gears, electrical connectors, belt drives, and wiring are presented. To support the evaluation of robotic assembly and disassembly operations, benchmarking protocols and performance metrics are presented that leverage these task boards. Finally, robot competitions are discussed as use cases for these task boards.
+I. Introduction
+The rapid progression of underlying technologies has the potential to accelerate the usage of robots in fine manipulation tasks found in manufacturing assembly operations. Assembly is one of the most complex operations in manufacturing, yet automation, especially robotics, has not seen wide adoption. This is due to the inability of robot technologies to cost-effectively support the tight tolerances and component variability associated with assembly. Instead, specialized fixtures, end-effectors, and compliance mechanisms are employed that increase cost and time to the setup of each new assembly process. This strategy becomes particularly intractable for the low-volume, high-mixture manufacturing paradigm.
+Assembly processes consist of insertion and fastening operations such as threading, snap fitting, meshing, and routing. Often, standard rigid components are involved, including screws, nuts, washers, gears, and electrical connectors as well as non-rigid components such as belt drives and wiring. The two most prevalent operations in assembly are insertions, accounting for over 35% of all assembly operations, followed by 27% for the installation of threaded fasteners [
+1
+]. Snap fitting is typically the final operation of an insertion process to lock a component into place. The assembly of non-rigid components has traditionally been considered a difficult assembly task for robots.
+To help advance the development and deployment of robotic systems to support assembly operations, the National Institute of Standards and Technology (NIST) has developed a set of performance metrics, test methods, and artifacts. Guidance for the use of these benchmarking tools as well as the supporting artifact designs are available online [
+2
+]. In the short term, these tools will facilitate benchmarking among researchers to assess progress in the design and development of robotic assembly systems. The long term goal of this work is to inform future technical specifications of robot systems for choosing the best system for an intended application space [
+3
+].
+II. Prior Robotic Benchmarking Work
+Benchmarking is a proven method to progress research activities in robotics [
+4
+]. Until this effort, there was no known work with formalized benchmarks for evaluating robotic assembly systems. Many experiments can be found that support assembly research where the primary goal was to analyze the force signature resulting from a robot control implementation. Most are associated with the elemental peg-in-hole problem where force characteristics of control algorithms are evaluated along with the success of the insertion [
+5
+], [
+6
+], [
+7
+], sometimes with variations in system design such as the use of vision to minimize the use of search algorithms in establishing circumferential contact between the peg and hole [
+8
+]. Other instances of supporting experiments are associated with research in controlling insertions that are terminated with a snap-fit [
+9
+].
+A preliminary set of metrics and associated test methods for assessing the performance of force-based robot control are presented in [
+10
+]. This work describes metrics for force-controlled robots as well as for force-based assembly operations. A force measurement system is used with modular artifacts mounted to a six-axis force-torque sensor for independent measures of robot performance when conducting insertion, snap fitting, and gear meshing assembly operations. Specific to system benchmarking, NIST developed a peg-in-hole benchmarking protocol to compare the insertion performance between a force-based manipulation controlled robotic hand mounted to a position controlled robot arm and the same robot arm operating under impedance control along with a conventional parallel gripper [
+11
+]. The Yale-CMU-Berkeley (YCB) collection includes some object and model sets that require assembly [
+12
+]. The authors propose guidelines for benchmarking in manipulation research that helps to create reliable and applicable methods for defining manipulation protocols.
+III. Assembly Task Board Designs
+A series of task boards were designed to replicate small part assembly operations in support of assessing the performance of robotic systems. The task boards are designed to incorporate standard off-the-shelf components of varying sizes that are representative of components typically used in assemblies. Supported assembly operations include insertion and fastening methods such as threading, snap fitting, meshing that use standard components including screws, nuts, washers, gears and electrical connectors as well as non-rigid components such as belt drives and wiring. The task boards can be placed horizontally or in other orientations that are representative of specific assembly requirements. Task board components are specified to be available from a single international supplier and the plastic task boards (approx. 400 mm × 400 mm × 10 mm) can be ordered from an online laser cutting service.
+1
+Online resources [
+2
+] are available for these boards which include:
+Board replication instructions
+Computer-aided design (CAD) and stereolithography (STL) files
+Kit layouts
+Testing and analysis instructions
+Statistics software
+Protocol and benchmark templates
+The tolerances for closely-assembled parts are made looser than what might typically be used in an industrial assembly application. These tolerances were chosen in order to facilitate difficult benchmarking tasks that pushed robot performance without being impossible or impractical to perform given current technological capabilities. Task board designs and associated material selection (e.g. aluminum) can accommodate tighter tolerances. For the purposes of this paper, any reference to parts/objects used to perform the tasks on each board will be referred to as the “Task Specific Objects”. To date, these boards have been replicated by several university researchers. In the near future, the task boards and components can be ordered directly from New England Robotics Validation and Experimentation (NERVE) Center at the University of Massachusetts Lowell [
+13
+].
+Manual assembly efficiencies consider the time associated with individual actions such as grasp, orient, insert, and fasten, as performed by a human with decades of experience and practice using their hands, eyes, and brains. One avenue for methodically designing task-level tests within manufacturing leverages factors identified by Boothroyd-Dewhurst (B-D) design for assembly (DFA) studies [
+14
+]. These studies have already identified and tabulated various important factors based on manual human performance in an assembly task. For instance, size and symmetry of parts, tool usage, fixturing, mechanical resistance, mechanical fastening processes, visual occlusion, and physical obstruction all influence time-based human performance. These factors were incorporated into the task board designs.
+A. Task Board 1
+This task board is designed to quantify a robot system’s ability to perform peg insertions, gear meshing, electrical connector insertions, and nut threading (see
+Fig. 1
+). Design factors include size, shape, location, and type of parts. The task specific objects are the pegs, nuts, gears, and connectors.
+Fig. 1.
+Open in a new tab
+Fully assembled Task Board 1
+1). Task Description
+A disassembled board starts with a series of holes (both round and square), four bolts screwed into the board, a gear meshing plate with pegs, and the female ends of each of the connectors. The tasks for this board are described below. Tasks are not listed in any specific order.
+a). Insertion of pegs
+There are four sizes of each peg, round and rectangular. The geometric variations promote a spread of grasping difficulty, particularly when the parts are presented in certain orientations. For instance, a small thin peg lying prone can be very difficult to acquire for a variety of grippers. The pegs have a chamfer on one end that helps center the peg within the hole during an insertion. The task requires inserted objects to make contact with the surface below the task board.
+b). Threading nuts
+There are also four sizes of nuts. Threading nuts requires awareness of the specific orientation and alignment of the part before beginning a rotational motion. The task would require a nut to be fully threaded to the board and screwed to a specific torque.
+c). Meshing Gears
+This task introduces fitting a gear onto a shaft, followed by meshing the gear’s teeth with the adjacent gear. The task requires that the teeth of each gear mesh and the gears rest completely on the base plate.
+d). Attaching connectors
+Orientation-specific insertion tasks that requires a force in the direction of the insertion. The BNC (Bayonet Neill-Concelman) connector requires simultaneous push and twist forces to be applied.
+2). Design Reasoning
+Boothroyd et al. provides tables of manual handling data for parts used in a sub-assembly that specifically charts the time (in seconds) that it takes for a human to perform an insertion task of an object based on the ease of handling, insertion, and fastening of parts [
+14
+]. The parts used in Task Board 1 were specifically chosen to replicate the manual handling data in these tables. For example, a radially symmetrical cylinder with a chamfer on one end that is greater than 15 mm thick has a manual handling estimation time of 1.13 s while a square peg that is less than 2 mm thick has a manual handling estimation time of 3.35 s [
+14
+].
+Table I
+shows experimental handling times for the peg tasks specific to this board given the values and equations derived from experiments performed by Boothroyd et al [
+14
+].
+TABLE II.
+Experimental time for handling wire in seconds
+Wire Type
+Length (ft)
+Handling
+Routing
+Dressing
+Insertion
+Total
+Flexible wire
+3.6
+5.58
+7.08
+7.72
+1.9
+22.28
+Stiff wire
+3.4
+8.78
+10.28
+7.48
+2.2
+28.74
+Flat cable
+3.3
+9.98
+12.14
+11.38
+2.5
+36
+Open in a new tab
+B. Task Board 2
+This task board is designed to quantify a robot system’s ability to perform alignment and insertion of collars and pulleys, handle flexible parts, mesh/thread belts, actuate belt tension mechanisms, and thread bolts. Design factors include type of part based on typical applications and difficulty of task.
+Task Board 2 (
+Fig. 2
+) contains three belt (or chain) drive sub-assemblies where each is made up of a belt, a belt tension mechanism, and two idle pulleys. Additional parts include metal collars and hex screws of varying sizes. The task specific objects for Task Board 2 are metal collars, pulleys and sprockets, belts, hex screws, and belt tension mechanisms.
+Fig. 2.
+Open in a new tab
+Fully assembled Task Board 2
+1). Task Description
+Tasks for this board build upon the tasks performed in Task Board 1. Unlike Task Board 1, this board requires a stepwise approach forcing the user to complete one step of an assembly before progressing to the next step. A disassembled board starts with six blank pegs and belt tension mechanisms already in place. Starting from a disassembled board, the task descriptions are listed below in order of assembly.
+a). Alignment and insertion of metal collars
+This task is similar to the round peg-in-hole insertion described in Task Board 1, but instead collars of varying diameters and length (the holes) are manipulated and fitted onto the peg.
+b). Alignment and insertion of pulleys and sprockets
+Insertion tasks similar to collars with higher difficulty due to larger weight and geometry. Pulleys vary in size, shape, and weight.
+c). Threading of hex screws
+This task inverts the nut threading task performed on Task Board 1, requiring the robot to thread a screw into the tapped end of a metal shaft.
+d). Installation of belts
+This task requires grasping, placing, wrapping and/or pulling taut, gear meshing, and releasing/re-grasping of flexible parts. Three types of belts are used: a belt with a round cross-section that sits in a pulley groove, a timing belt with rectangular teeth to mesh, and a chain to mesh with sprockets. Belts vary in elasticity, shape, stiffness, material, and weight.
+e). Actuating tension mechanisms
+Three different belt tension mechanisms (screw, slot, and spring-based designs) are used on this task board. The round belt sub-assembly uses a laterally sliding peg in a slot that can be locked when the desired amount of tension is applied. The timing belt sub-assembly incorporates a spring-based tension mechanism that must be released and engaged as the belt is installed. The chain uses a tension mechanism that is actuated by rotating a small bolt head on the side of the tension mechanism that slowly pushes an idler into place.
+2). Design Reasoning
+This task board was designed to build a working sub-assembly that in addition to the components in Task Board 1, includes flexible components. The final system can be tested for manual operation, where rotation of one shaft transfers through the belt to rotate the other. The belt must stay engaged at all times. The sub-assemblies that were chosen were based on commercially available belts and pulleys used for a variety of application spaces. The design of this task board was not derived from handling times quoted in [
+14
+] and therefore no table for estimated handling can be provided.
+C. Task Board 3
+Task Board 3 focuses on wire harnessing and was designed to quantify a robot system’s ability to manipulate flexible wires. In addition to manipulation, the system must implement the hand-off and releasing/re-acquiring of cables. Design factors include thickness, shape, and stiffness of cable as well as location and spacing of obstacles.
+1). Task Description
+Task Board 3 (
+Fig. 3
+) assesses cable handling with varying levels of routing difficulty including routing cables around pegs, through clips at different orientations, and through tubes. Each cable routing task ends with attaching a connector to a receiver located on the task board at the end of the route. The task-specific objects for Task Board 3 are the three different types of cables. There are no freestanding assembly parts for this board, the cables remain attached to the board when disassembled.
+Fig. 3.
+Open in a new tab
+Fully assembled Task Board 3
+a). Acquiring/handling loose parts
+This task builds on flexible part handling that is assessed by Task Board 2. The task requires the ability to grasp and manipulate a cable differently for each of the specific tasks on the board.
+b). Routing cables
+Each cable is routed between two pegs on the task board. The openness of the pegs and the stiffness of the cables require that tension be constantly maintained while moving on to the next task. Pegs vary in height to accommodate each cable thickness.
+c). Weaving/Placement of loose parts
+This task requires the user to accurately place the cable in clips in three different orientations. Closing a clip around the cable ensures that the cable must have been placed accurately. Three clips in three orientations for each cable are presented on this board. Clips vary in size and shape based on the cable.
+d). Hand-off and/or release and re-acquire cables
+Each cable must pass through a tube that is 50% larger than the thickness of the connectors at the ends of the cable. This requires releasing and re-grasping the cable in order to feed it through the tube. Using a second manipulator allows for hand-off of the cable through the tube. Tubes vary in size based on the size of the cable.
+e). Connecting cables
+The completion of Task Board 3 is the press fitting of the cable connector into a female fitting (similar to those found on Task Board 1).
+2). Design Reasoning
+The handling tasks, wires/cables, and the connectors were all chosen based on the handling data provided in [
+14
+] so that manual handling times for a task performed by a human can be directly compared to the same task performed by a robot. The wires/cables for Task Board 3 were chosen based on widely used commercially available materials that fit the categories determined by Boothroyd. For example, the audio jack cable is a single flexible cable with a circular connector while the serial cable is a flat ribbon cable with a rectangular connector.
+Table II
+shows experimental handling times for the tasks specific to this board given the values and equations derived from experiments performed by Boothroyd et al [
+14
+].
+IV. Protocol
+Regardless of the task board, there exist two principal test modes – disassembly and assembly. The tests are intended for evaluating integrated robot system performance, including the perception and localization of the task board, components, and destination or source bin. Randomized placement of assembly components allows for testing of the perception-planning-action loop. The lists below show actions that are/are not permitted during the task board and assembly operations.
+Permitted:
+Not Permitted:
+• Use of multiple end-effectors
+• Manual changing of systems
+• Use of multiple robots within a system
+• Manual or teleoperated intervention
+Open in a new tab
+Ultimately, this protocol should be used for testing the generality and agile autonomy of robotic assembly systems using the variation of task boards and positional randomization. The protocol variant used must be held constant for comparisons between two different systems or comparisons of technologies used within a single system.
+A. Disassembly
+A fully assembled manufacturing task board is placed on the table alongside an empty container as shown in
+Figure 4
+. The goal for the robot system is to remove all components from the board and place them in a predefined container. The protocol steps are as follows:
+Fig. 4.
+Open in a new tab
+Disassembly setup prior to the competition start used during the International Conference on Intelligent Robots (IROS) 2017 Grasping and Manipulation Challenge: Manufacturing Track. The fully assembled task board is on the left, with a tray to the right to hold the disassembled parts.
+Place the task board within the robot system work volume (task board position and part locations are fixed or random per system capabilities).
+Place the container to receive disassembled parts within the robot system work volume (container position is fixed or random per system capabilities).
+Initialize timing, recording the start time
+T
+start
+.
+If used, perform manual programming.
+Start autonomous operation of the robot system.
+The robot system disassembles a part from the task board.
+The robot system places the removed part into the associated container.
+Repeat steps 6 and 7 for all parts in task board.
+Record the finish time
+T
+finish
+.
+Repeat this protocol for the desired number of trials of the task board under test.
+B. Assembly
+A fully disassembled manufacturing task board is placed on the table alongside a kit setup (
+Figure 5
+). The kit area and the task board location are placed on a surface. The goal for the robot system is to grasp all components from the kit and insert them into their respective destinations on the task board. The protocol steps are as follows:
+Fig. 5.
+Open in a new tab
+Assembly setup prior to the competition start used during the IROS 2017 Grasping and Manipulation Challenge: Manufacturing Track. The disassembled task board is on the left. A kit layout on the right is used as a template for presenting the parts to the robot system.
+Place the task board within the robot system work volume (task board position and part locations are fixed or random per system capabilities).
+Place the kit of parts to be assembled within the robot system work volume (kit position and part locations are fixed or random per system capabilities).
+Initialize timing, recording the start time
+T
+start
+.
+If used, perform manual programming.
+Start autonomous operation of the robot system.
+The robot system grasps a part from the kit layout.
+The robot system assembles the part onto the task board.
+Repeat steps 6 and 7 for all parts in the kit.
+Record the finish time
+T
+finish
+.
+Repeat this protocol for the desired number of trials of the task board under test.
+V. Performance Metrics
+The performance metrics chosen to evaluate robotic assembly systems include speed and reliability. Speed is measured as the completion time of a task or sub-task as
+T
+t
+a
+s
+k
+b
+o
+a
+r
+d
+=
+T
+f
+i
+n
+i
+s
+h
+−
+T
+s
+t
+a
+r
+t
+.
+(1)
+Task board completion should be reported as the percentage of total points received for each task board for disassembly and assembly.
+%
+D
+i
+s
+a
+s
+s
+e
+m
+b
+l
+e
+d
+=
+(
+A
+c
+t
+u
+a
+l
+S
+c
+o
+r
+e
+/
+M
+a
+x
+S
+c
+o
+r
+e
+)
+x
+100.
+(2)
+%
+A
+s
+s
+e
+m
+b
+l
+e
+d
+=
+(
+A
+c
+t
+u
+a
+l
+S
+c
+o
+r
+e
+/
+M
+a
+x
+S
+c
+o
+r
+e
+)
+x
+100.
+(3)
+For each set of trials, compute the mean, standard deviation, and 95% confidence interval of the completion times.
+Reliability is captured as the probability of successfully completing a task or sub-task. The theoretical upper bound probability for successfully inserting a component (PS) is calculated given a confidence level (CL), the number of successes (m), and the number of independent trials (n). Given the binomial cumulative distribution function,
+F
+(
+m
+−
+1
+;
+n
+,
+P
+S
+)
+=
+∑
+i
+=
+0
+m
+−
+1
+(
+n
+i
+)
+P
+S
+i
+(
+1
+−
+P
+S
+)
+n
+−
+i
+≥
+C
+L
+,
+(4)
+the PS is its minimum value while still satisfying the above inequality. Both of these metrics are intuitive and relatively inexpensive to measure.
+Other metrics can include the measurement of transmitted forces by the robot during the assembly process [
+10
+], cost-effectiveness of the robotic solution, and energy efficiency. For the protocols above, we focus on speed and reliability metrics both directly and through the use of point based scoring to support competitions.
+To support laboratory benchmarking of robotic systems, the probability of success is based on a number of task board trials and the number of completed assembly parts. Likewise, the time to complete the task board is measured.
+To support competitions where the task boards are used to quickly assess a competing team’s capabilities, a point based system has been used. Here, the task board process is broken into grasp-transport-assemble/disassemble steps where points are awarded based on degree of completion and bonus points are awarded per step for autonomy. Additionally, upon successful completion of a task board where all parts are properly fastened or removed, a time bonus is awarded if a team completion time falls below the allocated competition time. Examples of task board use in competitions can be found in the Use Cases section to follow.
+VI. Use Cases
+These robotic assembly benchmarking protocols have been in development over the past several years. While their primary use has been to support competitions, research results that leverage these benchmarks to evaluate robotic system performance are beginning to emerge from academia [
+15
+]. Some use cases are summarized below.
+A. IROS 2019 Grasping and Manipulation Competition
+This competition included a service, manufacturing, and logistics track. The manufacturing track included a single task made up of two sub-tasks, disassembly and assembly of a task board. Teams competed with the goal of disassembling and assembling a task board containing a variety of insertion, meshing, screwing, and deformable material routing operations using an autonomous robot system. Less time spent fixturing and programming the system for operation lead to more components being disassembled and assembled in the allotted time. Teams system components that resulted in high scores included combinations of vision sensors, force sensors, flexible gripper systems as well as the use of part and assembly CAD data. The task board is shown in
+Figure 6
+.
+Fig. 6.
+Open in a new tab
+Task board used in the IROS 2019 Robotic Grasping and Manipulation Competition: Manufacturing Track
+B. World Robot Summit (WRS) 2018
+This competition incorporated the design of a belt drive unit (
+Fig. 8(a)
+) to support three competition tasks [
+16
+]. These tasks included: (1) assembling a task board that contained the necessary technical elements for assembling the belt drive unit as shown in
+Fig. 7
+, (2) speed and accuracy of a kitting operation as a sub-task to the Belt Drive Unit assembly, where specified parts are bin-picked and placed in specified regions within part-kitting trays, (3) speed and accuracy of assembling the Belt Drive Unit using the parts laid out in the part-kitting trays, and (4) a surprise, team-selected variant of the belt drive unit (similar to the variations found on NIST Task Board 3) to test the agility of systems to adapt to slight variations in the components to be assembled. These variants are shown in
+Figure 8 (b)
+–
+(f)
+. See [
+17
+] for a description, the rules, and score-based benchmarks for this competition.
+Fig. 8.
+Open in a new tab
+Belt drive assembly (a) and increasing design variants (b)-(f) from WRS 2018
+Fig. 7.
+Open in a new tab
+Task board used in the 2018 World Robot Summit: (a) setup prior to the start of the assembly task (b) the assembled task board
+C. IROS 2017 Grasping and Manipulation Competition
+This competition included a service and manufacturing track. The manufacturing track consisted of two tasks: (1) disassembly and assembly of Task Board 1, and (2) the construction of a gear-unit assembly, which also served as a trial task for the Industrial Robotics Category at World Robot Challenge, World Robot Summit 2018. Here, teams competed to disassemble (
+Fig. 4
+) and assemble (
+Fig. 5
+) Task Board 1 and team capabilities were benchmarked. An overview, rules, and score-based benchmarks can be found on the manufacturing track website that was used to support this competition [
+18
+].
+VII. Conclusions
+By separating the performance of a robot manipulator into individual tasks of increasing difficulty, the task boards will expose individual points of failure which could drive procurement decisions, push technology forward, and educate users/manufacturers. The data derived from experiments run on the task boards will hopefully begin to steer manufacturers and academics towards more innovative solutions in vision and force control when solving assembly based tasks. Researchers will also come to realize the wealth of information that can be extracted from CAD data, a resource the is typically readily available within the manufacturing application space. As users begin to adopt the task boards, valuable feedback in regards to application and methodology will help guide the Task Boards through iterations that more accurately meet the needs of the community. Similar task boards will be used to support the World Robot Summit, World Robot Challenge, Industrial Category in 2020. Overall, competition venues will help inform the robotics community of these tools for benchmarking research.
+Supplementary Material
+Supp1
+NIHMS1588385-supplement-Supp1.zip
+(7.6MB, zip)
+TABLE I.
+Experimental time for handling and inserting pegs
+Peg Size
+Handling
+Insertion
+Total
+Less than 6mm
+1.88
+1.5
+3.38
+Between 6 and 15 mm
+1.43
+1.5
+2.93
+Greater than 15mm
+1.13
+1.5
+2.63
+Open in a new tab
+Footnotes
+1
+Certain commercial entities and items are identified in this paper to foster understanding. Such identification does not imply recommendation or endorsement by the National Institute of Standards and Technology, nor does it imply that the materials or equipment identified are necessarily the best available for the purpose.
+Contributor Information
+Kenneth Kimble, National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA.
+Karl Van Wyk, NVIDIA, 4545 Roosevelt Way, Seattle, WA 98105.
+Joe Falco, National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA.
+Elena Messina, National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899 USA.
+Yu Sun, University of South Florida (USF), 4202 E Fowler Ave., ENB. 118 Tampa, FL 33620 USA.
+Mizuho Shibata, Kindai University, 1 Takaya Umenobe, Higashi-Hiroshima City, Hiroshima, 739-2116, Japan.
+Wataru Uemura, Ryukoku University, 1-5 Seta Oh-e, Otsu City, Shiga 520-2194 Japan.
+Yasuyoshi Yokokohji, Kobe University, 1-1 Rokkodai-cho, Nada-ku, Kobe 657-8501, Japan.
+References
+[1].
+Nevins JL and Whitney DE, “Robot assembly research and its future applications,” in Computer vision and sensor-based robots, 1st ed., ser. 1.
+Springer, 1979, vol. 1, pp. 275–321.
+[
+Google Scholar
+]
+[2].
+“Assembly performance metrics and test methods”,
+https://www.nist.gov/el/intelligent-systems-division-73500/robotic-grasping-and-manipulation-assembly/assembly
+, accessed: 2019-08-15.
+[3].
+Shneier S, Messina E, Schlenoff C, Proctor F, Kramer T, and Falco J, “Measuring and representing the performance of manufacturing assembly robots,” National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899, Tech. Rep. 8090, November
+2015.
+[
+Google Scholar
+]
+[4].
+Watanabe T, Yamazaki K, and Yokokohji Y, “Survey of robotic manipulation studies intending practical applications in real environments -object recognition, soft robot hand, and challenge program and benchmarking-,” Advanced Robotics, vol. 31, no. 19–20, pp. 1114–1132, 2017.
+[
+Google Scholar
+]
+[5].
+Stolt A, Linderoth M, Robertsson A, and Johansson R, “Force controlled robotic assembly without a force sensor”, in 2012 IEEE International Conference on Robotics and Automation, May 2012, pp. 1538–1543.
+[
+Google Scholar
+]
+[6].
+Park H, Kim PK, Bae JH, Park JH, Baeg MH, and Park J, “Dual arm peg-in-hole assembly with a programmed compliant system”, in 2014 11th International Conference on Ubiquitous Robots and Ambient Intelligence (URAI), Nov 2014, pp. 431–433.
+[
+Google Scholar
+]
+[7].
+Tang T, Lin HC, Zhao Y, Chen W, and Tomizuka M, “Autonomous alignment of peg and hole by force/torque measurement for robotic assembly”, in 2016 IEEE International Conference on Automation Science and Engineering (CASE), Aug 2016, pp. 162–167.
+[
+Google Scholar
+]
+[8].
+Abdullah MW, Roth H, Weyrich M, and Wahrburg J, “An approach for peg-in-hole assembling using intuitive search algorithm based on human behavior and carried by sensors guided industrial robot,” IFAC-PapersOnLine, vol. 48, no. 3, pp. 1476–1481, 2015, 15th IFAC Symposium onInformation Control Problems inManufacturing.
+[
+Google Scholar
+]
+[9].
+Koveos Y, Papageorgiou D, Doltsinis S, and Doulgeri Z, “A fast robot deployment strategy for successful snap assembly”, in 2016 IEEE International Symposium on Robotics and Intelligent Sensors (IRIS), Dec 2016, pp. 80–85.
+[
+Google Scholar
+]
+[10].
+Falco J, Marvel J, Norcross R, and Van Wyk K, “Benchmarking robot force control capabilities: Experimental results,” National Institute of Standards and Technology (NIST), 100 Bureau Drive, Gaithersburg, MD 20899, Tech. Rep. 8097, January
+2016.
+[
+Google Scholar
+]
+[11].
+Van Wyk K, Culleton M, Falco J, and Kelly K, “Comparative peg-in-hole testing of a force-based manipulation controlled robotic hand,” IEEE Transactions on Robotics, 2018.
+[
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+[12].
+Calli B, Walsman A, Singh A, Srinivasa S, Abbeel P, and Dollar AM, “Benchmarking in manipulation research: The ycb object and model set and benchmarking protocols,” arXiv preprint arXiv:1502.03143, 2015.
+[
+Google Scholar
+]
+[13].
+“New England Robotics Validation and Experimentation (NERVE) Center,”
+https://www.uml.edu/research/nerve/
+, accessed: 2019-08-15.
+[14].
+Boothroyd G, Dewhurst P, and Knight W, Design for Manufacture and Assembly, 3rd ed. 600 Broken Sound Parkway NW, Suite 300, Boca Raton, FL 33487–2742: CRC Press, Taylor and Francis Group, 2011.
+[
+Google Scholar
+]
+[15].
+Schoettler G, Nair A, Luo J, Bahl S, Ojea JA, Solowjow E, and Levine S, “Deep reinforcement learning for industrial insertion tasks with visual inputs and natural rewards,” ArXiv, vol. abs/1906.05841, 2019.
+[
+Google Scholar
+]
+[16].
+Yokokohji Y, Kawai Y, Shibata M, Aiyama Y, Kotosaka S, Uemura W, Noda A, Dobashi H, Sakaguchi T, and Yokoi K, “Assembly challenge: a robot competition of the industrial robotics category, world robot summit summary of the pre-competition in 2018,” Advanced Robotics, vol. 33, no. 17, pp. 876–899, 2019.  [Online]. Available: 10.1080/01691864.2019.1663609
+[
+DOI
+] [
+Google Scholar
+]
+[17].
+“World robot summit 2018 - industrial robotics category - assembly challenge: Rules and regulations 2018”,
+https://worldrobotsummit.org/download/rulebook-en/rulebook-AssemblyChallenge.pdf
+, accessed: 2019-08-15.
+[18].
+“IROS 2017 Grasping and Manipulation Competition: Manufacturing Track”,
+https://www.nist.gov/el/intelligent-systems-division-73500/robotic-grasping-and-manipulation-competition-manufacturing
+, accessed: 2019-08-15.
+Associated Data
+This section collects any data citations, data availability statements, or supplementary materials included in this article.
+Supplementary Materials
+Supp1
+NIHMS1588385-supplement-Supp1.zip
+(7.6MB, zip)
+ACTIONS
+PDF (871.4 KB)
+Cite
+Collections
+Permalink
+PERMALINK
+Copy
+RESOURCES
+Similar articles
+Cited by other articles
+Links to NCBI Databases
+Cite
+Copy
+Download .nbib
+.nbib
+Format:
+AMA
+APA
+MLA
+NLM
+Add to Collections
+Create a new collection
+Add to an existing collection
+Name your collection
+*
+Choose a collection
+Unable to load your collection due to an error
+Please try again
+Add
+Cancel
+Follow NCBI
+NCBI on X (formerly known as Twitter)
+NCBI on Facebook
+NCBI on LinkedIn
+NCBI on GitHub
+NCBI RSS feed
+Connect with NLM
+NLM on X (formerly known as Twitter)
+NLM on Facebook
+NLM on YouTube
+National Library of Medicine
+8600 Rockville Pike
+Bethesda, MD 20894
+Web Policies
+FOIA
+HHS Vulnerability Disclosure
+Help
+Accessibility
+Careers
+NLM
+NIH
+HHS
+USA.gov
+Back to Top

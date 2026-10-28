@@ -1,0 +1,134 @@
+[
+  {
+    "id": "SuttonBarto",
+    "url": "https://www.incompleteideas.net/book/RLbook2020.pdf",
+    "path": "papers/SuttonBarto.pdf",
+    "status": "failed",
+    "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate (_ssl.c:1129)>"
+  },
+  {
+    "id": "AlphaGoZero",
+    "url": "https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf",
+    "path": "papers/AlphaGoZero.pdf",
+    "status": "downloaded",
+    "bytes": 2559336,
+    "sha256": "a23add75aa06054c5a008befff55fb23af5da70a88c99004e0ff863eadf60ca1",
+    "title": "Mastering the Game of Go without Human Knowledge",
+    "retrieved": "2026-10-14",
+    "text": "text/AlphaGoZero.txt"
+  },
+  {
+    "id": "PopArt",
+    "url": "https://papers.neurips.cc/paper_files/paper/2016/file/5227b6aaf294f5f027273aebf16015f2-Paper.pdf",
+    "path": "papers/PopArt.pdf",
+    "status": "downloaded",
+    "bytes": 905195,
+    "sha256": "25dacae5176a2a179695d8aa7be0b85b54df267fd57fdd3fa49aa3252aaf1f9b",
+    "title": "Learning Values across Many Orders of Magnitude",
+    "retrieved": "2026-10-14",
+    "text": "text/PopArt.txt"
+  },
+  {
+    "id": "NIST",
+    "url": "https://europepmc.org/articles/PMC7537423?pdf=render",
+    "path": "papers/NIST.pdf",
+    "status": "failed",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "id": "RewardShaping",
+    "url": "https://ai.stanford.edu/~ang/papers/shaping-icml99.pdf",
+    "path": "papers/RewardShaping.pdf",
+    "status": "downloaded",
+    "bytes": 211894,
+    "sha256": "e83f9d13b8c5415d78a187a0b9000c5ab6aa90f3029d5c957f5c46caaabed207",
+    "title": "Policy Invariance under Reward Transformations: Theory and Application to Reward Shaping",
+    "retrieved": "2026-10-14",
+    "text": "text/RewardShaping.txt",
+    "text_method": "Tesseract OCR; equations should be checked in original PDF"
+  },
+  {
+    "id": "ConservativePolicyIteration",
+    "url": "https://homes.cs.washington.edu/~sham/papers/rl/aoarl.pdf",
+    "path": "papers/ConservativePolicyIteration.pdf",
+    "status": "downloaded",
+    "bytes": 232770,
+    "sha256": "2b7285ffa961696f9a37f2c10d921a3fcf9bd8b33f7ce78c69f0813676422db2",
+    "title": "Approximately Optimal Approximate Reinforcement Learning",
+    "retrieved": "2026-10-14",
+    "text": "text/ConservativePolicyIteration.txt",
+    "text_method": "Tesseract OCR; equations should be checked in original PDF"
+  },
+  {
+    "id": "OperationalSpaceControl",
+    "url": "https://khatib.stanford.edu/publications/pdfs/Khatib_1987_RA.pdf",
+    "path": "papers/OperationalSpaceControl.pdf",
+    "status": "downloaded",
+    "bytes": 1938510,
+    "sha256": "65d6640de72f2e177c1fd780b3aa81fa142be867304adc74bfdd4cf3535a8547",
+    "title": "A Unified Approach for Motion and Force Control of Robot Manipulators: The Operational Space Formulation",
+    "retrieved": "2026-10-14",
+    "text": "text/OperationalSpaceControl.txt",
+    "text_method": "Tesseract OCR; equations should be checked in original PDF"
+  },
+  {
+    "id": "AlphaNIST-project",
+    "url": "https://alpha-nist.github.io/",
+    "path": "sources/AlphaNIST-project.html",
+    "status": "downloaded",
+    "bytes": 26077,
+    "sha256": "b16261d94c23aac7770926c493c321b146b2bf2c42fb8a7c8584bef0b2b8184c",
+    "title": "AlphaNIST project page",
+    "retrieved": "2026-10-14"
+  },
+  {
+    "id": "SGS-project",
+    "url": "https://sgs-rl.github.io/",
+    "path": "sources/SGS-project.html",
+    "status": "downloaded",
+    "bytes": 145542,
+    "sha256": "4506393247d565789dee02ba0cb25afb053e3205f2f033037504e1858759e311",
+    "title": "SGS project page",
+    "retrieved": "2026-10-14"
+  },
+  {
+    "id": "PhysX-GPU",
+    "url": "https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/GPURigidBodies.html",
+    "path": "sources/PhysX-GPU.html",
+    "status": "downloaded",
+    "bytes": 37508,
+    "sha256": "1f9389497b9a55684d9ee373ea1f094b0b00654bd07329c231d2f93f70770b49",
+    "title": "PhysX GPU simulation documentation",
+    "retrieved": "2026-10-14"
+  },
+  {
+    "id": "UWLab-commit",
+    "url": "https://api.github.com/repos/UW-Lab/UWLab/commits/main",
+    "path": "sources/UWLab-commit.json",
+    "status": "downloaded",
+    "bytes": 6218,
+    "sha256": "1567397c99e96f39870abdb3922e198ec6098daa29da59623de45810c8e6ec22",
+    "title": "UWLab pinned commit metadata",
+    "retrieved": "2026-10-14"
+  },
+  {
+    "id": "libfranka-control",
+    "url": "https://frankarobotics.github.io/libfranka/0.15.0/classfranka_1_1Robot.html",
+    "path": "sources/libfranka-control.html",
+    "status": "downloaded",
+    "bytes": 149697,
+    "sha256": "f18032a1dfec0b98430497eb358ca7cbd6f980fb5bf950c727e77ae0f94f5806",
+    "title": "libfranka Robot control API",
+    "retrieved": "2026-10-14"
+  },
+  {
+    "id": "NIST-article",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7537423/",
+    "path": "sources/NIST-article.html",
+    "status": "downloaded",
+    "bytes": 155340,
+    "sha256": "c1c2c42956f0ce52469d9f826b4da8e315444bb79363c177a048d7e85251ec53",
+    "title": "Benchmarking Protocols for Evaluating Small Parts Robotic Assembly Systems",
+    "retrieved": "2026-10-14"
+  }
+]

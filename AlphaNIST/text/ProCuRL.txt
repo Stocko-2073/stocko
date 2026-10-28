@@ -1,0 +1,1330 @@
+                                         Proximal Curriculum for Reinforcement Learning Agents
+
+                                         Georgios Tzannetos                                                                          gtzannet@mpi-sws.org
+                                         Max Planck Institute for Software Systems
+
+                                         Bárbara Gomes Ribeiro                                                                       bgomesr@mpi-sws.org
+                                         Max Planck Institute for Software Systems
+
+                                         Parameswaran Kamalaruban                                                             kparameswaran@turing.ac.uk
+                                         The Alan Turing Institute
+
+
+
+
+arXiv:2304.12877v1 [cs.LG] 25 Apr 2023
+                                         Adish Singla                                                                                  adishs@mpi-sws.org
+                                         Max Planck Institute for Software Systems
+
+
+
+
+                                                                                            Abstract
+
+                                                 We consider the problem of curriculum design for reinforcement learning (RL) agents in
+                                                 contextual multi-task settings. Existing techniques on automatic curriculum design typically
+                                                 require domain-specific hyperparameter tuning or have limited theoretical underpinnings.
+                                                 To tackle these limitations, we design our curriculum strategy, ProCuRL, inspired by
+                                                 the pedagogical concept of Zone of Proximal Development (ZPD). ProCuRL captures the
+                                                 intuition that learning progress is maximized when picking tasks that are neither too hard
+                                                 nor too easy for the learner. We mathematically derive ProCuRL by analyzing two simple
+                                                 learning settings. We also present a practical variant of ProCuRL that can be directly
+                                                 integrated with deep RL frameworks with minimal hyperparameter tuning. Experimental
+                                                 results on a variety of domains demonstrate the effectiveness of our curriculum strategy over
+                                                 state-of-the-art baselines in accelerating the training process of deep RL agents.
+
+
+
+                                         1   Introduction
+
+                                         Recent advances in deep reinforcement learning (RL) have demonstrated impressive performance in games,
+                                         continuous control, and robotics (Mnih et al., 2015; Lillicrap et al., 2015; Silver et al., 2017; Levine et al.,
+                                         2016). Despite these remarkable successes, a broader application of RL in real-world domains is often very
+                                         limited. For example, training RL agents in contextual multi-task settings and goal-based tasks with sparse
+                                         rewards still remains challenging (Hallak et al., 2015; Kirk et al., 2021; Andrychowicz et al., 2017; Florensa
+                                         et al., 2017; Riedmiller et al., 2018).
+                                         Inspired by the importance of curricula in pedagogical domains, there is a growing interest in leveraging
+                                         curriculum strategies when training machine learning models in challenging domains. In the supervised
+                                         learning setting, such as image classification, the impact of the order of presented training examples has
+                                         been studied both theoretically and empirically (Weinshall et al., 2018; Weinshall & Amir, 2018; Zhou &
+                                         Bilmes, 2018; Zhou et al., 2021; Elman, 1993; Bengio et al., 2009; Zaremba & Sutskever, 2014). Recent works
+                                         have also studied curriculum strategies for learners in sequential-decision-making settings, such as imitation
+                                         learning (where the agent learns from demonstrations) and RL (where the agent learns from rewards). In
+                                         the imitation learning setting, recent works have proposed greedy curriculum strategies for picking the next
+                                         training demonstration according to the agent’s learning progress (Kamalaruban et al., 2019; Yengera et al.,
+                                         2021). In the RL setting, several curriculum strategies have been proposed to improve sample efficiency, e.g.,
+                                         by choosing an appropriate next starting state or goal state for the task to train on (Wöhlke et al., 2020;
+                                         Florensa et al., 2017; 2018; Racanière et al., 2020; Riedmiller et al., 2018; Klink et al., 2020a;b; Eimer et al.,
+
+
+                                                                                                 1
+2021). Despite extensive research on curriculum design for the RL setting, existing techniques typically have
+limited theoretical underpinnings or require domain-specific hyperparameter tuning.
+In this paper, we are interested in developing a principled curriculum strategy for the RL setting that is
+broadly applicable to many domains with minimal tuning of hyperparameters. To this end, we rely on the
+Zone of Proximal Development (ZPD) concept from the educational psychology literature (Vygotsky &
+Cole, 1978; Chaiklin, 2003). The ZPD concept, when applied in terms of learning progress, suggests that
+progress is maximized when the learner is presented with tasks that lie in the proximal zone, i.e., tasks that
+are neither too hard nor too easy. This idea of proximal zone can be captured using a notion of probability
+of success score PoSπt (s) w.r.t. the learner’s current policy πt for any given task s. Building on this idea,
+we mathematically derive an intuitive curriculum strategy by analyzing two simple learning settings. Our
+main results and contributions are as follows:
+
+  I. We propose a curriculum strategy, ProCuRL, inspired by the ZPD concept. ProCuRL formalizes
+     the idea of picking tasks that are neither too hard nor too easy for the learner in the form of selection
+     strategy arg maxs PoSπt (s) · PoS∗ (s) − PoSπt (s) , where PoS∗ (s) corresponds to the probability of
+     success score w.r.t. an optimal policy (Section 3.1).
+ II. We derive ProCuRL under two specific learning settings where we analyze the effect of picking a task
+     on the agent’s learning progress (Section 3.2).
+III. We present a practical variant of ProCuRL, namely ProCuRL-val, that can be easily integrated
+     with deep RL frameworks with minimal hyperparameter tuning (Section 3.3).
+IV. We empirically demonstrate the effectiveness of ProCuRL-val over state-of-the-art baselines in
+    accelerating the training process of deep RL agents in a variety of environments (Section 4).1
+
+1.1   Related Work
+
+Curriculum strategies based on domain knowledge. Early works on curriculum design for the
+supervised learning setting typically order the training examples in increasing difficulty (Elman, 1993;
+Bengio et al., 2009; Schmidhuber, 2013; Zaremba & Sutskever, 2014). This easy-to-hard design principle
+has been utilized in the hand-crafted curriculum approaches for the RL setting (Asada et al., 1996; Wu
+& Tian, 2016). Moreover, there have been recent works on designing greedy curriculum strategies for the
+imitation learning setting based on the iterative machine teaching framework (Liu et al., 2017; Yang et al.,
+2018; Zhu et al., 2018; Kamalaruban et al., 2019; Yengera et al., 2021). However, these approaches require
+domain-specific expert knowledge for designing difficulty measures.
+Curriculum strategies based on ZPD concept. In the pedagogical setting, it has been realized that
+effective teaching provides tasks that are neither too hard nor too easy for the human learner. This intuition
+of providing tasks from a particular range of difficulties is conceptualized in the ZPD concept (Vygotsky
+& Cole, 1978; Chaiklin, 2003; Oudeyer et al., 2007; Baranes & Oudeyer, 2013; Zou et al., 2019). In
+the RL setting, several curriculum strategies that have been proposed are inherently based on the ZPD
+concept (Florensa et al., 2017; 2018; Wöhlke et al., 2020). A common underlying theme in both Florensa
+et al. (2017) and Florensa et al. (2018) is that they choose the next task (starting or goal state) for the
+learner uniformly at random from the set {s : rmin ≤ PoSπt (s) ≤ rmax }. Here, the threshold values rmin
+and rmax require tuning according to the learner’s progress and specific to the domain. Wöhlke et al.
+(2020) propose a unified framework for the learner’s performance-based starting state curricula in RL. In
+                                                                            (0)
+particular, the starting state selection policy of Wöhlke et al. (2020), P st = s ∝ G(PoSπt (s)) for some
+                                                                                    
+
+function G, accommodates existing curriculum generation methods like Florensa et al. (2017); Graves et al.
+(2017). Despite promising empirical results, theoretical analysis of the impact of the chosen curriculum on
+the RL agent’s learning progress is still missing in the aforementioned works.
+Curriculum strategies based on self-paced learning (SPL). In the supervised learning setting, the
+curriculum strategies using the SPL concept optimize the trade-off between exposing the learner to all
+  1 Github repo: https://github.com/machine-teaching-group/tmlr2023_proximal-curriculum-rl.
+
+
+
+
+                                                       2
+available training examples and selecting examples in which it currently performs well (Kumar et al., 2010;
+Jiang et al., 2015). In SPDL (Klink et al., 2020b;a; 2021; 2022) and SPaCE (Eimer et al., 2021), the
+authors have adapted the concept of SPL to the RL setting by controlling the intermediate task distribution
+with respect to the learner’s current training progress. However, SPDL and SPaCE differ in their mode
+of operation and their objective. SPDL considers the procedural task generation framework where tasks
+of appropriate difficult levels can be synthesized, as also considered in Florensa et al. (2017; 2018). In
+contrast, SPaCE considers a pool-based curriculum framework for picking suitable tasks, as popular in the
+supervised learning setting. Further, SPDL considers the objective of a targeted performance w.r.t. a target
+distribution (e.g., concentrated distribution on hard tasks); in contrast, SPaCE considers the objective
+of uniform performance across a given pool of tasks. Similar to SPaCE, in our work, we consider the
+pool-based setting with uniform performance objective. Both SPDL and SPaCE serve as state-of-the-art
+baselines in our experimental evaluation. In terms of curriculum strategy, SPDL operates by solving an
+optimization problem at each step to pick a task (Klink et al., 2021); SPaCE uses a ranking induced by the
+magnitude of differences in current/previous critic values at each step to pick a task (Eimer et al., 2021). In
+the appendix, we have also provided some additional information on hyperparameters for SPDL and SPaCE.
+Other automatic curriculum strategies. There are other approaches for automatic curriculum gen-
+eration, including: (i) by formulating the curriculum design problem with the use of a meta-level Markov
+Decision Process (Narvekar et al., 2017; Narvekar & Stone, 2019); (ii) by learning how to generate training
+tasks similar to a teacher (Dendorfer et al., 2020; Such et al., 2020; Matiisen et al., 2019; Turchetta et al.,
+2020); (iii) by leveraging self-play as a form of curriculum generation (Sukhbaatar et al., 2018); (iv) by using
+the disagreement between different agents trained on the same tasks (Zhang et al., 2020); (v) by picking
+the starting states based on a single demonstration (Salimans & Chen, 2018; Resnick et al., 2018); and
+(vi) by providing agents with environment variations that are at the frontier of an agent’s capabilities, e.g.,
+Unsupervised Environment Design methods (Dennis et al., 2020; Jiang et al., 2021a; Parker-Holder et al.,
+2022). We refer the reader to recent surveys on curriculum design for the RL setting (Narvekar et al., 2020;
+Portelas et al., 2021; Weng, 2020).
+
+
+2    Formal Setup
+
+In this section, we formalize our problem setting based on prior work on teacher-student curriculum learn-
+ing (Matiisen et al., 2019).
+MDP environment. We consider a learning environment defined as a Markov Decision Process (MDP)
+M := (S, A, T , H, R, Sinit ). Here, S and A denote the state and action spaces, T : S × S × A → [0, 1] is the
+transition dynamics, H is the maximum length of the episode, and R : S × A → R is the reward function.
+The set of initial states Sinit ⊆ S specifies a fixed pool of tasks, i.e., each starting state s ∈ Sinit corresponds
+to a unique task. Note that the above environment formalism is quite general enough to cover many practical
+settings, including the contextual multi-task MDP setting (Hallak et al., 2015).2
+RL agent and training process. We consider an RL agent acting in this environment via a policy
+π : S × A → [0, 1] that is a mapping from a state to a probability distribution over actions.3 Given
+a task with the corresponding starting state s ∈ Sinit , the agent attempts the task via a trajectory
+rollout obtained by executing its policy π from s in the MDP M. The trajectory rollout is denoted
+as ξ = {(s(τ ) , a(τ ) , R(s(τ ) , a(τ ) ))}τ =0,1,...,h with s(0) = s and for some h ≤ H. The agent’s performance
+                                                                         Ph
+on task s is measured via the value function V π (s) := E                              , a ) π, M, s(0) = s . Then, the
+                                                                                   (τ ) (τ )
+                                                                                                           
+                                                                           τ =0 R(s
+uniform performance of the agent over the pool of tasks Sinit is given by V π := Es∼Uniform(Sinit ) [V π (s)].
+The training process of the agent involves an interaction between two components: a student component
+that is responsible for policy update and a teacher component that is responsible for task selection. The
+interaction happens in discrete steps, indexed by t = 1, 2, . . ., and is formally described in Algorithm 1.
+   2 In this setting, for a given set of contexts C, the pool of tasks is given by {M = (S, A, T , H, R , S
+                                                                                       c          c     c    init ) : c ∈ C}. Our
+environment formalism (MDP M) covers this setting as follows: S = S × C; Sinit = S init × C; T ((s̄0 , c)|(s̄, c), a) = Tc (s̄0 |s̄, a)
+and R((s̄, c), a) = Rc (s̄, a), ∀s̄, s̄0 ∈ S, a ∈ A, c ∈ C.
+   3 For general finite-horizon MDPs, including the time step as part of the state is important. However, to avoid complicating
+
+the notation with additional indexing, we have assumed that the time step is implicitly included in the state.
+
+
+                                                                  3
+Let πend denote the agent’s final policy at the end of training. The training objective is to ensure that the
+uniform performance of the policy πend is -near-optimal, i.e., (maxπ V π − V πend ) ≤ . In the following two
+paragraphs, we discuss the student and teacher components in detail.
+Student component. We consider a parametric representation for the RL agent, whose current knowledge
+is parameterized by θ ∈ Θ ⊆ Rd and each parameter θ is mapped to a policy πθ : S ×A → [0, 1]. At step t, the
+student component updates the knowledge parameter based on the following quantities: the current knowl-
+                                                                                      (τ ) (τ )      (τ ) (τ )
+edge parameter θt , the task picked by the teacher component, and the rollout ξt = {(st , at , R(st , at ))}τ .
+Then, the updated knowledge parameter θt+1 is mapped to the agent’s policy given by πt+1 := πθt+1 .
+As a concrete example, the knowledge parameter of the Reinforce agent (Sutton et al., 1999) is up-
+                              Ph−1 (τ ) (τ )                                   (τ )  Ph         (τ 0 ) (τ 0 )
+dated as θt+1 ← θt + ηt · τ =0 Gt · gt , where ηt is the learning rate, Gt = τ 0 =τ R(st , at ), and
+  (τ )              (τ ) (τ )
+gt = ∇θ log πθ (at |st ) θ=θt .
+                             
+
+Teacher component. At step t, the teacher component picks a task with the corresponding starting state
+ (0)
+st for the student component to attempt via a trajectory rollout (see line 3 in Algorithm 1). The sequence
+of tasks (curriculum) picked by the teacher component affects the performance improvement of the policy
+πt . The main focus of this work is to develop a teacher component to achieve the training objective in both
+a computational and a sample-efficient manner.
+
+Algorithm 1 RL Agent Training as Interaction between Teacher-Student Components
+ 1: Input: RL agent’s initial policy π1
+ 2: for t = 1, 2, . . . do
+                                                                                    (0)
+ 3:   Teacher component picks a task with the corresponding starting state st .
+                                                                                                (0)
+ 4:   Student component attempts the task via a trajectory rollout ξt using the policy πt from st .
+ 5:   Student component updates the policy to πt+1 .
+ 6: Output: RL agent’s final policy πend ← πt+1 .
+
+
+
+3     Proximal Curriculum Strategy
+In Section 3.1, we propose a curriculum strategy for the goal-based setting. In Section 3.2, we show that
+the proposed curriculum strategy can be mathematically derived by analyzing simple learning settings. In
+Section 3.3, we present our final curriculum strategy that is applicable in general settings.
+
+3.1   Curriculum Strategy for the Goal-based Setting
+Here, we introduce our curriculum strategy for the goal-based setting using the notion of probability of
+success scores.
+Goal-based setting. In this setting, the reward function R is goal-based, i.e., the agent gets a reward of 1
+only at the goal states and 0 at other states; moreover, any action from a goal state also leads to termination.
+For any task with the corresponding starting state s ∈ Sinit , we say that the attempted rollout ξ succeeds
+in the task if the final state of ξ is a goal state. Formally, succ(ξ; s) is an indicator function whose value is
+1 when the rollout ξ succeeds in task s, and 0 otherwise. Furthermore, for an agent with policy π, we have
+that V π (s) := E succ(ξ; s) π, M is equal to the total probability of reaching a goal state by executing the
+policy π starting from s ∈ Sinit .
+Probability of success. We begin by assigning a probability of success score for any task with the
+corresponding starting state s ∈ Sinit w.r.t. any parameterized policy πθ in the MDP M.
+Definition 1. For any given knowledge parameter θ ∈ Θ and any starting state s ∈ Sinit , we define the
+probability of success score PoSθ (s) as the probability of successfully solving the task s by executing the policy
+πθ in the MDP M. For the goal-based setting, we have PoSθ (s) = V πθ (s).
+
+With the above definition, the probability of success score for any task s ∈ Sinit w.r.t. the agent’s current
+policy πt is given by PoSt (s) := PoSθt (s). Further, we define PoS∗ (s) := maxθ∈Θ PoSθ (s).
+
+
+                                                        4
+Curriculum strategy. Based on the notion of probability of success scores that we defined above, we
+propose the following curriculum strategy:
+                              (0)
+                                                                       
+                             st ← arg max PoSt (s) · PoS∗ (s) − PoSt (s) ,                       (1)
+                                         s∈Sinit
+
+                                                                                          (0)
+i.e., at step t, the teacher component picks a task associated with the starting state st according to Eq. 1.
+The term PoSt (s) · (PoS∗ (s) − PoSt (s)) can be interpreted as the geometric mean of two quantities: the
+learner’s probability of solving the task and the expected regret of the learner on this task. In the following
+subsection, we show that the above curriculum strategy can be derived by considering simple learning
+settings, such as contextual bandit problems with Reinforce agent; these derivations provide insights
+about the design of the curriculum strategy.
+
+3.2     Theoretical Justifications for the Curriculum Strategy
+To derive our curriculum strategy for the goal-based setting, we additionally consider independent tasks
+                  (0)
+where any task st picked from the pool Sinit at step t only affects the agent’s knowledge component
+corresponding to that task. Further, we assume that there exists a knowledge parameter θ∗ ∈ Θ such that
+πθ∗ ∈ arg maxπ V π , and πθ∗ is referred to as the target policy. Then, based on the work of Weinshall et al.
+                                                                                                           (0)
+(2018); Kamalaruban et al. (2019); Yengera et al. (2021), we investigate the effect of picking a task st at
+step t on the convergence of the agent’s parameter θt towards the target parameter θ . Under a smoothness
+                                                                                           ∗
+
+condition on the value function of the form |V πθ − V πθ0 | ≤ L · kθ − θ0 k1 , ∀θ, θ0 ∈ Θ for some L > 0, we can
+translate the parameter convergence (θt → θ∗ ) into the performance convergence (V πθt → V πθ∗ ). Thus, we
+define the improvement in the training objective at step t as
+                                           (0)
+                             ∆t (θt+1 θt , st , ξt ) := [kθ∗ − θt k1 − kθ∗ − θt+1 k1 ].                       (2)
+
+In the above objective, we use the `1 -norm because our theoretical analysis considers the independent task
+setting mentioned above. Further, we define the expected improvement in the training objective at step t
+                         (0)
+due to picking the task st as follows:
+                                        (0)                              (0)
+                                   Ct (st ) := Eξt |s(0) ∆t (θt+1 |θt , st , ξt ) .                           (3)
+                                                                                
+                                                       t
+
+
+Note that the above quantity is an approximation of the expected learning progress measure as defined
+in Graves et al. (2017). In the following subsection, we justify our proposed curriculum strategy by analyzing
+the above quantity for a specific agent model under the independent task setting. More concretely, for the
+specific setting considered in Section 3.2.1, Theorem 1 implies that picking tasks based on the curriculum
+strategy given in Eq. 1 maximizes the expected value of the objective in Eq. 2. In the appendix, we provide an
+additional justification by considering an abstract agent model with a direct performance parameterization.
+
+3.2.1    Reinforce Agent with Softmax Policy Parameterization
+We consider the Reinforce agent model with the following softmax policy parameterization: for any
+θ ∈ R|S|·|A| , we parameterize the policy as πθ (a|s) ∝ exp(θ[s, a]), ∀s ∈ S, a ∈ A. In the following, we
+consider a problem instance involving a pool of contextual bandit tasks (a special case of independent task
+setting). Consider an MDP M with g ∈ S as the goal state for all tasks, Sinit = S \ {g}, A = {a1 , a2 }, and
+H = 1. We define the reward function as follows: R(s, a) = 0, ∀s ∈ S \ {g}, a ∈ A and R(g, a) = 1, ∀a ∈ A.
+For a given probability mapping prand : S → [0, 1], we define the transition dynamics as follows: T (g|s, a1 ) =
+prand (s), ∀s ∈ S; T (s|s, a1 ) = 1 − prand (s), ∀s ∈ S; and T (s|s, a2 ) = 1, ∀s ∈ S. Then, for the Reinforce
+agent under the above setting, the following theorem quantifies the expected improvement in the training
+objective at step t:
+Theorem 1. Consider the Reinforce agent with softmax policy parameterization under the independent
+                                      (0)                                           (0)                 (0)
+task setting as described above. Let st be the task picked at step t with PoSθt (st ) = p and PoSθ∗ (st ) = p∗ .
+                      (0)
+Then, we have: Ct (st ) = 2 · ηt · p · 1 − pp∗ , where ηt is the learning of the Reinforce agent.
+
+
+                                                           5
+For the above setting with prand (s) = 1, ∀s ∈ S, maxs∈Sinit Ct (s) is equivalent to maxs∈Sinit PoSt (s) · (1 −
+PoSt (s)). This means that for the case of PoS∗ (s) = 1, ∀s ∈ Sinit , the curriculum strategy given in Eq. 1 can
+be seen as greedily optimizing the expected improvement in the training objective at step t given in Eq. 3.
+
+3.3   Curriculum Strategy for General Settings
+
+Next, we discuss various practical issues in directly applying the curriculum strategy in Eq. 1 for general
+settings, and introduce several design choices to address these issues.
+Softmax selection. When training deep RL agents, it is typically useful to allow some stochasticity in
+the selected batch of tasks. Moreover, the arg max selection in Eq. 1 is brittle in the presence of any
+approximation errors in computing PoS(·) values. To tackle this issue, we replace arg max selection in Eq. 1
+with softmax selection and sample according to the following distribution:
+                            (0)                                              
+                         P st = s ∝ exp β · PoSt (s) · PoS∗ (s) − PoSt (s) ,                             (4)
+                                   
+
+
+where β is a hyperparameter. Here, PoSt (s) values are computed for each s ∈ Sinit using rollouts obtained
+via executing the policy πt in M; PoS∗ (s) values are assumed to be provided as input.
+PoS∗ (·) is not known. Since the target policy πθ∗ is unknown, it is not possible to compute the PoS∗ (s)
+values without additional domain knowledge. In our experiments, we resort to simply setting PoS∗ (s) =
+1, ∀s ∈ Sinit in Eq. 4 – the rationale behind this choice is that we expect the ideal πθ∗ to succeed in all the
+tasks in the pool.4 This brings us to the following curriculum strategy referred to as ProCuRL-env in our
+experimental evaluation:                           
+                                  (0)                                       
+                               P st = s ∝ exp β · PoSt (s) · 1 − PoSt (s) .                                 (5)
+                                         
+
+
+Computing PoSt (·) is expensive. It is expensive (sample inefficient) to estimate PoSt (s) over the space
+Sinit using rollouts of the policy πt . To tackle this issue, we replace PoSt (s) with values Vt (s) obtained
+from the critic network of the RL agent. This brings us to the following curriculum strategy referred to as
+ProCuRL-val in our experimental evaluation:
+                                   (0)                                  
+                                 P st = s ∝ exp β · Vt (s) · 1 − Vt (s) .                                 (6)
+                                           
+
+
+Extension to non-binary or dense reward settings. The current forms of ProCuRL-val in Eq. 6 and
+ProCuRL-env in Eq. 5 are not directly applicable for settings where the reward is non-binary or dense.
+To deal with this issue in ProCuRL-val, we replace Vt (s) values from the critic in Eq. 6 with normalized
+values given by V t (s) = VVtmax
+                              (s)−Vmin
+                                 −Vmin clipped to the range [0, 1]. Here, Vmin and Vmax could be provided
+as input based on the environment’s reward function; alternatively we can dynamically set Vmin and Vmax
+during the training process by taking min-max values of the critic for states Sinit at step t. To deal with
+this issue in ProCuRL-env, we replace PoSt (s) values from the rollouts in Eq. 5 with normalized values
+V t (s) as above. Algorithm 2 in the appendix provides a complete pseudo-code for the RL agent training
+with ProCuRL-val in this general setting.
+
+4     Experimental Evaluation
+
+In this section, we evaluate the effectiveness of our curriculum strategies on a variety of domains w.r.t. the
+uniform performance of the trained RL agent over the training pool of tasks. Additionally, we consider
+the following two metrics in our evaluation: (i) total number of environment steps incurred jointly by the
+teacher and the student components at the end of the training process; (ii) total clock time required for the
+training process. Throughout all the experiments, we use the PPO method from Stable-Baselines3 library
+for policy optimization (Schulman et al., 2017; Raffin et al., 2021).
+   4 This simple choice leads to competitive performance in a variety of environments used in our experiments. However, the
+
+above choice could lead to a suboptimal strategy for specific scenarios, e.g., when all PoS∗ (s) are below 0.5. It would be
+interesting to investigate alternative strategies to estimate PoS∗ (s) during the training process, e.g., using top K% rollouts
+obtained by executing the current policy πt starting from s.
+
+
+                                                              6
+         Environment   Reward Context   State Action Pool size
+       PointMass-s     binary      R3       R4   R2       100
+       PointMass-d non-binary      R3       R4   R2       100
+        BasicKarel     binary   24000 {0, 1}88    6     24000
+      BallCatching non-binary      R3      R21   R5       100
+          AntGoal non-binary       R 2
+                                           R29   R8        50
+             (a) Complexity of the environments                       (b) Illustration of the environments
+
+Figure 1: (a) shows complexity of the environments w.r.t. the reward signals, context variation, state space,
+action space, and the pool size of the tasks used for training. (b) shows illustration of the environments
+(from left to right): PointMass, BasicKarel, BallCatching, and AntGoal. Details are provided in
+Section 4.1.
+
+
+
+4.1    Environments
+
+We consider 5 different environments in our evaluation, as described in the following paragraphs. Figure 1
+provides a summary and illustration of these environments.
+PointMass-s and PointMass-d. Based on the work of Klink et al. (2020b), we consider a contextual
+PointMass environment where an agent navigates a point mass through a gate of a given size towards a
+goal in a two-dimensional space. More concretely, we consider two settings: (i) PointMass-s environment
+corresponds to a goal-based (i.e., binary and sparse) reward setting where the agent receives a reward of 1
+only if it successfully moves the point mass to the goal position; (ii) PointMass-d environment corresponds
+to a dense reward setting as used by Klink et al. (2020b) where the reward values decay in a squared
+exponential manner with increasing distance to the goal. Here, the contextual variable c ∈ R3 controls the
+position of the gate (C-GatePosition), the width of the gate (C-GateWidth), and the friction coefficient of
+the ground (C-Friction). We construct the training pool of tasks by uniformly sampling 100 tasks over the
+space of possible tasks (here, each task corresponds to a different contextual variable).
+BasicKarel. This environment is inspired by the Karel program synthesis domain (Bunel et al.,
+2018), where the goal of an agent is to transform an initial grid into a final grid configuration by
+a sequence of commands. In our BasicKarel environment, we do not allow any programming
+constructs such as conditionals or loops and limit the commands to the “basic” actions given by
+A = {move, turnLeft, turnRight, pickMarker, putMarker, finish}. A task in this environment corre-
+sponds to a pair of initial grid and final grid configurations; the environment is episodic with goal-based (i.e.,
+binary and sparse) reward setting where the agent receives a reward of 1 only if it successfully transforms
+the task’s initial grid into the task’s final grid. Here, the contextual variable is discrete, where each task
+can be considered as a discrete context. We construct the training pool of tasks by sampling 24000 tasks;
+additional details are provided in the appendix.
+BallCatching. This environment is the same used in the work of Klink et al. (2020b); here, an agent needs
+to direct a robot to catch a ball thrown towards it. The reward function is sparse and non-binary, only
+rewarding the robot when it catches the ball and penalizing it for excessive movements. The contextual
+vector c ∈ R3 captures the distance to the robot from which the ball is thrown and its goal position in a
+plane that intersects the base of the robot. We construct the training pool of tasks by uniformly sampling
+100 tasks over the space of possible tasks.
+AntGoal. This environment is adapted from the original MuJoCo Ant environment (Todorov et al.,
+2012). In our adaptation, we additionally have a goal on a flat 2D surface, and an agent is rewarded for
+moving an ant robot towards the goal location. This goal-based reward term replaces the original reward
+term of making the ant move forward; also, this reward term increases exponentially when the ant moves
+closer to the goal location. We keep the other reward terms, such as control and contact costs, similar
+to the original MuJoCo Ant environment. The environment is episodic with a length of 200 steps. The
+goal location essentially serves as a contextual variable in R2 . We construct the training pool of tasks by
+uniformly sampling 50 goal locations from a circle around the ant.
+
+
+                                                             7
+These environments are goal-based and have an implicit way of defining a successful trajectory. Typically,
+success is defined as a reward signal to the agent for approaching the goal, as done by Klink et al. (2020b) for
+PointMass, BallCatching, and AntGoal. As future work, it would also be interesting to investigate
+the effect of our curriculum strategy on RL algorithms designed for the same goal-based setting but without
+assuming that a goal proximity function is defined in the environment (Ding et al., 2019; Eysenbach et al.,
+2022; Lin et al., 2019).
+
+4.2   Curriculum Strategies Evaluated
+
+Variants of our curriculum strategy. We consider the curriculum strategies ProCuRL-val and
+ProCuRL-env from Section 3.3. Since ProCuRL-env uses policy rollouts to estimate PoSt (s) in Eq. 5,
+it requires environment steps for selecting tasks in addition to environment steps for training. To compare
+ProCuRL-val and ProCuRL-env in terms of trade-off between performance and sample efficiency, we
+introduce a variant ProCuRL-envx where x controls the budget of the total number of steps used for
+estimation and training. In Figure 3, variants with x ∈ {2, 4} refer to a total budget of about x million
+environment steps when training comprises of 1 million steps.
+State-of-the-art baselines. SPDL (Klink et al., 2020b) and SPaCE (Eimer et al., 2021) are state-of-the-
+art curriculum strategies for contextual RL. We adapt the implementation of an improved version of SPDL,
+presented in Klink et al. (2021), to work with a discrete pool of tasks. We also introduce a variant of SPaCE,
+namely SPaCE-alt, by adapting the implementation of Eimer et al. (2021) to sample the next training
+           (0)
+task as P st = s ∝ exp β · Vt (s) − Vt−1 (s) . PLR (Jiang et al., 2021b) is a state-of-the-art curriculum
+                                               
+
+strategy originally designed for procedurally generated content settings. We adapt the implementation of
+PLR for the contextual RL setting operating on a fixed pool of tasks and include it as an additional baseline.
+Prototypical baselines. IID strategy randomly samples the next task from the pool; note that IID
+serves as a competitive baseline since we consider the uniform performance objective. We introduce two
+additional variants of ProCuRL-env, namely Easy and Hard, to understand the importance of the two
+                                                                      (0)
+terms PoSt (s) and 1 − PoSt (s) in Eq. 5. Easy samples tasks as P st = s ∝ exp β · PoSt (s) , and
+                                                                                              
+                          (0)
+Hard samples tasks as P st = s ∝ exp β · 1 − PoSt (s) .
+                                                        
+
+
+4.3   Results
+
+Convergence behavior and curriculum plots. As shown in Figure 2, the RL agents trained using
+the variants of our curriculum strategy, ProCuRL-env and ProCuRL-val, either match or outperform
+the agents trained with state-of-the-art and prototypical baselines in all the environments. Figures 4 and 5
+visualize the curriculums generated by ProCuRL-env, ProCuRL-val, and IID; the trends for ProCuRL-
+val generally indicate a gradual shift towards harder tasks across different contexts. The increasing trend
+in Figure 4a corresponds to a preference shift towards tasks with the gate positioned closer to the edges;
+the decreasing trend in Figure 4b corresponds to a preference shift towards tasks with narrower gates. For
+BasicKarel, the increasing trends in Figures 5a and 5b correspond to a preference towards tasks with longer
+solution trajectories and tasks requiring a marker to be picked or put, respectively. In Figures 5c and 5d,
+tasks with a distractor marker (C-DistractorMarker) and tasks with more walls (C-Walls) are increasingly
+selected while training.
+Metrics comparison. In Figure 3, we compare curriculum strategies considered in our experiments w.r.t.
+different metrics. ProCuRL-val has similar sample complexity as state-of-the-art baselines since it does
+not require additional environment steps for the teacher component. ProCuRL-val performs better com-
+pared to SPDL, SPaCE and PLR in terms of computational complexity. The effect of that is more evident
+as the pool size increases. The reason is that ProCuRL-val only requires forward-pass operation on the
+critic-model to obtain value estimates for each task in the pool. SPDL and SPaCE not only require the
+same forward-pass operations, but SPDL does an additional optimization step, and SPaCE requires a task
+ordering step. As for PLR, it has an additional computational overhead for scoring the sampled tasks. In
+terms of agent’s performance, our curriculum strategies exceed or match these baselines at different training
+segments. Even though ProCuRL-env consistently surpasses all the other variants in terms of perfor-
+
+
+                                                       8
+                         P RO C U RL- ENV            P RO C U RL- VAL             IID           SPDL                  PLR             SPACE- ALT                    SPACE
+
+               1.0
+                       P OINT M ASS -S              P OINT M ASS -D        1.0
+                                                                                   BASIC K AREL           70
+                                                                                                                 BALL C ATCHING                        A NT G OAL
+                                             70                                                                                             700
+
+               0.8                                                         0.8                                                              600
+                                             60                                                           60
+                                                                                                                                            500
+
+
+
+
+ Performance
+               0.6                           50                            0.6
+                                                                                                          50                                400
+
+               0.4                                                         0.4                                                              300
+                                             40
+                                                                                                          40
+                                                                                                                                            200
+               0.2                                                         0.2
+                                             30
+                                                                                                                                            100
+                                                                                                          30
+               0.0                                                         0.0                                                                0
+                 0.0         0.5       1.0    0.0         0.5        1.0      0             1        2      0     1     2      3    4   5      0   1      2     3    4   5
+                                     ×106                          ×106                 Steps     ×106                               ×106                             ×106
+
+
+Figure 2: Performance comparison of RL agents trained using different curriculum strategies described in
+Section 4.2. The performance is measured as the mean reward (±1 standard error) on the training pool
+of tasks. The results are averaged over 20 random seeds for PointMass-s and PointMass-d, 10 random
+seeds for BasicKarel and BallCatching, and 5 random seeds for AntGoal. The plots are smoothed
+across 5 evaluation snapshots happening at over 25000 training steps.
+
+                             Env
+                                                            PointMass-s                                                             BasicKarel
+   Method
+                                                    Performance                         Steps Time                      Performance                              Steps Time
+                                            0.25M         0.5M              1M           1M     1M              0.25M              0.5M            1M               1M      1M
+   ProCuRL-env                       0.60 ± 0.16     0.79 ± 0.13   0.84 ± 0.14 17.4 ± 1.7       156      0.10 ± 0.02        0.38 ± 0.03     0.76 ± 0.04 34.2 ± 0.9          191
+   ProCuRL-env4                      0.50 ± 0.15     0.64 ± 0.15   0.71 ± 0.15     4.0 ± 0.0      43     0.10 ± 0.03        0.38 ± 0.04     0.75 ± 0.04       4.6 ± 0.1      53
+   ProCuRL-env2                      0.36 ± 0.17     0.53 ± 0.16   0.60 ± 0.17     2.0 ± 0.0      25     0.10 ± 0.03        0.32 ± 0.05     0.73 ± 0.04       2.4 ± 0.1      44
+   ProCuRL-val                       0.48 ± 0.15     0.64 ± 0.17   0.71 ± 0.18     1.0 ± 0.0      20     0.06 ± 0.03        0.30 ± 0.08     0.71 ± 0.05       1.0 ± 0.0      70
+
+   SPaCE                             0.05 ± 0.06     0.17 ± 0.12   0.29 ± 0.15     1.0 ± 0.0      22     0.04 ± 0.02        0.11 ± 0.03     0.30 ± 0.04       1.0 ± 0.0      89
+   SPaCE-alt                         0.22 ± 0.12     0.37 ± 0.15   0.46 ± 0.17     1.0 ± 0.0      21     0.05 ± 0.03        0.18 ± 0.06     0.50 ± 0.08       1.0 ± 0.0      69
+   SPDL                              0.34 ± 0.16     0.45 ± 0.17   0.52 ± 0.17     1.0 ± 0.0      23     0.07 ± 0.02        0.29 ± 0.04     0.69 ± 0.05       1.0 ± 0.0      81
+   PLR                               0.32 ± 0.12     0.47 ± 0.15   0.69 ± 0.13     1.0 ± 0.0      20     0.05 ± 0.03        0.23 ± 0.05     0.70 ± 0.04       1.0 ± 0.0      79
+
+   IID                               0.27 ± 0.15     0.34 ± 0.17   0.36 ± 0.19     1.0 ± 0.0      20     0.03 ± 0.02        0.15 ± 0.06     0.64 ± 0.08       1.0 ± 0.0      34
+   Easy                              0.37 ± 0.13     0.44 ± 0.12   0.50 ± 0.11 17.1 ± 2.3       154      0.04 ± 0.01        0.07 ± 0.02     0.11 ± 0.03 22.6 ± 0.9          126
+   Hard                              0.01 ± 0.01     0.00 ± 0.00   0.01 ± 0.01 37.0 ± 0.7       332      0.01 ± 0.00        0.01 ± 0.00     0.01 ± 0.00 35.2 ± 3.9          197
+
+
+Figure 3: Comparison of different curriculum strategies described in Section 4.2 under the following metrics:
+(i) performance (mean reward ± t×standard error, where t is the value from the t-distribution table for
+95% confidence (Beyer, 2019)) of the RL agent at 0.25, 0.5, and 1 million training steps; (ii) total number
+of environment steps incurred at the end of 1 million training steps (this captures the sample efficiency of
+a curriculum strategy); (iii) total clock time in minutes at the end of 1 million training steps (this captures
+the computational efficiency of a curriculum strategy).
+
+
+mance, its teacher component requires a lot of additional environment steps. Regarding the prototypical
+baselines in Figure 3, we make the following observations: (a) IID is a strong baseline in terms of sample
+and computational efficiency; however, its performance tends to be unstable in PointMass-s environment
+because of high randomness; (b) Easy performs well in PointMass-s because of the presence of easy tasks
+in the task space of this environment, but, performs quite poorly in BasicKarel; (c) Hard consistently
+fails in both the environments.
+Ablation and robustness experiments. We conduct additional experiments to evaluate the robustness of
+ProCuRL-val w.r.t. different values of β and different -level noise in Vt (s) values. The results are reported
+in the appendix. From the reported results, we note that picking a value for β in the range from 10 to 30 leads
+
+
+                                                                                        9
+                                             P RO C U RL- ENV                                         P RO C U RL- ENV                                                   P RO C U RL- ENV
+                                             P RO C U RL- VAL                                         P RO C U RL- VAL                                                   P RO C U RL- VAL
+                                             IID                                                      IID                                                                IID
+
+                                                                                        5.3                                                                2.2
+                  2.4
+
+
+
+
+ C-GatePosition
+                                                                                        5.0                                                                2.0
+
+
+
+                                                                          C-GateWidth                                                         C-Friction
+                  2.2                                                                   4.7
+                                                                                                                                                           1.8
+                                                                                        4.4
+                  2.0                                                                   4.1                                                                1.6
+
+                                                                                        3.8                                                                1.4
+                  1.8
+                                                                                        3.5
+                                                                                                                                                           1.2
+                      0.0              0.2    0.4     0.6   0.8 1.0                       0.0   0.2    0.4           0.6          0.8 1.0                    0.0   0.2     0.4   0.6   0.8 1.0                           (d) At 0.25M                  (e) At 0.5M                    (f) At 0.75M
+                                                Steps          ×106                                      Steps                       ×106                                   Steps         ×106
+
+ (a) C-GatePosition                                                             (b) C-GateWidth                                                             (c) C-Friction
+
+Figure 4: (a-c) Curriculum visualization of ProCuRL-env, ProCuRL-val, and IID in the PointMass-s
+environment; these plots show the moving average variation of the context variables of every 100 tasks picked
+by curriculum strategies during the training process (a picked task involves multiple training steps shown
+on the x-axis of plots). The increasing trend in (a) corresponds to a preference shift towards tasks with the
+gate positioned closer to the edges; the decreasing trend in (b) corresponds to a shift towards tasks with
+narrower gates. (d-f) Illustrative tasks used during the training process for ProCuRL-val (M is 106 ).
+
+                                                    P RO C U RL- ENV                                                                    P RO C U RL- ENV                                                                     P RO C U RL- ENV                                     P RO C U RL- ENV
+                                                    P RO C U RL- VAL                                                                    P RO C U RL- VAL                                                                     P RO C U RL- VAL                                     P RO C U RL- VAL
+                                                    IID                                                                                 IID                                                                                  IID                                                  IID
+                                 5.4                                                                                                                                                                              0.60                                                 6.30
+                                                                                                                           0.75
+
+
+
+
+                                                                                                                                                                                             C-DistractorMarker
+                                                                                                                                                                                                                  0.58                                                 6.25
+                                 5.2
+
+
+
+
+                                                                                                          C-MarkerAction
+                                                                                                                           0.70
+
+
+
+                  C-TrajLength
+                                                                                                                                                                                                                  0.56                                                 6.20
+
+
+                                                                                                                                                                                                                                                             C-Walls
+                                 5.0                                                                                                                                                                              0.54                                                 6.15
+                                                                                                                           0.65
+                                                                                                                                                                                                                  0.52                                                 6.10
+                                 4.8                                                                                       0.60
+                                                                                                                                                                                                                  0.50                                                 6.05
+                                 4.6                                                                                       0.55                                                                                   0.48                                                 6.00
+                                                                                                                                                                                                                                                                       5.95
+                                 4.4                                                                                                                                                                              0.46
+                                                                                                                           0.50                                                                                                                                        5.90
+                                   0.0         0.5      1.0     1.5     2.0                                                   0.0     0.5    1.0             1.5     2.0                                             0.0   0.5    1.0    1.5     2.0                      0.0   0.5     1.0    1.5     2.0
+                                                       Steps          ×106                                                                  Steps                  ×106                                                          Steps         ×106                                    Steps         ×106
+
+                             (a) C-TrajLength                                                                (b) C-MarkerAction                                                             (c) C-DistractorMarker                                                            (d) C-Walls
+
+
+
+
+                                 (e) At 0.1M                                                    (f) At 0.25M                                                             (g) At 0.5M                                               (h) At 0.75M                                 (i) At 1.5M
+
+Figure 5: (a-d) Curriculum visualization of ProCuRL-env, ProCuRL-val, and IID in the BasicKarel
+environment; these plots show the moving average variation of the context variables of every 500 tasks picked.
+The increasing trends in (a-d) correspond to a preference towards tasks: (a) with longer trajectories, (b)
+requiring a marker action, (c) with more distractor markers, and (d) with more walls. (e-i) Illustrative
+tasks used during the training process at different steps for ProCuRL-val (M is 106 ).
+
+
+to competitive performance, and ProCuRL-val is robust even for noise levels up to  = 0.2. Further, we con-
+duct an ablation study on the form of our curriculum objective presented in Eq. 1. More specifically, we con-
+                                                                              (0)
+sider the following generalized variant of Eq. 1 with parameters γ1 and γ2 : st ← arg maxs∈Sinit PoSt (s)·(γ1 ·
+PoS∗ (s)−γ2 ·PoSt (s)) . In our experiments, we consider the following range of γ2 /γ1 ∈ {0.6, 0.8, 1.0, 1.2, 1.4}.
+                       
+
+The results are reported in the appendix. From the reported results, we note that our default curriculum
+strategy in Eq. 1 (corresponding to γ2 /γ1 = 1.0) leads to competitive performance.
+
+
+5                           Concluding Discussions
+
+We proposed a novel curriculum strategy for deep RL agents inspired by the ZPD concept. We mathemati-
+cally derived our strategy by analyzing simple learning settings and empirically demonstrated its effectiveness
+
+
+                                                                                                                                                                                  10
+in a variety of complex domains. Here, we discuss a few limitations of our work and outline a plan on how to
+address them in future work. First, experimental results show that different variants of our proposed curricu-
+lum provide an inherent trade-off between runtime and performance; it would be interesting to systematically
+study these variants to obtain a more effective curriculum strategy across different metrics. Second, it would
+be interesting to extend our curriculum strategy to sparse reward environments with high-dimensional con-
+text space; in particular, our curriculum strategy requires estimating the probability of success of all tasks
+in the pool when sampling a new task which is challenging in these environments. Third, extending the
+theoretical analysis of the curriculum strategy from independent task settings to correlated task settings
+would be an interesting avenue to explore; this could involve developing a generalized version of ProCuRL
+curriculum strategy using a distance metric over the context space (Klink et al., 2022; Huang et al., 2022).
+
+Acknowledgments
+
+Parameswaran Kamalaruban acknowledges support from The Alan Turing Institute. Funded/Co-funded
+by the European Union (ERC, TOPS, 101039090). Views and opinions expressed are however those of the
+author(s) only and do not necessarily reflect those of the European Union or the European Research Council.
+Neither the European Union nor the granting authority can be held responsible for them.
+
+References
+Marcin Andrychowicz, Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob McGrew,
+ Josh Tobin, Pieter Abbeel, and Wojciech Zaremba. Hindsight Experience Replay. In NeurIPS, 2017.
+
+Minoru Asada, Shoichi Noda, Sukoya Tawaratsumida, and Koh Hosoda. Purposive Behavior Acquisition for
+ a Real Robot by Vision-based Reinforcement Learning. Machine learning, 23(2-3):279–303, 1996.
+
+Adrien Baranes and Pierre-Yves Oudeyer. Active Learning of Inverse Models with Intrinsically Motivated
+  Goal Exploration in Robots. Robotics and Autonomous Systems, 61(1):49–73, 2013.
+
+Yoshua Bengio, Jérôme Louradour, Ronan Collobert, and Jason Weston. Curriculum Learning. In ICML,
+  2009.
+
+William H Beyer. Handbook of Tables for Probability and Statistics. CRC Press, 2019.
+
+Rudy Bunel, Matthew J. Hausknecht, Jacob Devlin, Rishabh Singh, and Pushmeet Kohli. Leveraging
+  Grammar and Reinforcement Learning for Neural Program Synthesis. In ICLR, 2018.
+
+Seth Chaiklin. The Zone of Proximal Development in Vygotsky’s Analysis of Learning and Instruction.
+  Vygotsky’s Educational Theory in Cultural Context, pp. 39, 2003.
+
+Patrick Dendorfer, Aljosa Osep, and Laura Leal-Taixé. Goal-GAN: Multimodal Trajectory Prediction based
+  on Goal Position Estimation. In ACCV, 2020.
+
+Michael Dennis, Natasha Jaques, Eugene Vinitsky, Alexandre Bayen, Stuart Russell, Andrew Critch, and
+ Sergey Levine. Emergent Complexity and Zero-shot Transfer via Unsupervised Environment Design. In
+ NeurIPS, 2020.
+
+Yiming Ding, Carlos Florensa, Pieter Abbeel, and Mariano Phielipp. Goal-conditioned Imitation Learning.
+  In NeurIPS, 2019.
+
+Theresa Eimer, André Biedenkapp, Frank Hutter, and Marius Lindauer. Self-Paced Context Evaluation for
+  Contextual Reinforcement Learning. In ICML, 2021.
+
+Jeffrey L Elman. Learning and Development in Neural Networks: The Importance of Starting Small. Cog-
+  nition, 48(1):71–99, 1993.
+
+Benjamin Eysenbach, Tianjun Zhang, Sergey Levine, and Ruslan Salakhutdinov. Contrastive Learning as
+  Goal-conditioned Reinforcement Learning. In NeurIPS, 2022.
+
+
+                                                     11
+Carlos Florensa, David Held, Markus Wulfmeier, Michael Zhang, and Pieter Abbeel. Reverse Curriculum
+  Generation for Reinforcement Learning. In CORL, 2017.
+
+Carlos Florensa, David Held, Xinyang Geng, and Pieter Abbeel. Automatic Goal Generation for Reinforce-
+  ment Learning Agents. In ICML, 2018.
+
+Alex Graves, Marc G Bellemare, Jacob Menick, Rémi Munos, and Koray Kavukcuoglu. Automated Curricu-
+  lum Learning for Neural Networks. In ICML, 2017.
+
+Assaf Hallak, Dotan Di Castro, and Shie Mannor.         Contextual Markov Decision Processes.      CoRR,
+  abs/1502.02259, 2015.
+
+Peide Huang, Mengdi Xu, Jiacheng Zhu, Laixi Shi, Fei Fang, and Ding Zhao. Curriculum Reinforcement
+  Learning using Optimal Transport via Gradual Domain Adaptation. In NeurIPS, 2022.
+
+Lu Jiang, Deyu Meng, Qian Zhao, Shiguang Shan, and Alexander G Hauptmann. Self-Paced Curriculum
+  Learning. In AAAI, 2015.
+
+Minqi Jiang, Michael Dennis, Jack Parker-Holder, Jakob Foerster, Edward Grefenstette, and Tim Rock-
+ täschel. Replay-Guided Adversarial Environment Design. In NeurIPS, 2021a.
+
+Minqi Jiang, Edward Grefenstette, and Tim Rocktäschel. Prioritized Level Replay. In ICML, 2021b.
+
+Parameswaran Kamalaruban, Rati Devidze, Volkan Cevher, and Adish Singla. Interactive Teaching Algo-
+  rithms for Inverse Reinforcement Learning. In IJCAI, 2019.
+
+Robert Kirk, Amy Zhang, Edward Grefenstette, and Tim Rocktäschel. A Survey of Generalisation in Deep
+  Reinforcement Learning. CoRR, abs/2111.09794, 2021.
+
+Pascal Klink, Hany Abdulsamad, Boris Belousov, and Jan Peters. Self-Paced Contextual Reinforcement
+  Learning. In CORL, 2020a.
+
+Pascal Klink, Carlo D’Eramo, Jan R Peters, and Joni Pajarinen. Self-Paced Deep Reinforcement Learning.
+  In NeurIPS, 2020b.
+
+Pascal Klink, Hany Abdulsamad, Boris Belousov, Carlo D’Eramo, Jan Peters, and Joni Pajarinen. A
+  Probabilistic Interpretation of Self-Paced Learning with Applications to Reinforcement Learning. Journal
+  of Machine Learning Research, 22:182–1, 2021.
+
+Pascal Klink, Haoyi Yang, Carlo D’Eramo, Jan Peters, and Joni Pajarinen. Curriculum Reinforcement
+  Learning via Constrained Optimal Transport. In ICML, 2022.
+
+M Pawan Kumar, Benjamin Packer, and Daphne Koller. Self-Paced Learning for Latent Variable Models.
+ In NeurIPS, 2010.
+
+Sergey Levine, Chelsea Finn, Trevor Darrell, and Pieter Abbeel. End-to-end Training of Deep Visuomotor
+  Policies. Journal of Machine Learning Research, 17(1):1334–1373, 2016.
+
+Timothy P Lillicrap, Jonathan J Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Sil-
+  ver, and Daan Wierstra. Continuous Control with Deep Reinforcement Learning. CoRR, abs/1509.02971,
+  2015.
+
+X. Lin, H. Baweja, and D. Held. Reinforcement Learning without Ground-Truth State. ICML’19 Workshop
+  on Multi-Task and Lifelong Reinforcement Learning, 2019.
+
+Weiyang Liu, Bo Dai, Ahmad Humayun, Charlene Tay, Chen Yu, Linda B Smith, James M Rehg, and
+ Le Song. Iterative Machine Teaching. In ICML, 2017.
+
+Tambet Matiisen, Avital Oliver, Taco Cohen, and John Schulman. Teacher–Student Curriculum Learning.
+  IEEE Transactions on Neural Networks and Learning Systems, 31(9):3732–3740, 2019.
+
+
+                                                   12
+Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu, Joel Veness, Marc G Bellemare, Alex
+  Graves, Martin Riedmiller, Andreas K Fidjeland, Georg Ostrovski, et al. Human-Level Control Through
+  Deep Reinforcement Learning. Nature, 518(7540):529–533, 2015.
+
+Sanmit Narvekar and Peter Stone. Learning Curriculum Policies for Reinforcement Learning. In AAMAS,
+  2019.
+
+Sanmit Narvekar, Jivko Sinapov, and Peter Stone. Autonomous Task Sequencing for Customized Curriculum
+  Design in Reinforcement Learning. In IJCAI, 2017.
+
+Sanmit Narvekar, Bei Peng, Matteo Leonetti, Jivko Sinapov, Matthew E Taylor, and Peter Stone. Curriculum
+  Learning for Reinforcement Learning Domains: A Framework and Survey. Journal of Machine Learning
+  Research, 21:1–50, 2020.
+
+Pierre-Yves Oudeyer, Frdric Kaplan, and Verena V Hafner. Intrinsic Motivation Systems for Autonomous
+  Mental Development. IEEE Transactions on Evolutionary Computation, 11(2):265–286, 2007.
+
+Jack Parker-Holder, Minqi Jiang, Michael Dennis, Mikayel Samvelyan, Jakob Foerster, Edward Grefenstette,
+  and Tim Rocktäschel. Evolving Curricula with Regret-Based Environment Design. CoRR, abs/2203.01302,
+  2022.
+
+Rémy Portelas, Cédric Colas, Lilian Weng, Katja Hofmann, and Pierre-Yves Oudeyer. Automatic Curriculum
+  Learning for Deep RL: A Short Survey. In IJCAI, 2021.
+
+Sébastien Racanière, Andrew K Lampinen, Adam Santoro, David P Reichert, Vlad Firoiu, and Timothy P
+  Lillicrap. Automated Curricula Through Setter-Solver Interactions. In ICLR, 2020.
+
+Antonin Raffin, Ashley Hill, Adam Gleave, Anssi Kanervisto, Maximilian Ernestus, and Noah Dormann.
+ Stable-Baselines3: Reliable Reinforcement Learning Implementations. Journal of Machine Learning Re-
+ search, 22(268):1–8, 2021.
+
+Cinjon Resnick, Roberta Raileanu, Sanyam Kapoor, Alexander Peysakhovich, Kyunghyun Cho, and Joan
+  Bruna. Backplay:“ Man muss immer umkehren”. CoRR, abs/1807.06919, 2018.
+
+Martin A Riedmiller, Roland Hafner, Thomas Lampe, Michael Neunert, Jonas Degrave, Tom Van de Wiele,
+ Vlad Mnih, Nicolas Heess, and Jost Tobias Springenberg. Learning by Playing Solving Sparse Reward
+ Tasks from Scratch. In ICML, 2018.
+
+Tim Salimans and Richard Chen. Learning Montezuma’s Revenge from a Single Demonstration. CoRR,
+  abs/1812.03381, 2018.
+
+Jürgen Schmidhuber. Powerplay: Training an Increasingly General Problem Solver by Continually Searching
+  for the Simplest Still Unsolvable Problem. Frontiers in Psychology, 4:313, 2013.
+
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal Policy Opti-
+  mization Algorithms. CoRR, abs/1707.06347, 2017.
+
+David Silver, Julian Schrittwieser, Karen Simonyan, Ioannis Antonoglou, Aja Huang, Arthur Guez, Thomas
+  Hubert, Lucas Baker, Matthew Lai, Adrian Bolton, et al. Mastering the Game of Go Without Human
+  Knowledge. Nature, 550(7676):354–359, 2017.
+
+Felipe Petroski Such, Aditya Rawal, Joel Lehman, Kenneth Stanley, and Jeffrey Clune. Generative Teaching
+  Networks: Accelerating Neural Architecture Search by Learning to Generate Synthetic Training Data. In
+  ICML, 2020.
+
+Sainbayar Sukhbaatar, Zeming Lin, Ilya Kostrikov, Gabriel Synnaeve, Arthur Szlam, and Robert Fergus.
+  Intrinsic Motivation and Automatic Curricula via Asymmetric Self-Play. In ICLR, 2018.
+
+Richard S Sutton, David McAllester, Satinder Singh, and Yishay Mansour. Policy Gradient Methods for
+  Reinforcement Learning with Function Approximation. In NeurIPS, 1999.
+
+
+                                                  13
+Emanuel Todorov, Tom Erez, and Yuval Tassa. Mujoco: A Physics Engine for Model-based Control. In
+ IROS, 2012.
+Matteo Turchetta, Andrey Kolobov, Shital Shah, Andreas Krause, and Alekh Agarwal. Safe Reinforcement
+ Learning via Curriculum Induction. In NeurIPS, 2020.
+Lev Semenovich Vygotsky and Michael Cole. Mind in Society: Development of Higher Psychological Pro-
+  cesses. Harvard University Press, 1978.
+
+Daphna Weinshall and Dan Amir. Theory of Curriculum Learning with Convex Loss Functions. CoRR,
+ abs/1812.03472, 2018.
+Daphna Weinshall, Gad Cohen, and Dan Amir. Curriculum Learning by Transfer Learning: Theory and
+ Experiments with Deep Networks. In ICML, 2018.
+
+Lilian Weng. Curriculum for Reinforcement Learning. lilianweng.github.io, 2020.        URL https://
+  lilianweng.github.io/posts/2020-01-29-curriculum-rl/.
+Jan Wöhlke, Felix Schmitt, and Herke van Hoof. A Performance-Based Start State Curriculum Framework
+  for Reinforcement Learning. In AAMAS, 2020.
+
+Yuxin Wu and Yuandong Tian. Training Agent for First-Person Shooter Game with Actor-Critic Curriculum
+  Learning. In ICLR, 2016.
+Scott Cheng-Hsin Yang, Yue Yu, arash Givchi, Pei Wang, Wai Keen Vong, and Patrick Shafto. Optimal
+  Cooperative Inference. In AISTATS, 2018.
+Gaurav Raju Yengera, Rati Devidze, Parameswaran Kamalaruban, and Adish Singla. Curriculum Design
+ for Teaching via Demonstrations: Theory and Applications. In NeurIPS, 2021.
+Wojciech Zaremba and Ilya Sutskever. Learning to Execute. CoRR, abs/1410.4615, 2014.
+Yunzhi Zhang, Pieter Abbeel, and Lerrel Pinto. Automatic Curriculum Learning Through Value Disagree-
+  ment. In NeurIPS, 2020.
+
+Tianyi Zhou and Jeff Bilmes. Minimax Curriculum Learning: Machine Teaching with Desirable Difficulties
+  and Scheduled Diversity. In ICLR, 2018.
+Tianyi Zhou, Shengjie Wang, and Jeff Bilmes. Curriculum Learning by Optimizing Learning Dynamics. In
+  AISTATS, 2021.
+
+Xiaojin Zhu, Adish Singla, Sandra Zilles, and Anna N. Rafferty. An Overview of Machine Teaching. CoRR,
+  abs/1801.05927, 2018.
+Xiaotian Zou, Wei Ma, Zhenjun Ma, and Ryan S Baker. Towards Helping Teachers Select Optimal Content
+  for Students. In AIED, 2019.
+
+
+
+
+                                                 14
+A     Table of Contents
+
+In this section, we give a brief description of the content provided in the appendices of the paper.
+
+• Appendix B provides a proof for Theorem 1 and an additional theoretical justification for our curriculum
+  strategy. (Section 3.2)
+• Appendix C provides additional details and results for experimental evaluation. (Section 4)
+
+B     Theoretical Justifications for the Curriculum Strategy – Proof and Additional
+      Justification (Section 3.2)
+
+B.1    Proof of Theorem 1
+
+Proof. For the contextual bandit setting described in Section 3.2.1, the Reinforce learner’s update rule
+                                              (1)                  (0) (0)                           (0)
+reduces to the following: θt+1 ← θt + ηt · 1{st = g} · ∇θ log πθ (at |st ) θ=θt . In particular, for st = s
+                                                      
+      (0)
+and at      = a1 , we update:
+                                                                              (1)
+                                  θt+1 [s, a1 ] ← θt [s, a1 ] + ηt · 1{st           = g} · (1 − πθt (a1 |s))
+                                                                              (1)
+                                  θt+1 [s, a2 ] ←       θt [s, a2 ] − ηt · 1{st = g} · (1 − πθt (a1 |s))
+                                                  (0)            (0)                  (0)
+and we set θt+1 [s, ·] ← θt [s, ·] when st              6= s or at     6= a1 . Let st       = s, and consider the following:
+
+              ∆t (θt+1 θt , s, ξt )
+         = kθ∗ − θt k1 − kθ∗ − θt+1 k1
+         = kθ∗ [s, ·] − θt [s, ·]k1 − kθ∗ [s, ·] − θt+1 [s, ·]k1
+         = {θ∗ [s, a1 ] − θt [s, a1 ] + θt [s, a2 ] − θ∗ [s, a2 ]} − {θ∗ [s, a1 ] − θt+1 [s, a1 ] + θt+1 [s, a2 ] − θ∗ [s, a2 ]}
+         = θt+1 [s, a1 ] − θt [s, a1 ] + θt [s, a2 ] − θt+1 [s, a2 ]
+                           (0)           (1)
+         = 2 · ηt · 1{at         = a1 , st     = g} · (1 − πθt (a1 |s)).
+
+For the contextual bandit setting, the probability of success is given by PoSθ (s) = V πθ (s) = prand (s) ·
+πθ (a1 |s), ∀s ∈ S. We assume that ∃ θ∗ such that πθ∗ (a1 |s) → 1; here, πθ∗ is the target policy. With the
+above definition, the probability of success scores for any task associated with the starting state s ∈ Sinit
+w.r.t. the target and agent’s current policies (at any step t) are respectively given by PoS∗ (s) = PoSθ∗ (s) =
+prand (s) = p∗ and PoSt (s) = PoSθt (s) = prand (s) · πθt (a1 |s) = p. Now, we consider the following:
+
+                        Ct (s) = Eξt |s ∆t (θt+1 θt , s, ξt )
+                                                             
+                                        h                                                i
+                                                     (0)          (1)
+                               = Eξt |s 2 · ηt · 1{at = a1 , st = g} · (1 − πθt (a1 |s))
+                                        = 2 · ηt · prand (s) · πθt (a1 |s) · (1 − πθt (a1 |s))
+                                                                
+                                                               p
+                                        = 2 · ηt · p · 1 − ∗ .
+                                                              p
+
+
+
+B.2    Abstract Agent with Direct performance Parameterization
+
+We consider an abstract agent model with the following direct performance parameterization: for any θ ∈ Θ =
+      |S   |
+[0, 1] init , we have PoSθ (s) = θ[s], ∀s ∈ Sinit .5 Under this model, the agent’s current knowledge θt at step t is
+   5 In this setting, we abstract out the policy π and directly map the “parameter” θ to a vector of “performance on tasks”
+                                                  θ
+PoSθ . Then, we choose the parameter space as Θ = [0, 1]Sinit (where d = Sinit ) and define PoSθ = θ. Thus, an update in the
+“parameter” θ is equivalent to an update in the “performance on tasks” PoSθ .
+
+
+                                                                        15
+encoded directly by its probability of success scores {PoSθt (s) | s ∈ Sinit }. The target knowledge parameter θ∗
+is given by {PoSθ∗ (s) | s ∈ Sinit }. Under the independent task setting, we design an update rule for the agent
+                                                                                             (0)
+to reflect the characteristics of the policy gradient style update. In particular, for s = st ∈ Sinit , we update
+
+            θt+1 [s] ← θt [s] + α · succ(ξt ; s) · (θ∗ [s] − θt [s]) + β · (1 − succ(ξt ; s)) · (θ∗ [s] − θt [s]),
+                                                                 (0)
+where α, β ∈ [0, 1] and α > β. For s ∈ Sinit and s 6= st , we maintain θt+1 [s] ← θt [s]. Importantly, α > β
+implies that the agent’s current knowledge for the picked task is updated more when the agent succeeds
+in that task compared to the failure case. The update rule captures the following idea: when picking a
+task that is “too easy”, the progress in θt towards θ∗ is minimal since (θ∗ [s] − θt [s]) is low; similarly, when
+picking a task that is “too hard”, the progress in θt towards θ∗ is minimal since β · (θ∗ [s] − θt [s]) is low
+for β  1. This idea aligns with the ZPD concept in terms of the learning progress (Vygotsky & Cole,
+1978; Chaiklin, 2003). For the abstract agent under the above setting, the following theorem quantifies the
+expected improvement in the training objective at step t:
+Theorem 2. Consider the abstract agent with direct performance parameterization under the independent
+                                      (0)                                         (0)                 (0)
+task setting as described above. Let st be the task picked at step t with PoSθt (st ) = p and PoSθ∗ (st ) = p∗ .
+                      (0)
+Then, we have: Ct (st ) = α · p · (p∗ − p) + β · (1 − p) · (p∗ − p).
+
+            (0)
+Proof. Let st     = s ∈ Sinit , and consider the following:
+
+           ∆t (θt+1 θt , s, ξt ) = kθ∗ − θt k1 − kθ∗ − θt+1 k1
+                                = θt+1 [s] − θt [s]
+                                = α · succ(ξt ; s) · (θ∗ [s] − θt [s]) + β · (1 − succ(ξt ; s)) · (θ∗ [s] − θt [s]).
+
+For the abstract learner model defined in Section B.2, we have PoSθ (s) = V πθ (s) = θ[s], for any s ∈ Sinit .
+Then, the probability of success scores for any task s ∈ Sinit w.r.t. the target and agent’s current policies (at
+any step t) are respectively given by PoS∗ (s) = PoSθ∗ (s) = θ∗ [s] = p∗ and PoSt (s) = PoSθt (s) = θt [s] = p.
+Now, we consider the following:
+
+              Ct (s) = Eξt |s ∆t (θt+1 θt , s, ξt )
+                                                  
+
+                      = Eξt |s [α · succ(ξt ; s) · (θ∗ [s] − θt [s]) + β · (1 − succ(ξt ; s)) · (θ∗ [s] − θt [s])]
+                      = α · θt [s] · (θ∗ [s] − θt [s]) + β · (1 − θt [s]) · (θ∗ [s] − θt [s])
+                      = α · p · (p∗ − p) + β · (1 − p) · (p∗ − p).
+
+
+
+For the above setting with α = 1 and β = 0, maxs∈Sinit Ct (s) is equivalent to maxs∈Sinit PoSt (s) · (PoS∗ (s) −
+PoSt (s)). This, in turn, implies that the curriculum strategy given in Eq. 1 can be seen as greedily optimizing
+the expected improvement in the training objective at step t given in Eq. 3.
+
+C     Experimental Evaluation – Additional Details (Section 4)
+
+C.1   Environments
+
+BasicKarel. This environment is inspired by the Karel program synthesis domain (Bunel et al., 2018),
+where the goal of an agent is to transform an initial grid into a final grid configuration by a sequence
+of commands. In the BasicKarel environment, we do not allow any programming constructs such
+as conditionals or loops and limit the commands to the “basic” actions given by the action space
+A = {move, turnLeft, turnRight, pickMarker, putMarker, finish}. A task in this environment corre-
+sponds to a pair of initial grid and final grid configurations. It consists of an avatar, walls, markers, and
+empty grid cells, and each element has a specific location in the grid. The avatar is characterized by its
+current location and orientation. Its orientation can be any direction {North, East, South, West}, and
+its location can be any grid cell, except from grid cells where a wall is located. The state space S of
+
+
+                                                              16
+BasicKarel is any possible configuration of the avatar, walls, and markers in a pair of grids. The avatar
+can move around the grid and is directed via the basic Karel commands, i.e., the action space A. While the
+avatar moves, if it hits a wall or the grid boundary, it “crashes” and the episode terminates. If pickMarker is
+selected when no marker is present, the avatar “crashes” and the program ends. Likewise, if the putMarker
+action is taken and a marker is already present, the avatar “crashes” and the program terminates. The
+finish action indicates the end of the sequence of actions, i.e., the episode ends after encountering this
+action. To successfully solve a BasicKarel task, the sequence of actions must end with a finish, and
+there should be no termination via “crashes”. Based on this environment, we created a multi-task dataset
+that consists of 24000 training tasks and 2400 test tasks. All the generated tasks have a grid size of 4 × 4.
+
+C.2   Evaluation Setup
+
+Hyperparameters of PPO method. We use the PPO method from Stable-Baselines3 library with a
+basic MLP policy for all the conducted experiments (Schulman et al., 2017; Raffin et al., 2021). For the
+PointMass-S, PointMass-D, and BallCatching environments, the MLP policy has a shared layer with
+64 units and a second layer with separate 64 units for the policy and 64 units for the value function. For
+the BasicKarel environment, we use two separate layers of size [512, 256] for the policy network and
+two layers of size [256, 128] for the value function network. For the AntGoal environment, we use two
+separate layers of size [512, 512] for the policy network and two layers of size [512, 512] for the value function
+network. For all the experiments, ReLU is the chosen activation function. In Figure 6, we report the PPO
+hyperparameters used in the experiments. For each environment, all the hyperparameters are consistent
+across all the different curriculum strategies.
+
+                Hyperparameters      PointMass-s PointMass-d BasicKarel BallCatching AntGoal
+
+                            Nsteps         1024         1024         2048           5120       1024
+                                γ           0.99         0.95         0.99           0.99      0.99
+                           Nepochs           10             10         10             10         10
+                     learning_rate         3e−4         3e−4         3e−4           3e−4       2e−5
+                       batch_size            64             64         64             64         32
+                         ent_coef             0             0           0              0       5e−7
+                       clip_range            0.2          0.2          0.2            0.2       0.1
+                      gae_lambda            0.95         0.95         0.95           0.95       0.8
+                  max_grad_norm              0.5          0.5          0.5            0.5       0.6
+                          vf_coef            0.5          0.5          0.5            0.5       0.7
+
+
+ Figure 6: Different hyperparameters of the PPO method used in the experiments for each environment.
+
+Compute resources. All the experiments were conducted on a cluster of machines with CPUs of model
+Intel Xeon Gold 6134M CPU @ 3.20GHz.
+
+C.3   Curriculum Strategies Evaluated
+
+Variants of the curriculum strategy. Algorithm 2 provides a complete pseudo-code for the RL agent
+using PPO method when trained with ProCuRL-val in the general setting of non-binary or dense rewards
+(see Section 3.3). In Eq. 1 and Algorithm 1, we defined t at an episodic level; however, in Algorithm 2,
+t denotes an environment step (in the context of the PPO method). For ProCuRL-env, in line 24 of
+Algorithm 2, we estimate the probability of success for all the tasks using the additional rollouts obtained
+by executing the current policy in M.
+To achieve the constrained budget of evaluation steps in ProCuRL-envx (with x ∈ {2, 4}), we reduce
+the frequency of updating PoSt since this is the most expensive operation for ProCuRL-env requiring
+additional rollouts for each task. On the other hand, ProCuRL-val updates PoSt by using the values
+
+
+                                                       17
+obtained from forward-pass on the critic model – this update happens whenever the critic model is updated
+(every 2048 training steps for BasicKarel). This higher frequency of updating PoSt in ProCuRL-val is
+why it is slower than ProCuRL-envx (with x ∈ {2, 4}) for BasicKarel. Note that the relative frequency
+of updates for PointMass is different in comparison to BasicKarel because of very different pool sizes.
+Hence, the behavior in total clock times is different.
+
+Algorithm 2 RL agent using PPO method when trained with ProCuRL-val in the general setting
+ 1: Input: RL algorithm PPO, rollout buffer D
+ 2: Hyperparameters: policy update frequency Nsteps , number of epochs Nepochs , number of minibatches
+      Nbatch , parameter β, Vmin , and Vmax
+ 3: Initialization: randomly initialize policy π1 and critic V1 ; set normalized probability of success scores
+    V 1 (s) = 0 and PoS∗ (s) = 1, ∀s ∈ Sinit
+ 4: for t = 1, . . . , T do
+ 5:      // add an environment step to the buffer
+ 6:      observe the state st , and select the action at ∼ πt (st )
+ 7:      execute the action at in the environment
+ 8:      observe reward rt , next state st+1 , and done signal dt+1 to indicate whether st+1 is terminal
+ 9:      store (st , at , rt , st+1 , dt+1 ) in the rollout buffer D
+10:      // choose new task when the current task/episode ends
+11:      if dt+1 = true then
+12:          reset the environment state 
+             sample next task st+1 from P st+1 = s ∝ exp β · V t (s) · (1 − V t (s))
+                                                                                    
+13:
+14:   // policy and V t (s) update
+15:   if t%Nsteps = 0 then
+16:       set π 0 ← πt and V 0 ← Vt
+17:       for e = 1, . . . , Nepochs do
+18:           for b = 1, . . . , Nbatch do
+19:               sample b-th minibatch of Nsteps /Nbatch transitions B = {(s, a, r, s0 , d)} from D
+20:               update policy and critic using PPO algorithm π 0 , V 0 ← PPO(π 0 , V 0 , B)
+21:       set πt+1 ← π 0 and Vt+1 ← V 0
+22:       empty the rollout buffer D
+23:       // normalization for the environments with non-binary or dense rewards
+24:       update V t+1 (s) ← VVt+1    (s)−Vmin
+                                    max −Vmin
+                                               , ∀s ∈ Sinit using forward passes on critic
+25:   else
+26:       maintain the previous values πt+1 ← πt , Vt+1 ← Vt , and V t+1 ← V t
+27: Output: policy πT
+
+
+Hyperparameters of curriculum strategies. In Figure 7, we report the hyperparameters of each
+curriculum strategy used in the experiments (for each environment). Below, we provide a short description
+of these hyperparameters:
+
+1. β parameter controls the stochasticity of the softmax selection.
+2. Npos parameter controls the frequency at which V t is updated. For ProCuRL-env, we set Npos higher
+   than Nsteps since obtaining rollouts to update V t (s) is expensive. For all the other curriculum strategies,
+   we set Npos = Nsteps . For SPaCE, Npos controls how frequently the current task dataset is updated based
+   on their curriculum. For SPDL, Npos controls how often we perform the optimization step to update the
+   distribution for selecting tasks.
+3. crollouts determines the number of additional rollouts required to compute the probability of success score
+   for each task (only for ProCuRL-env).
+4. {Vmin , Vmax } are used in the environments with non-binary or dense rewards to obtain the normalized
+   values V (s) (see Section 3.3). In Figure 7, {Vmin,t , Vmax,t } denote the min-max values of the critic for
+   states Sinit at step t.
+
+
+                                                      18
+5. η and κ parameters as used in SPaCE (Eimer et al., 2021).
+6. VLB performance threshold as used in SPDL (Klink et al., 2021).
+7. ρ staleness coefficient and βPLR temperature parameter for score prioritization as used in PLR (Jiang
+   et al., 2021b).
+
+        Method         Hyperparameters        PointMass-s   PointMass-d BasicKarel BallCatching AntGoal
+                                       β               20               10         10         10         10
+        ProCuRL-env
+                                     Npos            5120             5120     102400      20480     81920
+                                  crollouts            20               20         20         20         20
+                             {Vmin , Vmax }           n/a {Vmin,t , Vmax,t }      n/a        n/a   {0, 300}
+                                         β             20               10        10          10         10
+        ProCuRL-val
+                                      Npos           1024             1024      2048       5120        1024
+                             {Vmin , Vmax }           n/a {Vmin,t , Vmax,t }     n/a     {0, 60}   {0, 300}
+                                         η            0.1               0.1      0.5         0.1       0.1
+        SPaCE
+                                         κ              1                 1       64           1         1
+                                     Npos            1024              1024     2048        5120      1024
+                                       β               20                10       10          10        10
+        SPaCE-alt
+                                     Npos            1024              1024     2048        5120      1024
+                                     VLB              0.5               3.5      0.5          30       100
+        SPDL
+                                     Npos            1024              1024     2048        5120      1024
+                                        ρ             0.5               0.9      0.9         0.7       0.3
+        PLR
+                                     βPLR             0.1               0.3      0.1         0.3       0.1
+                                     Npos            1024              1024     2048        5120      1024
+
+
+Figure 7: We present the hyperparameters of the different curriculum strategies for all five environments.
+For SPDL, we choose the best performing VLB in the non-binary environments from the following sets: set
+{1, 3.5, 10, 20, 30, 40} for PointMass-D; set {20, 25, 30, 35, 42.5} for BallCatching; set {50, 100, 200,
+300, 400} for AntGoal. For PLR, we choose the best performing pair (βPLR , ρ) for each environment from
+the set {0.1, 0.3, 0.5, 0.7, 0.9} × {0.1, 0.3, 0.5, 0.7, 0.9}.
+
+
+C.4   Additional Results
+
+Ablation and robustness experiments. We conduct additional experiments to evaluate the robustness of
+ProCuRL-val w.r.t. different values of β and different -level noise in Vt (s) values. The results are reported
+in Figure 8. Further, we conduct an ablation study on the form of our curriculum objective presented in
+Eq. 1. More specifically, we consider the following generalized variant of Eq. 1 with parameters γ1 and γ2 :
+                                                                                  
+                           (0)
+                          st ← arg max PoSt (s) · γ1 · PoS∗ (s) − γ2 · PoSt (s)                             (7)
+                                       s∈Sinit
+
+In our experiments, we consider the following range of γ2 /γ1 ∈ {0.6, 0.8, 1.0, 1.2, 1.4}. Our default curriculum
+strategy in Eq. 1 essentially corresponds to γ2 /γ1 = 1.0. The results are reported in Figure 9.
+Performance on test set. In Figure 10, we report the performance of the trained models in the training
+set and a test set for comparison purposes. For PointMass-S, we constructed a separate test set of 100
+tasks by uniformly picking tasks from the task space. For BasicKarel, we have a train and test dataset of
+24000 and 2400 tasks, respectively.
+Pool of harder tasks. We sought to assess the effectiveness of ProCuRL-val on tasks where IID does
+not perform well. To demonstrate this, we construct a more challenging set of tasks for the PointMass-
+s environment. We generate half of these tasks by uniformly sampling over the context space. The
+remaining tasks are sampled from a bi-modal Gaussian distribution, where the means of the contexts
+[C-GatePosition, C-GateWidth] are [−3, 1] and [3, 1] for the two modes, respectively. In Figure 11,
+we present the results for ProCuRL-val and IID, and in Figure 12 the different distributions.
+
+
+                                                            19
+                              Env
+                                                PointMass-s                           BasicKarel
+               Method
+               ProCuRL-val                      Performance                           Performance
+                                        0.25M        0.5M          1M         0.25M        0.5M          1M
+               β = 10               0.48 ± 0.17 0.58 ± 0.19 0.70 ± 0.18   0.06 ± 0.03 0.30 ± 0.08 0.71 ± 0.05
+               β = 15               0.42 ± 0.17 0.64 ± 0.17 0.74 ± 0.15   0.12 ± 0.04 0.38 ± 0.04 0.71 ± 0.05
+               β = 20               0.48 ± 0.15 0.64 ± 0.17 0.71 ± 0.18   0.18 ± 0.06 0.42 ± 0.06 0.75 ± 0.06
+               β = 25               0.45 ± 0.18 0.60 ± 0.19 0.65 ± 0.21   0.22 ± 0.03 0.38 ± 0.04 0.62 ± 0.05
+               β = 30               0.54 ± 0.18 0.64 ± 0.20 0.74 ± 0.19   0.20 ± 0.06 0.36 ± 0.07 0.67 ± 0.07
+
+                = 0.00             0.48 ± 0.15 0.64 ± 0.17 0.71 ± 0.18   0.06 ± 0.03 0.30 ± 0.08 0.71 ± 0.05
+                = 0.01             0.53 ± 0.18 0.62 ± 0.19 0.71 ± 0.20   0.06 ± 0.02 0.30 ± 0.06 0.69 ± 0.04
+                = 0.05             0.39 ± 0.16 0.60 ± 0.17 0.70 ± 0.20   0.06 ± 0.02 0.31 ± 0.06 0.72 ± 0.04
+                = 0.1              0.47 ± 0.17 0.59 ± 0.16 0.67 ± 0.18   0.06 ± 0.03 0.30 ± 0.07 0.69 ± 0.07
+                = 0.2              0.49 ± 0.16 0.61 ± 0.18 0.68 ± 0.18   0.04 ± 0.02 0.26 ± 0.08 0.74 ± 0.03
+
+
+Figure 8: Robustness of ProCuRL-val w.r.t. different values of β and different -level noise in Vt (s) values.
+We present the results for the PointMass-s environment and BasicKarel environment. We report the
+mean reward (± t×standard error, where t is the value from the t-distribution table for 95% confidence) at
+0.25, 0.5, and 1 million training steps averaged over 20 and 10 random seeds, respectively.
+
+
+
+
+                              Env
+                                                PointMass-s                           BasicKarel
+               Method
+               ProCuRL-val                      Performance                           Performance
+                                        0.25M        0.5M          1M         0.25M        0.5M          1M
+               γ2 /γ1 = 0.6         0.33 ± 0.14 0.50 ± 0.14 0.55 ± 0.13   0.08 ± 0.04 0.21 ± 0.07 0.41 ± 0.08
+               γ2 /γ1 = 0.8         0.26 ± 0.15 0.43 ± 0.17 0.55 ± 0.20   0.11 ± 0.03 0.36 ± 0.05 0.64 ± 0.07
+               γ2 /γ1 = 1.0         0.48 ± 0.15 0.64 ± 0.17 0.71 ± 0.18   0.06 ± 0.03 0.30 ± 0.08 0.71 ± 0.05
+               γ2 /γ1 = 1.2         0.42 ± 0.19 0.55 ± 0.19 0.65 ± 0.17   0.07 ± 0.04 0.30 ± 0.11 0.72 ± 0.08
+               γ2 /γ1 = 1.4         0.39 ± 0.16 0.59 ± 0.17 0.59 ± 0.15   0.04 ± 0.02 0.21 ± 0.08 0.71 ± 0.06
+
+
+Figure 9: Performance comparison of the generalized form of our curriculum strategy presented in Eq. 7
+w.r.t. different values of γ2 /γ1 . We present the results for the PointMass-s environment and BasicKarel
+environment. We report the mean reward (± t×standard error, where t is the value from the t-distribution
+table for 95% confidence) at 0.25, 0.5, and 1 million training steps averaged over 20 and 10 random seeds,
+respectively.
+
+
+
+
+                                                            20
+                                                           Env
+                                                                        PointMass-s                       BasicKarel
+                                             Method
+                                                                       Performance (1M)                 Performance (2M)
+                                                                   Train Set Test Set                  Train Set Test Set
+                                             ProCuRL-env                  0.84                 0.78          0.92       0.90
+                                             ProCuRL-val                  0.71                 0.65          0.91       0.90
+                                             SPaCE                        0.34                 0.28          0.65       0.64
+                                             SPaCE-alt                    0.47                 0.40          0.82       0.81
+                                             SPDL                         0.55                 0.48          0.88       0.87
+                                             PLR                          0.69                 0.60          0.88       0.88
+                                             IID                          0.39                 0.32          0.90       0.89
+
+
+Figure 10: Performance of the curriculum strategies, discussed in Section 4.2, in the training set and a test
+set. We report the performance, i.e., expected mean reward, of the best model obtained during training for
+all the methods. The training steps to achieve this performance is shown in parenthesis for each environment
+(M is 106 steps). We present the results for the PointMass-s environment and BasicKarel environment
+and report the mean reward averaged over 20 and 10 random seeds, respectively.
+
+
+
+                                                   Env
+                                                                                        PointMass-s
+                                    Method
+                                                                                           Performance
+                                                               0.25M         0.5M                       1M           1.5M        2M
+                                    ProCuRL-val          0.07 ± 0.07 0.19 ± 0.11 0.40 ± 0.15 0.46 ± 0.16 0.49 ± 0.16
+                                    IID                  0.01 ± 0.01 0.03 ± 0.03 0.05 ± 0.06 0.04 ± 0.04 0.03 ± 0.03
+
+
+Figure 11: Performance comparison of our curriculum strategy, ProCuRL-val, and IID in a pool of harder
+tasks for the PointMass-s environment. We report the mean reward (± t×standard error, where t is
+the value from the t-distribution table for 95% confidence) at 0.25, 0.5, 1, 1.5 and 2 million training steps
+averaged over 20 random seeds.
+
+
+
+               8                                                  0.014
+                                                                                                8
+                                                                                                                                                 0.150
+                                                                  0.013
+              6.5                                                                              6.5
+                                                                  0.012                                                                          0.125
+
+
+
+
+C-GateWidth                                                                      C-GateWidth
+               5                                                  0.011                         5                                                0.100
+
+                                                                  0.010                                                                          0.075
+              3.5                                                                              3.5
+                                                                  0.009                                                                          0.050
+               2                                                  0.008                         2
+                                                                                                                                                 0.025
+                                                                  0.007
+              0.5                                                                              0.5                                               0.000
+                 -4         -2         0        2          4                                      -4          -2          0        2     4
+                                 C-GatePosition                                                                     C-GatePosition
+                    (a) Distribution for uniform pool of tasks                                       (b) Distribution for harder pool of tasks
+
+Figure 12: (a) shows the distribution of context values used to generate the uniform pool of tasks for the
+main experimental; (b) the distribution of context values that is used to generate a harder pool of tasks.
+
+
+
+                                                                            21
+

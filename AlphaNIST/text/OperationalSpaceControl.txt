@@ -1,0 +1,1399 @@
+IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987 43
+
+A Unified Approach for Motion and Force Control
+
+of Robot Manipulators:
+
+The Operational Space
+
+Formulation
+
+OUSSAMA KHATIB, MEMBER, IEEE
+
+Abstract—A framework for the analysis and control of manipulator
+systems with respect to the dynamic behavior of their end-effectors is
+developed. First, issues related to the description of end-effector tasks
+that involve constrained motion and active force control are discussed.
+The fundamentals of the operational space formulation are then pre-
+sented, and the unified approach for motion and force control is
+developed. The extension of this formulation to redundant manipulator
+systems is also presented, constructing the end-effector equations of
+motion and describing their behavior with respect to joint forces. These
+results are used in the development of a new and systematic approach for
+dealing with the problems arising at kinematic singularities. At a singular
+configuration, the manipulator is treated as a mechanism that is
+redundant with respect to the motion of the end-effector in the subspace
+of operational space orthogonal to the singular direction.
+
+I. InrropucTION
+
+ESEARCH in dynamics of robot mechanisms has largely
+
+focused on developing the equations of joint motions.
+These joint space dynamic models have been the basis for
+various approaches to dynamic control of manipulators.
+However, task specification for motion and contact forces,
+dynamics, and force sensing feedback are closely linked to the
+end-effector. The dynamic behavior of the end-effector is one
+of the most significant characteristics in evaluating the
+performance of robot manipulator systems. The problem of
+end-effector motion control has been investigated, and al-
+gorithms resolving end-effector accelerations have been devel-
+oped [7], [11], [22], [30], [33].
+
+The issue of end-effector dynamic modeling and control is
+yet more acute for tasks that involve combined motion and
+contact forces of the end-effector. Precise control of applied
+end-effector forces is crucial to accomplishing advanced robot
+assembly tasks. This is reflected by the research effort that has
+been devoted to the study of manipulator force control.
+Accommodation [35], joint compliance [26], active stiffness
+[31], impedance control [9], and hybrid position/force control
+[28] are among the various methods that have been proposed.
+
+Force control has been generally based on, kinematic and
+static considerations. While in motion, however, a manipula-
+tor end-effector is subject to inertial, centrifugal, and Coriolis
+
+Manuscript received August 6, 1985; revised May 29, 1986. This work was
+supported in part by the National Science Foundation and in part by the
+Systems Development Foundation.
+
+‘The author is with the Artificial Intelligence Laboratory, Computer Science
+Department, Cedar Hall, Stanford University, Stanford, CA 94305.
+
+IEEE Log Number 8610323.
+
+forces. The magnitude of these dynamic forces cannot be
+ignored when large accelerations and fast motions are consid-
+ered. Controlling the end-effector contact forces in some
+direction can be strongly affected by the forces of coupling
+created by the end-effector motion that can take place in the
+subspace orthogonal to that direction. The description of the
+dynamic interaction between end-effector motions and the
+effects of these motions on the end-effector’s behavior in the
+direction of force control are basic requirements for the
+analysis and design of high-performance manipulator control
+systems. Obviously, these characteristics cannot be found in
+the manipulator joint space dynamic model, which only
+provides a description of the interaction between joint mo-
+tions. High-performance control of end-effector motion and
+contact forces requires the description of how motions along
+different axes are interacting, and how the apparent or
+equivalent inertia or mass of the end-effector varies with
+configurations and directions.
+
+The description, analysis, and control of manipulator sys-
+tems with respect to the dynamic characteristics of their end-
+effectors has been the basic motivation in the research and
+development of the operational space formulation. The end-
+effector equations of motion [13], [14] are a fundamental tool
+for the analysis, control, and dynamic characterization [18] of
+manipulator systems. In this paper, we will discuss, from the
+perspective of end-effector control, the issue of task descrip-
+tion, where constrained motions and contact forces are
+involved. The fundamentals of the operational space formula-
+tion are presented, and the unified approach for the control of
+end-effector motion and contact forces is developed.
+
+Treated within the framework of joint space control
+systems, redundancy of manipulator mechanisms has been
+generally viewed as a problem of resolving the end-effector
+desired motion into joint motions with respect to some criteria.
+Manipulator redundancy has been aimed at achieving goals
+such as the minimization of a quadratic criterion [29], [34], the
+avoidance of joint limits [5], [21] the avoidance of obstacles
+[4], [6], [20], kinematic singularities [23], or the minimization
+of actuator joint forces [8]. The end-effector equations of
+motion for a redundant manipulator are established and its
+behavior with respect to generalized joint forces is described.
+The unified approach for motion and active force control is
+then extended to these systems.
+
+Kinematic singularities is another area that has been
+considered within the framework of joint space control and
+
+0882-4967/87/0200-0043$01.00©1987 IEEE
+
+
+44 IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987
+
+(a)
+
+(©)
+Fig. 1.
+
+(b)
+
+Constrained end-effector freedom of motion. (a) Five degrees of
+
+freedom. (b) Four degrees of freedom. (c) Three degrees of freedom.
+
+formulated in terms of resolution of the task specifications into
+joint motions. Generalized inverses and pseudo-inverses have
+been used, and recently an interesting solution based on the
+singularity robust inverse has been proposed [25]. In this
+paper, a new approach for dealing with the problem of
+kinematic singularities within the operational space framework
+is presented. In the neighborhood of a singular configuration
+the manipulator is treated as a redundant mechanism with
+respect to the motion of the end-effector in the subspace of
+operational space orthogonal to its singular direction. Control
+of the end-effector for motions along the singular direction is
+based on the use of the kinematic characteristic of the Jacobian
+matrix. *
+
+II. GENERALIZED TASK SPECIFICATION MATRICES
+
+The end-effector motion and contact forces are among the
+most important components in the planning, description, and
+control of assembly operations of robot manipulators. The
+end-effector configuration is represented by a set of m
+parameters, Xx}, %2, ***, Xm, specifying its position and
+orientation in some reference frame. In free motion opera-
+tions, the number of end-effector degrees of freedom mo is
+defined [13] as the number of independent parameters required
+to specify completely, in a frame of reference Ro, its position
+and orientation. A set of such independent configuration
+parameters forms a system of operational coordinates.
+
+In constrained motion operations, the displacement and
+rotations of the end-effector are subjected to a set of geometric
+constraints. These constraints restrict the freedom of motion
+(displacements and rotations) of the end-effector. Clearly,
+geometric constraints will affect only the freedom of motion of
+the end-effector, since static forces and moments at these
+constraints can still be applied. The number of degrees of
+freedom of the constrained end-effector is given by the
+difference between mo and the number of independent
+equations specifying the geometric constraints, assumed to be
+holonomic. Examples of five-, four-, and three-degree-of-
+freedom constrained end-effectors are shown in Fig. 1.
+
+An interesting description of the characteristics of end-
+effectors and their constraints uses a mechanical linkage
+representation [5], [24]. The end-effector, tool, or manipu-
+
+lated object forms, with the fixture or constrained object, a
+pair of two rigid bodies linked through a joint. A constrained
+motion task can be described, for instance, by a spherical,
+planar, cylindrical, prismatic, or revolute joint.
+
+However, when viewed from the perspective of end-
+effector control, two elements of information are required for
+a complete description of the task. These are the vectors of
+total force and moment that are to be applied to maintain the
+imposed constraints, and the specification of the end-effector
+motion degrees of freedom and their directions.
+
+Let fz be a unite vector, in the frame of reference Ro(O, Xo,
+Yo; Zo), along the direction of the force that is to be applied by
+the end-effector. The positional freedom, if any, of the
+constrained end-effector will therefore lie in the subspace
+orthogonal to fy.
+
+A convenient coordinate frame for the description of tasks
+involving constrained motion operations is a coordinate frame
+RAO, xy, Vy, Z) obtained from Ro by a rotation transforma-
+tion described by S; such that z; is aligned with fj. For tasks
+where the freedom of motion (displacement) is restricted to a
+single direction orthogonal to fy, one of the axes Ox, or Oy,
+will be selected in alignment with that direction, as shown for
+the task in Fig. 2.
+
+Let us define, in the coordinate Ry, the position specifica-
+tion matrix
+
+o 0 0
+Ly=(0 o 0 (1)
+0 0 «
+
+where o,, oy, and o, are binary numbers assigned the value 1
+when a free motion is specified along the axes Ox, Oy,, and
+Oz,, respectively, and zero otherwise. A nonzero value of o,
+implies a full freedom of the end-effector position. This case
+of unconstrained end-effector position is integrated here for
+completeness. The coordinate frame ®, in this case is assumed
+to be identical to Ro, and the matrix S; is the identity matrix.
+The directions of force control are described by the force
+specification matrix 2, associated with Dy and defined by
+
+S,=I-3y (2)
+
+where J designates the 3 x 3 identity matrix.
+
+
+KHATIB: MOTION AND FORCE CONTROL OF ROBOT MANIPULATORS,
+
+fa
+
+Ry /, Ro
+ra
+
+xy 0 Yo
+Fig. 2. One-degree-of-freedom motion.
+
+Let us now consider the case where the end-effector task
+involves constrained rotations and applied moments. Let zz be
+the vector, in the frame of reference Ro(O, Xo, Yo. Zo), Of
+moments that are to be applied by the end-effector, and R,(O,
+Xr, Vr, Z;) be a coordinate frame obtained from Ro(O, Xo, Yos
+%) by a rotation S, that brings z, into alignment with the
+moment vector 7g. In ®,, the rotation freedom of the end-
+effector lies in the subspace spanned by {x,, y,}. To a task
+specified in terms of end-effector rotations and applied
+moments in the coordinate frame ®,, we associate the rotation
+and moment specification matrices L, and ¥,, defined similarly
+to Zy and Ly.
+
+For general tasks that involve end-effector motion (both
+position and orientation) and contact forces (forces and
+moments) described in the frame of reference Ro, we define
+the generalized task specification matrices
+
+S73/S, 0
+a=( 0 sty s) 8)
+and
+= (S73; 0
+9=("O” sTS,s 4
+
+associated with specifications of motion and contact forces,
+respectively. ‘
+
+and @ act on vectors described in the reference frame Ro.
+A position command vector, for instance, initially expressed
+in Qo is transformed by the rotation matrix S; to the task
+coordinate frame Ry. The motion directions are then selected
+in this frame by the application of Ly. Finally, the resulting
+vector is transformed back in Ro by S7.
+
+The construction of the generalized task specification
+matrices is motivated by the aim of formulating the selection
+process in the same coordinate frame (reference frame Qo)
+where the manipulator geometric, kinematic, and dynamic
+models are formulated. This allows a more efficient imple-
+mentation of the control system for real-time operations.
+Control systems using specifications based only on the
+matrices L; and ©, will require costly geometric, kinematic,
+and dynamic transformations between the reference frame and
+the task coordinate frames.
+
+45
+
+The task specification matrices 9 and @ can be constant,
+configuration-varying, or time-varying matrices. Nonconstant
+generalized task specification matrices correspond to specifi-
+cations that involve changes in the direction of the applied
+force vector and/or moment vector, e.g., moving the end-
+effector while maintaining a normal force to a nonplanar
+surface. Q and © have been expressed here with respect to the
+frame of reference Qo. For control systems implemented for
+tasks specified with respect to the end-effector coordinate
+frame, these matrices will be specified with respect to that
+coordinate frame as well.
+
+TI. Enp-EFFEcToR EQuaTIons oF Motion
+
+Joint space dynamic models, which establish the equations
+of manipulator joint motions, provide means for the analysis
+and control of these motions, and for the description of the
+configuration dependency and interactive nature of these
+mechanisms. However, the control of end-effector motion and
+contact forces, or the analysis and characterization of end-
+effector dynamic performance requires the construction of the
+model describing the dynamic behavior of this specific part of
+the manipulator system.
+
+The end-effector motion is the result of those combined joint
+forces that are able to act along or about the axes of
+displacement or rotation of the end-effector. These are,
+indeed, the forces associated with the system of operational
+coordinates selected to describe the position and orientation of
+the end-effector. The construction of the end-effector dynamic
+model is achieved by expressing the relationships between its
+operational positions, velocities, accelerations, and the virtual
+operational forces acting on it.
+
+First, let us consider the case of nonredundant manipula-
+tors, where a set of operational coordinates can be selected as a
+system of generalized coordinates for the manipulator. The
+manipulator configuration is represented by the column matrix
+q of n joint coordinates, and the end-effector position and
+orientation is described, in a frame of reference Ro, by the 779
+x 1 column matrix x of independent configuration parame-
+ters, i.e., operational coordinates. With the manipulator
+nonredundancy assumption we have the equality n = mo.
+
+Now let us examine the conditions under which a set of
+independent end-effector configuration parameters can be used
+as a generalized coordinate system for a nonredundant
+manipulator. In the reference frame Qo, the system of mo
+equations expressing the components of x as functions of joint
+coordinates, i.e., the geometric model, is given by
+
+x=G(q). 6)
+
+Let q; and gj be, respectively, the minimal and maximal
+bounds of the ith joint coordinate g;. The manipulator
+configuration represented by the point g in joint space is
+confined to the hyperparallelepiped
+
+D,=J] ta Gil. Co)
+i=l
+
+Obviously, for arbitrary kinematic linkages, and general joint
+boundaries, the set of functions G defined from D, to the
+
+
+46 IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987
+
+domain D, of the operational space given by
+
+D,= G(Dq) 12)
+
+is not one-to-one.
+
+Different configurations of the manipulator links can, in
+fact, be found for a given configuration of the end-effector.
+The restriction to a domain where G is one-to-one is therefore
+necessary to construct, with the operational coordinates, a
+system of generalized coordinates for the manipulator mecha-
+nism.
+
+In addition, for some configurations of the manipulator, the
+end-effector motion is restricted by the linkage constraints and
+its freedom of motion locally decreases. These are the singular
+configurations, which can be found by considering the
+differentiability characteristics of the geometric model G.
+Singular configurations g € D, are those where the Jacobian
+matrix J(q) involved in the variational or kinematic model
+associated with G,
+
+6x = J(9)5q, (8)
+
+is singular. The end-effector behavior at singular configura-
+tions is treated in Section VIII.
+
+Let D, be the domain obtained from D, by excluding the
+manipulator singular configurations and such that the vector
+function G of (5) is one-to-one. Let D, designate the domain
+
+D,= G(H,). @)
+
+The independent parameters x), X2, -**, Xmo form a complete
+set of configuration parameters for a nonredundant manipula-
+tor, in the domain D,. of operational space and thus constitute a
+system of generalized coordinates for the manipulator system.
+The kinetic energy of the holonomic articulated mechanism
+
+is a quadratic form of the generalized operational velocities
+T(x, D=5 XTA(x)X (10)
+where A(x) designates the mg X mo symmetric matrix of the
+
+quadratic form, i.e., the kinetic energy matrix. Using the
+Lagrangian formalism, the end-effector equations of motion
+
+are given by
+d (aL\ OL
+dt\ ax] ax
+
+where the Lagrangian L(x, X) is
+
+F' qd)
+
+L(x, ¥)=T(x, %)—U(x) (12)
+
+and U(x) represents the potential energy due to gravity. F is
+the operational force vector. Let p(x) be the vector of gravity
+forces
+
+P(x)=VU(x). (13)
+
+The end-effector equations of motion in operational space can
+be written [13], [14] in the form
+
+AQ)E+ nO, X)+pQ)=F (14)
+
+where u(x, ¥) is the vector of end-effector centrifugal and
+Coriolis forces given by
+
+izle
+
+ds)
+
+The components of the 7% X mmo matrices II;(x) are the
+Christoffel symbols 7;,;, given as a function of the partial
+derivatives of A(x) with respect to the generalized coordinates
+x by
+
+w(x, X)=X7TI1(x)x, » Mo.
+
+| (2.2),
+
+_— 16
+Miike Ox, Ox; Ax; (16)
+
+2
+
+The equations of motion (14) establish the relationships
+between positions, velocities, and accelerations of the end-
+effector and the generalized operational forces acting on it.
+The dynamic parameters in these equations are related to the
+parameters involved in the manipulator joint space dynamic
+model. The manipulator equations of motion in joint space are
+given by
+
+A(q)G+b(q, 9) +8(q)=T a7)
+
+where b(g, q), g(q), and I" represent, respectively, the
+Coriolis and centrifugal, gravity, and generalized forces in
+joint space. A(q) is the n x n joint space kinetic energy
+matrix. The relationship between the kinetic energy matrices
+A(q) and A(x) corresponding, respectively, to the joint space
+and operational space dynamic models can be established [13],
+[14] by exploiting the identity between the expressions of the
+quadratic forms of the mechanism kinetic energy with respect
+to the generalized joint and operational velocities,
+A(x) =J-7(q)A(q)J-'(q). (18)
+The relationship between the centrifugal and Coriolis forces
+5(q, q) and (x, x) can be established by the expansion of the
+expression of u(x, x) that results from (11),
+w(x, 4)=A(x)x-VI (x, 2%). (19)
+Using the expression of A(x) in (18), the components of p(x,
+%) in (19) can be written as
+
+A@)=J-TQAQ)G-AQAG, D+I-TQ)AQ)G
+
+VT (x, X)=J-T(Q)lq, D+ I-T(Q)A(Q)G (20)
+where
+AQ D=IQG (21)
+and
+1
+4(q, D=5 47 Ag(@)4, i=l, c++, n. (22)
+
+The subscript q; indicates the partial derivative with respect to
+the ith joint coordinate. Observing from the definition of b(q,
+q) that
+
+bq, )=A(a)Gg-Kq, @) (23)
+
+
+KHATIB: MOTION AND FORCE CONTROL OF ROBOT MANIPULATORS
+
+yields
+
+Hx, 4) =J-7(g)b(q, G-AQ)RG, 9). 24)
+
+The relationship between the expressions of gravity forces can
+be obtained using the identity between the functions expressing
+the gravity potential energy in the two systems of generalized
+coordinates and the relationships between the partial deriva-
+tives with respect to these coordinates. Using the definition of
+the Jacobian matrix (8) yields
+
+P(x) =J-7(q)g(q).
+
+In the foregoing relations, the components involved in the end-
+effector equations of motion (14), i.e., A, u, p, are expressed
+in terms of joint coordinates. This resolves the ambiguity in
+defining the configuration of the manipulator corresponding to
+a configuration of the end-effector in the domain D, of (7).
+With these expressions, the restriction to the domain D,,
+where G is one-to-one, then becomes unnecessary. Indeed, the
+domain of definition of the end-effector dynamic model of a
+nonredundant manipulator can be extended to the domain D,
+defined by
+
+(25)
+
+D,=G(D,) (26)
+
+where ©, is the domain resulting from D, of (6) by excluding
+the kinematic singular configurations.
+
+Finally, let us establish the relationship between generalized
+forces, i.e., F and I’. Using (18), (24), and (25) the end-
+effector equations of motion (14) can be rewritten as
+
+IQA Q)G+ bq, 9) +a(Q)l=F.
+Substituting (17) yields
+
+(27)
+
+T=J7(q)F (28)
+
+which represents the fundamental relationship between opera-
+tional and joint forces consistent with the end-effector and
+manipulator dynamic equations. This relationship is the basis
+for the actual control of manipulators in operational space.
+
+IV. Enp-Errector Motion Controt
+
+The control of a manipulator in operational space is based
+on the selection of the generalized operational forces F as a
+command vector. These forces are produced by submitting the
+manipulator to the corresponding joint forces I’ obtained from
+(28).
+
+As with joint space control systems, the control in Opera-
+tional space can be developed using a variety of control
+techniques. In operational space control systems, however,
+errors, performance, dynamics, simplifications, characteriza-
+tions, and controlled variables are directly related to manipula-
+tor tasks.
+
+One of the most effective techniques for dealing with these
+highly nonlinear and strongly coupled systems is the nonlin-
+ear dynamic decoupling approach [36], [37], which fully
+exploits the knowledge of the dynamic model structure and
+parameters. Within this framework of control and at the level
+of the uncoupled system linear, nonlinear, robust [32], and
+adaptive [3] control structures can be implemented.
+
+47
+
+Nonlinear dynamic decoupling in operational space is
+obtained by the selection of the following control structure,
+
+F= Fy + Fecg (29)
+with
+Fy, = A(x) F*
+Foog = f(x, X)+ B(x) (30)
+
+where A(x), ji(x, x), and f(x) represent the estimates of
+A(x), u(x, ¥), and p(x). F* is the command vector of the
+decoupled end-effector. With a perfect nonlinear dynamic
+decoupling, the end-effector becomes equivalent to a single
+unit mass Ing, moving in the mo-dimensional space. To
+simplify the notations, the symbol ~ will be dropped in the
+following development.
+
+At the level of the decoupled end-effector, F*, various
+control structures can be selected. For tasks where the desired
+motion of the end-effector is specified, a linear dynamic
+behavior can be obtained by selecting
+
+Fr, = ImoXa— Kp (x — Xa) — ky(%— a) GB)
+
+where xz, X4, and ¥4 are the desired position, velocity, and
+acceleration, respectively, of the end-effector. Imo is the mo x
+‘Mo identity matrix. k, and k, are the position and velocity gain
+matrices.
+
+An interesting approach for tasks that involve large motion
+to a goal position, where a particular path is not required, is
+based on the selection of the decoupled end-effector command
+vector F* as
+
+F*=—k,(%—v%4) (32)
+where
+k,
+Xxa= ra (%a-x)
+i (1 Vows ) (33)
+v=min » .
+VxT Ky
+
+This allows a straight line motion of the end-effector at a given
+speed Vinx. The velocity vector x is in fact controlled to be
+pointed toward the goal position while its magnitude is
+limited to Vmax. The end-effector will then travel at Vonax in a
+straight line, except during the acceleration and deceleration
+segments. This command vector is particularly useful when
+used in conjunction with the gradient of an artificial potential
+field for. collision avoidance [15].
+
+Using the relationship between generalized forces given in
+(28), the joint forces corresponding to the operational com-
+mand vector F, in (29) and (30), for the end-effector dynamic
+decoupling and control, can be written as
+
+T=J7(q)A(q)F*+5(q, 4)+8(q)
+
+where 5(q, q) is the vector of joint forces under the mapping
+into joint space of the end-effector Coriolis and centrifugal
+
+(34)
+
+
+48 IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987
+
+force vector (x, x). To simplify the notation, A has also been
+used here to designate the kinetic energy matrix when
+expressed as a function of the joint coordinate vector q. bq,
+q) is distinct from the vector of centrifugal and Coriolis forces
+b(q, q) in (17) that arises when viewing the manipulator
+motion in joint space. These vectors are related by
+
+bq, D=b(g, -ITMAQAG, 9)-
+
+A useful form of 6(q, q) for real-time control and dynamic
+analysis can be obtained by a separation of its dependency on
+position and velocity.
+
+The joint space centrifugal and Coriolis force vector b(q, g)
+of (17) can, in fact, be developed in the form
+
+bq, 9)=B)L491+ C147]
+
+where B(q) and C(q) are, respectively, then x n(n — 1)/2
+and X n matrices of the joint space Coriolis and centrifugal
+forces associated with b(q, q). [gq] and [47] are the symbolic
+notations for the n(n — 1)/2 x land” x 1 column matrices
+
+G5)
+
+(36)
+
+[44] =[42 9143 °° Gn-14n]™
+
+(PI=[47 Ge Gl" (7)
+
+With [qq] and [7], the vector h(q, g) can be developed in the
+form
+
+AQ, 9=M(Q)1941+ (9471
+
+where the matrices H,(q) and H(q) have, respectively, the
+dimensions n xn( — 1)/2 and n x n. Finally, the vector
+5(q, q) can be written as
+
+bq, ND=B 491+ CQ)G)
+
+where B(q) and C(q) are the n x n(n — 1)/2andn xn
+matrices of the joint forces under the mapping into joint space
+of the end-effector Coriolis and centrifugal forces. These
+matrices are
+
+(38)
+
+(39)
+
+B(q)=B(q)- JT AQ A)
+C@Q)=C(q)- JQ) AQ) FAQ)
+
+With the relation (39), the dynamic decoupling of the end-
+effector can be obtained using the configuration dependent
+dynamic coefficients A(q), B(q), C(q), and g(q). The joint
+force control vector (34) becomes
+
+P=J7(qQ) Aq) Fx + BGG] + CQ@)G71+8(q). (41)
+
+By isolating these coefficients, end-effector dynamic decou-
+pling and control can be achieved in a two-level control system
+architecture [15]. The real-time computation of these coeffi-
+cients can then be paced by the rate of configuration changes,
+which is much lower than that of the mechanism dynamics,
+This leads to the following architecture for the control system
+
+(40)
+
+* a low rate dynamic parameter evaluation level: updat-
+ing the end-effector dynamic parameters;
+
+© a high rate servo control level: computing the command
+vector (41) using the updated dynamic coefficients.
+
+This approach has also been proposed [10] for real-time
+dynamic control of manipulators in joint space.
+
+VV. CONSTRAINED Motion OPERATIONS
+
+The matrix Q defined earlier specifies, with respect to the
+frame of reference Qo, the directions of motion (displacement
+and rotations) of the end-effector. Forces and moments are to
+be applied in or about directions that are orthogonal to these
+motion directions. These are specified by the matrix Q.
+
+An important issue related to the specification of axes of
+rotation and applied moments is concerned with the compati-
+bility between these specifications and the type of representa-
+tion used for the description of the end-effector orientation. In
+fact, the specification of axes of rotations and applied moments
+in the matrices 2, and 2, are only compatible with descriptions
+of the orientation using instantaneous angular rotations.
+However, instantaneous angular rotations are not quantities
+that can be used as a set of configuration parameters for the
+orientation. Representations of the end-effector orientation
+such as Euler angles, direction cosines, or Euler parameters,
+are indeed incompatible with specifications provided by , arid
+x, :
+Instantaneous angular rotations have been used for the
+description of orientation error of the end-effector. An angular
+rotation error vector 5¢ that corresponds to the error between
+the actual orientation of the end-effector and its desired
+orientation can be formed from the orientation description
+given by the selected representation [13], [22].
+
+The time derivatives of the parameters corresponding to a
+representation of the orientation are related simply to the
+angular velocity vector. With linear and angular velocities is
+associated the matrix Jo(q), termed the basic Jacobian,
+defined independently of the particular set of parameters used
+to describe the end-effector configuration
+
+v .
+(:) = 4094.
+
+The Jacobian matrix J(q) associated with a given representa-
+tion of the end-effector orientation x, can then be expressed in
+the form [13]
+
+(42)
+
+I(q)=Ex,JoQ)
+
+where the matrix Z,, is simply given as a function of x;.
+
+For end-effector motions specified in terms of Cartesian
+coordinates and instantaneous angular rotations, the dynamic
+decoupling and motion control of the end-effector can be
+achieved [13] by
+
+T=J7(q)Ao(x) Fx + bo(q, 9) +8(4)
+
+where Ao(g) and bo(q, g) are defined similarly to A(g) and
+5(q, q) with J(q) being replaced by Jo(q).
+
+Using the relationship (43) similar control structures can be
+designed to achieve dynamic decoupling and motion control
+with respect to descriptions using other representations for the
+orientation of the end-effector.
+
+The unified operational command vector for end-effector
+dynamic decoupling, motion, and active force control can be
+
+(43)
+
+(44)
+
+
+KHATIB: MOTION AND FORCE CONTROL OF ROBOT MANIPULATORS.
+
+49
+
+@O0Z000
+
+oo
+Force
+Transformation x
+Position/Velocity
+Evaluation
+
+F sensor
+
+Fig. 3.
+written as
+
+FH=Fy,+ Fat Focg (45)
+
+where F,,, Fy, and Fc are the operational command vectors of
+motion, active force control, and centrifugal, Coriolis, and
+gravity forces given by
+
+Fn = Ao(Q)QF 7,
+F,=QF*+ Ao(q)QF*
+Fee = b0(G, 9)+8(9) (46)
+
+where F* represents the vector of end-effector velocity
+damping that acts in the direction of force control. The joint
+force vector corresponding to F in (45) is
+
+T=J5(q)[Ao(g OF +OF*)+OF*) +509, 9) +8(9)-
+(47)
+
+The control system architecture is shown in Fig. 3, where ky
+represents the force error gain and k,, denotes the velocity
+gain in F* An effective strategy for the control of the end-
+effector during the transition from free to constrained motions
+is based on a pure dissipation of the energy at the impact. The
+operational command vector F, during the impact transition
+control stage is 2
+
+F,= Ag(qQ)aF*. 5 (48)
+
+The duration of the impact transition control is a function of
+the impact velocity and the limitations on damping gains and
+actuator torques (this duration is typically on the order of tens
+of milliseconds). Force rate feedback has also been used in F’ *
+A more detailed description of the components involved in this
+control system, real-time implementation issues, and experi-
+mental results can be found in [19].
+
+VI. REDUNDANT MANIPULATORS
+
+The configuration of a redundant manipulator cannot be
+specified by a set of parameters that only describes the end-
+effector position and orientation. An independent set of end-
+effector configuration parameters, therefore, does not consti-
+tute a generalized coordinate system for a redundant
+
+Operational space control system architecture.
+
+manipulator, and the dynamic behavior of the entire redundant
+system cannot be represented by a dynamic model in coordi-
+nates only of the end-effector configuration. The dynamic
+behavior of the end-effector itself, nevertheless, can still be
+described, and its equations of motion in operational space can
+still be established.
+
+The end-effector is affected by forces acting along or about
+the axes of its freedom of motion. These are the operational
+forces associated with the operational coordinates selected to
+describe its position and orientation. Let us consider the end-
+effector dynamic response to the application, on the end-
+effector, or an operational force vector F. In this case of
+redundant manipulator systems, the joint forces that can be
+used to produce a given operational force vector are not
+unique. The joint force vector
+
+T=J"(q)F (28)
+
+represents, in fact, one of these solution.
+The application of the joint forces (28) to the manipulator
+
+(17), and the use of the relation
+F=I(Q)G+h@, 9) (49)
+
+allow us to establish [13] the equations of motion of the end-
+effector
+
+A(QE+ wld, D+ P(Q)=F (50)
+where
+A(Q=[I@A'QI™@I1"!
+wg, Q=I7(q)b(G, G)-AMg)h(G, 9)
+P(q)=I7(9)8(9) (51)
+and
+J(q)=A-'(q)I7(Q)A,(Q). (52)
+
+J(q) is actually a generalized inverse of the Jacobian matrix
+corresponding to the solution that minimizes the manipulator’s
+instantaneous kinetic energy.
+
+Equation (50) describes the dynamic behavior of the end-
+effector when the manipulator is submitted to a generalized
+
+
+50 IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987
+
+joint force vector of the form (28). The m x m matrix A,(q)
+can be interpreted as a pseudo-kinetic energy matrix corres-
+ponding to the end-effector motion in operational space. p,(q,
+q) represents the centrifugal and Coriolis forces acting on the
+end-effector and p,(q) the gravity force vector.
+
+The effect on the end-effector of the application of arbitrary
+joint forces, can be determined by (50) which can be rewritten
+as
+
+ITQNA(QG+bq, +EQ)l=F. (53)
+
+Substituting (17) yields
+
+F=J'(g. (54)
+
+This relationship determines how the joint space dynamic
+forces are reflected at the level of the end-effector.
+
+Lemma: The unconstrained end-effector (50) is subjected to
+the operational force F if and only if the manipulator (17) is
+submitted to the generalized joint force vector
+
+T=J™(Q)F+Un-J™(Q) IQ) o (55)
+
+where J, is the n x n identity matrix, J(q) is the matrix given
+in (52) and Tp is an arbitrary joint force vector.
+
+When the applied forces I are of the form (55), it is
+straightforward from (54) to verify that the only forces acting
+on the end-effector are the operational forces F produced by
+the first term in the expression of I’. Joint forces of the form
+Un — J7(q)J7(q)IPo correspond in fact to a null operational
+force vector.
+
+The uniqueness of (55) is essentially linked to the use of a
+generalized inverse J(q) that is consistent with the dynamic
+equations of the manipulator and end-effector. The form of the
+decomposition (55) itself is general. A joint force vector T' can
+always be expressed in the form of (55).
+
+Let P(q) be a generalized inverse of J(q), and let us submit
+the manipulator to the joint force vector
+
+T=J7(q)F + (Un,-J™(q)P7(q)ITo. (56)
+If, for any T', the end-effector is only subjected to F, (56)
+yields
+
+I(QA"Q)=[IMA-g)I*@P™|) (57)
+
+which implies the equivalence of P(g) and J(q).
+
+VII. ControL oF REDUNDANT MANIPULATORS
+
+As in the case of nonredundant manipulators, the dynamic
+decoupling and control of the end-effector can be achieved by
+selecting an operational command vector of the form of (29),
+(30). The corresponding joint forces are
+
+=JIT(qQ)A(q)F*+6,(q, 4)+8(9) (58)
+where 6,(q, g) is defined similarly to B(g, 4).
+
+The manipulator joint motions produced by this command
+vector are those that minimize the instantaneous kinetic energy
+of the mechanism.
+
+Stability Analysis
+
+In the command vector (58), and with the assumption of a
+“‘perfect’’ compensation (or noncompensation) of the centrifu-
+gal and Coriolis forces, the manipulator can be considered as a
+conservative system subjected to the dissipative forces due to
+the velocity damping term (—k,x) in F*. These forces are
+
+Tuis=D(q)q (59)
+with
+D(q)= —k.J™(Q)A(g)I(q)- (60)
+Lyapunov stability analysis leads to the condition
+q7D(q)qs0 (61)
+
+which is satisfied, since D(q) is an n X n_ negative
+semidefinite matrix of rank m. However, the redundant
+mechanism can still describe movements that are solutions of
+the equation
+
+q7D(q)q=0. (62)
+
+An example of such behavior is shown in Fig. 4(a). The end-
+effector of a simulated three-degree-of-freedom planar manip-
+ulator is controlled under (58). The end-effector goal position
+coincides with its current position, while the three joints are
+assumed to have initially nonzero velocities (0.5 rad/s has
+been used).
+
+Asymptotic stabilization of the system can be achieved by
+the addition of dissipative joint forces [13]. These forces can
+be selected to act in the null space of the Jacobian matrix [16].
+This precludes any effect of the additional forces on the end-
+effector and maintains its dynamic decoupling. Using (55)
+these additional stabilizing joint forces are of the form
+
+Pis=Un-J7(g) IQs. (63)
+By selecting
+T= —kyA(q)9, (64)
+the vector T’,,, becomes
+Ts=P5+I7(Q)A(Q) Fis (65)
+with
+Fis = Kyg%- (66)
+
+Finally, the joint force command vector can be written as
+
+TP=J7(q)A(qQ)( FA + Fis) + V5+ 6G, 9)+8(q). (67)
+
+Under this form, the evaluation of the generalized inverse of
+the Jacobian matrix is avoided. The matrix D(q) correspond-
+ing to the new expression for the dissipative joint forces T'y;, in
+the command vector (67) becomes
+
+D(q)= — (ko Kug) IQ) AG) IQ) + Kg A (Q)-
+
+Now, the matrix D(q) is negative definite and the system is
+asymptotically stable. Fig. 4(b) shows the effects of this
+
+(68)
+
+
+KHATIB: MOTION AND FORCE CONTROL OF ROBOT MANIPULATORS
+
+Sl
+
+[X
+
+(a)
+Fig. 4.
+
+stabilization on the previous example of a simulated three-
+degree-of-freedom manipulator.
+
+Constrained Motion Control
+
+The extension to redundant manipulators of the results
+obtained in the case of nonredundancy is straightforward. The
+generalized joint forces command vector becomes
+
+T=J5(q)[Ao(QOFe + OFF +F,,) + OF*]
++1,+50(9, 9)+8(q) (69)
+
+where A,o(a) and 5,(q, 4) are defined with respect to the
+basic Jacobian matrix Jo(q).
+
+VII. SINGULAR CONFIGURATIONS
+
+A singular configuration is a configuration g at which
+some column vectors of the Jacobian matrix become linearly
+dependent. The mobility of the end-effector can be defined as
+the rank of this matrix [5]. In the case of nonredundant
+manipulators considered here, the end-effector at a singular
+configuration loses the ability to move along or rotate about
+some direction of the Cartesian space; its mobility locally
+decreases. Singularity and mobility can be characterized, in
+this case, by the determinant of the Jacobian matrix.
+
+Singularities can be further specified by the posture of the
+mechanism at which they occur. Different types of singulari-
+ties can be observed for a given mechanical linkage. These can
+be directly identified from the expression of the determinant of
+the Jacobian matrix. The expression of this determinant can, in
+fact, be developed into a product of terms, each of which
+corresponds to a type of singularity related to the kinematic
+configuration of the mechanism, e.g., alignment of two links
+or alignment of two joint axes.
+
+To each singular configuration there corresponds a singular
+“‘direction.”’ It is in this direction that the end-effector
+presents infinite inertial mass for displacements or infinite
+inertia for rotations. Its movements remain free in the
+subspace orthogonal to this direction. This behavior extends,
+in reality, to a neighborhood of the singular configuration. The
+extent of this neighborhood can be characterized by the
+particular expression s(q) in the determinant of the Jacobian
+matrix that vanishes at this specific singularity. The neighbor-
+
+(b)
+
+Stabilization of redundant manipulator.
+
+hood of a given type of singularity ©, can be defined as
+
+Ds= {g|5(Q)| <5} (70)
+
+where Sp is positive.
+
+The basic concept in our approach to the problem of
+kinematic singularities can be formulated as follows. In the
+neighborhood QD, of a singular configuration q, the manipula-
+tor is treated as a mechanism that is redundant with respect to
+the motion of the end-effector in the subspace of operational
+space orthogonal to the singular direction. For end-effector
+motion in that subspace, the manipulator is controlled as a
+redundant mechanism. Joint forces selected from the associ-
+ated null space are used for the control of the end-effector
+motion along the singular direction. When moving out of the
+singularity, this is achieved by controlling the rate of change
+of s(q) according to the value of the desired velocity for this
+motion at the configuration when |s(q)| = so. Selecting the
+sign of the desired rate of change of s(q) allows the control of
+the manipulator posture among the two configurations that it
+can generally take when moving out of a singularity. A
+position error term on s(q) is used in the control vector for
+tasks that involve a motion toward goal positions located at or
+in the neighborhood of the singular configuration.
+
+Using polar or singular value decomposition, this approach
+can be easily extended to redundant manipulator systems. The
+extension to configurations where more than one singularity is
+involved can be also simply achieved. An example of a
+simulated two-degree-of-freedom manipulator is shown in
+Fig. 5(a). The manipulator has been controlled to move into
+and out of the singular configuration while displaying two
+different postures. The time-response of the motion in the
+singular direction x(t) is shown in Fig. 5(b).
+
+IX. Summary AND Discussion
+
+A methodology for the description of end-effector con-
+strained motion tasks based on the construction of generalized
+task specification matrices has been proposed. For such tasks
+where both motion and active force control are involved, a
+unified approach for end-effector dynamic control within the
+operational space framework has been presented. The use of
+the generalized task specification matrix has provided a more
+
+
+52 IEEE JOURNAL OF ROBOTICS AND AUTOMATION, VOL. RA-3, NO. 1, FEBRUARY 1987
+
+x
+
+(a)
+Fig. 5. Control at
+
+efficient control structure for real-time implementations,
+further enhanced by a two-level control architecture.
+
+Results of the implementation of this approach have shown
+the operational space formulation to be an effective means of
+achieving high dynamic performance in real-time motion
+control and active. force control of robot manipulator systems.
+This approach has been implemented in an experimental
+manipulator programming system COSMOS (Control in Oper-
+ational Space of a Manipulator-with-Obstacles System). Using
+a PUMA 560 and wrist and finger sensing, basic assembly
+operations have been performed. These include contact, slide,
+insertion, and compliance operations [17]. With the recent
+implementation of COSMOS in the multiprocessor computer
+system NYMPH [2], where four National Semiconductor
+32016 microprocessors have been used, a low-level servo rate
+of 200 Hz and a high-level dynamics rate of 100 Hz have been
+achieved.
+
+The impact transition control strategy was effective in the
+elimination of bounces at contact with a highly stiff surface.
+The end-effector normal velocities at impact were up to 4.0 in/
+s. Experiments with square wave force input have also been
+conducted, and responses with rise times of less than 0.02 s
+and steady force errors of less than 12 percent have been
+observed. This performance has been obtained despite the
+limitations in controlling the manipulator joint torques [27].
+Accurate identification of the PUMA 560 dynamic parameters
+[1] has contributed to a nearly perfect dynamic decoupling of
+the end-effector. ,
+
+For redundant manipulator systems, the end-effector equa-
+tions of motion have been established, and an operational
+space control system for end-effector dynamic decoupling and
+control has been designed. The expression of joint forces of
+the null space of the Jacobian matrix consistent with the end-
+effector dynamic behavior has been identified and used for the
+asymptotic stabilization of the redundant mechanism. The
+resulting control system avoids the explicit evaluation of any
+generalized inverse or pseudo-inverse of the Jacobian matrix.
+Joint constraints, collision avoidance [12], [15], and control of
+manipulators’ postures can be naturally integrated in this
+framework of operational space control systems. Also, a new
+systematic solution to the problem of kinematic singularities
+has been presented. This solution constitutes an effective
+
+t) fim
+
+t (sec)
+° os, os os H as as
+
+singular configuration.
+
+alternative to resolving end-effector motions into joint motions
+generally used in joint space based control systems.
+
+ACKNOWLEDGMENTS
+
+The author would like to thank Brian Armstrong, Harlyn
+Baker, Joel Burdick, Bradley Chen, John Craig, Ron Fearing,
+Jean Ponce, and Shashank Shekhar for the discussions,
+comments, and help during the preparation of the manuscript.
+
+REFERENCES
+
+[1] B. Armstrong, O. Khatib, and J. Burdick, ‘‘The explicit dynamic
+model and inertial parameters of the PUMA 560 arm,”’ in Proc. 1986
+IEEE Int. Conf. Robotics and Automation, pp. 510-518.
+
+[2] B. Chen, R. Fearing, B. Armstrong, and J. Burdick, ‘NYMPH: A
+multiprocessor for manipulation applications,”” in Proc. 1986 IEEE
+Int. Conf. Robotics and Automation, pp. 1731-1736.
+
+[3] J.J. Craig, P. Hsu, S. S. Sastry, ‘‘Adaptive control of mechanical
+manipulators,"’ in Proc. 1986 IEEE Int. Conf. Robotics and
+Automation, pp. 190-195.
+
+[4] B. Espiau and R. Boulic, ‘‘Collision avoidance for redundant robots
+with proximity sensors,” in Preprints 3rd Int. Symp. Robotics
+Research, 1985, pp. 94-102.
+
+[5] A. Fournier, ‘‘Génération de mouvements en robotique—application
+des inverses généralisées et des pseudo inverses,’’ Thése d’etat,
+Mention Science, Univ. des Sciences et Techniques du Languedoc,
+Montpellier, France, Apr. 1980.
+
+[6] H. Hanafusa, T. Yoshikawa, and Y. Nakamura, ‘‘Analysis and control
+of articulated robot arms with redundancy,”’ in Proc. 8th IFAC World
+Congress, vol. XIV, 1981, pp. 38-83. .
+
+[7] J. R. Hewit and J. Padovan, ‘‘Decoupled feedback control of a robot
+and manipulator arms,” in Proc. 3rd CISM-IFToMM Symp. Theory
+and Practice of Robots and Manipulators. New York: Elsevier,
+1979, pp. 251-266.
+
+[8] J. M. Hollerbach and K. C. Suh, ‘‘Redundancy resolution of
+manipulators through torque optimization,” in Proc. 1985 Int. Conf.
+Robotics and Automation, pp. 1016-1021.
+
+[9] _N. Hogan, ‘Impedance control of a robotic manipulator,” presented at
+the Winter Annual Meeting of the ASME, Washington, DC, 1981.
+
+[10] A. Izaguirre, and R. P. Paul, ‘‘Computation of the inertial and
+gravitational coefficients of the dynamic equations for a robot manipu-
+lator with a load,’’ in Proc. 1985 Int. Conf. Robotics and
+Automation, pp. 1024-1032.
+
+{11] O. Khatib, M. Llibre, and R. Mampey, ‘‘Fonction décision-commande
+d’un robot manipulateur,”’ Rapport Scientifique 2/7156, DERA-CERT,
+Toulouse, France, July 1978.
+
+{12] O. Khatib and J. F. Le Maitre, ‘‘Dynamic control of manipulators
+operating in a complex environment,”’ in Proc. 3rd CISM-IFTOoMM
+Symp. Theory and Practice of Robots and Manipulators. New
+York: Elsevier, 1979, pp. 267-282.
+
+{13] ©. Khatib, ‘Commande dynamique dans l’espace opérationnel des
+robots manipulateurs en présence d’obstacles,’’ these de docteur-
+ingénieur, Ecole National Supérieure de I’ Aéronautique et de 1’Espace
+(ENSAE). Toulouse, France, 1980.
+
+
+
+KHATIB: MOTION AND FORCE CONTROL OF ROBOT MANIPULATORS
+
+4)
+
+15)
+
+6)
+
+u7)
+
+[18]
+
+[19]
+
+[20]
+
+0
+
+[22]
+
+[23]
+
+[24]
+
+[25]
+[26]
+[27]
+
+(28)
+[29]
+
+——, “Dynamic control of manipulators in operational space,”” in
+Proc. 6th CISM-IFTOMM Congress on Theory of Machines and
+Mechanisms. New York: Wiley, 1983, pp. 1128-1131.
+
+—, ‘‘Real-time obstacle avoidance for manipulators and mobile
+robots,” in Proc, IEEE Int. Conf. Robotics and Automation, pp.
+500-505.
+
+——, “Operational space formulation in the analysis, design, and
+control of manipulators,’ in Preprints 3rd Int. Symp. Robotics
+Research, 1985, pp. 103-110.
+
+O. Khatib, J. Burdick, and B. Armstrong, ‘Robotics in three acts—
+Part II’’ (film), Artificial Intell. Lab., Stanford Univ., Stanford, CA,
+1985.
+
+O. Khatib and J. Burdick, “Dynamic optimization in manipulator
+design: The operational space formulation,”’ presented at the 1985
+ASME Winter Annual Meeting, Miami, FL.
+
+——, ‘‘Motion and force control of robot manipulators,”’ in Proc.
+1986 IEEE Int. Conf. Robotics and Automation, pp. 1381-1386.
+M. Kircanski and M. Vukobratovic, ‘Trajectory planning for redun-
+dant manipulators in presence of obstacles,”” in Preprints 5th CISM-
+IFToMM Symp. Theory and Practice of Robots and Manipulators,
+1984, pp. 43-58.
+
+A. Liegois, “Automation supervisory control of the configuration and
+behavior of multibody mechanisms,’ IEEE Trans. Syst., Man,
+Cybern., vol. SMC-7, Dec. 1977.
+
+J. Y. S. Luh, M. W. Walker, and P. Paul, ‘‘Resolved acceleration
+control of mechanical manipulators,’’ JEEE Trans. Automat. Contr.,
+pp. 468-474, June 1980.
+
+J. Y. S. Luh and Y. L. Gu, ‘Industrial robots with seven joints,”’ in
+Proc. 1985 IEEE Int. Conf. Robotics and Automation, pp. 1010-
+1015.
+
+M. T. Mason, ‘Compliance and force control for computer controlled
+manipulators,” IEEE Trans. Syst., Man, Cybern., vol. SMC-11, pp.
+418-432, 1981.
+
+Y. Nakamura, ‘‘Kinematical studies on the trajectory control of robot
+manipulators,”’ Ph.D. dissertation, Kyoto, Japan, June 1985.
+
+R. P. Paul and B. Shimano, ‘Compliance and control,’’ in Proc. Joint
+Automatic Control Conf., pp. 694-699, July 1976.
+
+L. Pfeffer, O. Khatib, and J. Hake, ‘Joint torque sensory feedback in
+the control of a PUMA manipulator,”’ presented at the 1986 American
+Control Conf., Seattle, WA, June 1986.
+
+M. Raibert and J. Craig, ‘Hybrid position/force coritrol of manipula
+tors,” ASME J. Dynamic Syst., Meas., Contr., June 1981.
+
+M. Renaud, ‘‘Contribution a I’étude de la modélisation et de la
+commmande des systémes mécaniques articulés,’’ thése de docteur
+ingénieur, Univ. Paul Sabatier, Toulouse, France, Dec. 1975.
+
+[30]
+
+Bu
+
+[32]
+
+133]
+
+(34]
+
+G5]
+[136]
+
+37]
+
+53
+
+M. Renaud and J, Zabala-Iturralde, “Robot manipulator control," in
+Proc. 9h Int. Symp. Industrial Robots, 1979, pp. 463-475.
+
+J. K. Salisbury, “Active stiffness control of a manipulator in Cartesian
+coordinates,"” presented at the 19th IEEE Conf. Decision and Control,
+Albuquerque, NM, Dec. 1980.
+
+J. J. Slotine and O. Khatib, “Robust control in operational space for
+goal positioned manipulator tasks,” presented at the 1986 American
+Control Conf., Seattle, WA, June 1986.
+
+K. Takase, “‘Task-oriented variable control of manipulator and its
+software servoing system,” in Proc. IFAC Int. Symp., 1977, pp.
+139-145.
+
+D. E. Whitney, ‘Resolved motion rate control of manipulators and
+human prostheses,”” JEEE Trans. Man-Machine Syst., vol. MMS-2,
+pp. 47-53, June 1969.
+
+D. E. Whitney, ‘Force feedback control of manipulator fine motions,”
+ASME J. Dynamic Syst., Meas., Contr., pp. 91-97, June 1977.
+
+J. Zabala-Iturralde, “Commande des robots manipulateurs a partir de
+la modélisation de leur dynamique,” thése de 3°™ cycle, Univ. Paul
+Sabatier, Toulouse, France, July 1978.
+
+E, Freund, “The structure of decoupled nonlinear systems,” Int. J.
+Contr., vol. 21, no. 3, pp. 443-450, 1975.
+
+Oussama Khatib (M’85) received the degree of
+Docteur-Ingénieur en Automatique et Systéme from
+V’Ecole Nationale Supérieure de I’Aéronautique et
+de l’Espace, Toulouse, France, in 1980.
+
+He is a Senior Research Associate at the Artificial
+Intelligence Laboratory, Stanford University. He
+has worked in the field of robotics since 1976, when
+he joined le Centre d’Etude et de Recherche de
+Toulouse. There, he developed the foundation of
+the operational space formulation and the artifi-
+cial potential field concept for robot manipulator
+
+control and collision avoidance. Since 1981, his research at Stanford
+University has been aimed at extending these methodologies to establish a
+unified framework for motion and active force control of robot manipulators
+operating in a cluttered and evolving environment. His research interests
+include issues of task description, constrained motion and force control, force
+strategies, redundancy, kinematic singularities, real-time obstacle avoidance,
+sensor fusion, and high-level programming systems. He is also concerned
+with the analysis and design of high-performance force-controlled robot
+manipulator and micro-manipulator systems.

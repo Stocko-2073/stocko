@@ -1,6 +1,7 @@
-# Git LFS. Applies to newly added files; the 15 binaries already committed
-# before LFS was set up (13 STL + 2 PNG, 7.3 MB total) remain plain blobs
-# because migrating them would rewrite history already pushed to origin.
+# Git LFS. Applies to newly added files; the 21 binaries committed before
+# their pattern was added here (13 STL + 2 PNG + 6 PDF, 10.7 MB total) remain
+# plain blobs because migrating them would rewrite history already pushed to
+# origin.
 
 # Photos and figures
 *.jpg   filter=lfs diff=lfs merge=lfs -text
@@ -32,6 +33,10 @@
 *.ckpt         filter=lfs diff=lfs merge=lfs -text
 *.safetensors  filter=lfs diff=lfs merge=lfs -text
 *.onnx         filter=lfs diff=lfs merge=lfs -text
+
+# Papers and archives
+*.pdf   filter=lfs diff=lfs merge=lfs -text
+*.zip   filter=lfs diff=lfs merge=lfs -text
 
 # Text formats that would otherwise be guessed wrong
 *.scad  text eol=lf

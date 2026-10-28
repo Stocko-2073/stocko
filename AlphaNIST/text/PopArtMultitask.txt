@@ -1,0 +1,864 @@
+                                                                 Multi-task Deep Reinforcement Learning with PopArt
+
+                                                        Matteo Hessel                                  Hubert Soyer                         Lasse Espeholt
+
+
+                                                   Wojciech Czarnecki                                 Simon Schmitt                       Hado van Hasselt
+
+
+
+
+arXiv:1809.04474v1 [cs.LG] 12 Sep 2018
+                                                                     Abstract                                  of multi-task reinforcement learning that have been explored
+                                                                                                               in the literature: off-policy learning of many predictions
+                                           The reinforcement learning community has made great
+                                                                                                               about the same stream of experience (Schmidhuber 1990;
+                                           strides in designing algorithms capable of exceeding human
+                                           performance on specific tasks. These algorithms are mostly          Sutton et al. 2011; Jaderberg et al. 2016), continual learning
+                                           trained one task at the time, each new task requiring to train      in a sequence of tasks (Ring 1994; Thrun 1996; Thrun 2012;
+                                           a brand new agent instance. This means the learning algo-           Rusu et al. 2016), distillation of task-specific experts into a
+                                           rithm is general, but each solution is not; each agent can only     single shared model (Parisotto, Ba, and Salakhutdinov 2015;
+                                           solve the one task it was trained on. In this work, we study the    Rusu et al. 2015; Schmitt et al. 2018; Teh et al. 2017),
+                                           problem of learning to master not one but multiple sequential-      and parallel learning of multiple tasks at once (Sharma and
+                                           decision tasks at once. A general issue in multi-task learning      Ravindran 2017; Caruana 1998). We will focus on the latter.
+                                           is that a balance must be found between the needs of multiple
+                                                                                                                  Parallel multi-task learning has recently achieved remark-
+                                           tasks competing for the limited resources of a single learn-
+                                           ing system. Many learning algorithms can get distracted by          able success in enabling a single system to learn a large
+                                           certain tasks in the set of tasks to solve. Such tasks appear       number of diverse tasks. The Importance Weighted Actor-
+                                           more salient to the learning process, for instance because of       Learner Architecture, henceforth IMPALA (Espeholt et al.
+                                           the density or magnitude of the in-task rewards. This causes        2018), achieved a 59.7% median human normalised score
+                                           the algorithm to focus on those salient tasks at the expense of     across 57 Atari games, and a 49.4% mean human normalised
+                                           generality. We propose to automatically adapt the contribu-         score across 30 DeepMind Lab levels. These results are state
+                                           tion of each task to the agent’s updates, so that all tasks have    of the art for multi-task RL, but they are far from the human-
+                                           a similar impact on the learning dynamics. This resulted in         level performance demonstrated by deep RL agents on the
+                                           state of the art performance on learning to play all games in a     same domains, when trained on each task individually.
+                                           set of 57 diverse Atari games. Excitingly, our method learned
+                                           a single trained policy - with a single set of weights - that          Part of why multi-task learning is much harder than sin-
+                                           exceeds median human performance. To our knowledge, this            gle task learning is that a balance must be found between
+                                           was the first time a single agent surpassed human-level per-        the needs of multiple tasks, that compete for the limited
+                                           formance on this multi-task domain. The same approach also          resources of a single learning system (for instance, for its
+                                           demonstrated state of the art performance on a set of 30 tasks      limited representation capacity). We observed that the naive
+                                           in the 3D reinforcement learning platform DeepMind Lab.             transposition of common RL algorithms to the multi-task
+                                                                                                               setting may not perform well in this respect. More specif-
+                                                                 Introduction                                  ically, the saliency of a task for the agent increases with
+                                                                                                               the scale of the returns observed in that task, and these may
+                                         In recent years, the field of deep reinforcement learning (RL)        differ arbitrarily across tasks. This affects value-based algo-
+                                         has enjoyed many successes. Deep RL agents have been ap-              rithms such as Q-learning (Watkins 1989), as well as policy-
+                                         plied to board games such as Go (Silver et al. 2016) and              based algorithms such as REINFORCE (Williams 1992).
+                                         chess (Silver et al. 2017), continuous control (Lillicrap et al.
+                                                                                                                  The problem of scaling individual rewards appropriately
+                                         2016; Duan et al. 2016), classic video-games such as Atari
+                                                                                                               is not novel, and has often been addressed through re-
+                                         (Mnih et al. 2015; Hessel et al. 2018; Gruslys et al. 2018;
+                                                                                                               ward clipping (Mnih et al. 2015). This heuristic changes the
+                                         Schulman et al. 2015; Schulman et al. 2017; Bacon, Harb,
+                                                                                                               agent’s objective, e.g., if all rewards are non-negative the
+                                         and Precup 2017), and 3D first person environments (Mnih
+                                                                                                               algorithm optimises frequency of rewards rather than their
+                                         et al. 2016; Jaderberg et al. 2016). While the results are im-
+                                                                                                               cumulative sum. If the two objectives are sufficiently well
+                                         pressive, they were achieved on one task at the time, each
+                                                                                                               aligned, clipping can be effective. However, the scale of re-
+                                         task requiring to train a new agent instance from scratch.
+                                                                                                               turns also depends on the rewards’ sparsity. This implies
+                                            Multi-task and transfer learning remain important open
+                                                                                                               that, even with reward clipping, in a multi-task setting the
+                                         problems in deep RL. There are at least four different strains
+                                                                                                               magnitude of updates can still differ significantly between
+                                         Copyright c 2019, Association for the Advancement of Artificial       tasks, causing some tasks to have a larger impact on the
+                                         Intelligence (www.aaai.org). All rights reserved.                     learning dynamics than other equally important ones.
+   Note that both the sparsity and the magnitude of rewards        Actor-critic
+collected in an environment are inherently non-stationary,         In our experiments, we use an actor-critic algorithm to
+because the agent is learning to actively maximise the total       learn a policy πη (A|S) and a value estimate vθ (s), which
+amount of rewards it can collect. These non-stationary learn-      are both outputs of a deep neural network. We update the
+ing dynamics make it impossible to normalise the learning          agent’s policy by using REINFORCE-style stochastic gradi-
+updates a priori, even if we would be willing to pour signif-      ent (Gt − vθ (St ))∇η log π(At |St ) (Williams 1992), where
+icant domain knowledge into the design of the algorithm.           vθ (St ) is used as a baseline to reduce variance. In addition
+   To summarise, in IMPALA the magnitude of updates re-            we use a multi-step return Gvt that bootstraps on the value
+sulting from experience gathered in each environment de-           estimates after a limited number of transitions, both to re-
+pends on: 1) the scale of rewards, 2) the sparsity of rewards,     duce variance further and to allow us to update the policy
+3) the competence of the agent. In this paper we use PopArt        before Gt fully resolves at the end of an episode. The value
+normalisation (van Hasselt et al. 2016) to derive an actor-        function vθ (S) is instead updated to minimise the squared
+critic update invariant to these factors, enabling large per-      loss with respect to the (truncated and bootstrapped) return:
+formance improvements in parallel multi-task agents. We
+demonstrated this on the Atari-57 benchmark, where a sin-           ∆θ ∝ −∇θ (Gvt −vθ (St ))2 = (Gvt −vθ (St ))∇θ vθ (St ) (1)
+gle agent achieved a median normalised score of 110% and
+on DmLab-30, where it achieved a mean score of 72.8%.                         ∆η ∝ (Gπt − vθ (St ))∇η log(πη (At |St )) ,     (2)
+                                                                   where Gvt and Gπt are stochastic estimates of v π (St ) and
+                       Background                                  q π (St , At ), respectively. Note how both updates depend lin-
+Reinforcement learning (RL) is a framework for learning            early on the scale of returns, which, as previously argued, de-
+and decision-making under uncertainty (Sutton and Barto            pend on scale/sparsity of rewards, and agent’s competence.
+2018). A learning system - the agent - must learn to inter-
+act with the environment it is embedded in, so as to max-          Efficient multi-task learning in simulation
+imise a scalar reward signal. The RL problem is often for-
+malised as a Markov decision process (Bellman 1957): a             We use the IMPALA agent architecture (Espeholt et al.
+tuple (S, A, p, γ), where S, A are finite sets of states and       2018), proposed for reinforcement learning in simulated en-
+actions, p denotes the dynamics, such that p(r, s0 | s, a) is      vironments. In IMPALA the agent is distributed across mul-
+the probability of observing reward r and state s0 when ex-        tiple threads, processes or machines. Several actors run on
+ecuting action a in state s, and γ ∈ [0, 1] discounts future       CPU generating rollouts of experience, consisting of a fixed
+rewards. The policy maps states s ∈ S to probability dis-          number of interactions (100 in our experiments) with their
+tributions over actions π(A|S = s), thus specifying the be-        own copy of the environment, and then enqueue the roll-
+haviour of the agent. The return Gt = Rt+1 +γRt+2 +. . . is        outs in a shared queue. Actors receive the latest copy of the
+the γ-discounted sum of rewards collected by an agent from         network’s parameters from the learner before each rollout.
+state St onward under policy π. We define action values and        A single GPU learner processes rollouts from all actors, in
+state values as q π (s, a) = Eπ [Gt | St = s, At = a] and          batches, and updates a deep network. The network is a deep
+v π (s) = Eπ [Gt | St = s], respectively. The agent’s objec-       convolutional ResNet (He et al. 2015), followed by a LSTM
+tive is to find a policy to maximise such values.                  recurrent layer (Hochreiter and Schmidhuber 1997). Policy
+   In multi-task reinforcement learning, a single agent must       and values are all linear functions of the LSTM’s output.
+learn to master N different environments T = {Di =                    Despite the large network used for estimating policy πη
+(Si , Ai , pi , γ)}N                                               and values vθ , the decoupled nature of the agent enables
+                   i=1 , each with its own distinct dynamics
+(Brunskill and Li 2013). Particularly interesting is the case      to process data very efficiently: in the order of hundreds
+in which the action space and transition dynamics are at           of thousands frames per second (Espeholt et al. 2018). The
+least partially shared. For instance, the environments might       setup easily supports the multi-task setting by simply assign-
+follow the same physical rules, while the set of intercon-         ing different environments to each of the actors and then run-
+nected states and obtainable rewards differ. We may for-           ning the single policy π(S|A) on each of them. The data in
+malise this as a single larger MDP, whose state space is           the queue can also be easily labelled with the task id, if use-
+S = {{(sj , i)}sj ∈Si }N                                           ful at training time. Note that an efficient implementation of
+                           i=1 . The task index i may be latent,
+or may be exposed to the agent’s policy. In this paper, we         IMPALA is available open-source 1 , and that, while we use
+use the task index at training time, for the value estimates       this agent for our experiments, our approach can be applied
+used to compute the policy updates, but not at testing time:       to other data parallel multi-task agents (e.g. A3C).
+our algorithm will return a single general policy π(A|S)
+which is only function of the individual environment’s             Off-policy corrections
+state S and not conditioned directly on task index i. This         Because we use a distributed queue-based learning setup, the
+is more challenging than the standard multi-task learning          data consumed by the learning algorithm might be slightly
+setup, which typically allows conditioning the model on the        off-policy, as the policy parameters change between acting
+task index even at evaluation (Romera-Paredes et al. 2013;         and learning. We can use importance sampling corrections
+Collobert and Weston 2008), because our agents will need           ρt = π(At |St )/µ(At |St ) to compensate for this (Precup,
+to infer what task to solve purely from the stream of raw
+                                                                      1
+observations and/or early rewards in the episode.                         www.github.com/deepmind/scalable agent
+                                                                                   Gπt − µ
+                                                                                                       
+Sutton, and Singh 2000). In particular, we can write the n-
+                                                                        ∆η ∝                − nθ (St ) ∇η log πη (At |St ) .    (8)
+step return as Gt = Rt+1 + γRt+2 + . . . + γ n v(St+n ) =                             σ
+          Pt+n−1
+v(St ) + k=t γ k−t δk , where δt = Rt+1 + γv(St+1 ) −              If we optimise the new objective naively, we are at risk of
+v(St ), and then apply appropriate importance sampling cor-        making the problem harder: the normalised targets for val-
+rections to each error term (Sutton et al. 2014) to get Gt =       ues are non-stationary, since they depend on statistics µ and
+         Pt+n−1         Qk
+v(St )+ k=t γ k−t ( i=t ρi )δk . This is unbiased, but has         σ. The PopArt normalisation algorithm prevents this, by up-
+high variance. To reduce variance, we can further clip most        dating the last layer of the normalised value network to pre-
+of the importance-sampling ratios, e.g., as ct = min(1, ρt ).      serve unnormalised value estimates vµ,σ,θ , under any change
+This leads to the v-trace return (Espeholt et al. 2018)            in the statistics µ → µ0 and σ → σ 0 :
+                              t+n−1          k
+                                                   !                                    σ                 σb + µ − µ0
+          v−trace
+                               X
+                                      k−t
+                                            Y                                   w0 = 0 w ,           b0 =               .       (9)
+        Gt        = v(St ) +        γ            ci δ k   (3)                           σ                       σ0
+                               k=t           i=t                   This extends PopArt’s scale-invariant updates to the actor-
+   A very similar target was proposed for the ABQ(ζ) algo-         critic setting, and can help to make tuning hyperparameters
+rithm (Mahmood 2017), where the product ρt λt was consid-          easier, but it is not sufficient to tackle the challenging multi-
+ered and then the trace parameter λt was chosen to be adap-        task RL setting that we are interested in this paper. For this,
+tive to lead to exactly the same behaviour that ct = ρt λt =       a single pair of normalisation statistics is not sufficient.
+min(1, ρt ). This shows that this form of clipping does not
+impair the validity of the off-policy corrections, in the same     Scale invariant updates for multi-task learning
+sense that bootstrapping in general does not change the se-        Let Di be an environment in some finite set T = {Di }N       i=1 ,
+mantics of a return. The returns used by the value and policy      and let π(S|A) be a task-agnostic policy, that takes a state
+updates defined in Equation 1 and 2 are then                       S from any of the environments Di , and maps it to a proba-
+                                                                   bility distribution onto the shared action space A. Consider
+   Gvt = Gv−trace
+          t             and   Gπt = Rt+1 + γGv-trace
+                                             t+1 .          (4)
+                                                                   now a multi-task value function v(S) with N outputs, one
+  This is the same algorithm as used by Espeholt et al.            for each task. We can use for v the same parametrisation as
+(2018) in the experiments on the IMPALA architecture.              in Equation 5, but with vectors of statistics µ, σ ∈ RN , and
+                                                                                                                              >
+                                                                   a vector-valued function nθ (s) = (n1θ (s), . . . , nN
+                                                                                                                        θ (s))
+               Adaptive normalisation
+In this section we use PopArt normalisation (van Hasselt et        vµ,σ,θ (S) = σ nθ (S)+µ = σ (Wfθ\{W,b} (S)+b)+µ
+al. 2016), which was introduced for value-based RL, to de-                                                                    (10)
+rive a scale invariant algorithm for actor-critic agents. For      where W and b denote the parameters of the last fully con-
+simplicity, we first consider the single-task setting, then we     nected layer in nθ (s). Given a rollout {Si,k , Ak , Ri,k }t+n
+                                                                                                                              k=t ,
+extend it to the multi-task setting (the focus of this work).      generated under task-agnostic policy πη (A|S) in environ-
+                                                                   ment Di , we can adapt the updates in Equation 7 and 8 to
+Scale invariant updates                                            provide scale invariant updates also in the multi-task setting:
+In order to normalise both baseline and policy gradient up-                                         !
+dates, we first parameterise the value estimate vµ,σ,θ (S) as                 Gv,i
+                                                                                 t − µi
+                                                                     ∆θ ∝                 − nθ (St ) ∇θ niθ (St ) ,
+                                                                                              i
+                                                                                                                              (11)
+the linear transformation of a suitably normalised value pre-                      σi
+diction nθ (S). We further assume that the normalised value                                         !
+prediction is itself the output of a linear function, for in-                 Gπ,i
+                                                                                 t − µi       i
+                                                                     ∆η ∝                 − nθ (St ) ∇η log πη (At |St ) . (12)
+stance the last fully connected layer of a deep neural net:                        σi
+vµ,σ,θ (s) = σ · nθ (s) + µ = σ · (w> fθ\{w,b} (s) + b) + µ .      Where the targets G·,i
+                                                                                        t use the value estimates for environ-
+                                                                   ment Di for bootstrapping. For each rollout, only the ith head
+                                   |       {z        }
+                                        = nθ (s)
+                                                          (5)      in the value net is updated, while the same policy network
+As proposed by van Hasselt et al., µ and σ can be updated so       is updated irrespectively of the task, using the appropriate
+as to track mean and standard deviation of the values. First       rescaling for updates to parameters η. As in the single-task
+and second moments of can be estimated online as                   case, when updating the statistics µ and σ we also need to
+                                                                   update W and b to preserve unnormalised outputs,
+µt = (1−β)µt−1 +βGvt ,          νt = (1−β)νt−1 +β(Gvt )2 ,
+                                                                                 σi                 σi bi + µi − µ0i
+                                                             (6)          wi0 = 0 wi ,        b0i =                  ,       (13)
+and then
+      p used to derive the estimated standard deviation as                       σi                        σi0
+σt = νt − µ2t . Note that the fixed decay rate β determines        where wi is the ith row of matrix W, and µi , σi , bi are the ith
+the horizon used to compute the statistics. We can then use        elements of the corresponding parameter vectors. Note that
+the normalised value estimate nθ (S) and the statistics µ and      in all updates only the values, but not the policy, are con-
+σ to normalise the actor-critic loss, both in its value and pol-   ditioned on the task index, which ensures that the resulting
+icy component; this results in the scale-invariant updates:        agent can then be run in a fully task agnostic way, since val-
+                                                                   ues are only used to reduce the variance of the policy updates
+                  v                   
+                   Gt − µ
+          ∆θ ∝              − nθ (St ) ∇θ nθ (St ) ,         (7)   at training time but not needed for action selection.
+                      σ
+Table 1: Summary of results: aggregate scores for IMPALA and PopArt-IMPALA. We report median human normalised score
+for Atari-57, and mean capped human normalised score for DmLab-30. In Atari, Random and Human refer to whether the
+trained agent is evaluated with random or human starts. In DmLab-30 the test score includes evaluation on the held-out levels.
+                                                Atari-57           Atari-57 (unclipped)        DmLab-30
+                       Agent               Random      Human       Random      Human          Train      Test
+                       IMPALA                59.7%     28.5%         0.3%        1.0%       60.6%     58.4%
+                       PopArt-IMPALA       110.7%     101.5%       107.0%       93.7%       73.5%     72.8%
+
+
+
+                       Experiments                                   levels can also differ visually in non-trivial ways, as
+                                                                     they include both natural environments and maze-like lev-
+We evaluated our approach in two challenging multi-task              els. Two levels (rooms collect good objects and
+benchmarks, Atari-57 and DmLab-30, based on Atari and                rooms exploit deferred effects) have held out
+DeepMind Lab respectively, and introduced by Espeholt et             test versions, therefore Table 1 reports both train and test ag-
+al. We also consider a new benchmark, consisting of the              gregate scores. We observed that the original IMPALA agent
+same games as Atari-57, but with the original unclipped              suffers from an artificial bottleneck in performance, due to
+rewards. We demonstrate state of the art performance on              the fact that some of the tasks cannot be solved with the ac-
+all benchmarks. To aggregate scores across many tasks, we            tion set available to the agent. As first step, we thus fix this
+normalise the scores on each task based on the scores of             issue by equipping it with a larger action set, resulting in a
+a human player and of a random agent on that same task               stronger IMPALA baseline than reported in the original pa-
+(van Hasselt, Guez, and Silver 2016). All experiments use            per. We also run multiple independent PBT experiments, to
+population-based training (PBT) to tune hyperparameters              assess the variability of results across multiple replications.
+(Jaderberg et al. 2017). As in Espeholt et al., we report learn-
+ing curves as function of the number of frames processed by          Atari-57 results
+one instance of the tuning population, summed across tasks.          Figures 1 and 2 show the median human normalised perfor-
+                                                                     mance across the entire set of 57 Atari games in the ALE,
+Domains                                                              when training agent with and without reward clipping, re-
+Atari-57 is a collection of 57 classic Atari 2600 games. The         spectively. The curves are plotted as function of the total
+ALE (Bellemare et al. 2013), exposes them as RL envi-                number of frames seen by each agent.
+ronments. Most prior work has focused on training agents                PopArt-IMPALA (orange line) achieves a median perfor-
+for individual games (Mnih et al. 2015; Hessel et al. 2018;          mance of 110% with reward clipping and a median perfor-
+Gruslys et al. 2018; Schulman et al. 2015; Schulman et al.           mance of 101% in the unclipped version of Atari-57. Re-
+2017; Bacon, Harb, and Precup 2017). Multi-task learning             call that here we are measuring the median performance of
+on this platform has not been as successful due to large num-        a single trained agent across all games, rather than the me-
+ber of environments, inconsistent dynamics and very differ-          dian over the performance of a set of individually trained
+ent reward structure. Prior work on multi-task RL in the ALE         agents as it has been more common in the Atari domain. To
+has therefore focused on smaller subsets of games (Rusu et           our knowledge, both agents are the first to surpass median
+al. 2015; Sharma and Ravindran 2017). Atari has a particu-           human performance across the entire set of 57 Atari games.
+larly diverse reward structure. Consequently, it is a perfect           The IMPALA agent (blue line) performs much worse. The
+domain to fully assess how well can our agents deal with             baseline barely reaches 60% with reward clipping, and the
+extreme differences in the scale of returns. Thus, we train          median performance is close to 0% in the unclipped setup.
+all agents both with and without reward clipping, to com-            The large decrease in the performance of the baseline IM-
+pare performance degradation as returns get more diverse in          PALA agent once clipping is removed is in stark contrast
+the unclipped version of the environment. In both cases, at          with what we observed for PopArt-IMPALA, that achieved
+the end of training, we test agents both with random-starts          almost the same performance in the two training regimes.
+(Mnih et al. 2015) and human-starts (Nair et al. 2015); ag-             Since the level-specific value predictions used by multi-
+gregate results are reported in Table 1 accordingly.                 task PopArt effectively increase the capacity of the net-
+   DmLab-30 is a collection of 30 visually rich, par-                work, we also ran an additional experiment to disentan-
+tially observable RL environments (Beattie et al. 2016).             gle the contribution of the increased network capacity from
+This benchmark has strong internal consistency (all lev-             the contribution of the adaptive normalisation. For this pur-
+els are played with a first person camera in a 3D envi-              pose, we train a second baseline, that uses level specific
+ronment with consistent dynamics). Howevere, the tasks               value predictions, but does not use PopArt to adaptively
+themselves are quite diverse, and were designed to test dis-         normalise the learning updates. The experiments show that
+tinct skills in RL agents: among these navigation, mem-              such MultiHead-IMPALA agent (pink line) actually per-
+ory, planning, laser-tagging, and language grounding. The            forms slightly worse than the original IMPALA both with
+                                                                 Atari-57 (clipped)                                                                                           Atari-57 (unclipped)
+                                120                                                                                                    120
+                                          PopArt-IMPALA                                                                                               PopArt-IMPALA
+                                          MultiHead-IMPALA                                                                                            MultiHead-IMPALA
+                                                                                                                                       100
+                                100       IMPALA                                                                                                      IMPALA
+
+
+
+
+Median Human Normalised Score                                                                          Median Human Normalised Score
+                                                                                                                                        80
+                                80
+
+                                                                                                                                        60
+                                60
+                                                                                                                                        40
+
+                                40
+                                                                                                                                        20
+
+
+                                20
+                                                                                                                                         0
+
+
+                                 0                                                                                                     −20
+                                      0        2             4           6            8   10    12                                           0                2          4             6                8       10                   12
+                                                                                               1e9                                                                                                                               1e9
+                                                                 Environment Frames                                                                                           Environment Frames
+
+
+
+Figure 1: Atari-57 (reward clipping). Median human nor-                                              Figure 2: Atari-57 (unclipped): Median human normalised
+malised score across all Atari levels, as function of the total                                      score across all Atari levels, as a function of the total num-
+number of frames seen by the agents across all levels. We                                            ber of frames seen by the agents across all levels. We here
+compare PopArt-IMPALA to IMPALA and to an additional                                                 compare the same set of agents as in Figure 1, but now all
+baseline, MultiHead-IMPALA, that uses task-specific value                                            agents are trained without using reward clipping. The ap-
+predictions but no adaptive normalisation. All three agent                                           proximately flat lines corresponding to the baselines mean
+are trained with the clipped reward scheme.                                                          no learning at all on at least 50% of the games.
+
+                                                                                                                                                 breakout          crazy_climber               qbert                 seaquest
+and without clipping, confirming that the performance boost
+of PopArt-IMPALA is indeed due to the adaptive rescaling.
+   We highlight that in our experiments a single instance of                                         [μ-σ, μ+σ]
+
+multi-task PopArt-IMPALA has processed the same amount
+of frames as a collection of 57 expert DQN agents (57 ×
+200 M = 1.14 × 1010 ), while achieving better performance.
+Despite the large CPU requirements, on a cloud service,
+
+                                                                                                     Undiscounted Return
+training multi-task PopArt-IMPALA can also be competi-
+tive in terms of costs, since it exceeds the performance of a
+vanilla-DQN in just 2.5 days, with a smaller GPU footprint.
+                                                                                                                                         Environment Frames       Environment Frames       Environment Frames   Environment Frames
+Normalisation statistics
+It is insightful to observe the different normalisation statis-                                      Figure 3: Normalisation statistics: Top: learned statistics,
+tics across games, and how they adapt during training. Fig-                                          without reward clipping, for four distinct Atari games. The
+ure 3 (top row) plots the shift µ for a selection of Atari                                           shaded region is [µ−σ, µ+σ]. Bottom: undiscounted returns.
+games, in the unclipped training regime. The scale σ is
+visualised in the same figure by shading the area in the
+range [µ − σ, µ + σ]. The statistics differ by orders of                                             independent PBT experiments. In Figure 4 we plot the learn-
+magnitude across games: in crazy climber the shift ex-                                               ing curves for each experiment and, for each agent, fill in the
+ceeds 2500, while in bowling it never goes above 15. The                                             area between best and worse experiment.
+adaptivity of the proposed normalisation emerges clearly
+                                                                                                        Compared to the original paper, our IMPALA baseline
+in crazy climber and qbert, where the statistics span
+                                                                                                     uses a richer action set, that includes more possible hori-
+multiple orders of magnitude during training. The bottom
+                                                                                                     zontal rotations, and vertical rotations (details in Appendix).
+row in Figure 3 shows the corresponding agent’s undis-
+                                                                                                     Fine-grained horizontal control is useful on lasertag
+counted episode return: it follows the same patterns as the
+                                                                                                     levels, while vertical rotations are necessary for a few
+statistics (with differences in magnitude due to discounting).
+                                                                                                     psychlab levels. Note that this new baseline (solid blue
+Finally note how the statistics can even track the instabilities
+                                                                                                     in Figure 4) performs much better than the original IM-
+in the agent’s performance, as in qbert.
+                                                                                                     PALA agent, which we also train and report for complete-
+                                                                                                     ness (dashed blue). Including PopArt normalisation (in or-
+DmLab-30 results                                                                                     ange) on top of our baseline results in largely improved
+Figure 4 shows, as a function of the total number of frames                                          scores. Note how agents achieve clearly separated perfor-
+processed by each agent, the mean human normalised per-                                              mance levels, with the new action set dominating the origi-
+formance across all 30 DeepMind Lab levels, where each                                               nal paper’s one, and with PopArt-IMPALA dominating IM-
+level’s score is capped at 100% . For all agents, we ran three                                       PALA for all three replications of the experiment.
+                                                       DmLab-30                                                                                                           DmLab-30
+                                     80                                                                                            80
+
+
+                                     70                                                                                            70
+
+
+
+
+Mean Capped Human Normalised Score                                                            Mean Capped Human Normalised Score
+                                     60                                                                                            60
+
+
+                                     50                                                                                            50
+
+                                                                                                                                                          PopArt-IMPALA@10B
+                                     40                                                                                            40
+
+
+                                     30                                                                                            30           IMPALA@10B
+
+                                     20                                                                                            20
+
+                                                                       PopArt-IMPALA                                                        IMPALA-original@10B
+                                     10                                IMPALA                                                      10                                                     PopArt-IMPALA
+                                                                       IMPALA-original                                                                                                    Pixel-PopArt-IMPALA
+                                     0                                                                                             0
+                                          0   2    4              6    8                 10                                             0     0.1     2               4              6       8                  10
+                                                                                    1e9                                                                                                                    1e9
+                                                  Environment Frames                                                                                                 Environment Frames
+
+
+
+Figure 4: DmLab-30. Mean capped human normalised                                              Figure 5: DmLab-30 (with pixel control). Mean capped hu-
+score of IMPALA (blue) and PopArt-IMPALA (orange),                                            man normalised score of PopArt-IMPALA with pixel con-
+across the DmLab-30 benchmark as function of the num-                                         trol (red), across the DmLab-30 benchmark as function of
+ber of frames (summed across all levels). Shaded region is                                    the total number of frames across all tasks. Shaded region is
+bounded by best and worse run among 3 PBT experiments.                                        bounded by best and worse run among 3 PBT experiments.
+For reference, we also plot the performance of IMPALA                                         Dotted lines mark the point where Pixel-PopArt-IMPALA
+with the limited action set from the original paper (dashed).                                 matches PopArt-IMPALA and the two IMPALA baselines.
+
+
+Extensions                                                                                    The weights W of the last layer of the value function are
+In this section, we explore the combination of the proposed                                   updated according to Equation 13 and 11. Note that we first
+PopArt-IMPALA agent with pixel control (Jaderberg et al.                                      apply the actor-critic updates (11), then update the statis-
+2016), to further improve data efficiency, and make train-                                    tics (6), finally apply output preserving updates (13). For
+ing IMPALA-like agents on large multi-task benchmarks                                         more just-in-time rescaling of updates we can invert this or-
+cheaper and more practical. Pixel control is an unsuper-                                      der, but this wasn’t necessary. As anticipated, in all experi-
+vised auxiliary task introduced to help learning good state                                   ments we used population-based training (PBT) to adapt hy-
+representations. As shown in Figure 5, the combination                                        perparameters during training (Jaderberg et al. 2017). As in
+of PopArt-IMPALA with pixel control (red line) allows to                                      the IMPALA paper, we use PBT to tune learning rate,
+match the final performance of the vanilla PopArt-IMPALA                                      entropy cost, the optimiser’s epsilon, and—in the
+(orange line) with a fraction of the data (∼ 2B frames).                                      Atari experiments—the max gradient norm. In Atari-
+This is on top of the large improvement in data efficiency                                    57 we used populations of 24 instances, in DmLab-30 just 8
+already provided by PopArt, meaning that the pixel con-                                       instances. All hyperparameters are reported in the Appendix.
+trol augmented PopArt-IMPALA needs less than 1/10-th of
+the data to match our own IMPALA baseline’s performance                                                                                                            Discussion
+(and 1/30-th of the frames to match the original published                                    In this paper we propose a scale-invariant actor-critic al-
+IMPALA). Importantly, since both PopArt and Pixel Con-                                        gorithm that enables significantly improved performance in
+trol only add a very small computational cost, this improve-                                  multi-task reinforcement learning settings. Being able to ac-
+ment in data efficiency directly translates in a large reduction                              quire knowledge about a wide range of facts and skills has
+of the cost of training IMPALA agents on large multi-task                                     been long considered an essential feature for an RL agent
+benchmarks. Note, finally, that other orthogonal advances in                                  to demonstrate intelligent behaviour (Sutton et al. 2011;
+deep RL could also be combined to further improve perfor-                                     Degris and Modayil 2012; Legg and Hutter 2007). To ask
+mance, similarly to what was done by Rainbow (Hessel et al.                                   our algorithms to master multiple tasks is therefore a natural
+2018), in the context of value-based reinforcement learning.                                  step as we progress towards increasingly powerful agents.
+                                                                                                 The wide-spread adoption of deep learning in RL is quite
+Implementation notes                                                                          timely in this regard, since sharing parts of a neural net-
+We implemented all agents in TensorFlow. For each batch                                       work across multiple tasks is also a powerful way of build-
+of rollouts processed by the learner, we average the Gvt tar-                                 ing robust representations. This is particularly important for
+gets within a rollout, and for each rollout in the batch we                                   RL, because rewards on individual tasks can be sparse, and
+perform one online update of PopArt’s normalisation statis-                                   therefore sharing representations across tasks can be vital
+tics with decay β = 3 × 10−4 . Note that β didn’t require                                     to bootstrap learning. Several agents (Jaderberg et al. 2016;
+any tuning. To prevent numerical issues, we clip the scale                                    Lample and Chaplot 2016; Shelhamer et al. 2016; Mirowski
+σ in the range [0.0001, 1e6]. We do not back-propagate gra-                                   et al. 2016) demonstrated this by improving performance on
+dients into µ and σ, exclusively updated as in Equation 6.                                    a single external task by learning off-policy about auxiliary
+ tasks defined on the same stream of experience (e.g. pixel              [Caruana 1998] Caruana, R. 1998. Multitask learning. In Learning
+ control, immediate reward prediction or auto-encoding).                   to learn.
+    Multi-task learning, as considered in this paper, where we           [Collobert and Weston 2008] Collobert, R., and Weston, J. 2008. A
+ get to execute, in parallel, the policies learned for each task,          unified architecture for natural language processing: Deep neural
+ has potential additional benefits, including deep exploration             networks with multitask learning. In ICML.
+ (Osband et al. 2016), and policy composition (Mankowitz et              [Degris and Modayil 2012] Degris, T., and Modayil, J. 2012.
+ al. 2018; Todorov 2009). By learning on-policy about tasks,               Scaling-up knowledge for a cognizant robot. In AAAI Spring Sym-
+ it may also be easier to scale to much more diverse tasks:                posium: Designing Intelligent Robots.
+ if we only learn about some task off-policy from experience             [Duan et al. 2016] Duan, Y.; Chen, X.; Houthooft, R.; Schulman, J.;
+ generated pursuing a very different one, we might never ob-               and Abbeel, P. 2016. Benchmarking deep reinforcement learning
+ serve any reward. A limitation of our approach is that it                 for continuous control. In ICML.
+ can be complicated to implement parallel learning outside               [Espeholt et al. 2018] Espeholt, L.; Soyer, H.; Munos, R.; Si-
+ of simulation, but recent work on parallel training of robots             monyan, K.; Mnih, V.; Ward, T.; Doron, Y.; Firoiu, V.; Harley, T.;
+ (Levine et al. 2016) suggests that this is not necessarily an             Dunning, I.; Legg, S.; and Kavukcuoglu, K. 2018. Impala: Scal-
+                                                                           able distributed deep-rl with importance weighted actor-learner ar-
+ insurmountable obstacle if sufficient resources are available.
+                                                                           chitectures. In ICML.
+    Adoption of parallel multi-task RL has up to now been
+                                                                         [French 1999] French, R. M. 1999. Catastrophic forgetting in con-
+ fairly limited. That the scaling issues considered in this pa-
+                                                                           nectionist networks. Trends in cognitive sciences.
+ per, may have been a factor in the limited adoption is in-
+ dicated by the wider use of this kind of learning in su-                [Gruslys et al. 2018] Gruslys, A.; Azar, M. G.; Bellemare, M. G.;
+                                                                           and Munos, R. 2018. The reactor: A sample-efficient actor-critic
+ pervised settings (Johnson et al. 2017; Lu et al. 2016;                   architecture. ICLR.
+ Misra et al. 2016; Hashimoto et al. 2016), where loss func-
+                                                                         [Hashimoto et al. 2016] Hashimoto, K.; Xiong, C.; Tsuruoka, Y.;
+ tions are naturally well scaled (e.g. cross entropy), or can
+                                                                           and Socher, R. 2016. A joint many-task model: Growing a neural
+ be easily scaled thanks to the stationarity of the training dis-          network for multiple NLP tasks. CoRR abs/1611.01587.
+ tribution. We therefore hope and believe that the work pre-
+                                                                         [He et al. 2015] He, K.; Zhang, X.; Ren, S.; and Sun, J. 2015.
+ sented here can enable more research on multi-task RL.                    Deep residual learning for image recognition. arXiv preprint
+    We also believe that PopArt’s adaptive normalisation                   arXiv:1512.03385.
+ can be combined with other research in multi-task rein-                 [Hessel et al. 2018] Hessel, M.; Modayil, J.; van Hasselt, H.;
+ forcement learning, that previously did not scale as effec-               Schaul, T.; Ostrovski, G.; Dabney, W.; Horgan, D.; Piot, B.; Azar,
+ tively to large numbers of diverse tasks. We highlight as                 M. G.; and Silver, D. 2018. Rainbow: Combining improvements
+ potential candidates policy distillation (Parisotto, Ba, and              in deep reinforcement learning. AAAI Conference on Artificial In-
+ Salakhutdinov 2015; Rusu et al. 2015; Schmitt et al. 2018;                telligence.
+ Teh et al. 2017) and active sampling of the task distribution           [Hochreiter and Schmidhuber 1997] Hochreiter, S., and Schmidhu-
+ the agent trains on (Sharma and Ravindran 2017). The com-                 ber, J. 1997. Long short-term memory. Neural computation.
+ bination of PopArt-IMPALA with active sampling might be                 [Jaderberg et al. 2016] Jaderberg, M.; Mnih, V.; Czarnecki, W. M.;
+ particularly promising since it may allow a more efficient                Schaul, T.; Leibo, J. Z.; Silver, D.; and Kavukcuoglu, K. 2016.
+ use of the parallel data generation, by focusing it on the task           Reinforcement learning with unsupervised auxiliary tasks. CoRR
+ most amenable for learning. Elastic weight consolidation                  abs/1611.05397.
+ (Kirkpatrick et al. 2017) and other work from the contin-               [Jaderberg et al. 2017] Jaderberg, M.; Dalibard, V.; Osindero, S.;
+ ual learning literature (Ring 1994; Mcclelland, Mcnaughton,               Czarnecki, W. M.; Donahue, J.; Razavi, A.; Vinyals, O.; Green,
+ and O’Reilly 1995) might also be adapted to parallel learn-               T.; Dunning, I.; Simonyan, K.; Fernando, C.; and Kavukcuoglu,
+ ing setups to reduce interference (French 1999) among tasks.              K. 2017. Population based training of neural networks. CoRR
+                                                                           abs/1711.09846.
+                           References                                    [Johnson et al. 2017] Johnson, M.; Schuster, M.; Le, Q. V.; Krikun,
+                                                                           M.; Wu, Y.; Chen, Z.; Thorat, N.; Viégas, F. B.; Wattenberg, M.;
+[Bacon, Harb, and Precup 2017] Bacon, P.; Harb, J.; and Precup, D.         Corrado, G.; Hughes, M.; and Dean, J. 2017. Google’s multilingual
+ 2017. The option-critic architecture. AAAI Conference on Artificial       neural machine translation system: Enabling zero-shot translation.
+ Intelligence.                                                             Transactions of the Association for Computational Linguistics 5.
+[Beattie et al. 2016] Beattie, C.; Leibo, J. Z.; Teplyashin, D.; Ward,   [Kirkpatrick et al. 2017] Kirkpatrick, J.; Pascanu, R.; Rabinowitz,
+ T.; Wainwright, M.; Küttler, H.; Lefrancq, A.; Green, S.; Valdés,       N.; Veness, J.; Desjardins, G.; Rusu, A. A.; Milan, K.; Quan, J.;
+ V.; Sadik, A.; Schrittwieser, J.; Anderson, K.; York, S.; Cant, M.;       Ramalho, T.; Grabska-Barwinska, A.; Hassabis, D.; Clopath, C.;
+ Cain, A.; Bolton, A.; Gaffney, S.; King, H.; Hassabis, D.; Legg, S.;      Kumaran, D.; and Hadsell, R. 2017. Overcoming catastrophic
+ and Petersen, S. 2016. Deepmind lab. CoRR abs/1612.03801.                 forgetting in neural networks. PNAS.
+[Bellemare et al. 2013] Bellemare, M. G.; Naddaf, Y.; Veness, J.;        [Lample and Chaplot 2016] Lample, G., and Chaplot, D. S. 2016.
+ and Bowling, M. 2013. The arcade learning environment: An eval-           Playing FPS games with deep reinforcement learning. CoRR
+ uation platform for general agents. JAIR.                                 abs/1609.05521.
+[Bellman 1957] Bellman, R. 1957. A markovian decision process.           [Legg and Hutter 2007] Legg, S., and Hutter, M. 2007. Universal
+ Journal of Mathematics and Mechanics.                                     intelligence: A definition of machine intelligence. Minds Mach.
+[Brunskill and Li 2013] Brunskill, E., and Li, L. 2013. Sam-             [Levine et al. 2016] Levine, S.; Pastor, P.; Krizhevsky, A.; and
+ ple complexity of multi-task reinforcement learning. CoRR                 Quillen, D. 2016. Learning hand-eye coordination for robotic
+ abs/1309.6821.                                                            grasping with large-scale data collection. In ISER.
+[Lillicrap et al. 2016] Lillicrap, T.; Hunt, J.; Pritzel, A.; Heess, N.;   [Schmidhuber 1990] Schmidhuber, J. 1990. An on-line algorithm
+ Erez, T.; Tassa, Y.; Silver, D.; and Wierstra, D. 2016. Continuous         for dynamic reinforcement learning and planning in reactive envi-
+ control with deep reinforcement learning. In ICLR.                         ronments. In IJCNN.
+[Lu et al. 2016] Lu, Y.; Kumar, A.; Zhai, S.; Cheng, Y.; Javidi, T.;       [Schmitt et al. 2018] Schmitt, S.; Hudson, J. J.; Zı́dek, A.; Osin-
+ and Feris, R. S. 2016. Fully-adaptive feature sharing in multi-task        dero, S.; Doersch, C.; Czarnecki, W. M.; Leibo, J. Z.; Küttler, H.;
+ networks with applications in person attribute classification. CoRR        Zisserman, A.; Simonyan, K.; and Eslami, S. M. A. 2018. Kick-
+ abs/1611.05377.                                                            starting deep reinforcement learning. CoRR abs/1803.03835.
+[Mahmood 2017] Mahmood, A. 2017. Incremental off-policy rein-              [Schulman et al. 2015] Schulman, J.; Levine, S.; Moritz, P.; Jordan,
+ forcement learning algorithms. Ph.D. UAlberta.                             M. I.; and Abbeel, P. 2015. Trust region policy optimization. CoRR
+[Mankowitz et al. 2018] Mankowitz, D. J.; Zı́dek, A.; Barreto, A.;          abs/1502.05477.
+ Horgan, D.; Hessel, M.; Quan, J.; Oh, J.; van Hasselt, H.; Silver, D.;    [Schulman et al. 2017] Schulman, J.; Wolski, F.; Dhariwal, P.; Rad-
+ and Schaul, T. 2018. Unicorn: Continual learning with a universal,         ford, A.; and Klimov, O. 2017. Proximal policy optimization algo-
+ off-policy agent. CoRR abs/1802.08294.                                     rithms. CoRR abs/1707.06347.
+[Mcclelland, Mcnaughton, and O’Reilly 1995] Mcclelland, J. L.;             [Sharma and Ravindran 2017] Sharma, S., and Ravindran, B. 2017.
+ Mcnaughton, B. L.; and O’Reilly, R. C. 1995. Why there are com-            Online multi-task learning using active sampling.             CoRR
+ plementary learning systems in the hippocampus and neocortex:              abs/1702.06053.
+ Insights from the successes and failures of connectionist models of       [Shelhamer et al. 2016] Shelhamer, E.; Mahmoudieh, P.; Argus,
+ learning and memory. Psychological Review.                                 M.; and Darrell, T. 2016. Loss is its own reward: Self-supervision
+[Mirowski et al. 2016] Mirowski, P.; Pascanu, R.; Viola, F.; Soyer,         for reinforcement learning. CoRR abs/1612.07307.
+ H.; Ballard, A. J.; Banino, A.; Denil, M.; Goroshin, R.; Sifre, L.;       [Silver et al. 2016] Silver, D.; Huang, A.; Maddison, C. J.; Guez,
+ Kavukcuoglu, K.; Kumaran, D.; and Hadsell, R. 2016. Learning to            A.; Sifre, L.; van den Driessche, G.; Schrittwieser, J.; Antonoglou,
+ navigate in complex environments. CoRR abs/1611.03673.                     I.; Panneershelvam, V.; Lanctot, M.; Dieleman, S.; Grewe, D.;
+[Misra et al. 2016] Misra, I.; Shrivastava, A.; Gupta, A.; and              Nham, J.; Kalchbrenner, N.; Sutskever, I.; Lillicrap, T.; Leach, M.;
+ Hebert, M. 2016. Cross-stitch networks for multi-task learning.            Kavukcuoglu, K.; Graepel, T.; and Hassabis, D. 2016. Mastering
+ CoRR abs/1604.03539.                                                       the game of Go with deep neural networks and tree search. Nature.
+                                                                           [Silver et al. 2017] Silver, D.; Hubert, T.; Schrittwieser, J.;
+[Mnih et al. 2015] Mnih, V.; Kavukcuoglu, K.; Silver, D.; Rusu,
+                                                                            Antonoglou, I.; Lai, M.; Guez, A.; Lanctot, M.; Sifre, L.;
+ A. A.; Veness, J.; Bellemare, M. G.; Graves, A.; Riedmiller, M.;
+                                                                            Kumaran, D.; Graepel, T.; Lillicrap, T. P.; Simonyan, K.; and
+ Fidjeland, A. K.; Ostrovski, G.; Petersen, S.; Beattie, C.; Sadik,
+                                                                            Hassabis, D. 2017. Mastering chess and shogi by self-play with a
+ A.; Antonoglou, I.; King, H.; Kumaran, D.; Wierstra, D.; Legg, S.;
+                                                                            general reinforcement learning algorithm. CoRR abs/1712.01815.
+ and Hassabis, D. 2015. Human-level control through deep rein-
+ forcement learning. Nature.                                               [Sutton and Barto 2018] Sutton, R. S., and Barto, A. G. 2018. Re-
+                                                                            inforcement Learning: An Introduction. MIT press.
+[Mnih et al. 2016] Mnih, V.; Badia, A. P.; Mirza, M.; Graves, A.;
+ Lillicrap, T.; Harley, T.; Silver, D.; and Kavukcuoglu, K. 2016.          [Sutton et al. 2011] Sutton, R. S.; Modayil, J.; Delp, M.; Degris, T.;
+ Asynchronous methods for deep reinforcement learning. In ICML.             Pilarski, P. M.; White, A.; and Precup, D. 2011. Horde: A scalable
+                                                                            real-time architecture for learning knowledge from unsupervised
+[Nair et al. 2015] Nair, A.; Srinivasan, P.; Blackwell, S.; Alcicek,        sensorimotor interaction. In AAMAS.
+ C.; Fearon, R.; De Maria, A.; Panneershelvam, V.; Suleyman, M.;
+ Beattie, C.; Petersen, S.; Legg, S.; Mnih, V.; Kavukcuoglu, K.; and       [Sutton et al. 2014] Sutton, R. S.; Mahmood, A. R.; Precup, D.; and
+ Silver, D. 2015. Massively parallel methods for deep reinforcement         van Hasselt, H. 2014. A new q(λ) with interim forward view and
+ learning. arXiv preprint arXiv:1507.04296.                                 Monte Carlo equivalence. In ICML.
+[Osband et al. 2016] Osband, I.; Blundell, C.; Pritzel, A.; and            [Teh et al. 2017] Teh, Y. W.; Bapst, V.; Czarnecki, W. M.; Quan,
+ Van Roy, B. 2016. Deep exploration via bootstrapped DQN. In                J.; Kirkpatrick, J.; Hadsell, R.; Heess, N.; and Pascanu, R.
+ NIPS.                                                                      2017. Distral: Robust multitask reinforcement learning. CoRR
+                                                                            abs/1707.04175.
+[Parisotto, Ba, and Salakhutdinov 2015] Parisotto, E.; Ba, L. J.; and
+                                                                           [Thrun 1996] Thrun, S. 1996. Is learning the n-th thing any easier
+ Salakhutdinov, R. 2015. Actor-mimic: Deep multitask and transfer
+                                                                            than learning the first? In NIPS.
+ reinforcement learning. CoRR abs/1511.06342.
+                                                                           [Thrun 2012] Thrun, S. 2012. Explanation-based neural network
+[Precup, Sutton, and Singh 2000] Precup, D.; Sutton, R. S.; and
+                                                                            learning: A lifelong learning approach. Springer.
+ Singh, S. P. 2000. Eligibility traces for off-policy policy evalu-
+ ation. In ICML.                                                           [Todorov 2009] Todorov, E. 2009. Compositionality of optimal
+                                                                            control laws. In NIPS.
+[Ring 1994] Ring, M. 1994. Continual learning in reinforcement
+ environments.                                                             [van Hasselt et al. 2016] van Hasselt, H.; Guez, A.; Hessel, M.;
+                                                                            Mnih, V.; and Silver, D. 2016. Learning values across many or-
+[Romera-Paredes et al. 2013] Romera-Paredes, B.; Aung, H.;                  ders of magnitude. In NIPS.
+ Bianchi-Berthouze, N.; and Pontil, M. 2013. Multilinear multitask
+ learning. In ICML.                                                        [van Hasselt, Guez, and Silver 2016] van Hasselt, H.; Guez, A.; and
+                                                                            Silver, D. 2016. Deep reinforcement learning with double Q-
+[Rusu et al. 2015] Rusu, A. A.; Colmenarejo, S. G.; Gülçehre,             learning. In AAAI Conference on Artificial Intelligence.
+ Ç.; Desjardins, G.; Kirkpatrick, J.; Pascanu, R.; Mnih, V.;
+                                                                           [Watkins 1989] Watkins, C. J. C. H. 1989. Learning from Delayed
+ Kavukcuoglu, K.; and Hadsell, R. 2015. Policy distillation. CoRR
+                                                                            Rewards. Ph.D. Dissertation, King’s College, Cambridge, England.
+ abs/1511.06295.
+                                                                           [Williams 1992] Williams, R. 1992. Simple statistical gradient-
+[Rusu et al. 2016] Rusu, A. A.; Rabinowitz, N. C.; Desjardins, G.;
+                                                                            following algorithms for connectionist reinforcement learning.
+ Soyer, H.; Kirkpatrick, J.; Kavukcuoglu, K.; Pascanu, R.; and Had-
+                                                                            Mach. Learning.
+ sell, R. 2016. Progressive neural networks. CoRR abs/1606.04671.
+                                                  Appendix                                              Pixel Control
+In this Appendix we report additional details about the re-                                             Pixel control (Jaderberg et al. 2016) is an unsupervised aux-
+sults presented in the main text, as well as present addi-                                              iliary task introduced to help learning good state represen-
+tional experiments on the DmLab-30 benchmark. We also                                                   tations. We report here also the performance of combining
+report the breakdown per level of the scores of IMPALA                                                  Pixel Control with IMPALA without also using PopArt. As
+and PopArt-IMPALA on the Atari-57 and DmLab-30 bench-                                                   shown in Figure 7, pixel control increases the performance
+marks. Finally, we report the hyperparameters used to train                                             of both the PopArt-IMPALA agent as well as that of the IM-
+the baseline agents as well as PopArt-IMPALA. These hy-                                                 PALA baseline. PopArt still guarantees a noticeable boost
+perparameters are mostly the same as in Espeholt et al., but                                            in performance, with the median human normalized score
+we report them for completeness and to ease reproducibility.                                            of Pixel-PopArt-IMPALA (red line) exceeding the score of
+                                                                                                        Pixel-IMPALA (green line) by approximately 10 points.
+Hyper-parameter tuning                                                                                     We implemented the pixel control task as described in the
+In our experiments we used Population-Based Training                                                    original paper, only adapting the scheme to the rectangular
+(PBT) to tune hyper-parameters. In our DmLab-30 exper-                                                  observations used in DmLab-30. We split the (72 × 96) ob-
+iments, however, we used smaller populations than in the                                                servations into a 18×24 grid of 4×4 cells. For each location
+original IMPALA paper. For completeness, we also report                                                 in the grid we define a distinct pseudo-reward r̃i,j , equal to
+here the results of running PopArt-IMPALA and IMPALA                                                    the absolute value of the difference between pixel intensities
+with the larger population size used by Espeholt et al. Due                                             in consecutive frames, averaged across the 16 pixels of cell
+to the increased cost of using larger populations, in this case                                         ci,j . For each cell, we train action values with multi-step Q-
+we will only report one PBT tuning experiment per agent,                                                learning, accumulating rewards until the end of a rollout and
+rather than the 3 reported in the main text.                                                            then bootstrapping. We use a discount γ = 0.9. Learning is
+   The learning curves for both IMPALA and PopArt-                                                      fully off-policy on experience generated by the actors, that
+IMPALA are shown in Figure 6, together with horizon-                                                    follow the main policy π as usual.
+tal dashed lines marking average final performance of the                                                  We use a deep deconvolutional network for the action
+agents trained with the smaller population of just 8 in-                                                value predictions associated to each pseudo-reward r̃i,j .
+stances. The performance of both IMPALA and PopArt-                                                     First, we feed the LSTM’s output to a fully connected layer,
+IMPALA agents at the end of training is very similar                                                    reshape the output tensor as 6 × 9 × 32, and apply a decon-
+whether hyperparameters are tuned with 8 or 24 PBT in-                                                  volution with 3 × 3 kernels that outputs a 8 × 11 × 32 tensor.
+stances, suggesting that the large populations used for hyper-                                          From this, we compute a spatial grid of Q-values using a du-
+parameter tuning by Espeholt et al. may not be necessary.                                               eling network architecture: we use a deconvolution with 1
+   Note, however, that we have observed larger discrepancies                                            output channel for the state values across the grid and a de-
+between experiments where small and large population size                                               convolution with |A| channels for the advantage estimates
+are used for tuning hyper-parameter, when training the less                                             of each cell. Output deconvolutions use 4 × 4 kernels with
+performing IMPALA agent that used a more limited action                                                 stride 2. The additional head is only evaluated on the learner,
+set, as presented in the original IMPALA paper.                                                         actors do not execute it.
+
+                                                      DmLab-30                                                                                                             DmLab-30
+                                     80                                                                                                       80
+
+
+                                     70                                                                                                       70
+
+
+
+
+      Mean Capped Normalized Score                                                                            Capped Human Normalised Score
+                                                                                                                                              60
+                                     60
+
+                                                                                                                                              50
+                                     50
+
+                                                                                                                                              40
+                                     40
+                                                                                                                                              30                                          PopArt-IMPALA@10B
+
+                                     30                                                                                                                                      IMPALA@10B
+                                                                                                                                              20
+                                                                   PopArt-IMPALA [24]
+                                     20                            IMPALA [24]                                                                       IMPALA-original@10B
+                                                                                                                                              10
+                                                                   PopArt-IMPALA [8] (@1e10 frames)                                                                                       Pixel-PopArt-IMPALA
+                                                                   IMPALA [8] (@1e10 frames)                                                                                              Pixel-IMPALA
+                                     10                                                                                                       0
+                                      0.0   0.2    0.4            0.6             0.8             1.0                                          0.0       0.5                1.0           1.5                    2.0
+                                                   Environment Frames                         1e10                                                                  Environment Frames                          1e9
+
+
+
+
+Figure 6: Larger populations: mean capped human nor-                                                    Figure 7: Pixel Control: mean capped human normalised
+malised score across the DmLab-30 benchmark as a func-                                                  score across the DmLab-30 benchmark as a function of
+tion of the total number of frames seen by the agents across                                            the total number of frames (summed across levels). Solid
+all levels. The solid lines plot the performance of IMPALA                                              lines plot the performance PopArt-IMPALA (red) and IM-
+(blue) and PopArt-IMPALA (orange) when tuning hyper-                                                    PALA (green), after augmenting both with pixel con-
+parameters with a large PBT population of 24 instances.                                                 trol. Dashed lines mark the point at which Pixel-PopArt-
+Dashed lines correspond to the final performance of these                                               IMPALA matches the final performance of previous agents.
+same agents, after 10B frames, in the previous experiments                                              Note how, thanks to the improved data efficiency, we train
+where hyper-parameters were tuned with a population of 8.                                               for 2B frames, compared to 10B in previous experiments.
+Atari-57 Score breakdown                                                          DmLab-30 Score breakdown
+In this section we use barplots to report the final perfor-                       In this section we use barplots to report the final perfor-
+mance of the agents on each of the levels in the Atari-57                         mance of the agents on each of the levels in the DmLab-
+multi-task benchmark. In order to compute these scores we                         30 multi-task benchmark. In order to compute these scores
+take the final trained agent and evaluate it with a frozen pol-                   we take the final trained agent and evaluate it with a frozen
+icy on each of the levels for 200 episodes. The same trained                      policy on each of the levels for 500 episodes. We perform
+policy is evaluated in all the levels, and the policy is not                      the evaluation over a higher number of episodes (compared
+provided information about the task it’s being evaluated on.                      to Atari) because the variance of the mean episode return
+For Atari, we compare PopArt-IMPALA, with and without                             is typically higher in DeepMind Lab. As before, the same
+reward clipping, to an IMPALA baseline. In all cases the                          trained policy is evaluated on all levels, and the policy is not
+height of the bars in the plot denote human normalised score.                     provided information about the task it’s being evaluated on.
+For the Atari results we additionally rescale logarithmically                     Also in DmLab-30 we perform a three-way comparison. We
+the x-axis, because in this domain games may differ in their                      compare PopArt-IMPALA to our improved IMPALA base-
+normalised performance by several orders of magnitude.                            line, and, for completeness, to the original paper’s IMPALA.
+
+
+Figure 8: Atari-57 breakdown: human normalised score for                          Figure 9: DmLab-30 breakdown: human normalised score
+IMPALA and PopArt-IMPALA, as measured in a separate                               for the original paper’s IMPALA, our improved IMPALA
+evaluation phase at the end of training, broken down for the                      baseline, and PopArt-IMPALA, as measured at the end of
+57 games. For PopArt-IMPALA we report the scores both                             training, broken down for the 30 tasks; they all used 8 in-
+with and without reward clipping                                                  stances for population based training.
+                                                                                                      PopArt-IMPALA                      IMPALA-original          IMPALA
+                         PopArt-IMPALA    PopArt-IMPALA (unclipped)     IMPALA
+                    atlantis                                                                    lasertag_one_opponent_small
+                    gopher
+                    assault                                                                 language_select_described_object
+             up_n_down                                                                       lasertag_three_opponents_small
+                 breakout
+           double_dunk                                                                          explore_goal_locations_small
+                        krull
+                     boxing                                                                  lasertag_three_opponents_large
+         demon_attack
+                 kangaroo                                                                     explore_obstructed_goals_small
+          crazy_climber
+                 defender                                                                             psychlab_visual_search
+            road_runner
+                 robotank                                                                       lasertag_one_opponent_large
+              jamesbond
+          fishing_derby                                                                        explore_object_locations_small
+                   phoenix
+                    zaxxon                                                                    language_select_located_object
+                centipede                                                                      natlab_varying_map_regrowth
+              bank_heist
+        kung_fu_master                                                                language_answer_quantitative_question
+            star_gunner
+                      tennis                                                                   explore_object_locations_large
+              tutankham
+                       pong                                                                  rooms_collect_good_objects_test
+                    enduro
+          wizard_of_wor                                                                      natlab_varying_map_randomized
+             battle_zone
+                   freeway                                                                       explore_object_rewards_few
+                 surround
+                   venture                                                                       explore_goal_locations_large
+          yars_revenge
+           video_pinball                                                                     psychlab_sequential_comparison
+              ice_hockey
+                                                                                              explore_obstructed_goals_large
+       name_this_game
+                time_pilot                                                                     explore_object_rewards_many
+                  riverraid
+     chopper_command                                                                        psychlab_continuous_recognition
+                     asterix
+            ms_pacman                                                                      rooms_select_nonmatching_object
+                        hero
+                        alien                                                                         natlab_fixed_large_map
+        space_invaders
+                    berzerk                                                                                rooms_watermaze
+                   bowling
+             beam_rider                                                                                    platforms_random
+                    amidar
+                   gravitar                                                                         rooms_keys_doors_puzzle
+                       qbert
+                  frostbite
+                                                                                                              platforms_hard
+                 asteroids                                                            psychlab_arbitrary_visuomotor_mapping
+                 seaquest
+                       pitfall                                                               language_execute_random_task
+             private_eye
+    montezuma_revenge                                                                     rooms_exploit_deferred_effects_test
+                     solaris
+                      skiing                                                                                                    0   20     40   60    80   100 120 140
+                             -1   0   1    10         100        1000     10000
+                                                                                                                                             Normalised Score
+                                           Normalised Score
+DeepMind Lab action discretisation                               Fixed Hyperparameters
+
+DeepMind Lab’s native action space is a 7-dimensional            Table 3: PopArt specific hyperparameters: these are held
+continuous space, whose dimensions correspond to rotat-          fixed during training and were only very lightly tuned. The
+ing horizontally/vertically, strafing left/right, moving for-    lower bound is used to avoid numerical issues when rewards
+ward/backward, tagging, crouching, and jumping.                  are extremely sparse.
+   Despite the native action space being continuous, previ-
+ous work on this platform has however typically relied on a                   Hyperparameter              value
+coarse discretisation of the action space. We therefore follow                Statistics learning rate   0.0003
+the same approach also in our experiments.                                    Scale lower bound          0.0001
+   Below we list the discretisations used by the agents con-                  Scale upper bound           1e6
+sidered in our experiments. This includes the discretisation
+used by IMPALA, as well as the one we introduce in this pa-
+per in order to unlock some levels in DmLab-30 which just
+can’t be solved under the original IMPALA discretisation.        Table 4: DeepMind Lab preprocessing. As in previous work
+                                                                 on DeepMind Lab, we render the observation with a resolu-
+                                                                 tion of [72, 96], as well as use 4 action repeats. We also em-
+                                                                 ploy the optimistic asymmetric rescaling (OAR) of rewards,
+                                                                 that was introduced in Espeholt et al. for exploration.
+Table 1: Action discretisation used by IMPALA: we report
+below the discretisation of DeepMind Lab’s action space, as       Hyperparameter                        value
+used by the original IMPALA agent in Espeholt et al.              Image Height                           72
+                                                                  Image Width                            96
+                                                                  Number of action repeats                4
+ Action                    Native DmLab Action                    Reward Rescaling              -0.3min(tanh(r),0)+
+ Forward (FW)         [ 0, 0, 0, 1, 0, 0, 0]                                                      5max(tanh(r),0)
+ Backward (BW)        [ 0, 0, 0, -1, 0, 0, 0]
+ Strafe Left          [ 0, 0, -1, 0, 0, 0, 0]
+ Strafe Right         [ 0, 0, 1, 0, 0, 0, 0]
+ Look Left (LL)       [-20, 0, 0, 0, 0, 0, 0]                    Table 5: Atari preprocessing. The standard Atari-
+ Look Right (LR)      [ 20, 0, 0, 0, 0, 0, 0]                    preprocessing is used in the Atari experiments. Since
+ FW + LL              [-20, 0, 0, 1, 0, 0, 0]                    the introduction of DQN these setting have become a
+ FW + LR              [ 20, 0, 0, 1, 0, 0, 0]                    standard practice when training deep RL agent on Atari.
+ Fire                 [ 0, 0, 0, 0, 1, 0, 0]                     Note however, that we report experiments training agents
+                                                                 both with and without reward clipping.
+
+                                                                      Hyperparameter                           value
+Table 2: Action discretisation of DeepMind Lab’s action               Image Height                              84
+space, as used by our version of IMPALA and by PopArt-                Image Width                               84
+IMPALA.                                                               Grey scaling                             True
+                                                                      Max-pooling 2 consecutive frames         True
+ Action                   Native DmLab Action                         Frame Stacking                             4
+ FW                  [ 0, 0, 0, 1, 0, 0, 0]                           End of episode on life loss              True
+ BW                  [ 0, 0, 0, -1, 0, 0, 0]                          Reward Clipping (if used)               [-1, 1]
+ Strafe Left         [ 0, 0, -1, 0, 0, 0, 0]                          Number of action repeats                   4
+ Strafe Right        [ 0, 0, 1, 0, 0, 0, 0]
+ Small LL            [-10, 0, 0, 0, 0, 0, 0]
+ Small LR            [ 10, 0, 0, 0, 0, 0, 0]
+ Large LL            [-60, 0, 0, 0, 0, 0, 0]                     Table 6: Other agent hyperparameters: These hyperparame-
+ Large LR            [ 60, 0, 0, 0, 0, 0, 0]                     ters are the same used by Espeholt et al.
+ Look Down           [ 0, 10, 0, 0, 0, 0, 0]
+ Look Up             [ 0,-10, 0, 0, 0, 0, 0]                      Hyperparameter                       value
+ FW + Small LL       [-10, 0, 0, 1, 0, 0, 0]                      Unroll length              20 (Atari), 100 (DmLab)
+ FW + Small LR       [ 10, 0, 0, 1, 0, 0, 0]                      Discount γ                           0.99
+ FW + Large LL       [-60, 0, 0, 1, 0, 0, 0]                      Baseline loss weight γ               0.5
+ FW + Large LR       [ 60, 0, 0, 1, 0, 0, 0]                      Batch size                            32
+ Fire                [ 0, 0, 0, 0, 1, 0, 0]                       Optimiser                          RMSProp
+                                                                  RMSProp momentum                      0.
+Network Architecture
+
+Table 7: Network hyperparameters. The network architec-
+ture is described in details in Espeholt et al., For complete-
+ness, we also report in the Table below the complete spec-
+ification of the network. Convolutional layers are specified
+according to the pattern (num layers, kernel size, stride).
+
+     Hyperparameter                       value
+     Convolutional Stack
+     - Number of sections               3
+     - Channels per section        [16, 32, 32]
+     - Activation Function             ReLU
+     ResNet section
+     - Conv                        1 / 3x3 / 1)
+     - Max-Pool                    1 / 3x3 / 2
+     - Conv                        2 / 3x3 / 1
+     - Skip                          Identity
+     - Conv                        2 / 3x3 / 1
+     - Skip                          Identity
+     Language preprocessing
+     - Word embeddings                    20
+     - Sentence embedding             LSTM / 64
+     Fully connected layer               256
+     LSTM (DmLab-only)                   256
+     Network Heads
+     - Value                          Linear
+     - Policy                     Linear+softmax
+
+
+Population Based Training
+
+Table 8: Population Based Training: we use PBT for tuning
+hyper-parameters, as described in Espeholt et al., with pop-
+ulation size and fitness function as defined below.
+   Hyperparameter                       value
+   Population Size (Atari)               24
+   Population Size (DmLab)                8
+   Fitness                          Mean capped
+                                 human normalised
+                                 score (cap=100)
+
+Table 9: hyperparameters tuned with population based train-
+ing are listed below: note that these are the same used by all
+baseline agents we compare to, to ensure fair comparisons.
+
+ Hyperparameter                 distribution
+ Entropy cost               Log-uniform on
+                             [5e-5, 1e-2]
+ Learning rate              Log-uniform on
+                             [5e-6, 5e-3]
+ RMSProp epsilon            Categorical on
+                       [1e-1, 1e-3, 1e-5, 1e-7]
+ Max Grad Norm                Uniform on
+                               [10, 100]
+

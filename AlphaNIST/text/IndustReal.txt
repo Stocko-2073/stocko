@@ -1,0 +1,1225 @@
+                                            IndustReal: Transferring Contact-Rich Assembly
+                                                   Tasks from Simulation to Reality
+                                                    Bingjie Tang∗,1 , Michael A. Lin∗,2 , Iretiayo Akinola3 , Ankur Handa3 , Gaurav S. Sukhatme1 ,
+                                                                           Fabio Ramos3,4 , Dieter Fox3,5 , Yashraj Narang3
+                                                                                                 ∗
+                                                                                                   Equal Contribution
+                                                                1
+                                                                    University of Southern California, 2 Stanford University, 3 NVIDIA Corporation,
+                                                                                  4
+                                                                                    University of Sydney, 5 University of Washington
+
+
+
+
+arXiv:2305.17110v1 [cs.RO] 26 May 2023
+                                            Abstract—Robotic assembly is a longstanding challenge, re-
+                                         quiring contact-rich interaction and high precision and accuracy.
+                                         Many applications also require adaptivity to diverse parts, poses,
+                                         and environments, as well as low cycle times. In other areas of
+                                         robotics, simulation is a powerful tool to develop algorithms,
+                                         generate datasets, and train agents. However, simulation has had
+                                         a more limited impact on assembly. We present IndustReal, a
+                                         set of algorithms, systems, and tools that solve assembly tasks
+                                         in simulation with reinforcement learning (RL) and success-
+                                         fully achieve policy transfer to the real world. Specifically, we
+                                         propose 1) simulation-aware policy updates, 2) signed-distance-
+                                         field rewards, and 3) sampling-based curricula for robotic RL
+                                         agents. We use these algorithms to enable robots to solve contact-
+                                         rich pick, place, and insertion tasks in simulation. We then
+                                         propose 4) a policy-level action integrator to minimize error at
+                                         policy deployment time. We build and demonstrate a real-world
+                                         robotic assembly system that uses the trained policies and action
+                                         integrator to achieve repeatable performance in the real world.
+                                         Finally, we present hardware and software tools that allow other
+                                                                                                              Fig. 1: Overview. Top: Simulation-based policy learning for one of our tasks,
+                                         researchers to reproduce our system and results. For videos and      gear assembly. Middle: Proposed algorithms to facilitate sim-based learning
+                                         additional details, please see our project website.                  and real-world deployment. Bottom: Successful transfer to the real world.
+
+                                                               I. I NTRODUCTION
+                                            Robotic assembly is a longstanding challenge [70, 26].            realtime simulation. Achieving such accuracy and performance
+                                         Assembly requires contact-rich interactions and high precision       requirements has only recently become possible [41, 48, 29].
+                                         and accuracy; high-mix, low-volume settings also require                Given modeling limitations and finite compute, simulation
+                                         adaptivity to diverse parts, poses, and environments. Today,         will always differ from reality; this reality gap has been noto-
+                                         robotic assembly is ubiquitous in the automotive, aerospace,         riously large for robotics. Sim-to-real transfer methods address
+                                         and electronics industries. However, assembly robots are typ-        this gap through techniques such as system identification and
+                                         ically expensive, achieving precision primarily through hard-        domain randomization. These methods have shown remarkable
+                                         ware rather than intelligence. Moreover, systems often require       results in locomotion [30, 51, 44] and manipulation [5, 18, 9].
+                                         meticulous engineering of adapters, fixtures, lighting, and          However, sim-to-real efforts for assembly have been scarce.
+                                         robot trajectories. Such efforts demand substantial time and            We present IndustReal, a set of algorithms, systems, and
+                                         effort from robotics integrators and can result in solutions that    tools for solving contact-rich assembly tasks in simulation and
+                                         are highly sensitive to perturbations of the robotic workcell.       transferring behaviors to reality (Figure 1). Specifically, our
+                                            Simulation is an indispensable means to solve engineering         primary contributions are the following:
+                                         challenges. For example, simulators are used for finite ele-            • Algorithms: For simulation, we propose three methods to
+                                         ment analysis, computational fluid dynamics, and integrated                allow RL agents to solve contact-rich tasks in a simulator:
+                                         circuit design. Nevertheless, simulation has had a comparably              a simulation-aware policy update (SAPU) to reward the
+                                         limited impact on robotic assembly. Accurate simulation of                 agent when simulation predictions are more reliable, a
+                                         geometrically-complex parts can require generating 1k-10k                  signed distance field (SDF)-based dense reward to pro-
+                                         contacts per rigid body pair, followed by solving a nonlinear              vide an alignment metric between geometrically-complex
+                                         complementarity problem (NCP) at each contact. Further-                    objects, and a sampling-based curriculum (SBC) to
+                                         more, robotic assembly tasks require long-horizon sequen-                  prevent overfitting to earlier stages of a curriculum. For
+                                         tial decision-making; powerful data-driven methods (e.g., on-              sim-to-real transfer, we also propose a policy-level action
+                                         policy RL) have high sample complexity, requiring faster-than-             integrator (PLAI), which reduces steady-state error in
+     the presence of unmodeled dynamics (e.g., friction).          grippers, low-dimensional action spaces, highly-constrained
+  •  Benchmarks: We solve several challenging tasks pro-           target locations, and a real-world policy adaptation phase.
+     posed in Factory [48] (pick, place, and insertion tasks for      In contrast, we make several design choices that increase
+     pegs-and-holes and gear assemblies in simulation) with        the realism of the problem and encourage reproducibility.
+     success rates of 82-99%. We provide careful evaluations       First, for software, we use Factory [48] within Isaac Gym,
+     over 265k simulated trials to show the utility of SAPU,       which can solve contact dynamics between highly-complex
+     SDF-based rewards, and SBC for solving these tasks.           geometries without simplification. Second, for hardware, we
+   • Systems: We design and demonstrate a real-world system        use a collaborative robot (Franka Panda) and RGB-D camera
+     that can perform sim-to-real transfer of our simulation-      (Intel RealSense D435) that are widespread in research, but
+     trained policies, with success rates of 83-99% over 600       far less precise than those in industrial assembly. We use no
+     trials. We provide careful evaluations to show the utility    task-specific grippers and avoid F/T sensors due to their cost,
+     of PLAI. To our knowledge, this is the first system for       noise, and fragility. We also use realistic part clearances (≤0.5-
+     sim-to-real of all phases of the assembly problem: from       0.6 mm, aligned with the upper bound of ISO 286). Next, for
+     detection, to grasping, to part alignment, to insertion.      problem scope, we address sim-to-real for all parts of the as-
+     Our system uses commonly-used robotics hardware and           sembly sequence (i.e., detection, grasping, alignment, and in-
+     requires no real-world policy adaptation phase.               sertion). We face robustness challenges due to calibration and
+   Our secondary contributions are the following:                  localization error; moreover, we apply large randomizations
+   • Hardware: We present IndustRealKit, which contains            of part poses and targets. Finally, in methodology, we achieve
+     CAD models for all parts designed for our setup, as well      sim-to-real transfer without baseline plans or demos, dynamics
+     as a list of all purchased parts. The CAD models can          randomization, or real-world policy adaptation phases.
+     all be printed on a desktop 3D printer. IndustRealKit
+                                                                                      III. P ROBLEM D ESCRIPTION
+     allows the research community to easily replicate our
+     experimental hardware and benchmark their performance.        A. Problem Setup
+   • Software: We present IndustRealLib, a lightweight                Our problem setup is as follows: a Franka robot is mounted
+     Python library that allows users to easily deploy policies    to a work surface. A RealSense D435 camera is mounted to the
+     trained in NVIDIA Isaac Gym [43] onto a real-world            robot wrist. Industrial-style parts inspired by the NIST Task
+     Franka Emika Panda robot [17]. The library also contains      Board 1 [25, 26] are placed upright on the work surface. The
+     code to assist with policy training. IndustRealLib allows     parts with extruded features (which we henceforth refer to as
+     the research community to reproduce our robot behaviors.      plugs) have a randomized 3-DOF pose (x, y, θ) on top of an
+We aim for IndustReal to provide algorithms, benchmark             optical breadboard and are free to move; the parts with mating
+results, and a reproducible system that serve as a path forward    features (which we call sockets) also have a randomized pose,
+for sim-to-real transfer on contact-rich assembly tasks.           but are bolted to the breadboard to emulate industrial fixtur-
+                     II. R ELATED W ORK                            ing.1 The fundamental task is to perceive, grasp, transport, and
+                                                                   insert all the plugs into their corresponding sockets.
+  We divide prior work on robotic assembly into three cat-            Specifically, we aim to perform this task for three types of
+egories: 1) classical approaches leveraging analytical meth-       assemblies from [48] (Figure 2 column 1):
+ods [70, 45], 2) learning-based approaches leveraging real-
+                                                                      • Pegs and Holes: 2 different classes of pegs (round and
+world data or experience [75], and 3) RL-based sim-to-real
+approaches leveraging robotics simulators. We defer a review            rectangular), each with 3 different sizes (max dimension:
+of (1) and (2) to Appendix A and focus on (3).                          8 mm, 12 mm, and 16 mm) must be inserted into
+                                                                        corresponding holes (clearances: 0.5-0.6 mm).
+A. Sim-to-Real Transfer for Assembly                                  • Gears and Gearshafts: 3 different gears (diameters: 20
+
+   Over the past few years, there have been a number of                 mm, 40 mm, 60 mm) must be inserted onto corresponding
+impressive efforts in sim-to-real for assembly. These efforts           gearshafts (diametral clearances: 0.5 mm).
+have primarily used MuJoCo [52, 11, 20, 67, 79, 27] or                • Connectors and Receptacles: 2 different connectors (2-
+
+PyBullet [38, 56, 54]; have used PPO [56, 58, 20, 27] or                prong NEMA 1-15P and 3-prong NEMA 5-15P) must be
+DDPG [38, 6]; and have aimed to solve peg-in-hole [38, 7,               inserted into corresponding receptacles.
+54, 52, 58, 11, 67, 79, 27] or NIST-style tasks [7, 52, 11, 79].      We first aim to solve the assembly task in simulation using
+However, several of these studies use large clearances (e.g.,      RL with CAD models of the robot and the objects. We then
+≥ 1 mm) and/or large parts in simulation and/or the real           aim to transfer the policies to the real world.
+world. Furthermore, almost all use force/torque (F/T) sensors
+to collect observations and/or set thresholds. Most require        B. Problem Decomposition
+human demonstrations [38, 6, 11], a baseline motion plan             For each category of parts, to facilitate the assembly task,
+[56, 58, 27], and/or fine-tuning in the real-world [7, 52].        we decompose it into three phases (Figure 2 columns 2-4):
+Finally, all but one [52] focus only on insertion and assume
+the object is pre-grasped; however, [52] also uses specialized       1 This broad usage of plug and socket will persist throughout the paper.
+                                                                                 Finally, for the Connectors and Receptacles assemblies,
+                                                                              we did not train policies for any phase. Again, we later show
+                                                                              that we solved those tasks in the real world via policy transfer.
+                                                                                 In summary, for the Peg and Hole assemblies, we trained
+                                                                              Pick, Place, and Insert policies, and for the Gears and
+                                                                              Gearshafts assemblies, we trained another Insert policy.
+                                                                              B. Formulation
+                                                                                 We formulated the problem as a Markov decision process
+                                                                              (MDP) with state space S, observation space O, action space
+                                                                              A, state transition dynamics T : S × A → S, initial state
+                                                                              distribution ρ0 , reward function r : S → R, horizon length T ,
+                                                                              and discount factor γ ∈ (0, 1]. The objective was to learn a
+                                                                              policy π : O → P(A) that maximized the expected sum of
+                                                                                                          −1 t
+                                                                              discounted rewards Eπ [ΣTt=0   γ r(st )].
+Fig. 2: Problem setup and decomposition. Column 1: Three types of                We used proximal policy optimization (PPO) [53] to learn
+assemblies. Columns 2-4: Goal states of Pick, Place, and Insert phases.
+                                                                              a stochastic policy a ∼ πθ (o) (actor), mapping from observa-
+                                                                              tions o ∈ O to actions a ∈ A and parameterized by a network
+   • Pick: The robot grasps a randomly-positioned plug (i.e.,                 with weights θ; as well as an approximation of the on-policy
+     peg, gear, or connector) within its workspace.                           value function v = Vϕ (s) (critic), mapping from states s ∈ S
+   • Place: The robot transports the grasped plug close to its                to value v ∈ V and parameterized by weights ϕ. We used
+     corresponding socket (i.e., hole, gearshaft, or receptacle).             the PPO implementation from rl-games [42]; hyperparameters
+   • Insert: The robot brings the grasped plug into contact                   and architectures are in Table XI. Finally, we aimed to train
+     with its socket and inserts the plug, aligning parts where               the policy in simulation and deploy in the real world with no
+     necessary (e.g., when inserting intermediate gears).                     policy adaptation phase on the specific real environment.
+             IV. P OLICY L EARNING IN S IMULATION                             C. Observations, Actions, and Rewards
+   In this section, we first describe our general strategies for                 Our observation spaces in simulation and the real world
+policy learning in Sections IV-A-IV-D. Although these strate-                 were task-dependent. The observations provided to the actor
+gies were sufficient to train successful Pick and Place policies,             consisted exclusively of joint angles, gripper/object poses,
+they were inadequate for training Insert policies (≈ 12%                      and/or target poses, as the Franka’s joint velocities and joint
+success rates), motivating our algorithmic development. We                    torques exhibited appreciable noise in the real world. However,
+describe our 3 simulation-based algorithms and evaluate them                  we employed asymmetric actor-critic [50], where velocity
+on our Insert policies in Sections IV-E-IV-G2 .                               information was still used to train the critic. Our exact ob-
+                                                                              servations for all policies are listed in Table V.
+A. Training Environments
+                                                                                 Our action spaces for both simulation and the real world
+   We developed our code within the Factory simulation frame-                 were task-independent. The actions consisted of incremental
+work [48]. For the Peg and Hole assemblies, we first trained                  pose targets to a task-space impedance (TSI) controller (specif-
+a Reach policy, where the robot learned to move its end-                      ically, a = [∆x; ∆q], where ∆x is a position error and ∆q
+effector to a randomized pose within a large workspace. We                    is a quaternion error). We learned incremental targets rather
+then fine-tuned Reach to solve the Pick task by including all                 than absolute targets because the latter encodes task-specific
+peg assets in the scene and redefining success as lifting the                 biases and must be selected from a large spatial range. We
+pegs. Similarly, we fine-tuned Reach to solve the Place task                  used TSI rather than operational-space control (OSC) because
+by initializing the pegs within the robot grippers, including all             Franka provides a high-performance implementation of TSI,
+hole assets in the scene, and redefining success as bringing                  and OSC relies on an accurate dynamics model.
+the pegs to their corresponding holes. Empirically, for the                      Our rewards in simulation were task-dependent. However,
+Pick and Place tasks, training in free space and fine-tuning                  all rewards could be expressed in the following general form:
+on contact was more efficient than training from scratch.
+However, we trained an Insert policy from scratch.                                             H−1
+                                                                                                X
+   For the Gears and Gearshafts assemblies, we did not train                    G = wh0 ..whm      [wd0 Rd0 (t) + ... + wdn Rdn (t)]
+policies to solve the Pick or Place tasks; as we later show, we                                    t=0
+                                                                                                                                        
+solved those tasks in the real world by executing the corre-                                                + ws0 Rs0 + ... + wsp Rsp       (1)
+sponding Peg and Hole policies, demonstrating generalization.
+However, we again trained an Insert policy from scratch.                      where G is the return over the horizon, Rd0 ...Rdn are distinct
+  2 Note that when we evaluate each algorithm, the other two algorithms are   dense rewards, H is the horizon length, Rs0 ...Rsp are terminal
+used; thus, the evaluations function as ablation studies.                     success bonuses, wd0 ...wdn and ws0 ...wsp are scaling factors
+that map distinct rewards into a consistent unit system and
+weight the importance of each term, and wh0 ...whm are scaling
+factors on the return over the entire horizon. Not all terms are
+used in each phase, and most of our reward formulations are
+simple. Detailed formulations and success criteria are provided
+in Table VI and Table IV, respectively.
+D. Randomization and Noise
+   At the start of each episode, we randomized the 6-DOF
+end-effector and object poses over a large spatial range. In
+addition, for the Insert policies, we introduced observation
+noise. As well established, these perturbations are critical for
+ensuring robustness to initial conditions and sensor noise in
+the real world. Randomization and noise ranges are provided
+in Table VII). However, we avoided dynamics randomization
+[49, 18], as we had strong priors on our system dynamics.
+                                                                      Fig. 3: Evaluation of Simulation-Aware Policy Update. Success rates are
+E. Simulation-Aware Policy Update (SAPU)                              computed for episodes where the maximum interpenetration distance was less
+                                                                      than the specified value at test time. Boxes indicate median and IQR.
+   Method: In contact-rich simulators, spurious interpenetra-
+tions between assets are unavoidable, especially when exe-
+cuting in real-time (Figure S15). Unfortunately, in simulation
+                                                                      scenario (when all successes were counted), the Baseline, Fil-
+for RL, an agent can exploit inaccurate collision dynamics to
+                                                                      ter Only, and Weight Only strategies were unable to achieve
+maximize reward, learning policies that are unlikely to transfer
+                                                                      success rates above 40%. However, the Filter and Weight
+to the real world [47]. Thus, we propose our first algorithm,
+                                                                      strategy performed well over all scenarios, with success rates
+a simulation-aware policy update (SAPU), where the agent
+                                                                      of 84.9- 87.6%. Thus, Filter and Weight was not only most
+is encouraged to learn policies that avoid interpenetrations.
+                                                                      effective at learning a policy that avoided interpenetration, but
+   Specifically, we implemented a GPU-based interpenetration-
+                                                                      was also most effective at policy learning in general.
+checking module using warp [40]. For a given environment,
+the module takes as input the plug and socket mesh and
+associated 6-DOF poses. The module samples N = 1000                    Algorithm 1: Interpenetration Checking Per Env.
+points on/inside the mesh of the plug, transforms the points            Input: plug mesh mp , socket mesh ms , plug pose pp ,
+to the socket frame, computes distances to the socket mesh,                     socket pose ps , number of query points N .
+and returns the max interpenetration depth (algorithm 1). This        1 sample N points in mp → v, v = {v0 , ..., vN −1 };
+procedure is performed each episode, and the depth is used to         2 transform v to current mp pose pp in ms frame ;
+weight the cumulative reward during the policy update.                3 for every vertex v ∈ v do
+
+   Evaluation: We evaluate SAPU on the Peg and Hole                   4     compute closest point on ms to v;
+assembly Insert policy, with the following test cases:                5     if v inside ms then
+   • Baseline: Do not utilize interpenetration information.
+                                                                      6         calculate interpenetration distance;
+                                                                          max
+   • Filter Only: For a given episode, if max interpenetration
+                                                                      7 dip    = max interpenetration from all v ∈ v to ms ;
+                                                                                  max
+                                                                      8 return dip ;
+       depth dmax
+               ip   is greater than ϵip = 1 mm, do not use return
+       in policy update. If dmax
+                               ip  < ϵip , use return as normal.
+   • Weight Only: For a given episode, weight return by 1 −
+       tanh(dmax
+               ip /ϵd ), which is bounded by (0, 1].
+                                                                      F. SDF-Based Dense Reward
+                                                        max
+   • Filter and Weight: For a given episode, if dip         > ϵip ,      Method: Keypoint-based rewards are widely used, as they
+                                                  max
+       do not use return in policy update. If dip < ϵip , weight      avoid weighting between distinct position and orientation re-
+       return by 1 − tanh(dmaxip /ϵd )).                              wards [3]. However, collinear keypoints (e.g., [48]) underspec-
+   After training policies with each strategy, we tested each         ify the assembly of non-axisymmetric parts (e.g., rectangular
+policy in simulation over 5 seeds, with 1000 trials per seed;         pegs), and non-collinear keypoints overspecify the assembly of
+quantified dmax ip    for each episode; and evaluated success         symmetric parts, as identical geometries do not alias. Thus, we
+rate over all episodes (Figure 3). Success was defined as             propose a signed distance field (SDF)-based dense reward,
+inserting the peg into the hole (Table IV); however, to also          where an SDF is defined as a map ϕ(x) : R3 → R from an
+ascertain whether success was achieved in the desired way             arbitrary point x to its signed distance ϕ(x) to a surface.
+(i.e., by avoiding interpenetration), we computed success rate           Specifically, for each plug mesh in its nominal pose, we
+for episodes where dmax  ip   < [0.5, 1, 1.5, 2, ∞] mm.               use sampling to preselect N = 1000 points on the surface. In
+   For both the most realistic scenario (when only successes          addition, for the same mesh in its target pose, we use pysdf
+where dmax ip    < 0.5 mm were counted) and the least realistic       to precompute and store the SDF values at each cell of a
+dense voxel grid containing the mesh. During training, the          we update z low as follows:
+preselected points are transformed to the frame of the plug                               low
+mesh in its current pose, and the SDF values are queried at                              z     + ∆z i ,    pn > 80%
+                                                                                   low      low
+these points. This procedure is performed at each timestep in                    z     ← z      − ∆z d ,    pn < 10%
+                                                                                                low
+                                                                                               z ,          otherwise.
+                                                                                         
+each environment and is used to generate a reward signal.
+   Evaluation: We evaluate SDF-Based Dense Reward on
+the Pegs and Holes assembly Insert policy by comparing the             In general, we enforce ∆z d < ∆z i . We define an increase
+following reward formulations (Table I):                            in z low as an advance to the next stage of the curriculum, and
+                                                                    a decrease in z low as a reversion to the previous stage.
+  • Collinear Keypoints: Each object has 4 keypoints along
+                                                                       Evaluation: We evaluate SBC on the Pegs and Holes
+    its Z-axis; Euclidean distances are summed and averaged.
+                                                                    assembly Insert phase, with the following test cases:
+  • 6-DOF Keypoints: Each object has 13 keypoints over 3
+    axes; Euclidean distances are summed and averaged.                • Baseline: No curriculum learning is used; z init = z high .
+                                                                                                                 low
+  • Chamfer Distance: Each object has a point cloud defined           • Standard: Peg height is initialized at z     ; at each stage,
+                                                                          low                                   high
+    by its mesh vertices; chamfer distance [13] is computed.            z     increases, until a max value of z      .
+  • SDF Query Distance: The root-mean-square SDF dis-                 • Sampling-Based: Initial peg height is sampled as de-
+
+    tance is computed as described earlier.                             scribed earlier.
+   After training policies with each strategy, we tested each          For the Standard and Sampling-Based strategies, zlow was
+policy in simulation over 5 seeds, with 1000 trials per             initially 10 mm below the top of the hole, and zhigh remained
+seed; quantified terminal position and rotation error for each      constant at 10 mm above. The criterion for advancing to the
+episode; and quantified success rate and engagement rate            next stage was an 80% success rate. Engagement was defined
+(Table I). Success was defined as inserting the peg into the        as partially inserting the peg into the hole; success was defined
+hole; engagement was defined as a partial insertion.                as full insertion. We set ∆z i = 5mm and ∆z d = 3mm.
+   The Collinear Keypoints, 6-DOF Keypoints, and Cham-              Whenever the peg was initialized above the hole, we also
+fer Distance rewards resulted in appreciable position and           perturbed its position along the X- and Y-axes.
+rotation errors of 11.7-31.0 mm and 0.13-0.99 rad, respec-             After training policies with each strategy, we tested each
+tively, with chamfer distance performing the worst; as follows,     policy in simulation over 5 seeds, with 1000 trials per seed
+success rates varied between 1.8-54.2%. However, the SDF            (Table II). All strategies achieved moderate rotation errors
+Query Distance reward resulted in errors of just 3.80 mm            of 0.086-0.096 rad, and the Baseline and Sampling-Based
+and 0.086 rad, with a success rate of 88.6% and near-perfect        strategies both achieved high engagement rates of 89.2-
+engagement rate of 96.6%. Thus, SDF Query Distance was by           96.6%. However, Sampling-Based substantially outperformed
+far the most effective reward formulation for policy learning.      the others in success rate and position error; it achieved 88.6%
+As Factory [48] already precomputes SDFs for all objects            and 3.80 mm, respectively, whereas the others performed no
+for contact generation, we envision a single representation-        better than 66.8% and 10.7 mm. These results substantiate
+generation step for both physics and reward.                        existing evidence that curriculums can facilitate RL when
+                                                                    carefully implemented, and importantly, suggest a specific
+G. Sampling-Based Curriculum (SBC)                                  implementation in the case of discontinuous contact.
+   Method: Curriculum learning [8] is an established approach
+                                                                    H. Joint Evaluation
+for solving long-horizon problems; as the agent learns, the
+difficulty of the task is gradually increased. Nevertheless,           As described in Sections IV-E-IV-G, we proposed three
+for both the Peg and Hole and Gears and Gearshafts                  algorithms for improving learning of contact-rich Insert poli-
+assemblies, for the Insert phase, naive implementations of          cies: Simulation-Aware Policy Update to adapt to simulator
+curriculum learning (i.e., increasing initial distance from goal)   inaccuracy, SDF-Based Dense Reward to quantify alignment
+were ineffective; when the initial peg/gear state was above the     for asymmetric or symmetric objects, and Sampling-Based
+hole/gearshafts, the agent failed to progress, likely overfitting   Curriculum to prevent overfitting to initial partial insertions.
+to a partially-inserted plug. Thus, we developed Sampling-          As a final evaluation, we comprehensively evaluated all three
+Based Curriculum (SBC), whereby the agent is exposed to             techniques in tandem (Figure 4 and Table X). When training
+the entire range of initial state distributions from the start of   and testing with moderate state randomization (plug/hole ran-
+the curriculum, but the lower bound is increased at each stage.     domization of ±10 mm/±10 cm, respectively) and observation
+   Specifically, let z low denote the lower bound of the initial    noise (±1 mm), the Pegs and Holes assembly Insert policy
+height of a plug above its socket at a given curriculum stage,      achieved success and engagement rates of 88.6% and 96.6%,
+and let z high denote a constant upper bound; the initial height    respectively, whereas the Gears and Gearshafts assembly In-
+of the plug is uniformly sampled from Uniform[z low , z high ].     sert policy achieved 82.0% and 85.2%. Across all evaluations,
+In addition, let ∆z i and ∆z d denote an increase or decrease       worst-case performance was 67.88% (when testing with twice
+in z low , and let pn denote the mean success rate over all         the gearshaft position randomization of training), and best-case
+environments during episode n. When episode n terminates,           was 92.4% (testing with no randomization or noise).
+     Reward                            Formulation                Num. Trials      Success (%)    Engage (%)      Pos. Error (mm)     Rot. Error (rad.)
+
+     Collinear keypoints        −||kcurr − kgoal     ||2              1000        15.40 ± 5.22   64.40 ± 3.05       16.28 ± 1.08       0.150 ± 0.020
+                                −||k6D       6D 2
+     6-DOF keypoints                 curr − kgoal ||                  1000         54.2 ± 7.56   83.80 ± 4.44       11.74 ± 1.92       0.132 ± 0.013
+     Chamfer distance       −Chamfer dist(Splug , Ssocket )           1000         1.80 ± 1.92   47.80 ± 6.14       31.02 ± 0.95       0.994 ± 0.030
+     SDF query distance         − log(ΣNi ϕ(xi )/N )                  1000        88.60 ± 2.41   96.60 ± 2.30        3.80 ± 0.80       0.086 ± 0.026
+
+TABLE I: Evaluation of SDF-Based Dense Reward. Symbol k denotes object keypoint positions, S is a set of points comprising a point cloud (here,
+we use plug/socket mesh vertices), and xi denotes points sampled from the plug mesh (again, we use vertices). Engage denotes a partial insertion.
+
+
+
+
+Fig. 4: Joint evaluation of Simulation-Based Policy Update, SDF-Based Dense Reward, and Sampling-Based Curriculum. (A) Pegs and Holes
+assembly Insert policy. (B) Gears and Gearshafts assembly Insert policy. Engage denotes partial insertion. Policies were trained with moderate randomization
+(plug/socket randomization of ± 10 mm and 10 cm, respectively, and observation noise of ± 1 mm); thus, plots evaluate in-distribution and OOD performance.
+
+
+ Curriculum       Success (%)    Engage (%)    Pos. Err. (mm)   Rot. Err. (rad)
+                                                                                  by Franka, which maps the TSI commands to low-level joint
+ Baseline         66.80 ± 5.76   89.2 ± 4.97   10.70 ± 2.70     0.086 ± 0.095     torques that are streamed to the robot. Proprioceptive signals
+ Standard         32.40 ± 1.82   46.0 ± 3.61   18.16 ± 0.36     0.096 ± 0.0091
+ Sampling-Based   88.60 ± 2.41   96.6 ± 2.30    3.80 ± 0.80     0.086 ± 0.026     are then communicated to IndustRealLib in reverse order.
+                                                                                     Latencies of our real-world and simulated systems are
+TABLE II: Evaluation of Sampling-Based Curriculum. Baseline denotes
+that no curriculum was used.                                                      summarized in Table VIII. In the real world, physics frequency
+                                                                                  is approx. infinite, low-level control frequencies (between
+                                                                                  libfranka and robot) are 1 kHz, and policy control frequencies
+          V. P OLICY D EPLOYMENT IN R EAL W ORLD                                  (between libfranka and IndustRealLib) are 60-100 Hz (lim-
+                                                                                  ited by inference and ROS). We thus set our physics frequency
+   In this section, we first describe our general strategies                      during training to the highest practical rate (120 Hz) given our
+for policy deployment in the real world in Sections V-A-                          compute, and restricted our control rate during training to 60
+V-C. We then describe and evaluate our deployment-time                            Hz to prevent aliasing of policy signals during deployment.
+algorithm, the Policy-Level Action Integrator (PLAI), in
+Section V-D. Finally, we provide comprehensive evaluations                        B. Perception Pipeline
+and demonstrations of our full real-world system in Section VI.                      The primary goal of our perception pipeline is to estimate
+                                                                                  the 2D poses (x, y, θ) of the parts in the robot frame.
+A. Communications Framework
+                                                                                  Our pipeline consists of 3 separate steps: a one-time camera
+   We illustrate our communications stack in Figure S8. In                        calibration, a per-experiment workspace mapping, and a per-
+summary, we developed the IndustRealLib library, which                            experiment object detection from a single RGB image. Bound-
+accepts trained policy checkpoints from Isaac Gym as input,                       ing box centroids and a trivially-specified height are used to
+and outputs targets for a Franka robot controlled via a task-                     construct targets. All details are provided in Appendix B2-B5.
+space impedance (TSI) controller. The targets are sent to the
+frankapy Python library, which streams the commands via                           C. Dynamics Strategy
+ROS to the franka-interface C++ library [78]. franka-interface                      Our policies initially exhibited substantial steady-state error
+then sends the commands to the libfranka library provided                         during deployment. We note that a partial resolution was
+carefully eliminating all arbitrary energy dissipation (e.g.,
+heuristically-applied friction and damping) in the simulator
+and asset descriptions; dissipative terms are often introduced
+to facilitate simulation stability, but their values are typically
+chosen without physical consideration. Simulation and real-
+world results with/without heuristic damping are in Figure S9.
+D. Policy-Level Action Integrator
+   Method: Robotics simulations can exhibit marked dis-
+crepancies with the real world due to incomplete models,
+inaccurate parameters, and numerical artifacts [14]; although
+dynamics randomization can improve sim-to-real transfer, it
+can require substantial training time and effort [2, 5, 18]
+and may penalize precision. Inspired by classical PID control,
+which can minimize steady-state error and reject disturbances                Fig. 5: Evaluation of PLAI in simulation. Results of Nominal are
+on linear systems, we propose a Policy-Level Action Integra-                 annotated when outside of plot bounds. Full-axis plot is in Figure S13.
+tor (PLAI), which integrates policy actions during an episode.
+   An established approach for applying policy actions is
+                                                                             conditions in simulation, and evaluated the ability of PLAI
+                   sdt+1 = st ⊕ at = st ⊕ Π(ot ),                     (2)    to reject friction and gravity disturbances in simulation and
+                                                                             reality at test time. We evaluated three test-time methods:
+where sdt+1 is the desired state, at is an action expressed as
+                                                                                • Nominal: Actions are applied to the current state.
+an incremental state target, st is the current state, ot is the
+                                                                                • PID: Actions are applied to the current state. PID is used
+current observation, Π is the policy, and ⊕ computes the state
+update (e.g., for states defined by position and orientation, ⊕                    with classical anti-windup for best-case performance.
+                                                                                • PLAI: Actions are applied to the desired state.
+computes composition with a translation and rotation).
+  In contrast, PLAI applies policy actions as                                   We evaluated each method under three test-time conditions:
+                                                                                • Ideal: No friction or gravity perturbations are applied.
+                   sdt+1 = sdt ⊕ at = sdt ⊕ Π(ot )                    (3)
+                                                                                • Friction: Joint friction of 0.15 N m is applied to all robot
+Thus, the policy action is applied to the last desired state                       joints (within the range of identified values from [16]).
+                                                                                                                                          2
+instead of the current state. Unrolling from t = 0...T ,                        • Gravity: A gravitational perturbation of 0.12 m/s is
+
+                             T −1                T −1                              applied to all robot links.
+                             X                   X
+               sdT = sd0 ⊕          ai = sd0 ⊕          Π(oi ).       (4)       We randomized the initial pose and target pose of the robot
+                             i=0                 i=0                         and measured steady-state position error (Figure 5). Notably,
+                                                                             PLAI had substantially lower error and variance than Nominal
+where sd0 is set to s0 3 . Thus, the desired state at time T is equal
+                                                                             under friction and gravity, had consistently lower error than
+to the initial state composed with successive actions over time,
+                                                                             PID, and maintained ≈ 2 mm error across all test conditions.
+effectively integrating them. (Note that this formulation is not
+                                                                                Next, we conducted a similar experiment in the real world.
+open-loop control, as the policy continues to be evaluated on
+                                                                             The Reach policy was deployed with and without PLAI
+the current observation ot when generating actions.) When
+                                                                             (Figure 6); friction and gravity perturbations were simply from
+coupled with a low-level PD controller (e.g., a TSI con-
+                                                                             real-world dynamics. Again, PLAI demonstrated substantially
+troller), PLAI has a close relationship with a standard (non-
+                                                                             lower error and variance than Nominal, with ≈ 2 mm error.
+integrating) policy coupled with a PID controller; a derivation
+                                                                             As a final comparison, the TSI implementation provided by
+is provided in Appendix C. Empirically, PLAI requires min-
+                                                                             Franka (RL-free) was deployed on the same task and resulted
+imal implementation effort (1-2 lines of code), is simple to
+                                                                             in 4.45 mm error. Thus, PLAI is a simple but highly effec-
+tune, and outperforms standard PID in our application.
+                                                                             tive means to minimize error with respect to policy targets;
+   Like PID controllers, PLAI can experience windup when in
+                                                                             moreover, it can be applied exclusively at deployment time.
+contact with the environment; unbounded error accumulates,
+resulting in unstable dynamics. To mitigate this effect, we also                             VI. R EAL -W ORLD E XPERIMENTS
+develop Leaky PLAI, which clamps the accumulated control
+                                                                                After developing and validating our algorithms, we per-
+effort. Equations are derived in Appendix C.
+                                                                             formed comprehensive experiments and demos to evaluate our
+   Evaluation: From careful observations, discrepancies in
+                                                                             real-world system (Figure S10). Five types were executed:
+simulated and real-world dynamics are primarily caused by
+                                                                             Pick, Place, Sort, Insert, and Pick-Place-Insert (PPI).
+nonlinear friction and imperfect gravity compensation on the
+real robot. Thus, we trained a Reach policy under ideal                      A. Pick Experiment
+  3 The summation symbol in Equation 4 is used as shorthand for successive     This experiment evaluated the ability of the real-world sys-
+compositions with actions.                                                   tem to initiate contact and pick up arbitrarily-placed objects.
+                                                                                D. Insert Experiment
+                                                                                   This experiment evaluated the ability of the real-world
+                                                                                system to insert diverse plugs into corresponding sockets, as
+                                                                                well as generalize to unseen assets.
+                                                                                   Experimental Setup: 6 different pegs, 3 different gears, and
+                                                                                2 different unseen NEMA connectors (2- and 3-prong) were
+                                                                                placed imprecisely in the gripper fingers. Holes, gearshafts,
+                                                                                and receptacles were mounted to the breadboard. The end-
+                                                                                effector was manually guided until the plugs were inserted into
+Fig. 6: Evaluation of PLAI in the real world. Each method was tested on         their respective sockets; the end-effector pose was recorded as
+3 different goals with 20 trials each. Evaluation parameters are in Table IX.   a target. The end-effector was then commanded to a random
+                                                                                initial state (Table XII). The robot received an observation of
+                                                                                the target with random X- and Y -axis noise ∼ U [−2, 2] mm.4
+   Experimental Setup: 6 different pegs were randomly                           The goal was for the robot to use its Insert policies to insert
+placed on top of an optical breadboard with dimensions 450                      the plugs into their corresponding sockets.
+mm x 300 mm, which itself was located within bounds of 500                         Key Results: The system demonstrated high engagement
+mm x 350 mm. The pegs were located in trays that were free                      rates (i.e., partial insertions) across the pegs (86.7%), gears
+to slide; angular perturbations of ±10 deg were applied to the                  (95.0%), and connectors (100%), as well as moderately-high
+trays containing non-axisymmetric pegs. The goal was for the                    success rates (i.e., full insertions) across the same objects
+robot to detect all the pegs and use the simulation-trained Pick                (76.7%, 92.5%, and 85%). The Pegs and Holes assembly In-
+policy to pick up the objects before releasing them.                            sert policy also successfully generalized to NEMA connectors,
+   Key Results: The system demonstrated extremely high                          which can be considered extensions of peg-in-hole.
+success rates (98.8%) across all pegs (Table III). Failure cases                   Engagement failures were almost exclusively due to slip
+were one missed detection of a peg, as well as one grasp of                     between the gripper and object; we hypothesize that a high-
+both a peg and its corresponding peg tray.                                      force gripper (e.g., Robotiq) would fully resolve this issue.
+                                                                                Full-insertion failures were almost exclusively due to the
+B. Place Experiment                                                             wedging phenomenon, a longstanding topic of research [71].
+                                                                                   Informally, when the robot was intentionally perturbed by
+   This experiment evaluated the ability of the real-world sys-
+                                                                                a human during the Gears and Gearshafts assembly Insert
+tem to accurately reach low target locations while maintaining
+                                                                                policy, the policy exhibited recovery behavior. In addition, the
+contact with a typically-sized object in the gripper.
+                                                                                policy exhibited search behavior on the surface of the socket
+   Experimental Setup: Eight 25 mm x 25 mm trays were                           tray, exploring the vicinity of the observed goal (Figure 7).
+randomly placed on top of the breadboard. 20 mm x 20 mm
+printed targets were centered on top of the trays; the targets                  E. Pick, Place, and Insert (PPI) Demonstration
+were used to measure positional accuracy and consisted of
+concentric rings, each with a thickness of 2 mm. A laser was                       This experiment demonstrated the ability of the robot to
+rigidly mounted to the grippers (Figure S12). The goal was                      execute end-to-end assembly; the Insert policies required
+for the robot to detect the trays and use the simulation-trained                robustness to error accumulated from Pick and Place.
+Place policy to guide the laser to the centers of the targets.                     Experimental Setup: 6 pegs, 3 gears, 2 NEMA connectors,
+   Key Results: The system demonstrated low steady-state                        and their corresponding sockets were initialized with the same
+errors, with a mean distance-to-goal of 4.23 ± 1.96 mm. The                     conditions as the Pick experiment. The goal was for the robot
+error distribution is illustrated in Figure S9b.                                to bring all parts into their assembled configurations.
+                                                                                   Key Results: The system demonstrated even higher suc-
+C. Sort Demonstration                                                           cess rates than during the Insert experiment: 80% and
+                                                                                88.3% success/engagement rates for peg insertion, 97.5%
+   This experiment qualitatively demonstrated the ability of the                and 100% success/engagement rates for gears, and 100%
+robot to execute a realistic sorting procedure.                                 success/engagement rates for connectors. The higher success
+   Experimental Setup: 6 different pegs and 3 different gears                   rates suggest that the randomization and noise ranges during
+were randomly placed on top of the breadboard. The pegs                         the Insert experiment may have been particularly adverse.
+were located in trays, and angular perturbations of ±45 deg                        To our knowledge, IndustReal is the first system to demon-
+were applied. Bins were placed at approximately-determined                      strate RL-based sim-to-real transfer for the end-to-end assem-
+positions in the workspace. The goal was for the robot to use                   bly task (i.e., detection, grasping, part transport, and insertion)
+its Pick and Place policies to detect, pick, place, and drop the                without any policy adaptation phase in the real world.
+round pegs, rectangular pegs, and gears into separate bins.
+   Key Results: Performance was highly repeatable in prac-                        4 To our knowledge, only two other sim-to-real efforts have examined
+tice; please see the supplementary video.                                       perturbations of this magnitude [11, 79]. Both manipulated much larger pegs.
+Fig. 7: Snapshots of real-world experiments. Top row: recovery behavior exhibited by the robot after human perturbation during gear insertion. Bottom
+row: search behavior exhibited during 3-prong NEMA connector insertion.
+
+
+
+                           Pick           Insert         Pick-Place-Insert   and set targets; and a script that instantiates the classes, loads
+  Asset
+                          Success   Success    Engage   Success    Engage
+                                                                             corresponding policies, and executes them. For the Peg and
+  Round peg 8 mm           19/20     7/10      7/10       7/10     7/10
+  Round peg 12 mm          19/20     7/10      9/10       7/10     7/10
+                                                                             Hole assemblies, we also provide weights for the Reach,
+  Round peg 16 mm          20/20     8/10      10/10      8/10     10/10     Pick, Place, and Insert policies. We have thus far used
+  Rectangular peg 8 mm     20/20     8/10      9/10      10/10     10/10     IndustRealLib on two different Franka robots in two different
+  Rectangular peg 12 mm    20/20     8/10      8/10       8/10     9/10
+  Rectangular peg 16 mm    20/20     8/10      9/10       8/10     10/10     cities. Finally, we provide code for training our RL policies,
+  NEMA 2-prong               -       10/10     10/10     10/10     10/10     including implementations of SAPU, SDF-Based Reward,
+  NEMA 3-prong               -       7/10      10/10     10/10     10/10
+                                                                             and SBC. This code also includes a carefully-reviewed Franka
+  Small gear                 -       8/10      9/10      10/10     10/10     model and simulation parameters validated during this work.
+  Medium gear                -       9/10      9/10       9/10     10/10
+  Large gear                 -       10/10     10/10     10/10     10/10
+  Multi-gear assembly        -       10/10     10/10     10/10     10/10
+                                                                                         VIII. L IMITATIONS & F UTURE W ORK
+  Total #                 158/160   100/120   110/120   107/120   113/120       Our work has limitations, which lend themselves naturally
+  Total (%)               98.75%    83.33%    91.67%    89.16%    94.17%     to future research directions. First, like other efforts on sim-to-
+                                                                             real transfer for assembly tasks, we have primarily investigated
+TABLE III: Real-world experimental results for Pick, Insert, and PPI.
+                                                                             tasks inspired by the NIST benchmark [25]. However, recent
+                                                                             work in graphics and robotics has provided a large number of
+                                                                             simulation-compatible assets for assembly (e.g., [62]), poten-
+          VII. I NDUST R EAL K IT AND I NDUST R EAL L IB                     tially enabling RL policies that can generalize across widely
+                                                                             different categories. Second, our primary failure cases on the
+   We strongly encourage fellow researchers to reproduce our                 real system were due to slip of the object in the gripper and
+results and use our platform to investigate their own questions.             wedging of plugs in their corresponding sockets. We believe
+As follows, we will open-source our two most critical pieces                 that these cases can be resolved by providing the agent with
+of hardware and software, IndustRealKit and IndustRealLib.                   simulated visuotactile readings during training [55, 74, 68] and
+   IndustRealKit contains 3D-printable CAD models for all                    using corresponding sensors on the real-world system [77, 28],
+parts we designed, as well as a list of all parts we purchased               as well as more accurately simulating friction [4]. Third, we
+from external vendors (Figure S11). The CAD models include                   do not explore passive mechanical compliance as a means for
+20 parts: 6 peg holders, 6 peg sockets (i.e., extruded holes), 3             facilitating policy learning [46]; we believe that optimizing
+gears, 1 gear base (with gearshafts), and 4 NEMA connectors                  the policy, controller, and passive dynamics simultaneously
+and receptacle holders. The purchasing list includes 17 parts: 6             can significantly help improve task performance. Fourth, our
+metal pegs (from the NIST benchmark), 4 NEMA connectors                      sim-to-real framework currently relies on a high-accuracy
+and receptacles, 1 optical breadboard, and fasteners.                        simulator and our proposed training- and deployment-time
+   IndustRealLib is a lightweight library containing code                    algorithms. However, for some tasks of even higher complexity
+for policy deployment and training. Specifically, we provide                 (e.g., assembly of elastic cables onto pulleys), the simulator
+scripts to allow users to quickly deploy policies from Isaac                 may neither be fundamentally accurate nor efficient enough
+Gym [43] onto a Franka robot. The scripts include a base class               to smoothly train and deploy policies to the real world.
+that implements our policy-level controllers and sends/receives              We envision the construction of a tight feedback loop from
+actions and observations from FrankaPy; task-specific classes                real-world deployments (i.e., a sim-to-real-to-sim loop) as a
+that interpret actions from the policy, compute observations,                potentially compelling training strategy [1, 33].
+                     IX. C ONCLUSIONS                                  Paino, Matthias Plappert, Glenn Powell, Raphael Ribas,
+   In this paper, we have presented IndustReal, a set of               Jonas Schneider, Nikolas Tezak, Jerry Tworek, Pe-
+algorithms, systems, and tools to solve benchmark assembly             ter Welinder, Lilian Weng, Qiming Yuan, Wojciech
+problems in simulation and transfer policies to the real world.        Zaremba, and Lei Zhang. Solving Rubik’s cube with
+The utility of our simulation-based algorithms (SAPU, SDF-             a robot hand. arXiv preprint arXiv:1910.07113, 2019.
+Based Dense Reward, and SBC) and real-world algorithm              [3] Arthur Allshire, Mayank Mittal, Varun Lodaya, Vik-
+(PLAI) has been demonstrated through careful experiments in            tor Makoviychuk, Denys Makoviichuk, Felix Widmaier,
+simulation and the real world. We provide the first simulation         Manuel Wüthrich, Stefan Bauer, Ankur Handa, and Ani-
+results for a series of benchmark tasks proposed in [48], and          mesh Garg. Transferring dexterous manipulation from
+most critically, we demonstrate what is, to our knowledge, the         GPU simulation to a remote real-world TriFinger. In
+first real-world system for RL-based sim-to-real on the end-           IEEE/RSJ International Conference on Intelligent Robots
+to-end assembly task with no policy adaptation phase. Finally,         and Systems (IROS), 2022.
+in the hope of full reproducibility, we provide hardware and       [4] Sheldon Andrews, Kenny Erleben, and Zachary Fer-
+software for others in the community to replicate our results.         guson. Contact and friction simulation for computer
+                                                                       graphics. In ACM SIGGRAPH Courses. 2022.
+                   ACKNOWLEDGMENTS                                 [5] Marcin Andrychowicz, Bowen Baker, Maciek Chociej,
+   The authors thank Michael Noseworthy for advice through-            Rafal Józefowicz, Bob McGrew, Jakub Pachocki, Arthur
+out the project, Bowen Wen and Ajay Mandlekar for advice               Petron, Matthias Plappert, Glenn Powell, Alex Ray, Jonas
+on perception, Eric Heiden and Balakumar Sundaralingam for             Schneider, Szymon Sidor, Josh Tobin, Peter Welinder,
+advice on writing Warp kernels for SAPU, Lucas Manuelli                Lilian Weng, and Wojciech Zaremba. Learning dexterous
+for help with the initial implementation of IndustRealLib and          in-hand manipulation. International Journal of Robotics
+advice on dynamics and control, Karl Van Wyk and Nathan                Research, 2020.
+Ratliff for feedback on PLAI, Viktor Makoviychuk for advice        [6] Aleksandra Anna Apolinarska, Matteo Pacher, Hui Li,
+on domain randomization and asymmetric actor-critic, Gavriel           Nicholas Cote, Rafael Pastrana, Fabio Gramazio, and
+State and Kelly Guo for providing support with Isaac Gym,              Matthias Kohler. Robotic assembly of timber joints using
+Philipp Reist and Tobias Widmer for providing support with             reinforcement learning. Automation in Construction,
+PhysX, and Sandeep Desai and Kenneth Maclean for providing             2021.
+support with hardware setup and 3D printing.                       [7] Cristian C. Beltran-Hernandez, Damien Petit, Ixchel G.
+                                                                       Ramirez-Alpizar, and Kensuke Harada. Variable com-
+                      C ONTRIBUTIONS                                   pliance control for robotic peg-in-hole assembly: A
+   Bingjie T., Yashraj N., Fabio R. developed SAPU.                    deep-reinforcement-learning approach. Applied Sciences,
+   Bingjie T., Yashraj N., Dieter F. developed SDF reward.             2020.
+   Bingjie T., Yashraj N. developed SBC.                           [8] Yoshua Bengio, Jérôme Louradour, Ronan Collobert, and
+   Michael L., Yashraj N. developed PLAI.                              Jason Weston. Curriculum learning. In International
+   Michael L., Yashraj N., Iretiayo A., Bingjie T. developed           Conference on Machine Learning (ICML), 2009.
+IndustRealLib.                                                     [9] Tao Chen, Megha Tippur, Siyang Wu, Vikash Kumar, Ed-
+   Yashraj N., Michael L. developed IndustRealKit.                     ward Adelson, and Pulkit Agrawal. Visual dexterity: In-
+   Bingjie T., Yashraj N., Ankur H. developed the perception           hand dexterous manipulation from depth. arXiv preprint
+module.                                                                arXiv:2211.11744, 2022.
+   Bingjie T., Michael L. ran experimental evaluations.           [10] Yunuo Chen, Minchen Li, Wenlong Lu, Chuyuan Fu, and
+   Yashraj N., Bingjie T., Michael L. wrote the paper.                 Chenfanfu Jiang. Midas: A multi-joint robotics simulator
+   Yashraj N., Bingjie T., Michael L., Fabio R., Ankur H.,             with intersection-free frictional contact. arXiv preprint
+Gaurav S. revised the paper.                                           arXiv:2210.00130, 2022.
+   Bingjie T., Yashraj N., Michael L. created the video.          [11] Todor Davchev, Kevin Sebastian Luck, Michael Burke,
+   Yashraj N., Dieter F., Fabio R., Gaurav S., Ankur H.,               Franziska Meier, Stefan Schaal, and Subramanian Ra-
+Iretiayo A. advised the project.                                       mamoorthy. Residual learning from demonstration:
+                                                                       Adapting DMPs for contact-rich manipulation. IEEE
+                        R EFERENCES                                    Robotics and Automation Letters, 2021.
+ [1] Saminda Abeyruwan, Laura Graesser, David B                   [12] Samuel Hunt Drake. Using compliance in lieu of
+     D’Ambrosio, Avi Singh, Anish Shankar, Alex Bewley,                sensory feedback for automatic assembly. PhD thesis,
+     and Pannag R Sanketi.      i-sim2real: Reinforcement              Massachusetts Institute of Technology, 1978.
+     learning of robotic policies in tight human-robot            [13] Yongxiang Fan, Jieliang Luo, and Masayoshi Tomizuka.
+     interaction loops. arXiv preprint arXiv:2207.06572,               A learning framework for high precision industrial as-
+     2022.                                                             sembly. In International Conference on Robotics and
+ [2] Ilge Akkaya, Marcin Andrychowicz, Maciek Chociej,                 Automation (ICRA), 2019.
+     Mateusz Litwin, Bob McGrew, Arthur Petron, Alex              [14] Zachary Ferguson, Minchen Li, Teseo Schneider, Fran-
+     cisca Gil-Ureta, Timothy Langlois, Chenfanfu Jiang,                and Yasuyoshi Yokokohji. Benchmarking protocols for
+     Denis Zorin, Danny M Kaufman, and Daniele Panozzo.                 evaluating small parts robotic assembly systems. IEEE
+     Intersection-free rigid body dynamics. ACM Transactions            Robotics and Automation Letters, 2020.
+     on Graphics, 2021.                                            [26] Kenneth Kimble, Justin Albrecht, Megan Zimmerman,
+[15] Letian Fu, Huang Huang, Lars Berscheid, Hui Li, Ken                and Joe Falco. Performance measures to benchmark
+     Goldberg, and Sachin Chitta. Safely learning visuo-                the grasping, manipulation, and assembly of deformable
+     tactile feedback policies in real for industrial insertion.        objects typical to manufacturing applications. Frontiers
+     arXiv preprint arXiv:2210.01340, 2022.                             in Robotics and AI, 2022.
+[16] Claudio Gaz, Marco Cognetti, Alexander Oliva,                 [27] Shir Kozlovsky, Elad Newman, and Miriam Zacksen-
+     Paolo Robuffo Giordano, and Alessandro De Luca.                    house. Reinforcement learning of impedance policies for
+     Dynamic identification of the Franka Emika Panda robot             peg-in-hole tasks: Role of asymmetric matrices. IEEE
+     with retrieval of feasible parameters using penalty-based          Robotics and Automation Letters, 2022.
+     optimization. IEEE Robotics and Automation Letters,           [28] Mike Lambeta, Po-Wei Chou, Stephen Tian, Brian Yang,
+     2019.                                                              Benjamin Maloon, Victoria Rose Most, Dave Stroud,
+[17] Sami Haddadin, Sven Parusel, Lars Johannsmeier,                    Raymond Santos, Ahmad Byagowi, Gregg Kammerer,
+     Saskia Golz, Simon Gabl, Florian Walch, Mohamadreza                Dinesh Jayaraman, and Roberto Calandra. Digit: A novel
+     Sabaghian, Christoph Jähne, Lukas Hausperger, and Si-             design for a low-cost compact high-resolution tactile
+     mon Haddadin. The Franka Emika robot: A reference                  sensor with application to in-hand manipulation. IEEE
+     platform for robotics research and education. IEEE                 Robotics and Automation Letters, 2020.
+     Robotics and Automation Magazine, 2022.                       [29] Lei Lan, Danny M Kaufman, Minchen Li, Chenfanfu
+[18] Ankur Handa, Arthur Allshire, Viktor Makoviychuk,                  Jiang, and Yin Yang. Affine body dynamics: Fast, stable
+     Aleksei Petrenko, Ritvik Singh, Jingzhou Liu, Denys                & intersection-free simulation of stiff materials. ACM
+     Makoviichuk, Karl Van Wyk, Alexander Zhurke-                       Transactions on Graphics, 2022.
+     vich, Balakumar Sundaralingam, Yashraj Narang, Jean-          [30] Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen,
+     Francois Lafleche, Dieter Fox, and Gavriel State. DeX-             Vladlen Koltun, and Marco Hutter. Learning quadrupedal
+     treme: Transfer of agile in-hand manipulation from simu-           locomotion over challenging terrain. Science Robotics,
+     lation to reality. arXiv preprint arXiv:2210.13702, 2022.          2020.
+[19] Kaiming He, Georgia Gkioxari, Piotr Dollár, and Ross         [31] Michelle A Lee, Carlos Florensa, Jonathan Tremblay,
+     Girshick. Mask R-CNN. In IEEE International Confer-                Nathan Ratliff, Animesh Garg, Fabio Ramos, and Di-
+     ence on Computer Vision (ICCV), 2017.                              eter Fox. Guided uncertainty-aware policy optimiza-
+[20] Marius Hebecker, Jens Lambrecht, and Markus Schmitz.               tion: Combining learning and model-based strategies for
+     Towards real-world force-sensitive robotic assembly                sample-efficient policy learning. In IEEE International
+     through deep reinforcement learning in simulations. In             Conference on Robotics and Automation (ICRA), 2020.
+     IEEE/ASME International Conference on Advanced In-            [32] Michelle A. Lee, Yuke Zhu, Peter Zachares, Matthew
+     telligent Mechatronics (AIM), 2021.                                Tan, Krishnan Srinivasan, Silvio Savarese, Li Fei-Fei,
+[21] Zhimin Hou, Jiajun Fei, Yuelin Deng, and Jing Xu. Data-            Animesh Garg, and Jeannette Bohg. Making sense of
+     efficient hierarchical reinforcement learning for robotic          vision and touch: Learning multimodal representations
+     assembly control applications. IEEE Transactions on                for contact-rich tasks. IEEE Transactions on Robotics,
+     Industrial Electronics, 2021.                                      2020.
+[22] Shouren Huang, Kenichi Murakami, Yuji Yamakawa,               [33] Vincent Lim, Huang Huang, Lawrence Yunliang Chen,
+     Taku Senoo, and Masatoshi Ishikawa. Fast peg-and-hole              Jonathan Wang, Jeffrey Ichnowski, Daniel Seita, Michael
+     alignment using visual compliance. In IEEE/RSJ Inter-              Laskey, and Ken Goldberg.          Real2sim2real: Self-
+     national Conference on Intelligent Robots and Systems              supervised learning of physical single-step dynamic ac-
+     (IROS), 2013.                                                      tions for planar robot casting. In International Confer-
+[23] Tadanobu Inoue, Giovanni De Magistris, Asim Munawar,               ence on Robotics and Automation (ICRA), 2022.
+     Tsuyoshi Yokoya, and Ryuki Tachibana. Deep reinforce-         [34] Tsung-Yi Lin, Michael Maire, Serge Belongie, James
+     ment learning for high precision assembly tasks. In                Hays, Pietro Perona, Deva Ramanan, Piotr Dollár, and
+     IEEE/RSJ International Conference on Intelligent Robots            C Lawrence Zitnick. Microsoft COCO: Common objects
+     and Systems (IROS), 2017.                                          in context. In European Conference on Computer Vision
+[24] Tobias Johannink, Shikhar Bahl, Ashvin Nair, Jianlan               (ECCV), 2014.
+     Luo, Avinash Kumar, Matthias Loskyll, Juan Aparicio           [35] Tomas Lozano-Pérez, Matthew T Mason, and Russell H
+     Ojea, Eugen Solowjow, and Sergey Levine. Residual                  Taylor. Automatic synthesis of fine-motion strategies for
+     reinforcement learning for robot control. In International         robots. The International Journal of Robotics Research,
+     Conference on Robotics and Automation (ICRA), 2019.                1984.
+[25] Kenneth Kimble, Karl Van Wyk, Joe Falco, Elena                [36] Jianlan Luo, Eugen Solowjow, Chengtao Wen,
+     Messina, Yu Sun, Mizuho Shibata, Wataru Uemura,                    Juan Aparicio Ojea, Alice M. Agogino, Aviv Tamar,
+     and Pieter Abbeel.          Reinforcement learning on                Zaremba, and Pieter Abbeel. Sim-to-real transfer of
+     variable impedance controller for high-precision robotic             robotic control with dynamics randomization. In IEEE
+     assembly. In IEEE International Conference on Robotics               International Conference on Robotics and Automation
+     and Automation (ICRA), 2019.                                         (ICRA), 2018.
+[37] Jianlan Luo, Oleg Sushkov, Rugile Pevceviciute, Wen-            [50] Lerrel Pinto, Marcin Andrychowicz, Peter Welinder, Wo-
+     zhao Lian, Chang Su, Mel Vecerik, Ning Ye, Stefan                    jciech Zaremba, and Pieter Abbeel. Asymmetric actor
+     Schaal, and Jon Scholz. Robust multi-modal policies                  critic for image-based robot learning. arXiv preprint
+     for industrial assembly via reinforcement learning and               arXiv:1710.06542, 2017.
+     demonstrations: A large-scale study. arXiv preprint             [51] Nikita Rudin, David Hoeller, Philipp Reist, and Marco
+     arXiv:2103.11512, 2021.                                              Hutter. Learning to walk in minutes using massively
+[38] Jieliang Luo and Hui Li. Dynamic experience replay. In               parallel deep reinforcement learning. In Conference on
+     Conference on Robot Learning (CoRL), 2019.                           Robot Learning (CoRL), 2021.
+[39] Jieliang Luo and Hui Li. A learning approach to                 [52] Gerrit Schoettler, Ashvin Nair, Juan Aparicio
+     robot-agnostic force-guided high precision assembly. In              Ojea, Sergey Levine, and Eugen Solowjow. Meta-
+     IEEE/RSJ International Conference on Intelligent Robots              reinforcement learning for robotic industrial insertion
+     and Systems (IROS), 2021.                                            tasks.     In IEEE/RSJ International Conference on
+[40] Miles Macklin. Warp: A High-performance Python                       Intelligent Robots and Systems (IROS), 2020.
+     Framework for GPU Simulation and Graphics. https:               [53] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+     //github.com/nvidia/warp, March 2022. NVIDIA GPU                     Radford, and Oleg Klimov. Proximal policy optimization
+     Technology Conference (GTC).                                         algorithms. arXiv preprint arXiv:1707.06347, 2017.
+[41] Miles Macklin, Kenny Erleben, Matthias Müller, Nut-            [54] Lin Shao, Toki Migimatsu, and Jeannette Bohg. Learning
+     tapong Chentanez, Stefan Jeschke, and Zach Corse. Lo-                to scaffold the development of robotic manipulation
+     cal optimization for robust signed distance field collision.         skills. In IEEE International Conference on Robotics
+     Proceedings of the ACM on Computer Graphics and                      and Automation (ICRA), 2020.
+     Interactive Techniques, 2020.                                   [55] Zilin Si and Wenzhen Yuan. Taxim: An example-based
+[42] Denys Makoviichuk and Viktor Makoviychuk.                 rl-        simulation model for GelSight tactile sensors. IEEE
+     games: A High-performance Framework for Reinforce-                   Robotics and Automation Letters, 2022.
+     ment Learning. https://github.com/Denys88/rl games,             [56] Dongwon Son, Hyunsoo Yang, and Dongjun Lee. Sim-
+     May 2022.                                                            to-real transfer of bolting tasks with tight tolerance. In
+[43] Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong                       IEEE/RSJ International Conference on Intelligent Robots
+     Guo, Michelle Lu, Kier Storey, Miles Macklin, David                  and Systems (IROS), 2020.
+     Hoeller, Nikita Rudin, Arthur Allshire, Ankur Handa, and        [57] Oren Spector and Dotan Di Castro. InsertionNet: A
+     Gavriel State. Isaac Gym: High performance GPU-based                 scalable solution for insertion. IEEE Robotics and
+     physics simulation for robot learning. In Neural Infor-              Automation Letters, 2021.
+     mation Processing Systems (NeurIPS) Track on Datasets           [58] Oren Spector and Miriam Zacksenhouse. Deep rein-
+     and Benchmarks, 2021.                                                forcement learning for contact-rich skills using compliant
+[44] Gabriel B Margolis, Ge Yang, Kartik Paigwar, Tao Chen,               movement primitives. arXiv:2008.13223 [cs], 2020.
+     and Pulkit Agrawal. Rapid locomotion via reinforcement          [59] Oren Spector, Vladimir Tchuiev, and Dotan Di Castro.
+     learning. arXiv preprint arXiv:2205.02824, 2022.                     InsertionNet 2.0: Minimal contact multi-step insertion
+[45] Matthew T Mason. Mechanics of Robotic Manipulation.                  using multimodal multiview sensory input. arXiv preprint
+     MIT Press, 2001.                                                     arXiv:2203.01153, 2022.
+[46] Andrew S Morgan, Bowen Wen, Junchi Liang, Ab-                   [60] Te Tang, Hsien-Chung Lin, Yu Zhao, Wenjie Chen, and
+     deslam Boularias, Aaron M Dollar, and Kostas                         Masayoshi Tomizuka. Autonomous alignment of peg and
+     Bekris. Vision-driven compliant manipulation for re-                 hole by force/torque measurement for robotic assembly.
+     liable, high-precision assembly tasks. arXiv preprint                In IEEE International Conference on Automation Science
+     arXiv:2106.14070, 2021.                                              and Engineering (CASE), 2016.
+[47] Fabio Muratore, Michael Gienger, and Jan Peters. As-            [61] Garrett Thomas, Melissa Chien, Aviv Tamar, Juan Apari-
+     sessing transferability from simulation to reality for               cio Ojea, and Pieter Abbeel. Learning robotic assem-
+     reinforcement learning. IEEE Transactions on Pattern                 bly from CAD. In IEEE International Conference on
+     Analysis and Machine Intelligence, 2019.                             Robotics and Automation (ICRA), 2018.
+[48] Yashraj Narang, Kier Storey, Iretiayo Akinola, Miles            [62] Yunsheng Tian, Jie Xu, Yichen Li, Jieliang Luo, Shinjiro
+     Macklin, Philipp Reist, Lukasz Wawrzyniak, Yunrong                   Sueda, Hui Li, Karl DD Willis, and Wojciech Matusik.
+     Guo, Adam Moravanszky, Gavriel State, Michelle Lu,                   Assemble them all: Physics-based planning for general-
+     et al. Factory: Fast contact for robotic assembly. In                izable assembly by disassembly. ACM Transactions on
+     Robotics: Science and Systems, 2022.                                 Graphics (TOG), 2022.
+[49] Xue Bin Peng, Marcin Andrychowicz, Wojciech                     [63] Roger Y Tsai and Reimar K Lenz. A new technique for
+     fully autonomous and efficient 3D robotics hand/eye cali-         for contact-intensive tight-tolerance robotic assembly
+     bration. IEEE Transactions on Robotics and Automation,            tasks. arXiv preprint arXiv:2202.13098, 2022.
+     1989.                                                        [77] Wenzhen Yuan, Siyuan Dong, and Edward H Adelson.
+[64] Mel Vecerik, Todd Hester, Jonathan Scholz, Fumin                  GelSight: High-resolution robot tactile sensors for esti-
+     Wang, Olivier Pietquin, Bilal Piot, Nicolas Heess,                mating geometry and force. Sensors, 2017.
+     Thomas Rothörl, Thomas Lampe, and Martin Ried-              [78] Kevin Zhang, Mohit Sharma, Jacky Liang, and Oliver
+     miller. Leveraging demonstrations for deep reinforce-             Kroemer. A modular robotic arm control stack for
+     ment learning on robotics problems with sparse rewards.           research: Franka-Interface and FrankaPy. arXiv preprint
+     arXiv:1707.08817 [cs], 2018.                                      arXiv:2011.02398, 2020.
+[65] Mel Vecerik, Oleg Sushkov, David Barker, Thomas              [79] Xiang Zhang, Shiyu Jin, Changhao Wang, Xinghao Zhu,
+     Rothorl, Todd Hester, and Jon Scholz. A practical                 and Masayoshi Tomizuka. Learning insertion primitives
+     approach to insertion with variable socket position using         with discrete-continuous hybrid action space for robotic
+     deep reinforcement learning. In IEEE International                assembly tasks. arXiv:2110.12618 [cs], 2021.
+     Conference on Robotics and Automation (ICRA), 2019.          [80] Tony Z Zhao, Jianlan Luo, Oleg Sushkov, Rugile Pevce-
+[66] Felix Von Drigalski, Christian Schlette, Martin Rudorfer,         viciute, Nicolas Heess, Jon Scholz, Stefan Schaal, and
+     Nikolaus Correll, Joshua C Triyonoputro, Weiwei Wan,              Sergey Levine. Offline meta-reinforcement learning for
+     Tokuo Tsuji, and Tetsuyou Watanabe. Robots assembling             industrial insertion. In International Conference on
+     machines: Learning from the World Robot Summit 2018               Robotics and Automation (ICRA), 2022.
+     Assembly Challenge. Advanced Robotics, 2020.
+[67] Nghia Vuong, Hung Pham, and Quang-Cuong Pham.
+     Learning sequences of manipulation primitives for
+     robotic assembly. In IEEE International Conference on
+     Robotics and Automation (ICRA), 2021.
+[68] Shaoxiong Wang, Mike Lambeta, Po-Wei Chou, and
+     Roberto Calandra. Tacto: A fast, flexible, and open-
+     source simulator for high-resolution vision-based tactile
+     sensors. IEEE Robotics and Automation Letters, 2022.
+[69] Bowen Wen, Wenzhao Lian, Kostas Bekris, and Stefan
+     Schaal. You only demonstrate once: Category-level
+     manipulation from single visual demonstration. arXiv
+     preprint arXiv:2201.12716, 2022.
+[70] Daniel E. Whitney. Mechanical Assemblies: Their De-
+     sign, Manufacture, and Role in Product Development.
+     Oxford University Press, 2004.
+[71] Daniel E Whitney et al. Quasi-static assembly of compli-
+     antly supported rigid parts. Journal of Dynamic Systems,
+     Measurement, and Control, pages 65–77, 1982.
+[72] Zheng Wu, Wenzhao Lian, Vaibhav Unhelkar, Masayoshi
+     Tomizuka, and Stefan Schaal. Learning dense rewards for
+     contact-rich manipulation tasks. In IEEE International
+     Conference on Robotics and Automation (ICRA), 2021.
+[73] Yanchun Xia, Yuehong Yin, and Zhaoneng Chen. Dy-
+     namic analysis for peg-in-hole assembly with contact
+     deformation. The International Journal of Advanced
+     Manufacturing Technology, 2006.
+[74] Jie Xu, Sangwoon Kim, Tao Chen, Alberto Rodriguez
+     Garcia, Pulkit Agrawal, Wojciech Matusik, and Shinjiro
+     Sueda. Efficient tactile simulation with differentiability
+     for robotic manipulation. In Conference on Robot Learn-
+     ing (CoRL), 2022.
+[75] Jing Xu, Zhimin Hou, Zhi Liu, and Hong Qiao. Com-
+     pare contact model-based control and contact model-
+     free learning: A survey of robotic peg-in-hole assembly
+     strategies. arXiv preprint arXiv:1904.05240, 2019.
+[76] Jaemin Yoon, Minji Lee, Dongwon Son, and Dongjun
+     Lee. Fast and accurate data-driven simulation framework
+                          A PPENDIX                                 terleaved Riemannian Motion Policies (RMP) and SAC [31],
+                                                                    guided DDPG [13], DDPG from demonstration (DDPGfD)
+A. Related Work
+                                                                    [37, 38, 64], offline meta-RL with advantage-weighted actor-
+   Here we review classical and learning-based approaches to        critic (AWAC) [80], and inverse RL [72]. For efforts using
+robotic assembly and briefly comment on simulation.                 human demonstrations, substantial engineering infrastructure
+   1) Classical Approaches: Assembly has been an open               and collection time can be required; demonstrations can be
+challenge in robotics for decades [70, 45]. Many analytical         suboptimal; and successful demonstrations can be difficult to
+methods have been proposed to solve assembly tasks, par-            reliably obtain during high-precision tasks.
+ticularly for the canonical problem of peg-in-hole insertion;          Several learning-based, non-RL approaches have also been
+these methods have typically utilized geometry, dynamics,           proposed. These approaches include using human-initialized
+mechanical design, and sensing as fundamental tools. Drake          self-supervised learning to learn a policy or residual policy
+[12] proposed remote center compliance (RCC) as a means to          with multimodal inputs [57, 59, 15], as well as learning from
+mitigate reliance on visual or force sensing during assembly.       videos of human demonstrations using category-level visual
+Whitney et al. [71] described the effects of part geometry,         representations and 6-DOF tracking [69].
+gripper and support stiffness, and friction on contact forces          The preceding efforts define the state-of-the-art in learning-
+and adverse outcomes (e.g., jamming and wedging). Lozano-           based approaches for assembly. Several have demonstrated
+Pérez et al. [35] proposed compliant motion planning strategies    high success rates and repeatability, shown robustness to
+for assembly. Xia et al. [73] derived a compliant contact           small perturbations of initial part poses, and/or shown some
+model and used the model to avoid jamming and wedging.              degree of generalization across parts; one has even outper-
+Huang et al. [22] addressed initial part misalignment using         formed a solution from professional integrators [37]. However,
+vision, and Tang et al. [60] addressed this challenge via           most successful efforts have required human initializations,
+force/torque sensing. The preceding principles and methods          demonstrations, or on-policy corrections. Furthermore, purely
+are the prevailing means of addressing the annual NIST              real-world approaches are inherently difficult to parallelize;
+Assembly Task Board challenge, the established benchmark            may require long training to achieve appreciable robustness
+in robotic assembly [25, 66]. Nevertheless, such methods can        (e.g., ∼50 hours in [37]); typically require manual resets;
+be highly sensitive to errors in modeling, sensing, and state       can be impractical for time-consuming, expensive, delicate, or
+estimation; perturbations of adapters, fixtures, and calibration;   dangerous tasks (e.g., construction); and do not fully leverage
+and the introduction of unseen or more complex assets.              the substantial amount of virtual data available for industrial
+   2) Learning-Based Approaches: In the past few years,             settings (e.g., nearly every existing industrial part originates
+learning-based approaches to assembly have gained popularity        from a CAD model that can be rendered or simulated).
+in the robotics research community, with many of the efforts           3) Simulation: To our knowledge, the state-of-the-art in
+focused on RL. Earlier works have typically explored model-         accurate and efficient contact-rich simulation is captured in
+based algorithms, such as guided policy search (GPS) [61] and       [48, 41, 10, 29, 62, 76]. Among these, [48, 10] specifically
+iterative linear-quadratic-Gaussian control (iLQG) [36]. De-        address simulation for robotics tasks, whereas [48] integrates
+spite the sample efficiency of these algorithms, nonlinear and      these capabilities within a widely-used robotics simulator [43].
+discontinuous contact dynamics have made them challenging           Thus, we leverage [48] as our simulation platform.
+to leverage for contact-rich manipulation tasks [58].               B. Real-World System
+   A number of recent works have used model-free, off-policy
+                                                                       1) Communications: A schematic of our communications
+RL algorithms, including classical Q-learning [23], deep-Q
+                                                                    framework is shown in Figure S8. The input to the com-
+networks (DQN) [79], soft actor-critic (SAC) [7], probabilistic
+                                                                    munications pipeline is a trained RL policy (specifically,
+embeddings for actor-critic RL (PEARL) [52], hierarchical RL
+                                                                    a checkpoint file) from Isaac Gym, which is provided to
+[21], and most popularly, deep deterministic policy gradients
+                                                                    IndustRealLib. The output of the communications pipeline is
+(DDPG) [6, 39, 37, 65]. These algorithms are also sample
+                                                                    a set of torque commands communicated to the robot.
+efficient, but can have unfavorable convergence properties.
+   A smaller number of research efforts have used model-
+free, on-policy algorithms, including trust region policy op-
+timization (TRPO) [32], proximal policy optimization (PPO)
+[20, 56, 67, 48], and asynchronous advantage actor-critic
+(A3C) [54]. These algorithms have favorable convergence
+properties and are easy to tune; however, they are highly
+sample inefficient and can require long training times.
+   Other recent works have used on-policy or off-policy RL
+algorithms that can leverage demonstrations (e.g., human
+demonstrations or reference trajectories and controllers), such
+as residual learning from demonstration (rLfD), minimum-
+jerk trajectories, or impedance controllers, [11, 27, 24], in-           Fig. S8: Schematic of communications framework.
+                                                                    background, round pegs, rectangular pegs, round holes, and
+                                                                    rectangular holes, 2) background, small gear, medium-sized
+                                                                    gear, and large gear, and 3) background, NEMA 1-15 plug,
+                                                                    NEMA 1-15 socket, USB-C plug, and USB-C socket.
+                                                                        For each set, we generated an augmented collection of
+                                                                    images that consisted of each non-background element with
+                                                                    random translations, rotations, and scaling. The elements were
+                                                                    overlaid upon randomly-selected background images, and the
+                                                                    composites were subject to color jitter using the kornia library.
+                                                                        Each augmented set of images was then used to train a
+   (a) Simulation (1000 trials)     (b) Real world (160 trials)     Mask R-CNN model in pytorch. The categories within the
+                                                                    set were added to the pretrained model, and the model was
+Fig. S9: Evaluation of Place policy in simulation and the real      fine-tuned on images from the set to minimize losses over
+world, with/without damping during simulation-based training.       object identities, bounding boxes, and segmentation masks.
+                                                                    Each model was trained for 50 epochs with 4000 training
+   2) Camera Calibration: The goal of intrinsic camera cal-         images, requiring ≈ 7.5 hours on a single GPU, at which
+ibration for an RGB camera is to determine the relationship         point precision and recall scores were typically above 85%.
+between the location of a 3D point in space and its location in         When using our trained models at test time, we performed
+the image. We rely on the intrinsic camera parameters provided      additional data augmentation consisting exclusively of color
+by Intel through the librealsense and pyrealsense2 libraries.       jitter on captured images. The augmented images were used as
+   The goal of extrinsic camera calibration is to determine the     input to our detection model. For each object in the image, the
+                 robot                                              image with the highest object-identification confidence score
+6-DOF pose Tcam        of the camera with respect to the robot
+frame. To compute extrinsic camera parameters, we first place       was used to extract the object’s identity, bounding box, and
+a 6-inch AprilTag (52h13) onto the work surface and command         segmentation mask. This test-time augmentation improved our
+the robot via the frankx library to random 6-DOF poses in           robustness to lighting variation and the presence of distractors.
+the robot workspace, biased towards having the tag in view,         The yaw angle of each object was extracted by computing a
+but avoiding direct overhead views due to pose ambiguity. At        minimum-area rectangle on the bounding box with OpenCV
+each viewpoint, we detect the tag and compute the 6-DOF pose        and calculating the angle of the box with the horizontal.
+  cam                                                                   4) Workspace Mapping: For each detected object, we com-
+Ttag   of the tag with respect to the camera frame via the pupil-
+apriltags library, and we simultaneously query the 6-DOF pose       puted the centroid of its bounding box in image space. As
+  robot                                                             mentioned earlier, the primary goal of our perception pipeline
+Tee     of the end-effector in the robot base frame. We collect
+approximately 30 such samples and then use the Tsai-Lenz            is to estimate the 2D poses (x, y, θ) of the parts on the
+method [63] from the OpenCV library to compute the 6-DOF            workbench in the robot frame; thus, we needed to convert the
+        ee                                                          location of the centroid (as well as the yaw angle determined
+pose Tcam    of the camera with respect to the end-effector. The
+                 robot                                              earlier) from image space to 3D space.
+6-DOF pose Tcam        of the camera with respect to the robot
+                                                  robot ee              In order to perform this transformation, we placed a 3-
+base frame can then simply be computed as Tee          Tcam .
+   We validated the extrinsic parameters by comparing our           inch AprilTag (53h13) at an arbitrary location in the field
+             ee                                                                                              cam
+estimated Tcam    against the corresponding transformation mea-     of view and computed the pose Ttag              of the tag in the
+sured in a CAD assembly containing part models of the               camera frame. With additional knowledge of the size of the
+RealSense camera, camera mount, and end-effector.                   tag and the pixel resolution of the camera, distances in image
+   3) Object Detection: The goal of our object detection            space were mapped to distances in the camera frame. (Strictly
+module is to determine the object identities, 2D bounding           speaking, this relation holds only within the plane containing
+boxes, and segmentation masks of each of our parts in the           the AprilTag, with decreasing accuracy farther away due to
+                                                                                                                  cam
+RGB image. To perform object detection, we used the imple-          perspective transformations.) The pose Ttag       , the location of
+mentation of the well-established Mask R-CNN [19] network           the centroid of a particular part, and the distance mapping were
+architecture available in the torchvision library, which was        used to convert the centroid and yaw angle from image space
+pretrained on the Microsoft COCO dataset [34].                      to the camera frame. Finally, the location of the centroid and
+   As the COCO dataset does not contain industrial assets,          the yaw angle were converted from the camera frame to the
+                                                                                                               robot
+initial tests on our parts resulted in failure. Thus, we fine-      robot frame using the transformation Tcam        computed earlier.
+tuned the pretrained model on real-world images of our assets.          We note that our workspace mapping process was suscep-
+Specifically, we used the RealSense to capture 10-30 overhead       tible to error induced by yaw rotations of the camera with
+images of each part randomly placed on our work surface, as         respect to the robot frame, which resulted in systematic bias of
+well as 10 images of the work surface itself. We used Adobe         our perceived locations relative to their actual locations. Thus,
+Photoshop to automatically remove the backgrounds from the          we performed a final one-time calibration step, during which
+part images and extracted bounding boxes from the results.          we executed the Place experiment (i.e., laser tests) near the
+   We then divided the images into three different sets: 1)         four corners of the workspace, estimated the offsets relative to
+the centers of the targets, averaged the offsets, and subtracted
+the average from all subsequently-computed 3D locations.
+   5) Constructing Targets: After execution of the perception
+pipeline, the robot receives corresponding (x, y, z = hn , α =
+θ, β = 0.0, γ = 0.0) as end-effector targets. The nominal
+height hn at which to pick or place each part is specified in
+advance by the human; in our experience, for industrial-style
+parts, this specification is trivial (e.g., 25-50% from the top of
+the part) and requires little to no iteration.
+   6) Experimental Setup: Our real-world experimental setup
+consists of a Franka Emika Panda arm with a wrist-mounted                    Fig. S11: A subset of parts from IndustRealKit.
+RGB-D camera, as well as an optical breadboard upon which
+mechanical parts are placed. The robot, camera, optical bread-
+board, and parts are shown in Figure S11 and Figure S10.
+
+
+
+
+                                                                       Fig. S12: Experimental setup for evaluating Place policy.
+
+
+                                                                     in total, these per-trial steps took approximately 10 seconds to
+                                                                     execute on our non-realtime system.
+
+                                                                     C. Policy-Level Action Integrator
+                                                                        1) Standard PLAI: Consider an RL policy that generates
+                                                                     relative pose actions; in other words, the action composed with
+                                                                     the current pose produces the desired state. In practice, the
+                                                                     ability to achieve these desired states depends on passive and
+                                                                     active system dynamics; having a large discrepancy between
+                                                                     the environment used for training and deployment can lead
+                                                                     to poor policy performance, especially when the system uses
+                                                                     a more dynamic controller (e.g., a low stiffness task-space
+                                                                     impedance controller). In this context, we briefly compare the
+                                                                     behavior of PLAI with a lower-level proportional (P) con-
+          Fig. S10: Real-world experimental setup.                   troller, against a standard proportional-integral (PI) controller.5
+                                                                        The general form of a discrete-time P controller is given by
+   7) Summary: We have thus described our full perception
+pipeline. Camera calibration was performed once before begin-                                    F [n] = kP e[n]                            (5)
+ning all experiments. The detection and workspace mapping
+process (aside from the one-time calibration step) were per-            5 The comparison would also hold for PLAI with a lower-level PD con-
+formed at the beginning of each trial that required detections;      troller, against a PID controller; we omit derivative terms for simplicity.
+where F is the control effort (e.g., force or torque), kP is the        2) PLAI for 6-DOF Pose: The PLAI derivation above
+proportional gain, and e is an error signal.                          applies directly to control of Cartesian position; executing
+  We define the error signal as the difference between the            PLAI on Cartesian orientation is very similar, as addition
+desired state and the current state:                                  and subtraction operators can be replaced by rotation matrix
+                      e[n] = xd [n] − x[n]                      (6)   operations. Specifically, addition can be replaced with
+
+where x is the state and superscript d denotes desired.
+  For PLAI, we apply actions to the previous desired state:
+                                                                                            ReOn+1 = ReOn Reen+1
+                                                                                                             n
+                                                                                                                                  (13)
+                xd [n] = Π(o[n]) + xd [n − 1]                   (7)
+  In other words, we interpret actions as the difference be-
+tween the current desired state and the previous desired state:       and subtraction can be replaced with
+                              d            d
+                Π(o[n]) = x [n] − x [n − 1]                     (8)
+  We can re-write the error signal as
+                                                                                          ReOn = ReOn+1 [Reen+1
+                                                                                                            n
+                                                                                                                ]T                (14)
+             e[n] = Π(o[n]) + xd [n − 1] − x[n]                 (9)
+   Next, we can roll out the first few timesteps of F :
+F [1] = kP Π(o[1]) + xd [0] − x[1]
+                                     
+                                                                               O
+                                                                      where RB    is the rotation of a frame B relative to the frame
+      = kP Π(o[1]) + Π(o[0]) + xd [0] − x[1]                          O, and Reen+1
+                                                                                n
+                                                                                      is an incremental rotation of the end-effector at
+                                                                      time step n + 1 relative to time step n.
+F [2] = kP Π(o[2]) + xd [1] − x[2]
+                                     
+
+      = kP Π(o[2]) + Π(o[1]) + Π(o[0]) + xd [0] − x[2]
+                                                      
+                                                                        3) Leaky PLAI: After the PLAI update (Equation 3), we
+F [3] = kP Π(o[3]) + xd [2] − x[3]
+                                                                     can simply rewrite sdt+1 as
+
+     = kP Π(o[3]) + Π(o[2]) + ... + Π(o[0]) + xd [0] − x[3]
+                                                                  
+
+F [N ] = kP (Π(o[N ]) + Π(o[N − 1]) + ...
+                                                                                        sdt+1 = st ⊕ (sdt+1 ⊖ st )                (15)
+         + Π(o[0]) + xd [0] − x[N ])
+  More generally,
+                       N
+                                                           !
+                       X                                              and update the desired state as
+                                               d
+        F [N ] = kP        (Π(o[k])) + x [0] − x[N ]           (10)
+                       k=0
+In words, the sum of the policy outputs determines the control
+                                                                                    sdt+1 ← st ⊕ min (sdt+1 ⊖ st ), ϵ
+                                                                                                                     
+                                                                                                                                  (16)
+setpoint, which is tracked by the P controller. The summation
+term closely resembles an integral term in a PI controller:
+                              N
+                              X
+     F [N ] = kP e[N ] + kI       (e[k])                       (11)   where ϵ is a threshold transformation.
+                              k=0
+                                               N
+                                               X
+            = kP (xd [N ] − x[N ]) + kI            (Π(o[k]))   (12)
+                                               k=0
+   The main difference is that the integral term in PLAI is used
+as a control setpoint, whereas in PI, it is directly converted
+into control effort. More extensively,
+   1) PLAI integrates the policy actions to generate a setpoint,
+      which is used by the low-level impedance controller
+      to attract the real state towards the desired state. If
+      the system is disturbed from its current state (e.g., the
+      robot is pushed away), the setpoint will not change
+      instantaneously. Instead, the force vector will pull the
+      system towards the same setpoint.
+   2) PI integrates the policy actions (in this case, equal to
+      the control error) to generate a corrective force vector.
+      If the system is disturbed from its current state, the          Fig. S13: Evaluation of PLAI in simulation. PLAI is com-
+      accumulated error will be applied to an unintended state        pared to Nominal and PID under three environmental condi-
+      and may become a disturbance to the policy.                     tions. Ideal indicates no perturbations.
+                                                                      Fig. S15: Histogram of mesh interpenetrations during typical
+Fig. S14: Evaluation of PLAI in simulation, illustrating time-        training episode.
+series behavior. PLAI is compared to Nominal and PID over
+20 trials under a randomized gravitational disturbance (i.e.,
+gravitational acceleration g ∼ U [0.1, 2.0]m/s2 ). Position error
+is measured with respect to final target. Inset view shows that
+steady-state error is lowest for PLAI (1.6 mm), followed by
+PID (3.5 mm); Nominal is frequently unable to converge.
+
+
+
+
+D. Additional Simulation Parameters & Results
+
+
+
+
+   1) MDP formulation & Parameters in Simulation: Given
+our choice of RL, we can formulate the problem as a Markov
+decision process (MDP) with state space S, observation space
+O, action space A, state transition dynamics T : S × A →
+S, initial state distribution ρ0 , reward function r : S → R,         Fig. S16: Visualization of a transient interpenetration event
+horizon length T , and discount factor γ ∈ (0, 1]. The objective      between peg and hole assets with low-quality meshes. Yellow
+is to learn a policy π : O → P(A) that maximizes the expected         spheres denote mesh vertices. Colorbar is in m.
+                                     −1 t
+sum of discounted rewards Eπ [ΣTt=0     γ r(st )].
+                                                                         3) Joint Evaluation in Simulation: Table X evaluates how
+   We do not assume that state is fully observable in either
+                                                                      the Insert policies perform under different randomization and
+simulation or the real world (specifically, O ⊊ S). In the
+                                                                      observation noise conditions in simulation.
+real world, the Franka’s joint velocities, end-effector velocities,
+                                                                         4) Additional Real Parameters & Results: Table VIII de-
+joint torques, and end-effector forces exhibit appreciable noise
+                                                                      scribes physics and control frequencies for simulation and
+in free space. In addition, perceptual error leads to noise in
+                                                                      the real world, Table IX describes real-world deployment
+object pose estimates, which in turn introduce noise into target
+                                                                      parameters for the Reach policy, and Table III describes real-
+poses. Furthermore, without tactile sensing or a 6-DOF tracker,
+                                                                      world deployment parameters for the remaining policies.
+we do not observe the state of objects within the gripper.
+                                                                        Task       Success Criterion                   Condition
+   Table V describes the observation spaces, Table VI describes
+                                                                        Pick        Successful lift            hobj > 3 ∗ hobj + htable
+the reward formulations, and Table IV describes the task                Place      Close placement              ||kcurr − kgoal ||2 < ϵk
+success criteria (i.e., the condition for a terminal reward) for        Insert    Peg inserted in hole    ∆h < ϵh & ||kplug − ksocket ||2 < ϵk
+policy training in simulation. In addition, Table VII describes         Gear     Gear inserted on shaft   ∆h < ϵh & ||kgear − kshaft ||2 < ϵk
+the randomization range used for training.
+                                                                      TABLE IV: Success criterion for each policy. Symbols hobj
+                                                                      and htable denote heights of the object and table, ∆h denotes
+   2) Simulation-Aware Policy Update: Figure S15 shows the            height from the hole/shaft base to the peg/gear base, k denotes
+distribution of mesh interpenetration distances during a typical      keypoint positions, ϵk = 10 cm is the keypoint distance error
+training episode. Figure S16 shows an example of mesh                 threshold, and ϵh = 3 mm is the height error threshold.
+interpenetration between a peg and a hole.
+                                                                                         Pick                 Place            Insert (Pegs)       Insert (Gears)
+       Input                                     Dimensionality
+                                                                                     Actor   Critic       Actor   Critic       Actor   Critic      Actor    Critic
+       Arm joint angles                          7                                     ✓          ✓        ✓           ✓         ✓        ✓          ✓          ✓
+       Fingertip pose                            3 (position) + 4 (quaternion)         ✓          ✓        ✓           ✓         ✓        ✓          ✓          ✓
+       Object (peg/gear) pose                    3 (position) + 4 (quaternion)         ✓          ✓                    ✓                  ✓                     ✓
+       Target pose                               3 (position) + 4 (quaternion)                             ✓           ✓                  ✓                     ✓
+       Target pose with noise                    3 (position) + 4 (quaternion)                                                   ✓                   ✓
+       Relative target pose with noise           3 (position) + 4 (quaternion)                                                   ✓                   ✓
+       Arm joint velocities                      7                                                ✓                    ✓                  ✓                     ✓
+       Fingertip linear velocity                 3                                                ✓                    ✓                  ✓                     ✓
+       Fingertip angular velocity                3                                                ✓                    ✓                  ✓                     ✓
+       Object (peg/gear) linear velocity         3                                                                     ✓                  ✓                     ✓
+       Object (peg/gear) angular velocity        3                                                                     ✓                  ✓                     ✓
+       Target position observation noise         3                                                                                        ✓                     ✓
+       Relative target pose                      3 (position) + 4 (quaternion)                                                            ✓                     ✓
+
+TABLE V: Observations provided to the actor and critic for each policy. For Pick, target pose is the current plug pose; for
+Place, target pose is the target plug pose; and for Insert (Pegs/Gears), target pose is a target end-effector pose.
+
+
+ Per-Timestep Reward                   Formulation               Scale           Justification           Reach      Pick       Place   Insert (Pegs)      Insert (Gears)
+ Distance to goal                 −||kcurr − kgoal ||2           1.0         Move closer to goal           ✓           ✓        ✓
+ SDF-based distance               − log(ΣN
+                                         i ϕ(xi )/N )            10.0          Align shapes                                                    ✓                    ✓
+ Scaling Factor on Return                                        Range
+ Mesh interpenetration              1 − tanh(d/ϵd )              [0, 1]     Avoid interpenetration                                             ✓                    ✓
+ Randomization range                  ζcurr /ζmax                [0, 1]     Adapt to randomization                                             ✓                    ✓
+ Curriculum difficulty                Dcurr /Dmax                [0, 1]       Adapt to difficulty                                              ✓                    ✓
+ Bonus scale                         1/(△h + 0.1)                [0, 1]      Move closer to goal                                               ✓                    ✓
+ Sparse Reward                          Condition                Value
+ Task success                          See Table IV              10.0          Complete task                           ✓        ✓              ✓                    ✓
+ Close to target                 ||kcurr − kgoal ||2 < ϵk         1.0        Move close to target                      ✓        ✓
+
+TABLE VI: Rewards for each policy. Symbol k denotes keypoint positions, xi denotes vertices on the plug, N is the number
+of vertices sampled from the plug mesh, ϕ(xi ) is the SDF value at a given vertex, d is the mean mesh interpenetration distance,
+ϵd is the interpenetration distance threshold, ζ is the magnitude of the randomization range, D is the stage of the curriculum,
+∆h is the height difference between current pose and goal pose when the episode is marked as successful, and ϵk is the
+keypoint distance error threshold. Note that the reward formulations for the Reach, Pick, and Place policies are simple; those
+for Insert (Pegs) and Insert (Gears) required more nuance.
+
+
+               Reach                                Pick & Place                                 Insert (Pegs)                                 Insert (Gears)
+ Parameter         Range                 Parameter          Range                Parameter                     Range             Parameter                 Range
+ Hand X-axis       [0.3, 0.7] m          Hand X-axis        [0.3, 0.7] m         Plug to socket ∆XY            [-10, 10] mm      Gear to shaft ∆XY         [-10, 10] mm
+ Hand Y-axis       [-0.35, 0.35] m       Hand Y-axis        [-0.35, 0.35] m      Plug to socket ∆Z             [0, 20] mm        Gear to shaft ∆Z          [0, 20] mm
+ Hand Z-axis       [0.05, 0.35] m        Hand Z-axis        [0.05, 0.35] m       Socket X-axis                 [0.4, 0.6] m      Shaft X-axis              [0.4, 0.6] m
+ Hand rotation     [-15, 15] deg         Hand rotation      [-15, 15] deg        Socket Y-axis                 [-0.1, 0.1] m     Shaft Y-axis              [-0.1, 0.1] m
+ Target X-axis     [0.35, 0.65] m        Object X-axis      [0.35, 0.65] m       Socket Z-axis                 [0.0, 0.05] m     Shaft Z-axis              [0.0, 0.05] m
+ Target Y-axis     [-0.15, 0.15] m       Object Y-axis      [-0.15, 0.15] m      Socket yaw                    [-5, 5] deg       Shaft yaw                 [-15, 15] deg
+ Target Z-axis     [0.0, 0.05] m         Object Z-axis      [0.0, 0.05] m        Observation noise             [-1, 1] mm        Observation noise         [-1, 1] mm
+
+ TABLE VII: Ranges for initial pose randomization and observation noise during training. Values were uniformly sampled.
+
+
+                                    Observations           Actions
+                       Physics
+                                  Low-Level   Policy   Low-Level   Policy
+                                                                                             Deploy Method        Parameter            Value
+          Simulation   120 Hz       60 Hz     60 Hz      60 Hz      60 Hz
+                                                                                             All                  Controller Gains     [1000, 1000, 1000, 50, 50, 50]
+          Real-world     c/L       1000 Hz    60 Hz    1000 Hz      60 Hz                    PLAI                 Pos. Action Scale    [0.0005, 0.0005, 0.0005]
+                                                                                             PLAI                 Rot. Action Scale    [0.001, 0.001, 0.001]
+TABLE VIII: Physics and control frequencies for simulation                                   Nominal              Pos. Action Scale    [0.01, 0.01, 0.01]
+                                                                                             Nominal              Rot. Action Scale    [0.01, 0.01, 0.01]
+and reality. Physics frequency in the real world is given by c/L,
+where c is the speed of sound and L is a characteristic length- TABLE IX: Reach policy evaluation parameters in real robot
+scale; c can be approximated by the Newton-Laplace equation.
+                                                   Insert (Pegs)                                                     Insert (Gears)
+  Randomization
+                           Success (%)     Engage (%)     Pos. Err. (mm)   Rot. Err. (rad)   Success (%)     Engage (%)     Pos. Err. (mm)    Rot. Err. (rad)
+  Peg/Gear Pos. (mm)
+  [0, 0]                   92.40±2.30       98.40±1.67      2.83±0.46      0.075±0.0058      82.40±3.58      84.40±3.78      10.92±1.16        0.30±0.055
+  [−5, 5]                  92.40±1.52       97.80±1.48      2.98±0.42      0.075±0.0083      78.40±3.97      81.80±3.27      12.32±2.14        0.26±0.042
+  [−10, 10]                88.60±2.41      96.60±0.023    3.80±0.00080     0.086±0.026       82.00±3.54      85.20±2.68      11.09±1.92        0.29±0.040
+  [−15, 15]                75.20±6.49       89.60±3.91     46.16±38.71       0.45±0.25       71.88±2.62      80.68±1.36      12.90±1.16        0.22±0.075
+  [−20, 20]                69.00±5.10        85.4±5.81     53.12±38.92      0.33± 0.059      71.60±1.33      80.88±0.85      12.66±1.24        0.22±0.016
+  Hole/Shaft Pos. (cm)
+  [0, 0]                    85.00±2.49      95.00±1.58      3.17±0.30      0.074±0.011       78.20±3.56      79.20±3.70      19.75±7.21        0.40±0.024
+  [−5, 5]                  89.80±0.015     97.40±0.015      2.58±0.36      0.065±0.019       82.60±4.34      84.60±3.85      14.22±2.12         0.30±0.16
+  [−10, 10]                 88.60±2.41     96.60±0.023    3.80±0.00080     0.086±0.026       82.00±3.54      85.20±2.68      11.09±1.92        0.29±0.040
+  [−15, 15]                 78.60±2.07      86.20±1.92      7.10±0.44      0.085±0.0052      67.86±3.47      75.88±2.58      14.37±1.84        0.22±0.0088
+  [−20, 20]                 69.40±4.16      78.00±2.55     10.38±1.14      0.11±0.0065       67.88±2.56      73.18±2.36      15.59±1.88        0.25±0.016
+  Observation Noise (mm)
+  [0, 0]                   87.00±2.55      93.60±1.52        4.84±.51      0.091±0.021       81.80±1.64      84.00±0.020     11.94±1.09        0.28±0.045
+  [−1, 1]                  88.60±2.41      96.60±0.023    3.80±0.00080     0.086±0.026       82.00±3.54       85.20±2.68     11.09±1.92        0.29±0.040
+  [−2, 2]                  86.80±2.28      97.00±2.35       3.89±0.56      0.085±0.011       79.40±2.70       82.20±4.09     11.40±1.49        0.27±0.044
+
+TABLE X: Joint evaluation of Simulation-Based Policy Update, SDF-Based Reward, and Sampling-Based Curriculum. (A)
+Pegs and Holes assembly Insert policy. (B) Gears and Gearshafts assembly Insert policy. Engage denotes partial insertion.
+Policies were trained with moderate randomization (i.e., plug randomization of ± 10 mm, socket randomization of ± 10 cm,
+and observation noise of ± 1 mm); thus, the table evaluates in-distribution and out-of-distribution performance. Each test was
+executed on 5 seeds, with 1000 trials each.
+
+
+                                             Reach               Pick                Place                 Insert (Pegs)     Insert (Gears)
+               MLP network size (Actor)      [256, 128, 64]      [256, 128, 64]      [256, 128, 64]        [512, 256, 128]   [512, 256, 128]
+               MLP network size (Critic)     [512, 256, 128]     [512, 256, 128]     [512, 256, 128]       [256, 128, 64]    [256, 128, 64]
+               LSTM network size (Actor)     -                   -                   -                     256               256
+               Horizon length (T)            128                 128                 128                   256               256
+               Adam learning rate            1e-4                1e-4                1e-4                  1e-3              1e-3
+               Discount factor (γ)           0.99                0.99                0.99                  0.998             0.998
+               GAE parameter (λ)             0.95                0.95                0.95                  0.95              0.95
+               Entropy coefficient           0.0                 0.0                 0.0                   0.0               0.0
+               Critic coefficient            2                   2                   2                     2                 2
+               Minibatch size                2048                2048                2048                  2048              2048
+               Minibatch epochs              8                   8                   8                     8                 8
+               Clipping parameter (ϵ)        0.2                 0.2                 0.2                   0.2               0.2
+
+                            TABLE XI: PPO parameters and network architectures used in each policy.
+
+
+                           Task             Asset                  Parameter                   Value
+                           Pick & Place     All                    Controller Gains            [1000, 1000, 1000, 50, 50, 50]
+                           Pick & Place     All                    Pos. Action Scale           [0.002, 0.002, 0.0015]
+                           Pick & Place     All                    Rot. Action Scale           [0.004, 0.004, 0.004]
+                           Insert           Pegs & Connectors      Controller Gains            [1000, 1000, 100, 50, 50, 50]
+                           Insert           Pegs                   Pos. Action Scale           [0.0006, 0.0006, 0.0004]
+                           Insert           Connectors             Pos. Action Scale           [0.0004, 0.0004, 0.0004]
+                           Insert           Pegs & Connectors      Rot. Action Scale           [0.001, 0.001, 0.001]
+                           Insert           Pegs                   Leaky PLAI Threshold        [0.05, 0.05, 0.03]
+                           Insert           Connectors             Leaky PLAI Threshold        [0.04, 0.04, 0.05]
+                           Insert           Gears                  Controller Gains            [300, 300, 300, 50, 50, 50]
+                           Insert           Gears                  Pos. Action Scale           [0.0005, 0.0005, 0.0004]
+                           Insert           Gears                  Rot. Action Scale           [0.001, 0.001, 0.001]
+                           Insert           Gears                  Leaky PLAI Threshold        [0.05, 0.05, 0.05]
+                           Insert           All                    Observation Noise           XY-axes: [-2, 2] mm
+                           Insert           All                    Pos. Randomization          XY-axes: [-10, 10] mm
+                           Insert           All                    Height Randomization        [10, 20] mm above socket/shaft
+                           Insert           All                    Rot. Randomization          Yaw: [-5, 5] deg
+                           Insert           All                    Clearance                   [0.5, 0.6] mm
+
+TABLE XII: Real-world evaluation parameters for Insert. Action scales are scalars applied to position and rotation actions in
+order to bring robot execution speeds to within comfortable limits.
+

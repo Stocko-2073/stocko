@@ -1,0 +1,536 @@
+                                             AlphaNIST: Emergent Assembly Skills from Binary Task Rewards
+                                                      Octi Zhang1 , Iretiayo Akinola1 , Rosario Scalise2 , Mateo Guaman Castro2 , Patrick Yin1,2
+                                                       Tobias Widmer1 , Miles Macklin1 , Chris Amevor1 , Dylan Turpin1 , Dirk Van Gelder1
+                                                          Jan Carius1 , Ankur Handa1 , Gavriel State1 , Yunrong Guo1 , and Yashraj Narang1
+                                                                                        1                 2
+                                                                                            NVIDIA            University of Washington
+
+
+
+
+arXiv:2610.13354v1 [cs.AI] 9 Oct 2026
+                                        Fig. 1. Emergent multi-component assembly with a single policy. Trained with a binary task reward, AlphaNIST learns to select, grasp, reorient, and
+                                        assemble diverse components, while autonomously sequencing multiple assemblies within a single episode. Shown are snapshots from a ten-component
+                                        assembly sequence.
+
+                                           Abstract— The NIST Assembly Task Board #1 remains a                     key reasons: (1) The sequence for solving the tasks might
+                                        challenging benchmark for learning-based methods in robotic                be unspecified, and not all sequences may be efficient or
+                                        manipulation. Over short horizons, it demands precise, contact-            valid (e.g., solving task N may obstruct the robot from
+                                        rich control of small, tight-fitting parts. Over long horizons,
+                                        it requires recovery and coordination across extended action               accessing the parts in task N + 1). (2) Each task is long-
+                                        sequences. Demonstrations, task decomposition, and dense                   horizon, encompassing grasping, transport, and contact-rich
+                                        progress rewards have enabled research advances by providing               assembly [2]. Parts may begin in a wide range of poses
+                                        guidance on how to assemble. But how much of the strategy                  and require multiple reorientations before grasping. During
+                                        must be specified? The progression from AlphaGo to AlphaGo                 transport, parts may need further reorientation in-hand or
+                                        Zero showed that RL at scale can discover superhuman strate-
+                                        gies without prescribing how to win. AlphaNIST asks whether                through extrinsic contact. During assembly, parts may slip,
+                                        a sparse binary task reward and task diversity admitted by                 become misaligned, or jam during insertion or threading [2],
+                                        this task-agnostic reward can similarly let a robot discover               requiring robust recovery and reexecution. (3) Solving the
+                                        how to assemble. In simulation, we train a single policy from              tasks requires precise control during complex contact inter-
+                                        scratch across all 20 assembly tasks on the NIST Assembly                  actions. The parts themselves are small (as small as 4 mm in
+                                        Task Board #1, reaching 98.2% overall training success without
+                                        demonstrations, progress shaping, scripted primitives, or per-             diameter), have high geometric detail (e.g., helical threads),
+                                        task tuning. The framework also trains policies to complete                and have tight clearances between mating surfaces (as low
+                                        ten assembly pairs in a single episode without a prescribed                as zero). Tasks such as nut threading involve learning helical
+                                        order, with task success rewarded only when all ten pairs                  motion during frictional contact between multiple mating
+                                        are simultaneously complete. The learned policies discover                 surfaces, during which a nut can tilt, cross-thread, or jam
+                                        dexterous and planning-like behaviors: choosing grasps for later
+                                        assembly, using surrounding geometry to reorient parts, and                instead of advancing along the bolt [2].
+                                        preparing one part, assembling another, then returning to finish              Learning-free approaches typically rely on planning and
+                                        the first without an explicit planner. For videos, see our website:
+                                                                                                                   strong human priors: assembly sequence planning [3]; cus-
+                                        https://alpha-nist.github.io/
+                                                                                                                   tomized fixtures, adapters, and tooling [1], [4]; engineered
+                                                                I. I NTRODUCTION                                   motion and force primitives [5]; and tuned admittance,
+                                           Robotic assembly is a longstanding challenge, and the                   impedance, or force-motion controllers [4], [5].
+                                        NIST Assembly Task Boards are a persistent benchmark [1];                     Learning-based approaches, on the other hand, can relax
+                                        to the best of our knowledge, no learning-based approaches                 some of these constraints, but have shown progress only
+                                        have solved all tasks on any of the boards. Assembly Task                  within a limited scope. Most efforts have assumed a fixed
+                                        Board #1 (ATB1) consists of 20 assembly pair tasks (a                      assembly sequence, heavily constrained the initial poses
+                                        part and its fixed mating geometry on the board) that are                  of parts (e.g., beginning in an already-grasped state) [6],
+                                        relevant for manufacturing, including peg insertion, gear                  assumed access to accurate pose estimates, learned specialist
+                                        meshing, electrical connector insertion, and nut threading.                rather than multi-task policies [2], addressed only a subset
+                                        Solving this task board is exceptionally challenging for three             of tasks on the board [6], and/or achieved only low-to-
+                                                                           2) The first multi-task RL policy capable of solving all
+                                                                              20 tasks on the NIST Assembly Task Board 1. The
+                                                                              policy takes point clouds as input; initial part poses
+                                                                              are sampled from a wide range, including adverse
+                                                                              conditions (e.g., upside-down); and each task can be
+                                                                              solved with near-perfect success rates. Positive transfer
+                                                                              is observed, where multi-task policies can solve the 20
+                                                                              tasks with higher success rate than individual special-
+                                                                              ists, including three tasks that the specialists struggle
+                                                                              to solve.
+                                                                           3) The first assembly policy capable of solving up
+Fig. 2. The complete NIST Assembly Task Board #1 in simulation.               to 10 diverse assembly pairs in sequence, without
+Yellow indicates the 20 movable parts in their fully-assembled states.        an explicit hierarchy or prescribed task order. Thus,
+                                                                              this work demonstrates that sequencing behavior can
+moderate success rates by industrial standards. Success-                      emerge within a single low-level assembly policy.
+Guided Sampling (SGS) [7], for example, solves tasks one                    We observe a repertoire of unique emergent behaviors
+at a time, but requires a separate policy per task and is                including dexterous skills such as pushing and sliding (to sin-
+considerably less compute-efficient.                                     gulate parts), in-hand pivoting, multiple sequential regrasps,
+   We draw inspiration from the landmark AlphaGo series in               extrinsic contact (to reorient parts prior to insertion), and
+reinforcement learning, which surpassed the strongest human              single-gripper nut threading. The single policy also exhibits
+Go players. The progression from AlphaGo to AlphaGo Zero                 long-horizon planning-like behavior such as bringing parts
+showed that learning from a terminal task objective could                into reach, moving obstructing parts aside, and leaving a
+encourage superhuman decision-making over long horizons                  task partially-finished and then returning to it later. None
+without human demonstrations [8], [9]. In this paper, we                 of these skills and behaviors were specified. We encourage
+ask whether a similar approach is possible for robotics:                 readers to watch our supplementary videos 1 for additional
+can sparse binary task rewards, combined with appropriate                examples of these emergent behaviors. We plan to release
+training strategies, enable a robot to solve sequences of long-          our code following the review and revision period.
+horizon, contact-rich manipulation tasks, perhaps leveraging
+dexterous behaviors that no human could feasibly specify                                           II. R ELATED W ORK
+or demonstrate? To make learning from sparse task rewards
+more tractable, we take a seemingly counterintuitive step:               A. Scalable Learning for Contact-Rich Assembly
+train jointly across heterogeneous assembly pairs differing                 Parallel physics simulation supports experience collection
+in geometries, tolerances, and assembly requirements (a nut              at scale for on-policy methods such as PPO [11], [12], with
+and its bolt, a gear and its gearshaft, a peg and its hole) from         applications ranging from dexterous in-hand manipulation
+a broad coverage of initial states, converting MDP diversity             [13], [14], [15], [16] to industrial assembly. GPU-accelerated
+into a resource rather than a burden.                                    physics engines such as PhysX [17] and Newton [18] support
+   Guided by this insight, we develop AlphaNIST, a learning              large-scale parallel simulation for robot learning. For indus-
+framework that trains a single policy under sparse binary                trial assembly, Factory [2] demonstrated real-time or faster
+task rewards across all 20 tasks on the NIST Assembly                    simulation of 1,000 simultaneous nut-and-bolt interactions
+Task Board 1 (Fig. 2). The policy handles an exceptional                 in Isaac Gym, later incorporated into Isaac Lab. AlphaNIST
+range of initial part poses, learns from point-cloud inputs              uses this simulation throughput to collect experience across
+without first training specialist policies, and achieves a 98.2%         heterogeneous assembly pairs.
+overall success rate. Furthermore, the same framework can                   OmniReset [10] addressed state coverage through diverse,
+train policies to complete 10 assembly pairs in sequence,                manipulation-centric resets, demonstrating long-horizon on-
+with a task reward issued only when all pairs are assembled              policy RL with fixed algorithm hyperparameters and no
+with no prescribed order. In other words, the policy exhibits            curricula or human demonstrations. Success-Guided Sam-
+planning-like behavior.                                                  pling (SGS) [7] addressed experience allocation by con-
+   Our contributions are the following:                                  centrating simulation near the policy’s changing capability
+   1) A highly-effective multi-task RL framework con-                    frontier, scaling beyond one million parallel environments
+       sisting of a novel combination of the following com-              using sparse rewards. In its reported assembly experiments,
+       ponents: A) generation of a cache of assembly-relevant            SGS trains a separate policy for each single task. AlphaNIST
+       reset states [10] over heterogeneous assembly pairs, B)           retains SGS’s sampling rule but trains one multi-task policy
+       success-guided sampling within the cache [7], C) a uni-           across all 20 ATB1 tasks under a common binary task reward.
+       fied sparse binary task reward, D) multi-GPU training             Our experiments show that this shared policy learns assem-
+       at scale. These components are supported by careful               blies that remain unsolved in single-task training (Fig. 5).
+       ablations. All tasks share one training configuration,
+       without per-task tuning or demonstrations.                          1 https://alpha-nist.github.io/
+B. Multi-Task Reinforcement Learning                               rich control, with one shared policy learning heterogeneous
+                                                                   assemblies end to end.
+   Multi-task RL aims to improve learning by sharing experi-
+ence across tasks. However, standard joint-training baselines                     III. P ROBLEM F ORMULATION
+have achieved lower success rates than separately trained
+policies on multi-task manipulation benchmarks [19]. One           A. Task Definition and MDP
+approach to obtaining a single multi-task policy is to distill        We formulate all 20 ATB1 assembly tasks [1] as a multi-
+multiple separately trained specialists into a shared pol-         task reinforcement-learning problem with one shared policy.
+icy [20]. Other approaches address the difficulty of joint            Let e ∈ E denote an assembly task, with |E| = 20. Each
+training directly. PopArt [21] addresses differences in re-        task corresponds to one assembly pair: a movable part, its
+ward scales with a separate value output and normaliza-            mating geometry, and a fully-assembled configuration.
+tion statistics for each task, while PCGrad [19] removes              We model the problem as a finite-horizon MDP,
+conflicting components of task gradients before combining
+them. However, Kurin et al. [22] show that shared-network                            M = (S, A, p, r, γ, T, ρ),                (1)
+baselines with standard regularization and stabilization can
+                                                                   where p(st+1 | st , at ) is the transition kernel and ρ is the
+match specialized multi-task optimizers.
+                                                                   joint distribution over task identities and initial states. At
+   AlphaNIST takes a simple approach to multi-task learning
+                                                                   the beginning of each episode, (e, s0 ) ∼ ρ. A shared policy
+by exploiting the shared structure of assembly: threading,
+                                                                   πθ (at | ot ) acts on partial observations ot of the simulator
+gear meshing, and insertion all receive the same binary task
+                                                                   state st and maximizes
+reward when assembly error falls below a common thresh-
+                                                                                                     "T −1     #
+old. Under this shared objective, we train one geometry-                                              X
+                                                                                                            t
+conditioned policy and one value function with standard                              J(θ) = Eρ,p,πθ        γ rt .              (2)
+PPO at scale, without task-specific value heads, gradient                                              t=0
+projection, or specialist pretraining.                             Task variation is represented through surface point clouds in
+                                                                   ot , rather than an explicit discrete task identifier.
+C. Learning-Based Robot Assembly
+                                                                                           IV. M ETHOD
+   Prior learning-based assembly systems make exploration
+tractable by shortening the task horizon or restricting initial-   A. AlphaNIST Training Framework
+ization to staged, pre-grasped, or local-insertion problems           AlphaNIST trains one policy across all 20 assembly
+[23], [24]. Factory [2] trains separate pick, place, and screw     tasks with standard PPO and a binary task reward for
+subpolicies, while AutoMate [20] combines assembly-by-             completed assembly. Its training distribution combines di-
+disassembly, imitation learning, and curriculum-based RL           verse cached reset states from OmniReset [10] with beta-
+to obtain specialist and generalist assembly policies. Refin-      distributed success-guided sampling (SGS) [7], while a com-
+ery [25] improves pretrained assembly specialists through          mon binary task reward defines successful assembly across
+Bayesian-optimization-guided sampling of initial conditions        all tasks. The three components play distinct roles:
+during fine-tuning and Gaussian-mixture-model-based ini-
+tialization at deployment. The refined policies can then
+be chained to complete multi-part assemblies. For longer                       Reset bank: Which states are available?
+sequences, ARCH [26] uses a high-level imitation-learned                    Beta sampling: Which states are sampled?
+policy to select from a library of RL and model-based                  Binary task reward: What counts as success?
+primitives. These methods structure learning through ini-          B. Reset Coverage and Experience Allocation
+tialization, demonstrations, or prescribed subskills. OmniRe-
+set [10] uses a generic dense objective with fixed weights,          We adapt OmniReset [10] to heterogeneous assembly by
+including gripper–object and object–goal distance terms.           caching the assembly identity together with each reset state:
+Zhang et al. [7] present the first end-to-end RL solution to                          Dreset = {(ei , s̄i )}M
+                                                                                                            i=1 .              (3)
+individual tasks from the NIST ATB1, but retain task-specific
+auxiliary grasp- and gripper-related shaping. Such terms can       Here, M is the total number of entries across all 20
+aid exploration and discourage reward exploitation, but their      assemblies. The assembly identity ei selects the part and
+relative influence can change with object size, geometry, and      mating-geometry assets and their inertial properties, while s̄i
+assembly motion. Even with fixed coefficients, a new task          specifies the robot, board, and movable-part state. Sampling
+family requires checking that the shaped reward remains            an entry therefore selects both the assembly and its initial
+aligned with successful assembly.                                  configuration. The cached bank spans ungrasped workspace,
+   AlphaGo Zero provides a broader motivation: terminal            pickup, transport, near-mating, and partially assembled con-
+win/loss and search-generated policy targets support strategy      figurations (Fig. 4), enabling GPU-parallel initialization.
+discovery without human game data or intermediate reward           These reset families define regions of the training distribu-
+shaping [9]. AlphaNIST asks whether binary task success can        tion, not a prescribed sequence; the policy receives no stage
+similarly support strategy discovery in continuous, contact-       identifier.
+                                                                           identity                            identity
+
+                                                           linear   LN linear SW linear               LN linear SW linear               LN linear
+                             two-layer ELU encoder                                                                                               Gaussian action at ∈ R8
+
+                                                                                            +                                   +
+      Point cloud
+                                                                                                                                                     arm ∆q1:7    gripper
+                                                           256          1024          256                  1024           256                  8
+                           3 × npts   256     128
+                                                     ∥
+                                       RN                                  identity                            identity
+      Proprioception
+                                                     278   linear   LN linear SW linear               LN linear SW linear               LN linear
+       + last action
+     pose 7 | twist 6 |
+     joints 9 | action 8                                                                                                                                value Vϕ (ot ) ∈ R
+                                                                                            +                                   +
+                                150           150
+
+                                                           256          1024          256                  1024           256                  1
+Fig. 3. Policy architecture. Actor and critic have the same architecture with separate parameters. Inputs are drawn once; each network contains two
+consecutive residual blocks. RN: running normalization; LN: layer normalization; SW: Swish activation; npts : number of input points.
+
+
+                                                                                       where ϵ = 0.001 m. The success reward is issued once,
+                                                                                       and the episode terminates. Intermediate progress receives
+                                                                                       no task reward. We supplement the binary task reward with
+                                                                                       a control cost to discourage large action magnitudes, rapid
+                                                                                       joint motion, and excessive torque. This regularization biases
+                                                                                       learning toward smoother, lower-effort behaviors that are
+                                                                                       more compatible with safe deployment on physical robots,
+                                                                                       without providing information about assembly progress.
+
+                                                                                                  rtsucc   − c ∥at ∥22 + ∥q̇t ∥22 + ∥τt ∥22 , c ≥ 0.
+                                                                                                                                           
+                                                                                         rt =
+                                                                                                  |{z}        |           {z               }
+                                                                                                binary task reward                  control cost
+                                                                                                                                                      (6)
+                                                                                       Here, at , q̇t , and τt are the action, robot joint velocity, and
+                                                                                       applied joint torque. The control penalties are evaluated at
+                                                                                       every step, with a single coefficient c fixed across tasks. They
+Fig. 4. Diverse assembly reset states. Examples of resets across tasks,                do not measure assembly progress; the binary task reward
+ranging from random object poses to in-hand grasps and partial assemblies.             specifies successful completion. Episodes end on assembly
+                                                                                       success, at horizon T , or when an arm joint exceeds its
+  Let p̂i be the empirical success rate over the most recent L                         hardware velocity or torque limit. In multi-pair episodes,
+episodes initialized from entry (ei , s̄i ). Under beta sampling,                      the success reward remains zero until every active pair is
+entry i is selected with probability qi :                                              assembled, with no prescribed pair order or intermediate
+                    p                                                                  completion reward.
+         qi ∝ εq + p̂i (1 − p̂i ),         i = 1, . . . , M,  (4)
+                                                                                       D. Shared Policy and Robot Control
+normalized over the entire bank. Sampling i ∼ Cat(q)
+                                                                                           We implement AlphaNIST in Isaac Lab [11] with GPU-
+selects an assembly–reset pair with ρ(ei , s̄i ) = qi . The kernel
+                                                                                       parallel environments. Each PPO batch combines rollouts
+favors intermediate success rates, while εq > 0 keeps every
+                                                                                       from assembly–reset pairs sampled using Eq. (4). The policy,
+entry sampleable. Each episode’s outcome updates p̂i for
+                                                                                       reward, controller, and training configuration are shared
+its sampled entry. The uniform ablation sets qi = 1/M ;
+                                                                                       across all 20 tasks. The policy observes the robot state and
+the bank, policy, reward, and optimizer remain unchanged.
+                                                                                       surface point clouds of the movable part, mating geometry,
+Algorithm 1 summarizes training.
+                                                                                       and robot, without a discrete task identifier. We use separate
+                                                                                       actor and critic SimBa networks [27], [28], summarized in
+C. Binary Full-Assembly Objective
+                                                                                       Fig. 3. Each combines a point-cloud embedding with the
+   Across geometries, the assembly objective is the same:                              proprioception and last action shown in the figure.
+complete the assembly. For each instance, an assembly-                                     We simulate a 7-DoF Franka Emika Panda with identified
+relative coordinate Φe (α), α ∈ [0, 1], parameterizes the part                         inertial and drivetrain parameters and a parallel-jaw gripper
+in the mating frame, with Φe (1) denoting its fully assembled                          with one driven and one mechanically coupled passive finger.
+pose. Let deasm (s) be the distance between the part’s current                         At 25 Hz, the policy outputs a 7D relative joint position target
+relative pose and Φe (1). For a single-pair episode, the binary                        (qttarget = qt + ∆qt ) and a 1D gripper command. An implicit
+task reward is                                                                         impedance controller uses the manufacturer’s libfranka stiff-
+                        (                                                              ness and damping profile with hardware-matched armature
+                 succ     1, deasm (st+1 ) < ϵ,                                        and joint friction. Joint-speed limits are 2.175 rad/s for
+                rt    =                                     (5)
+                          0, otherwise.                                                joints 1–4 and 2.61 rad/s for joints 5–7; torque limits are
+                                                         (a) Success by task                                                               (b) Success rate ± standard deviation
+                                                                                                        100                       98.2 ± 0.986%
+                Shared policy                                                                                               100
+               Sparse reward                                                                                                                       81.4 ± 1.732%
+                                                                                                                                                                                    78.3 ± 0.573%
+                                                                                                                             75
+ Separate policies
+
+
+
+                                                                                                              Success (%)
+   Sparse reward
+                                                                                                        50
+                                                                                                                             50
+                    Shared policy
+                    Dense reward
+
+                                                                                                                             25                                     17.8 ± 0.010%
+ Separate policies
+   Dense reward
+                                                                                                        0                     0
+                                               N4
+                                               N8
+                                              N1
+                                              N1
+                                               Gs
+                                               Gm2
+                                                 6
+                                                Gl
+                                               R4
+                                               R8                                                                                    Shared          Separate         Shared          Separate
+                                                                                                                                  Sparse reward    Sparse reward    Dense reward    Dense reward
+                                              R1
+                                              R1
+                                              P1
+                                              P1 2
+                                                 6
+                                                P4
+                                                P8
+                                                 2
+                                              US 6
+                                               W B
+                                              BN P
+                                               DSC
+                                                RJ
+Fig. 5. Training across heterogeneous assembly pairs substantially improves learning from a sparse binary task reward. At 64K environments
+across 25k iterations: (a) compares 20-task success rates for one shared policy versus 20 separately trained policies. The shared policy (first row) achieved
+above 98% success rate across all tasks, including three precision assemblies that corresponding specialists rarely solve. Dense shaping does not exhibit
+the same benefit. Panel (b) shows overall success, note that the separate-policy success rate is average across all 20 per-task policies; Asset notation: N,
+G, R, and P denote nuts, gears, rods, and pegs, respectively; numeric suffixes indicate nominal diameters in millimeters, while s, m, and l indicate gear
+size. "Sparse reward" denotes Eq. (6); "dense reward" additionally includes the shaping terms in Eq. (7).
+
+                                         One policy, sparse reward               One policy, dense reward                   Algorithm 1 AlphaNIST Heterogeneous Assembly Learning
+                                         20-policy mean, sparse reward           20-policy mean, dense reward
+                                                                                                                            Require: Dreset = {(ei , s̄i )}M  i=1 ; history length L; batch size N ;
+                        100                                                                                                     shared πθ , Vϕ
+                                                                                                                             1: initialize each rolling success rate p̂i ← 0
+                                                                                                                             2: for each PPO iteration do
+                                75                                                                                           3:      B←∅
+
+
+Success (%)
+                                                                                                                             4:      while |B| < N do
+                                                                                                                             5:          for all completed episodes n do
+                                50
+                                                                                                                             6:              yn ← ⊮[full assembly] for entry in
+                                                                                                                             7:              p̂in ← mean of its latest L outcomes
+                                25
+                                                                                                                             8:          end for
+                                                                                                                             9:          update reset probabilities q using Eq. (4)
+                                                                                                                            10:          for all environments n requiring reset do
+                                0                                                                                           11:              in ∼ Cat(q); (en , sn,0 ) ← (ein , s̄in )
+                                     0            10           20               30          40          50                  12:          end for
+                                                       Training iterations (thousands)                                      13:          an,t ∼ πθ (· | on,t ), ∀n
+                                                                                                                            14:          step all environments and append transitions to B
+Fig. 6. Joint sparse training converges faster than separate policies.
+Curves compare one shared policy trained on all 20 tasks with the mean of
+                                                                                                                            15:      end while
+20 policies trained separately, one per task.                                                                               16:      update πθ and Vϕ using standard PPO on B
+                                                                                                                            17: end for
+                                         Success rate ± SD over 5 seeds
+
+                                               Sparse reward         Beta sampling                                          87 N m and 12 N m, respectively. These constraints keep
+                                               Dense reward          Uniform sampling
+                                                                                                                            actions within a hardware-realistic envelope, preventing the
+                                100                                                                                         policy from exploiting unrealistic speeds or torques. Similar
+                                                                                                                            hardware-aligned simulation has enabled transfer of assem-
+
+
+
+
+        Evaluated success (%)
+                                 75                                                                                         bly policies to the same Franka Panda platform [20], [29].
+                                                                                                                            E. Distributed Training and Scale
+                                 50
+                                                                                                                               We scale synchronous PPO across 1–256K environments,
+                                                                                                                            with 4K per GPU in multi-GPU runs. Each GPU samples its
+                                 25
+                                                                                                                            local reset bank using rolling success estimates. Actor and
+                                                                                                                            critic gradients are averaged across GPUs before each opti-
+                                     0                                                                                      mizer step. Each iteration collects 32 steps per environment
+                                         1K      2K      4K     8K        16K        32K   64K   128K   256K
+                                                           Parallel training environments
+                                                                                                                            and optimizes for 5 epochs with 4 minibatches each. Network
+                                                                                                                            architecture and PPO settings are fixed across scales.
+Fig. 7. Sparse task rewards benefit strongly from parallel experience.
+Mean success ± standard deviation over 5 evaluation seeds for 25k-iteration                                                                         V. E XPERIMENTS
+checkpoints, with 32 trials per task per seed across 20 assemblies. Color                                                      We organize the experiments around three questions: (Q1)
+denotes reward; solid and dashed lines denote beta and uniform training-
+reset sampling.                                                                                                             Heterogeneity: Under a binary task reward, how does joint
+                                                                                                                            training compare with training each task separately? (Q2)
+                                                                                                                            Scaling: How do parallel experience and reset-state sampling
+               (a) Board-assisted reorientation(waterproof)                                (b) Release-and-regrasp for alignment(d-sub)
+
+
+
+
+                (c) Center-to-tip grasp transfer(peg 8mm)                               (d) Side-caging for gear placement(medium gear)
+
+
+
+
+                (e) Edge-to-flat nut reorientation(nut m12)                                 (f) One-sided tapping for threading(nut m4)
+
+
+
+
+            (g) Shoveling to a better pickup position(rod 8mm)                                 (h) Full-circle nut threading(nut m16)
+Fig. 8. One shared policy discovers diverse contact strategies from a sparse binary task reward. Each panel proceeds from left to right. (a)
+Waterproof connector: board contact helps reorient the part before insertion. (b) D-sub connector: the part is set down and regrasped for alignment with
+its socket. (c) 8 mm peg: the part is dropped from a center grasp and regrasped near one end, leaving its remaining length free for insertion. (d) Medium
+gear: the part pivots from a side grasp into a horizontal pose over its mounting post. (e) M12 nut: the nut is rolled from its edge onto a flat face before
+placement on the bolt. (f) M4 nut: repeated one-sided taps advance the nut along the thread. (g) 8 mm rod: the fingertip shovels the rod to a position
+where it is easier to lift. (h) M16 nut: the gripper moves around the nut, using fingertip contact to turn it along the bolt.
+
+affect learning from a binary task reward? (Q3) Reward                         each task. Success requires full assembly within 15 seconds
+formulation: How does a binary task reward compare with                        without a simultaneous safety failure. The reward ablation
+dense assembly-progress shaping as heterogeneous training                      adds two dense assembly-progress terms to Eq. (6):
+scales? We additionally explore multi-pair assembly and
+                                                                                    rtdense = rt + c2 rtreach + c3 rtalign ,         c2 , c3 ≥ 0,      (7)
+inspect the learned policy for behaviors that arise without
+direct supervision.                                                            where rtreach rewards end-effector proximity to the part cen-
+   For heterogeneity, we compare one policy trained across                     troid and rtalign rewards alignment with the target assembly
+all 20 ATB1 tasks with one separately trained policy per task,                 orientation. These are common shaping terms in manipula-
+using matched per-run interaction budgets and otherwise                        tion and assembly RL [2], [10], [20]. We set c2 = c3 = 0.01,
+identical settings. We use 64K environments per run to keep                    matching the coefficients used in OmniReset [10]. Across all
+the comparison affordable; the shared policy reaches 98.2%                     experiments, success rates cover all reset configurations.
+training success at this scale.
+   For parallel scaling, GPUs, environments, and rollout                       A. Assembly-Pair Heterogeneity Enables Learning
+batch size increase together while the task distribution,                         From randomly initialized states, separately-trained poli-
+reward, policy, and environment remain fixed. The sam-                         cies have ≤0.3% success on M4 nut threading, as well as
+pling ablation compares against uniform sampling over the                      4 mm peg insertion and rod insertion. The main obstacle is
+same reset bank instead of beta sampling. For the scaling                      that the small parts are difficult to grasp reliably from the ta-
+evaluation, all checkpoints use stochastic actions and a                       ble. In contrast, the shared policy produces successful grasp-
+common frozen mixed-reset bank, sampled uniformly within                       and-assembly rollouts on these same tasks without task-
+                                            (a) Bring USB-A closer, assemble the 8 mm rod, then return
+
+
+
+
+                                            (b) Making small turns threading M12 to avoid RJ45 collision
+Fig. 9. Emergent coordination in multi-pair assembly. (a) The policy brings the USB-A connector from a distant corner to a nearby working position,
+leaves it there while assembling the 8 mm rod, then returns to insert the connector. (b) During M12 nut threading, the end effector makes small turns to
+avoid touching the neighboring RJ45 connector. Each sequence proceeds from left to right.
+                                                              TABLE I
+  S UCCESS RATE FOR MULTI - PAIR ASSEMBLY E ACH POLICY IS TRAINED AND EVALUATED ON THE SAME NUMBER OF ACTIVE ASSEMBLY PAIRS ,
+FROM 1–10. A LPHA NIST SOLVES THESE TASKS WITHOUT A PRESCRIBED ORDER OR EXPLICIT TASK DECOMPOSITION . F OR EXAMPLE , WHEN THERE
+         ARE 10 ACTIVE PAIRS , THE POLICY RECEIVES A SUCCESS REWARD ONLY WHEN ALL 10 ARE IN THEIR ASSIGNED BOARD SLOTS .
+
+
+ # Active Pairs           1            2             3            4            5            6            7            8            9            10
+
+ Success Rate (%)         99           97           95           93           92           90           89            87           86           84
+
+
+specific changes. This result suggests that shared experience                 over uniform reset sampling. At 256K environments, success
+can help with assemblies that are difficult to learn separately.              with the sparse binary task reward reaches 97.4% with
+This benefit depends strongly on the reward formulation.                      beta sampling versus 84.3% with uniform sampling; the
+At their final checkpoints, the 20 separately trained dense-                  corresponding results with dense reward shaping are 77.4%
+reward policies reach a mean success rate of 78.3%, ranging                   and 34.3%. While the advantage of the sparse task objective
+from 45.0% on M4 threading to 93.6% on the medium                             is already visible at modest scale, beta sampling provides
+gear. Joint dense training reaches 17.8% overall success at                   further gains as parallel experience increases.
+25K iterations, with low completion across tasks (Fig. 5).
+                                                                              C. Emergent Strategies over Short Horizons
+One possible explanation is that dense shaping terms favor
+different partial solutions across geometries, whereas the                       The policy exhibits a broad range of dexterous strategies
+binary task reward gives a unified full-assembly objective                    across assemblies (Fig. 8), including grasp adaptation, ex-
+for every task.                                                               trinsic reorientation, and contact-driven assembly. It releases
+   Joint training reaches higher success at lower total cost.                 and reacquires parts when the initial grasp is unsuitable
+At 64K parallel environments across 25K iterations, the                       for insertion, uses surrounding geometry to change object
+shared policy trained with the sparse binary task reward                      orientation, and discovers intermittent tapping and pivoting
+reaches 98.2% training success in 410 GPU-hours (Fig. 6),                     motions. These behaviors emerge within a single policy,
+while the 20 separately trained policies average 81.4% and                    without demonstrations or rewards specifying the individual
+consume 16.1K total GPU-hours, 39.3× more device-hours.                       maneuvers. For a peg, a successful pickup may not produce
+                                                                              a grasp suitable for insertion; the policy drops a center-held
+B. Sparse Binary Task Rewards Benefit from Scale                              peg and regrasps it near one end, exposing enough shaft
+                                                                              length for complete insertion. For a nut, repeated taps on
+  Performance with the sparse binary task reward improves                     one side engage and advance the thread, using intermittent
+rapidly with increased parallel experience (Fig. 7). With                     contact to make assembly progress.
+beta sampling, evaluation success rises from 38.6% at 1K
+environments to 78.9% at 4K and 86.9% at 8K. With dense                       D. Emergent Strategies over Long Horizons
+reward shaping, success remains at 11.8–12.0% over 1K–                          Beyond the main single-assembly experiments, we train
+4K environments. Beta sampling provides an additional gain                    policies with multiple assembly pairs per episode. The bi-
+nary task reward is issued only when every active pair is                        [4] W. Lian, T. Kelch, D. Holz, A. Norton, and S. Schaal, “Benchmarking
+assembled; episodes allow 15 seconds per pair and terminate                          off-the-shelf solutions to robotic assembly tasks,” in Proc. IEEE/RSJ
+                                                                                     Int. Conf. Intell. Robots Syst., 2021, pp. 791–798.
+upon success. Table I shows the success rates for episodes                       [5] A. S. Morgan, Q. Bateux, M. Hao, and A. M. Dollar, “Towards
+with up to ten active pairs. This multi-pair setting reveals                         generalized robot assembly through compliance-enabled contact for-
+coordination over substantially longer horizons (Fig. 9). The                        mations,” in Proc. IEEE Int. Conf. Robot. Automat., 2023, pp. 8010–
+                                                                                     8016.
+policy need not finish assembling a pair before turning to                       [6] J. Luo et al., “Robust multi-modal policies for industrial assembly via
+another, and its approach to one assembly changes based                              reinforcement learning and demonstrations: A large-scale study,” in
+on neighboring parts. These planning-like behaviors—taking                           Proc. Robot.: Sci. Syst., 2021.
+                                                                                 [7] O. Zhang, M. Guaman Castro, P. Yin, A. Gupta, R. Scalise,
+actions whose utility is realized later and adapting one                             and B. Boots, “A balanced data diet: Addressing the bottleneck
+assembly to the state of another—emerge without an explicit                          in mega-scale RL for robot control,” 2026. [Online]. Available:
+planner, policy switching, or prescribed sequence.                                   https://sgs-rl.github.io/
+                                                                                 [8] D. Silver et al., “Mastering the game of Go with deep neural networks
+                                                                                     and tree search,” Nature, vol. 529, pp. 484–489, 2016.
+                          VI. L IMITATIONS                                       [9] ——, “Mastering the game of Go without human knowledge,” Nature,
+   First, all results are in simulation. Hardware-matched                            vol. 550, pp. 354–359, 2017.
+                                                                                [10] P. Yin et al., “Emergent dexterity via diverse resets and large-scale
+velocity and torque limits constrain the learned motions, but                        reinforcement learning,” in Proc. Int. Conf. Learn. Representations,
+do not establish robustness to perception error, latency, or                         2026. [Online]. Available: https://arxiv.org/abs/2603.15789
+contact-model mismatch. Transfer and repeatability will be                      [11] M. Mittal et al., “Isaac Lab: A GPU-accelerated simulation framework
+                                                                                     for multi-modal robot learning,” 2025, arXiv:2511.04831.
+evaluated on the physical board using sensor-derived obser-                     [12] K. Zakka, Q. Liao, B. Yi, L. L. Lay, K. Sreenath, and P. Abbeel,
+vations and randomized contact and latency models. Second,                           “mjlab: A lightweight framework for GPU-accelerated robot learning,”
+while applying the 10-pair policy to successive groups of                            2026, arXiv:2601.22074.
+                                                                                [13] M. Andrychowicz et al., “Learning dexterous in-hand manipulation,”
+parts could offer a route to completing the full board,                              Int. J. Robot. Res., vol. 39, no. 1, pp. 3–20, 2020.
+extending our multi-pair framework to 20 parts remains an                       [14] H. Qi et al., “General in-hand object rotation with vision and touch,”
+exciting research goal. Achieving this at scale, under a single                      in Proc. Conf. Robot Learn., 2023, pp. 2549–2564.
+                                                                                [15] R. Singh, A. Allshire, A. Handa, N. Ratliff, and K. Van Wyk,
+terminal task reward, will likely benefit from more efficient                        “DextrAH-RGB: Visuomotor policies to grasp anything with dexterous
+simulation and learning methods.                                                     hands,” 2024, arXiv:2412.01791.
+                                                                                [16] A. Handa et al., “Dextreme: Transfer of agile in-hand manipulation
+                         VII. C ONCLUSION                                            from simulation to reality,” in Proc. IEEE Int. Conf. Robot. Automat.
+                                                                                     (ICRA), 2023, pp. 5977–5984.
+   AlphaNIST shows that heterogeneous contact-rich assem-                       [17] NVIDIA, “GPU simulation,” PhysX SDK 5.4.1 documentation,
+bly can be learned with a single policy using a binary                               accessed: Sep. 14, 2026. [Online]. Available: https://nvidia-omniverse.
+                                                                                     github.io/PhysX/physx/5.4.1/docs/GPURigidBodies.html
+task objective, diverse reset coverage, and large-scale re-                     [18] The Newton Contributors, “Newton: GPU-accelerated physics
+inforcement learning. In simulation, one policy learns all                           simulation for robotics and simulation research,” 2025. [Online].
+20 ATB1 tasks without demonstrations, prescribed stages,                             Available: https://github.com/newton-physics/newton
+                                                                                [19] T. Yu, S. Kumar, A. Gupta, S. Levine, K. Hausman, and C. Finn,
+or per-task tuning, while outperforming separately trained                           “Gradient surgery for multi-task learning,” in Proc. Adv. Neural Inf.
+specialists on the most difficult small-part assemblies. Across                      Process. Syst., 2020, pp. 5824–5836.
+all tested scales, the binary task objective outperforms the                    [20] B. Tang et al., “AutoMate: Specialist and generalist assembly policies
+                                                                                     over diverse geometries,” in Proc. Robot.: Sci. Syst., 2024.
+evaluated dense reward shaping. The learned policy discovers                    [21] M. Hessel, H. Soyer, L. Espeholt, W. Czarnecki, S. Schmitt, and
+grasp adaptation, extrinsic reorientation, tapping, threading,                       H. van Hasselt, “Multi-task deep reinforcement learning with PopArt,”
+and longer-horizon coordination without direct supervision.                          in Proc. AAAI Conf. Artif. Intell., vol. 33, no. 1, 2019, pp. 3796–3803.
+                                                                                [22] V. Kurin, A. De Palma, I. Kostrikov, S. Whiteson, and P. K.
+In multi-pair assembly, it can prepare one part, complete                            Mudigonda, “In defense of the unitary scalarization for deep multi-task
+another, and return to finish the first, without an intermediate                     learning,” in Proc. Adv. Neural Inf. Process. Syst., 2022, pp. 12 169–
+assembly reward or a planner prescribing the sequence.                               12 183.
+                                                                                [23] G. Schoettler et al., “Deep reinforcement learning for industrial inser-
+   More broadly, these findings challenge the assumption that                        tion tasks with visual inputs and natural rewards,” in Proc. IEEE/RSJ
+task complexity and diversity must be reduced to make robot                          Int. Conf. Intell. Robots Syst., 2020, pp. 5548–5555.
+learning tractable. Instead, they show that diverse experience                  [24] C. Florensa, D. Held, M. Wulfmeier, M. Zhang, and P. Abbeel,
+                                                                                     “Reverse curriculum generation for reinforcement learning,” in Proc.
+under a shared objective can itself become a source of                               Conf. Robot Learn., 2017, pp. 482–495.
+reusable dexterity and coordination. We view this work as                       [25] B. Tang et al., “Refinery: Active fine-tuning and deployment-time
+a critical step toward general-purpose assembly policies that                        optimization for contact-rich policies,” 2025, arXiv:2510.11019.
+                                                                                [26] J. Sun et al., “ARCH: Hierarchical hybrid learning for long-horizon
+discover how to solve complex physical tasks, rather than                            contact-rich robotic assembly,” in Proc. Conf. Robot Learn., 2025.
+requiring those strategies to be specified in advance.                               [Online]. Available: https://arxiv.org/abs/2409.16451
+                                                                                [27] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image
+                             R EFERENCES                                             recognition,” in Proc. IEEE Conf. Comput. Vis. Pattern Recognit.,
+                                                                                     2016, pp. 770–778.
+ [1] K. Kimble et al., “Benchmarking protocols for evaluating small parts       [28] H. Lee et al., “SimBa: Simplicity bias for scal-
+     robotic assembly systems,” IEEE Robot. Automat. Lett., vol. 5, no. 2,           ing up parameters in deep reinforcement learning,” in
+     pp. 883–889, 2020.                                                              Proc. Int. Conf. Learn. Representations, 2025. [Online].
+ [2] Y. Narang et al., “Factory: Fast contact for robotic assembly,” in Proc.        Available:        https://proceedings.iclr.cc/paper_files/paper/2025/hash/
+     Robot.: Sci. Syst., 2022.                                                       741aab8b41a2987867acc9939ad50383-Abstract-Conference.html
+ [3] T. Lozano-Pérez and R. H. Wilson, “Assembly sequencing for arbitrary       [29] B. Tang et al., “IndustReal: Transferring contact-rich assembly tasks
+     motions,” in Proc. IEEE Int. Conf. Robot. Automat., 1993, pp. 527–              from simulation to reality,” in Proc. Robot.: Sci. Syst., 2023.
+     532.
+

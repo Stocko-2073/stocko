@@ -1,0 +1,589 @@
+A Balanced Data Diet: Addressing the Exploration Bottleneck in Mega-Scale RL for Robot Control
+SGS
+Highlights
+Summary
+Overview
+Method
+Results
+Clips
+BibTeX
+Paper ↗
+Code
+(coming soon)
+Menu
+SGS
+Success-
+Guided
+Sampling
+A Balanced Data Diet
+:
+Addressing the Exploration Bottleneck in
+Mega-Scale
+RL for Robot Control
+Octi Zhang
+1,2*
+Mateo Guaman Castro
+1*
+Patrick Yin
+1*
+Ignacio Dagnino
+1
+Abhishek Gupta
+1
+Rosario Scalise
+1†
+Byron Boots
+1†
+1
+University of Washington
+2
+NVIDIA
+*Equal contribution
+†Equal advising
+CoRL 2026
+Paper ↗
+Code
+(coming soon)
+Highlights
+All videos at 1×
+UR5e
+,
+Nut
+Hardware
+Highlights
+All videos at 1×
+UR5e
+Hardware
+01
+Nut
+02
+Nut
+03
+Gear mesh
+04
+Gear mesh
+05
+Rod
+UR5e
+Simulation
+06
+Rod
+07
+BNC connector
+08
+Waterproof connector
+Franka
+Simulation
+09
+Nut
+ANYmal C
+Simulation
+10
+Several terrains
+ANYmal D
+Simulation
+11
+Climbing box
+12
+Floating island
+13
+Stepping stones
+Summary
+Success-Guided Sampling (SGS)
+trains on the task configurations that are neither too easy nor too hard for the current policy
+. With it, reinforcement learning
+scales much more effectively, to over a million simulated robots at once
+, in legged locomotion and contact-rich manipulation.
+Overview
+Locomotion
+A
+single
+policy, trained from scratch, takes
+ANYmal C and D
+across every terrain, from stepping stones to floating islands.
+ANYmal C, several terrains
+ANYmal D, floating island
+ANYmal D, stepping stones
+ANYmal D, climbing box
+Manipulation
+UR5e and Franka
+learn per-task
+contact-rich assembly
+from the NIST task board, with zero demonstrations and the same reward function across all tasks.
+UR5e, rod
+UR5e, BNC connector
+UR5e, gear mesh
+Franka, nut
+Real world
+Trained only in simulation, the UR5e assembles parts on the real task board
+from RGB images, zero-shot
+.
+UR5e, nut
+UR5e, rod
+UR5e, gear mesh
+Scale
+SGS
+keeps improving
+as parallel environments grow to
+a million
+, where uniform sampling and other methods fall behind.
+Method
+01
+The change to PPO
+SGS is
+standard PPO with a small outer loop
+. It changes only which
+task configuration
+an environment resets to.
+PPO
+1
+initialize
+policy π
+2
+for each
+iteration:
+3
+for each
+environment, in parallel:
+4
+if
+its episode ended:
+5
+reset
+to a task configuration drawn uniformly
+6
+step
+π, store the transition
+7
+update
+π with PPO
+PPO with SGS
+1
+initialize
+policy π
+2
+fix
+N task configurations, each with an empty history buffer
+3
+for each
+iteration:
+4
+for each
+environment, in parallel:
+5
+if
+its episode ended:
+6
+record
+its success in that task configuration’s history buffer
+7
+reset
+to a task configuration drawn weighted by success rate (SGS)
+8
+step
+π, store the transition
+9
+update
+π with PPO
+added
+changed
+02
+Task configurations
+A task configuration
+is a triple
+(s
+0
+, g, e)
+: the robot’s initial state s
+0
+, its goal g, and the environment e, such as the terrain type or the layout of the scene. SGS samples a large,
+fixed
+set of task configurations before training.
+For assembly, the task configurations come in equal parts from
+three reset strategies
+.
+Franka, nut on bolt
+Simulation
+01
+Reaching
+The nut starts
+anywhere in the workspace
+, next to the gripper but not always in it, so the robot may have to fetch it first.
+02
+Stable Grasp
+03
+Near-Goal
+03
+Sampling during training
+We follow
+one fixed task configuration
+of each UR5e task through the course of training. SGS gives it
+small weight while the policy never solves it
+,
+large weight when it’s getting better but not perfect
+, and
+small weight again once the policy has mastered it
+.
+Nut on bolt
+Rod in hole
+Gear mesh
+BNC connector
+Waterproof connector
+Rectangular peg
+Iteration
+2,800
+0
+of
+64
+successes
+SGS weight above 0.9× peak
+0%
+50%
+100%
+Success rate
+0%
+0
+2,000
+4,000
+Training iteration
+0
+Peak
+0%
+50%
+100%
+Success rate
+SGS weight
+0.14
+× peak
+Nut on bolt
+: one task configuration,
+64
+trials per checkpoint, with the 95% Wilson interval and the SGS weight relative to its peak
+Iteration
+Successes
+95% interval
+SGS weight
+0
+0
+of
+64
+0%
+–
+6%
+0.14
+1,000
+0
+of
+64
+0%
+–
+6%
+0.14
+1,800
+0
+of
+64
+0%
+–
+6%
+0.14
+2,800
+0
+of
+64
+0%
+–
+6%
+0.14
+3,800
+9
+of
+64
+8%
+–
+25%
+0.83
+4,000
+27
+of
+64
+31%
+–
+54%
+0.99
+4,200
+51
+of
+64
+68%
+–
+88%
+0.90
+4,400
+52
+of
+64
+70%
+–
+89%
+0.88
+4,600
+57
+of
+64
+79%
+–
+95%
+0.79
+5,400
+59
+of
+64
+83%
+–
+97%
+0.73
+Results
+UR5e
+Manipulation
+Hardware, Simulation
+Nut
+Rod
+Gear mesh
+BNC connector
+Waterproof connector
+Franka
+Manipulation
+Simulation
+Nut
+ANYmal C
+Locomotion
+Simulation
+Across terrains
+ANYmal D
+Locomotion
+Simulation
+Climbing box
+Stepping stones
+01
+Scaling
+With SGS,
+success keeps rising
+as the number of parallel environments grows to a million.
+The baselines stall or collapse.
+SGS
+PLR
+Uniform
+Linear curriculum
+Locomotion
+ANYmal D, all terrains
+0
+0.5
+1
+4K
+32K
+256K
+1M
+Parallel environments
+SGS 0.73
+PLR 0.54
+Uniform, Linear 0.00
+Success rate
+Locomotion
+,
+success rate
+, mean of three seeds with 95% confidence interval
+Method
+4K
+32K
+256K
+1M
+SGS
+0.46
+±
+0.02
+0.49
+±
+0.11
+0.72
+±
+0.05
+0.73
+±
+0.01
+PLR
+0.00
+±
+0.00
+0.13
+±
+0.01
+0.55
+±
+0.14
+0.54
+±
+0.13
+Uniform
+0.00
+±
+0.00
+0.42
+±
+0.04
+0.00
+±
+0.00
+0.00
+±
+0.00
+Linear
+0.00
+±
+0.00
+0.32
+±
+0.03
+0.00
+±
+0.00
+0.00
+±
+0.00
+Manipulation
+Franka, nut-and-bolt assembly
+0
+0.5
+1
+4K
+32K
+256K
+1M
+Parallel environments
+SGS 0.70
+Uniform 0.06, PLR 0.05
+Success rate
+Manipulation
+,
+success rate
+, mean of three seeds with 95% confidence interval
+Method
+4K
+32K
+256K
+1M
+SGS
+0.00
+±
+0.01
+0.06
+±
+0.01
+0.10
+±
+0.14
+0.70
+±
+0.19
+PLR
+0.00
+±
+0.00
+0.00
+±
+0.00
+0.02
+±
+0.04
+0.05
+±
+0.11
+Uniform
+0.00
+±
+0.00
+0.00
+±
+0.00
+0.01
+±
+0.04
+0.06
+±
+0.13
+02
+Real world
+Trained only in simulation, the UR5e runs on the real task board
+from RGB images, zero-shot
+.
+Nut on bolt
+Rod in hole
+03
+Continuous runs
+Nut on bolt, Franka, simulation
+All terrains, ANYmal C, simulation
+Gear mesh, UR5e, real world
+Clips
+UR5e
+Real world
+Nut on bolt
+Rod in hole
+Gear mesh
+UR5e
+Simulation
+Nut on bolt
+Rod in hole
+Gear mesh
+BNC connector
+Waterproof connector
+Rectangular peg
+ANYmal C
+Simulation
+All terrains
+Climbing box
+Stepping stones
+Gap
+Balancing beam
+Contour
+Floating island
+Inverted slope
+Jump box
+Parallel boxes
+Pit
+Radiating beam
+Stairs
+ANYmal D
+Simulation
+Climbing box
+Stepping stones
+Gap
+Balancing beam
+Contour
+Floating island
+Inverted slope
+Jump box
+Maze
+Parallel boxes
+Pit
+Radiating beam
+Stairs
+Franka
+Simulation
+Nut on bolt
+BibTeX
+@inproceedings{zhang2026balanced,
+  title     = {A Balanced Data Diet: Addressing the Exploration Bottleneck in Mega-Scale RL for Robot Control},
+  author    = {Zhang, Octi and Guaman Castro, Mateo and Yin, Patrick and
+               Dagnino, Ignacio and Gupta, Abhishek and Scalise, Rosario and
+               Boots, Byron},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year      = {2026}
+}
+Copy
+SGS
+Success-
+Guided
+Sampling
+If you want to adapt this website or use its videos, see the
+Terms of Use
+.

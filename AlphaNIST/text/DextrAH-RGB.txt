@@ -1,0 +1,601 @@
+                                                        DextrAH-RGB: Visuomotor Policies to
+                                                        Grasp Anything with Dexterous Hands
+                                                           Ritvik Singh∗ , Arthur Allshire† , Ankur Handa∗ , Nathan Ratliff∗ , Karl Van Wyk∗
+                                                                                              ∗ NVIDIA Corporation
+                                                                                       † University of California, Berkeley
+
+
+
+
+arXiv:2412.01791v2 [cs.RO] 1 Feb 2025
+
+                                                                                                       Time
+                                        Fig. 1: DextrAH-RGB (Dexterous Arm-Hand RGB) is an end-to-end RGB-based policy that can dexterously grasp a wide variety of objects.
+
+
+
+                                           Abstract—One of the most important, yet challenging, skills      generalizes to novel objects with unseen geometry, texture, and
+                                        for a dexterous robot is grasping a diverse range of objects.       lighting conditions in the real world. Videos of our system
+                                        Much of the prior work has been limited by speed, generality,       grasping a diverse range of unseen objects are available at
+                                        or reliance on depth maps and object poses. In this paper, we       https://dextrah-rgb.github.io/.
+                                        introduce DextrAH-RGB, a system that can perform dexterous
+                                        arm-hand grasping end-to-end from RGB image input. We train                               I. I NTRODUCTION
+                                        a privileged fabric-guided policy (FGP) in simulation through
+                                        reinforcement learning that acts on a geometric fabric controller     Controlling multi-fingered robotic hands to naturally and
+                                        to dexterously grasp a wide variety of objects. We then distill     quickly grasp objects has remained a longstanding challenge in
+                                        this privileged FGP into a RGB-based FGP strictly in simulation
+                                        using photorealistic tiled rendering. To our knowledge, this        robotics. Ideally, techniques must leverage visual, tactile, and
+                                        is the first work that is able to demonstrate robust sim2real       proprioceptive sensory streams to generalize to novel objects
+                                        transfer of an end2end RGB-based policy for complex, dynamic,       and quickly react in dynamic, anthropocentric environments.
+                                        contact-rich tasks such as dexterous grasping. DextrAH-RGB is       With such capabilities, multi-fingered robots would become a
+                                        competitive with depth-based dexterous grasping policies, and       pertinent technology to society with many relevant applica-
+tions.                                                              rendering. UniDexGrasp learns dexterous grasping policies
+   Recently, significant progress has been made in leverag-         from full pointclouds [31] and UniDexGrasp++ improved upon
+ing reinforcement learning in simulation for manipulation           this method by introducing a geometry-aware curriculum [26].
+and locomotion. Vectorized physics and sensor simulation            Both of these works only demonstrate results in simulation.
+have allowed practitioners to easily scale robot experience in      DexRepNet [12] learns a representation that combines spatial
+dynamic environments, enabling reactive behavior informed           geometric features of the hand and object and demonstrate suc-
+by both proprioceptive and vision-based inputs. Moreover,           cessful sim2real results; however, they require access to CAD
+techniques like domain randomization facilitate learning robust     models of their objects in order to register pointclouds for
+and adaptive policies that successfully transfer from simulation    pose estimation, thereby limiting the generalizability of their
+to the real world.                                                  method. DexPoint is able to demonstrate successful sim2real
+   Despite these powerful tools, the efficacy of many current       transfer of their pointcloud policies. Their key observation
+strategies for learning manipulation skills remains limited.        is that when deploying in the real world, there are typically
+Existing systems almost always factorize the problem of creat-      many points on the finger that are missing due to occlusions.
+ing a grasping policy which avoids training direct end-to-end       They use the proprioceptive states of the robot to perform
+RGB-to-action visuomotor policies. One common approach is           forward kinematics on the hand and sample various points on
+to cast the problem as a kinematic one of finding a static          the mesh of the fingers to fill in the missing points and feed this
+grasp configuration and leveraging motion planning tools to         combined pointcloud into their policy [19]. Agarwal et al. [1]
+acquire the targeted grasp. These methods are not continuously      predict a pre-grasp pose by matching DINO-ViT features with
+reactive and struggle with disturbances, partial observability,     previous instances of objects. They then have a proprioceptive-
+and unseen objects. Other methods that do continuous vision-        only policy execute the motion to realize the grasp. The policy
+based grasping via simulation are almost always restricted          predicts weights for different eigengrasps that they calculate
+to depth cameras as most simulators are unable to render            by performing PCA on a set of grasp poses gathered from
+high-fidelity images efficiently at scale. Although methods         motion capture data. Singh et al. pretrain their policies on
+relying on depth readings are fairly successful, IR-based depth     human videos [22] by reconstructing objects in simulation
+cameras have issues with translucent and reflective objects and     and retargeting human hand motions to robot hand actions.
+direct sunlight. They are also a source of various geometric        After pre-training, they are able to demonstrate impressive
+distractors that are not easily simulated at scale.                 sim2real results by finetuning with PPO in simulation to train
+   To address these challenges, we present DextrAH-RGB, a           a policy conditioned on the depth image. The work that is
+dexterous arm-hand grasping policy that computes high-rate          most similar to ours is DextrAH-G [14]. This work also uses
+actions directly from RGB input. Our main contributions are:        a student-teacher distillation framework, but distill instead to a
+1) simulation-only training of an RGB-based FGP, 2) including       simpler depth processing policy. They first train a state-based
+significant scaling of the perceptual architecture to handle        teacher policy to pick up objects from the Visual Dexterity [3]
+the substantially more challenging (stereo) RGB processing,         dataset. In order to allow for more functional grasps, they
+and 3) successful deployment of our RGB policy in the real          transform the action space for the hand into a PCA subspace
+world to achieve safe, reliable, and reactive grasping behaviors.   of the robot hand finger joint motions derived from retargeting
+To our knowledge, this is the first work to demonstrate             human grasping data. This action space is also embedded into
+successful sim2real transfer of RGB policies for a robot            a geometric fabric [20] to ensure safe and reactive controllers.
+hand-arm system for such complex, contact-rich tasks. Our           The teacher is then distilled into the depth-based student and
+method allows for training of both monocular and stereo RGB         exhibits remarkable sim2real transfer, being able to grasp
+policies and can straightforwardly be extended to an arbitrary      objects unseen in the training set.
+number of cameras in the scene.
+                                                                                         III. D EXTR AH-RGB
+                     II. R ELATED W ORK                                In this section, we detail the training of our RGB-based
+   Dexterous grasping has been studied extensively with a           policy. To ensure safety of the robot, we use geometric fabrics.
+rich history of prior work. Classical methods typically involve     This also has the benefit of exposing an action space that lends
+optimizing analytic grasp metrics [16, 5, 7]. These works           itself well to the task of dexterous grasping. In fact, we use
+are typically limited to synthesizing precision grasps. They        exactly the same geometric fabric controller as in [14]. With
+also rely on groundtruth object models and their performance        this vectorized controller, we first train a state-based, teacher
+suffers when accurate models are unavailable [13]. Data             fabric guided policy (FGP) in simulation using reinforcement
+driven methods to dexterous grasping involve leveraging grasp       learning. We then use an online version of DAgger to distill
+datasets to train grasp planning networks. Some examples            the teacher FGP into a student FGP. Crucially, the student does
+of these datasets include MultiDex [11], DexGraspNet [27],          not receive any object state information and, instead, receives
+Grasp’D-1M [25], and Get a Grip [13]. A lot of past work in-        either one or two RGB images from a set of cameras in a stereo
+volves grasp synthesis based on pointcloud/depth information.       configuration as input. This student FGP is trained purely from
+Not only do they capture the geometry of the objects, but are       simulated data and deployed to the real world. The teacher
+also more feasible to simulate compared to high-fidelity RGB        policy took 62 hours to train on a single 8-GPU H100 node
+and the student policy took 53 hours to train on a single 4-              then realized on a real robot via an appropriate torque law
+GPU L40S node. We use L40S GPUs for distillation as they                  (e.g. joint-level PD control) [30]. We create these behaviors
+contain the RTX cores necessary for high-fidelity rendering.              through a combination of geometric and forcing fabric terms.
+                                                                          Geometric terms are used for specifying the nominal behavior
+                                                                          of the controller, and crucially, create speed-independent paths.
+                                                                          This ensures that no matter how fast or slow the robot moves,
+                                                                          it still follows the same path. On the other hand, forcing
+                                                                          terms serve to perturb the robot from its nominal behavior to
+                                                                          complete a specific task. For example, we may want the robot
+                                                                          to reach a target, or in a more advanced setting, have an FGP
+                                                                          complete a grasping task. Where possible, we aim to push
+                                                                          the desired behavior into the underlying geometry because
+                                                                          multiple forcing terms can fight with each other resulting in
+                                                                          a collapse of the desired behavior. For the purposes of this
+Fig. 2: The first stage of our pipeline involves training a state-based   work, we use the same geometric fabric and action space as
+teacher policy in simulation using PPO. We adopt an asymmetric            in DextrAH-G, and briefly outline the geometric fabric (refer
+actor critic framework whereby the teacher policy receives noisy          to [14] for in-depth details).
+state observations whereas the critic receives privileged (and perfect)      The geometric fabric possesses a few different behaviors.
+state observations. This is done to ensure that the policy is not
+overly reliant on behaviors that require accurate state estimates as      First, collision avoidance behavior is embedded into both the
+this can make it harder to distill into a vision-based policy. The        underlying geometric and forcing fabric terms to prevent self
+teacher policy uses an LSTM layer to enable reasoning over historical     and environmental collision. Most of the collision avoidance
+context, enabling adaptation to current dynamics. We add dense skip       is enforced by the geometric term and only when two objects
+connections similar to [14] to improve stability and performance of       are close to collision does the forcing term activate to push
+the policy.
+                                                                          them apart. Due to the kinematic redundancy of the robot, we
+                                                                          add a geometric attraction term that nominally brings the robot
+                                                                          to an elbow-out, fingers-curled configuration. This term guides
+                                                                          the overall posture of the arm without preventing goal-reaching
+                                                                          behavior in the palm and PCA action spaces. The action space
+                                                                          for the RL policy is the 6-dof pose of the palm and a reduced,
+                                                                          5-dimensional PCA action space for the hand. In these spaces,
+                                                                          we add two forcing terms, one for the palm pose, and another
+                                                                          for the PCA finger space which allow goal reaching in these
+                                                                          spaces. Consequently, FGPs emit parametric forces on the
+                                                                          geometric fabric by issuing targets in these spaces. Finally, we
+                                                                          add forcing terms to ensure that the robot remains within its
+                                                                          joint position limits as this is a hardware safety critical aspect.
+                                                                          These fabric terms, and their associated priority metrics, allow
+                                                                          us to solve for the net fabric acceleration which is further
+Fig. 3: The second stage of our pipeline involves distilling the pre-     modulated to meet acceleration and jerk limits of the robot.
+viously trained state-based teacher policy into a vision-based student    The desired acceleration is forward integrated at 60 Hz using
+policy. We use an online implementation of DAgger [21] where at           an approximate second-order Runge-Kutta scheme and the
+each step, the observations for the teacher and student are queried       time-integrated position and velocity states are passed as
+and fed into the respective networks. The student is supervised to
+                                                                          targets to the underlying joint PD controller.
+minimize the KL-divergence between its action distribution and that
+of the teacher. Furthermore, we add an auxiliary loss for predicting
+                                                                          B. State-based Teacher FGP Training
+the 3D object position. The student architecture consists of a encoder
+which takes as input images from the left and right camera and               We train DextrAH-RGB in simulation at scale across many
+outputs a stereo embedding which is then concatenated with the            different objects using NVIDIA Isaac Lab. Due to the sample
+standard robot proprioceptive observations and passed into an LSTM
+                                                                          inefficiency of RL, we do not directly train an RGB-based
+followed by an MLP. Similar to the teacher, dense connections are
+used to improve the performance of the policy.                            policy from scratch using PPO. Instead, we first train a
+                                                                          teacher FGP which receives privileged state information. We
+                                                                          then distill the teacher policy into an RGB-based student
+A. Geometric Fabrics and Fabric-Guided Policies (FGPs)                    policy. The teacher FGP is trained via PPO with the same
+   Geometric fabrics are second-order dynamical systems that              hyperparameters as in [14] with the policy network consisting
+generalize classical mechanics and can be used to design                  of a single 512 unit LSTM layer followed by two MLP layers
+safe, reactive, and stable controllers. Desired behaviors of a            of 512 units. The critic consists of a 2048 unit LSTM with
+robot can be specified by the geometric fabric controller and             an MLP with [1024, 512] units. We also add skip connections
+around the LSTM before passing through the final layers. This
+architecture is similar to the connections in DenseNet [10]
+and previous work [24] has shown that dense architectures
+are better for policy learning. The inputs to these networks
+consist of the measured robot joint position and velocity, the
+measured position and velocity of fingertip and palm points,        Fig. 4: For all physics parameters pi , the initial values for pi_lo and
+                                                                    pi_hi are initialized to piinit . As the policy starts performing better,
+the object pose, the object position goal, a one-hot encoding       pi_lo is decremented by ∆n and pi_hi is incremented by ∆n . The
+of objects, the last FGP action, and the position, velocity, and    parameter value ranges are constantly increased until they reach the
+                                                                                                       i_hi
+acceleration of the fabric. We use an asymmetric actor-critic       terminal values pi_lo
+                                                                                       terminal and pterminal .
+formulation where the full privileged observations are passed
+into the critic whereas the teacher receives a noisy subset of
+the critic observations. This is to ensure that the teacher does    targets allow a faster dynamic response of the robot which is
+not learn behaviors that rely on accurate state estimation as       beneficial to RL exploration. Ultimately zeroing the velocity
+this can impact how well the teacher can be distilled into the      targets allow us to train an FGP conditioned on these dy-
+student. Finally, the critic also receives measured robot joint     namics, which is in line with the FGPs in [14]. Next, ADR
+torque and measured forces at the fingertip and palm points.        scales all velocity and acceleration inputs to the FGP from 1
+Figure 2 illustrates our teacher training pipeline.                 to 0. This forces the FGP to leverage its recurrency to reason
+    We use a simplified reward function compared to [14].           over position-only dynamics to avoid relying on higher-order
+We have four reward terms: a reward for driving the hand            signals that are state estimated. Instead, FGPs will only rely on
+close to the object, a reward for moving the object to a            direct observables, avoiding various nuances and errors in state
+position goal in freespace, a reward for lifting the object         estimation. Third, to further promote effective RL exploration
+off the table, and a regularization penalty to stretch the          through faster motion, we time-integrate the fabric differential
+fingers open. The first reward term is defined in terms of          equation two timesteps for every simulation step while ADR
+dhand obj , which represents the maximum distance between           increases fabric damping from 10 to 20. The former increases
+any point on the Allegro hand (four positions of the fingertip      the speed of motion, while the latter dials the speed back in a
+and one position of the palm) and the object: dhand obj =           more continuous fashion that is deployable in the real world.
+maxi∈{palm pos,fingertips} ∥xi − xobj ∥. We then have the reward    Finally, we modify the control logic for the disturbance wrench
+term as rhand obj = exp(−10 dhand obj ). The goal reward            applied to the object for grasping. In [14], the wrench activates
+is defined as robj goal = exp(−βobj goal ∥xobj − xgoal ∥).          when the object has been lifted. In this work, the wrench
+The lifting reward is defined as rlif t = exp(−βlif t (xobjz   −    activates when the hand is 0.3 m away from the object center.
+xgoal
+  z    )2 ), where z is the vertical direction. Lastly, the reg-    This ensures that the object can start moving before the hand
+ularization reward term prevents the fingers from curling too       secures a grasp, which promotes even more reactive policies.
+much: rcurl = −βcurl ∥qhand −qcurl ∥2 , where qcurl represents      These settings are carried over for training the subsequent
+a configuration. All β coefficients are positive scalars. The fi-   student FGP as well.
+nal reward is defined as a weighted sum of these reward terms:
+r = whand obj rhand obj + wobj goal robj goal + wlif t rlif t +     C. RGB Student FGP Training
+wcurl rcurl .                                                          To train the RGB-based policy, we leverage student-teacher
+    Similar to [18, 8], we leverage Automatic Domain Random-        distillation and use an online version of DAgger [21], similar
+ization (ADR) when training our teacher policy. It induces          to DextrAH-G [14]. Our training pipeline for this stage is
+a learning curriculum that progressively increases the task         depicted in Figure 3. The student receives proprioceptive data
+and environmental condition difficulty as the agent’s skill im-     in the form of robot joint states and velocities, as well as
+proves. In this work, we formulate ADR by setting the initial       two RGB images corresponding to the left and right camera.
+and terminal values or ranges of various parameters. When           We opted to use this stereo camera setup to allow the student
+policy performance is sufficiently high, the values or ranges       to implicitly infer depth from the images. We use the Isaac
+of the various parameters are linearly incremented towards the      Lab [17] simulation framework which offers ray-traced tiled
+terminal settings. The granularity of the increments is specified   rendering functionality to allow for fast and realistic rendering
+in advance. Unlike [8], all parameters under ADR control are        in each environment.
+shifted in tandem toward their maximal settings. The terminal          To create realistic scenes, we follow a similar method as
+values for the various parameters are reasonably set, and we        Synthetica [23]. We randomize dome-light HDRI backgrounds
+desire policies to reach these maximal values. See Table IV         with a probability of 30%. At the beginning of every episode,
+for more details about the parameters ADR controls and their        the material properties such as albedo tint, roughness, metal-
+initial and terminal ranges. Figure 4 illustrates how the ranges    lic constant, and specularity of the robot, table, and object
+are adjusted towards the terminal ranges.                           are randomized. Furthermore, the texture of the table and
+    Finally, we adopt four important teacher FGP training           objects are also randomized. The objects we used initially
+settings that depart from [14]. First, ADR scales the velocity      came textureless, so we bind textures from random, everyday
+targets for the PD controller from 1 to 0. Non-zero velocity        objects found in the Omniverse Asset Library. Although the
+textures may not semantically match the geometry because                  [embed] token. This cross-attention between tokens in one
+the UV mapping is completely off, the objects will still look             image and the tokens in the other is meant to allow for some
+somewhat realistic. Figure 5 shows a comparison between                   form of implicit stereo matching in order to determine the
+the original, textureless meshes, and the subsequently textured           depth of objects in the scene. The cross-attention mask we use
+meshes. Along with these randomizations, we also add data                 is depicted in Figure 7b. This design decision was inspired
+augmentations such as random background, color jitter, and                by DUSt3R [28] which performed cross-attention between
+motion blur. Tables V and VI contains more details about                  tokens of different image features in order to perform multi-
+the randomization ranges and probabilities. We set the ADR                view stereo reconstruction. We then pass the output for the
+increment to the maximum when training the student. Figure 6              learnable [embed] token into an MLP layer to arrive at a
+shows various examples of images rendered from the left                   64-dimensional stereo embedding of the two images. This is
+camera. The top row shows the camera renderings from the                  similar to how ViT [6] uses a learnable [CLS] token and
+simulation with various randomizations applied to the lighting            feeds its corresponding output into an MLP to ensure that
+and materials. The bottom row shows how the images look                   the output isn’t biased to any particular input token from
+after going through the aforementioned data augmentations.                the image. The embedding vector is concatenated with the
+                                                                          proprioceptive input and fed into an LSTM with 512 units. The
+                                                                          output of the LSTM is concatenated with the input to it and fed
+                                                                          into an MLP. The MLP has three layers with [512, 512, 256]
+                                                                          units. The output from the LSTM and input from this MLP
+                                                                          are concatenated and fed into an auxiliary head that predicts
+                                                                          the object position which is just a single MLP with [512, 256]
+                                                                          units. All activations are elu. The inputs to the student FGP
+                                                                          are the same as the teacher FGP except that the object pose
+                                                                          and one-hot encoding are replaced with the stereo-RGB pair.
+  (a) Example meshes from the Visual Dexterity dataset with no texture.   During training, we make sure to finetune the ResNet encoder
+                                                                          as this produces the most performant policies. Due to memory
+                                                                          constraints, we cast all of the ResNet weights to bf16.
+                                                                             The student outputs the same actions as the teacher.
+                                                                          It is jointly supervised on the imitation loss and auxil-
+                                                                          iary loss with L = Laction + Laux , where Laction =
+                                                                          DKL (πstudent ∥πteacher ), and Laux = ∥x̂obj − xobj ∥. xobj
+                                                                          refers to the groundtruth object position and x̂obj is the
+                                                                          network’s prediction of the object position. For the imitation
+                                                                          loss, we chose to use a KL loss instead of an l2 loss on
+                                                                          the mean and variance because we noticed across all 4 seeds
+   (b) Random texture maps of everyday objects binded to the meshes.      that were tested, policies trained on the KL loss always out-
+Fig. 5: (a) shows an example subset of object meshes with no texture.     performed their l2 counterparts. Since the variance for both
+(b) Shows those meshes with random textures binded to them.               the teacher and student policies are fixed, the error in the
+                                                                          variance is driven to zero. Thus, the KL loss effectively re-
+   The architecture of the student is shown in Figure 3. We               duces to (µstudent − µteacher )⊤ Σ−1   teacher (µstudent − µteacher ).
+chose a stereo-based setup because we found that stereo                   Since we use diagonal Gaussians, this further reduces to
+policies performed better than monocular ones in simulation               Σi σ12 (µistudent − µiteacher )2 . This prioritizes driving the error
+                                                                               i
+(detailed ablations can be found in Section IV-A). The policy             to zero along dimensions with lower variance which is more
+takes in two images that are of shape 320×240. The left and               expressive than the standard l2 loss which weighs the error in
+right images are fed into a stereo encoder, which is shown                all dimensions equally.
+in Figure 7a. The images are encoded in a Siamese manner                     During teacher training, the maximum episode length is
+through a pre-trained ResNet-18 encoder [9]. This encoder has             10 seconds. This is to give the teacher sufficient time for
+the last two layers removed. For each image, the output of the            exploration to lift the object and to ensure that once the
+ResNet encoder is a 40960-dimensional feature vector. Using               object is lifted, it remains firmly grasped. However, if we
+an MLP, each of these feature vectors is projected down to                train the student with the same maximum episode length,
+a 16384-dimensional vector. This is then reshaped to produce              then most of the episode will involve the object already
+128 128-dimensional tokens per image. The tokens for the left             being lifted up in the air. The main divergence between
+and right images are then passed into a transformer that also             the student and teacher is likely in the beginning of the
+takes as input a learnable [embed] token. The transformer                 episode when the teacher is trying to grasp the object, and
+consists of two layers, for which the [embed] token attends               so with a longer episode, this portion of the trajectory will be
+to all the other tokens, whereas tokens from one image are                proportionately de-emphasized. However, it is still imperative
+only allowed to attend to tokens of the other image or the                to have a sufficiently long episode so that the student policy
+Fig. 6: The top row shows the left camera renderings for different environments in simulation. The bottom row shows various data
+augmentations applied to these sim renderings that are passed to the student policy.
+
+
+can learn important recovery behaviors if it is unable to grasp     benefit of RGB-based policies which is that they can leverage
+the object on the first try. Thus, when distilling the student,     previously learned representations from pre-training on large-
+we timeout the episode early if the object is held in the air for   scale datasets.
+2 seconds. Finally, the student FGP is trained on the terminal
+ADR settings which are always achieved by the associated              Model Type                        Performance ↑   Pos Error (cm) ↓
+                                                                      Finetune ResNet Mono w/o Attn          0.83             3.5
+teacher FGP chosen for distillation.                                  Finetune ResNet Mono w/ Attn           0.83             3.3
+                                                                      Frozen ResNet Stereo w/ Attn           0.71             4.3
+                      IV. E XPERIMENTS                                Scratch ResNet Stereo w/ Attn          0.83             3.2
+                                                                      Finetune ResNet Stereo w/o Attn        0.86             2.5
+A. Architecture Ablations                                             Finetune ResNet Stereo w/ Attn         0.89             2.5
+
+   In this section, we conduct ablation studies to justify our      TABLE I: Comparison of different model configurations in simula-
+design decisions. Specifically, we compare the performance of       tion. Performance is normalized relative to the teacher’s performance
+                                                                    and averaged across multiple seeds. Positional error, reported in
+a monocular policy versus a stereo policy, with results summa-
+                                                                    centimeters, is also averaged across multiple seeds.
+rized in Table I. Performance is measured as the success rate
+of the student policy relative to the teacher policy, averaged
+across three seeds. Additionally, we evaluate the impact of
+the auxiliary loss in the object position prediction and the        B. Real World Experiments
+effectiveness of incorporating a transformer into the encoder.         We deploy our policies on a 7 DoF Kuka LBR iiwa arm with
+All the different model types are distilled from the same three     a 16 DoF Allegro Hand v4 mounted on top. Additionally, we
+teacher policies. The results show a clear performance boost        have two Intel Realsense D415 cameras mounted rigidly to the
+when using a stereo configuration compared to a monocular           table. The setup of our robot system is shown in Figure 8a.
+one. This is expected, as stereo vision provides additional in-     The low-level PD control node runs at 1 kHz for the Kuka
+formation for depth perception and computing the object’s 3D        and at 333 Hz for the Allegro. The camera nodes stream RGB
+position. This advantage is further reflected in the positional     images at 60 Hz, and both the geometric fabric control node
+error, which decreases by nearly 1 cm in the stereo setup.          and FGP node run at 60 Hz. Considering that our FGPs are
+We also evaluate the importance of the transformer. In the          significantly larger with ResNet encoders, we are able to meet
+stereo case, the transformer corresponds to the architecture        the 60 Hz control rate by lowering the kernel launch overhead
+in Figure 7a, whereas in the monocular case it is a full            with CUDA graphs of the FGP. Finally, a state machine node
+self-attention based transformer encoder. The architectures         runs at 60 Hz and orchestrates manual fabric actions and FGP
+without the transformer have the embedding from the ResNet          actions as in [14]. The PD controllers for both the arm and
+backbone concatenated directly with policy observations and         hand, fabric controller, and state machine run on an NVIDIA
+fed into the LSTM. Adding the transformer module to the             Jetson AGX Orion Developer Kit local to the robot. Camera
+stereo model enhances performance, highlighting its role in         nodes and FGP node run on a full desktop PC with an NVIDIA
+improving policy performance. Lastly, using a frozen ResNet-        3090 RTX card. All nodes communicate with each other via
+18 encoder or one trained from scratch did not perform              ROS 2. Figure 8b shows our pipeline for deploying the trained
+as well as the finetuned encoder. This highlights another           policies in the real world.
+ Object                      Pitcher     Pringles   Coffee    Container     Cup    Cheezit   Cleaner    Brick   Spam      Pot    Airplane
+ DextrAH-RGB (Stereo)         80%         100%       80%        100%       80%       40%       40%     100%     100%     100%      60%
+ DextrAH-RGB (Mono)           40%         100%       80%        100%       60%       80%       20%     100%      80%     100%      60%
+ DextrAH-G                    80%         100%      100%        100%       80%      100%      100%     100%     100%     100%      60%
+ DexDiffuser [29]               -          60%         -           -       60%       80%      100%       -         -       -       20%
+ ISAGrasp [4]                   -          60%         -         40%         -       80%         -       -         -      80%        -
+ Matak [15]                   67%         100%       67%          -         0%        0%      100%     100%       0%       -         -
+
+                                       TABLE II: Success rates of our method compared with prior work.
+
+
+                                                                              Single Object Grasping Assessment: One of the most
+                                                                           popular assessments of dexterous grasping ability involves
+                                                                           quantifying the single-object grasp success rate. To estimate
+                                                                           the success rate, we evaluate our policies on 11 objects from
+                                                                           common datasets such as [2] which have been used by other
+                                                                           grasping research. Each object is placed in five different poses
+                                                                           on the table and for each trial, we deploy our RGB grasping
+                                                                           policy. The fraction of poses that lead to a successful grasp
+                                                                           and lift of the object is recorded as the success rate. We run
+                                                                           our policy continually until either the grasp succeeds, or we
+                                                                           experience a failure from which the robot cannot recover. One
+                                                                           of the benefits of being able to run the policy continuously
+                                                                           is that its recurrent architecture allows it to progressively
+                                                                           adapt to the environment. Table II shows how our method
+                                                                           compares with prior works. DextrAH-RGB (stereo) typically
+                           (a) Stereo Encoder                              outperforms DextrAH-RGB (mono) for all but one object,
+                                                                           indicating some level of benefit for stereo perception. Overall,
+                                                                           DextrAH-RGB is able to achieve state-of-the-art performance
+                                                                           for most objects. DextrAH-G does outperform in some cases,
+                                                                           but that FGP uses depth images instead of RGB (which is
+                                                                           a more challenging setting). Furthermore, the depth images
+                                                                           for DextrAH-G were specially truncated to avoid background
+                                                                           distractors and incoming sunlight was blocked to avoid eroding
+                                                                           the quality of depth images. DextrAH-RGB does not have this
+                                                                           limitation and is thus a more generalizable solution as it can
+                                                                           work in many lighting conditions and background settings as
+                                                                           shown next and in the accompanying video.
+                                                                              Bin Packing Assessment: We follow the bin packing
+                                                                           assessment protocol and metrics in [14] to more holistically
+                                                                           evaluate the grasping performance. In this assessment, the
+                       (b) Cross-Attention Mask                            robot is tasked with continuously grasping 36 different objects
+                                                                           one-at-a-time and depositing them into a bin. For this task,
+Fig. 7: (a) Our stereo encoder first starts with a pre-trained ResNet-18
+encoder where the last two layers are removed. Each image is passed
+                                                                           we employ a state machine which decides when to pass
+into the encoder and outputs a 40960-dimensional vector, which is          FGP actions to the robot. Specifically, it queries the FGP’s
+projected down to a 16384-dimensional layer. These are then split into     prediction of the object position and if the object is located in
+128 tokens of 128 dimensions each. The tokens from the left and right      the air, thereby indicating a successful grasp, the state machine
+images are passed into a transformer that also receives a learnable        will issue fixed actions to the fabric controller to move the arm
+[embed] token. This transformer (2 layers) performs cross-attention
+between the two images. The output for the [embed] token is passed
+                                                                           to the bin and deposit the object. Afterwards, another fixed
+into an MLP layer, yielding the final stereo embedding vector. (b)         action is issued to the fabric controller to return the robot to
+The turquoise sections show the cross-attention between tokens. The        the forward position after which the FGP is re-engaged. The
+[embed] token attends to all other tokens in the sequence. The             metrics that are tracked are the consecutive successes (CS) -
+tokens from the left image attend to the [embed] token and the             the number of consecutively successful object transports, cycle
+tokens from the right image. Likewise, the tokens from the right
+image attend to the [embed] token and the tokens from the left
+                                                                           time (CT)- the amount of time required for the robot to pick
+image.                                                                     up the object, deposit it in the bin, and then return back to
+                                                                           the ready position, and success rate (SR) - the percentage of
+                                                                           objects that were successfully transported to the bin. We eval-
+                (a) Real robot setup                                                  (b) State machine for bin packing
+Fig. 8: (a) Our real-world robot setup: an Allegro Hand mounted onto a Kuka iiwa robot arm and two Intel RealSense D415 cameras in a
+stereo configuration (55 mm baseline). (b) The stereo image pair from the real world, along with robot proprioceptive states, are fed into the
+trained student policy. The student’ actions and object-position prediction are passed into the state machine for bin packing. By default, the
+state machine passes the student actions into the underlying geometric fabric. However, if the object position prediction is sufficiently high
+(indicating a successful grasp), it transitions from using policy actions to a fixed behavior that moves the object above the bin and deposits
+it. Afterwards, the state machine returns the robot to its original state and resumes the student policy for the next grasp attempt.
+
+
+uate DextrAH-RGB (stereo) and DextrAH-RGB (mono) for                                                 V. D ISCUSSION
+this protocol in both controlled indoor lighting conditions and
+high-dynamic range conditions (HDR). HDR conditions were                       We have empirically shown that generalizing RGB-based
+imposed by completely opening window shades and removing                    dexterous grasping policies can be successfully trained in
+light-blocking boards around the robot. Consequently, natural               simulation and deployed in the real world. We believe this
+sunlight directly streamed into the camera stereo pair creating             creates a new frontier in end-to-end simulation-based policy
+a bright background and dark foreground. Such settings were                 learning for dexterous robots, a highly scalable approach.
+explictly avoided in [14] since natural light erodes depth                  Evaluation in the real world revealed that such policies are
+readings and ruins policy performance.                                      not only viable, but also competitive with current state-of-the-
+   The bin packing performance results for DextrAH-RGB are                  art. DextrAH-RGB expeditiously grasped and transported over
+shown in Table III along with state-of-the-art DextrAH-G.                   30 objects of novel geometry and texture against unseen back-
+DextrAH-RGB significantly improves upon cycle time being                    grounds. Moreover, DextrAH-RGB yielded consistent perfor-
+1-2 seconds faster on average over DextrAH-G. In many cases,                mance through adverse lighting conditions and succeeded with
+objects were successfully transported and the robot returned                both monocular and stereo RGB setups, a strong showcase
+in 4 seconds, very close to the estimated human cycle time of               for training robust and flexible RGB-based policies in simu-
+3.63 s in [14]. However, the increased solution speed came                  lation. While DextrAH-RGB was competitive with DextrAH-
+at a cost of less reliability. CS is less by about 2-3 objects              G, admittedly DextrAH-RGB did not uniformly improve over
+on average SR decreased by about 10% − 14% on average                       DextrAH-G as we hoped. What we have found empirically
+when compared to DextrAH-G. Encouragingly, there does not                   is, sim2real transfer of dexterous manipulation policies is
+appear to be a substantial difference in performance between                highly variable and it is currently very hard to predict why
+no-HDR and HDR settings, providing empirical evidence that                  some policies transfer better than others given similar or
+DextrAH-RGB is, in fact, trained to be robust to lighting                   exactly the same training pipelines. Sources that contribute
+conditions. Finally, discrepancies in numerical performance                 to this variance include reward underspecification, locality of
+between DextrAH-RGB (stereo) and DextrAH-RGB (mono)                         RL, nuanced changes in teacher training pipeline, changes in
+are not strikingly apparent. This suggests that the generaliza-             simulation physics, and varying proficiency levels of teacher
+tion error from deploying policies in the real world dominates              reconstruction by student policies. For instance, repeated runs
+the performance gain of stereo over mono in simulation.                     of the distillation pipeline on the same teacher FGP using
+                                                                            different seeds transfer differently to the real world despite
+  Model Type                     CS (objects) ↑     CT (s) ↓     SR (%) ↑
+  DextrAH-G                      6.56 ± 2.41      10.66 ± 0.84      87      attaining similar metrics. Given the high-variance, training
+  DextrAH-RGB (mono, no HDR)      3.24 ± 1.58     8.63 ± 1.62       73      more teacher and student FGPs for DextrAH-RGB, is likely
+  DextrAH-RGB (stereo, no HDR)    4.53 ± 1.75     8.22 ± 1.10       77
+  DextrAH-RGB (mono, HDR)         3.83 ± 1.35     8.18 ± 1.82       73      to result in an improved top performer. Thus, the reduction
+  DextrAH-RGB (stereo, HDR)       3.24 ± 0.91     9.07 ± 1.40       74      in DextrAH-RGB’s reliability cannot be squarely attributed
+TABLE III: Consecutive Successes (CS), Cycle Time (CT), and                 to FGPs consuming RGB over depth. Despite the current
+Success Rate (SR) for the task of bin picking measured across depth,        high-variance reality of sim2real for DextrAH, DextrAH-RGB
+monocular RGB, and stereo RGB.                                              does perform quite well and sets a new reference point for
+                                                                            RGB-based dexterous grasping policies trained entirely in
+simulation, and we expect further improvements in the near              ISSN 1070-9932. doi: 10.1109/mra.2015.2448951. URL
+future as we scale the models and training runs.                        http://dx.doi.org/10.1109/MRA.2015.2448951.
+                                                                    [3] Tao Chen, Megha Tippur, Siyang Wu, Vikash Kumar,
+                      VI. L IMITATIONS                                  Edward Adelson, and Pulkit Agrawal. Visual dexter-
+   In this work, we are able to demonstrate remarkable grasp-           ity: In-hand reorientation of novel and complex object
+ing ability; however, there are some important limitations to           shapes. Science Robotics, 8(84), November 2023. ISSN
+be discussed. Firstly, our usage of the PCA action space                2470-9476. doi: 10.1126/scirobotics.adc9244. URL
+inherits the limitations from DextrAH-G, namely that the focus          http://dx.doi.org/10.1126/scirobotics.adc9244.
+on grasping behavior fundamentally limits the dexterity of          [4] Zoey Qiuyu Chen, Karl Van Wyk, Yu-Wei Chao, Wei
+the robot. Additionally we imbue behaviors such as collision            Yang, Arsalan Mousavian, Abhishek Gupta, and Dieter
+avoidance with the table in the underlying geometric fabric             Fox. Learning robust real-world dexterous grasping
+to ensure safety of the system. This can lead to the robot              policies via implicit shape augmentation, 2022. URL
+having difficulty grasping smaller objects as they are closer           https://arxiv.org/abs/2210.13638.
+to the table and in the future, it would be better to have          [5] Matei T. Ciocarlie, Corey Goldfeder, and Peter K. Allen.
+this behavior be something that the policy can learn through            Dexterous grasping via eigengrasps : A low-dimensional
+sensory inputs. Our distillation method requires a two-stage            approach to a high-complexity problem. 2007. URL
+pipeline for policy training which can be cumbersome to train.          https://api.semanticscholar.org/CorpusID:6853822.
+Further research on various exploration strategies can lead to a    [6] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+single-stage end-to-end RL pipeline which can lead to a more            Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+streamlined training framework that results in more “vision-            Mostafa Dehghani, Matthias Minderer, Georg Heigold,
+aware” policies. Another key limitation is that our grasping is         Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An
+not functional. For example, when the policy tries to grasp the         image is worth 16x16 words: Transformers for image
+pot, it tries to grasp from its base rather than from its handle        recognition at scale, 2021. URL https://arxiv.org/abs/
+which is the intended design of the object. Lastly, our policies        2010.11929.
+can only handle one object in the scene which means that it         [7] C. Ferrari and J. Canny. Planning optimal grasps. In
+would not be able to perform the task in a cluttered scenario.          Proceedings 1992 IEEE International Conference on
+                                                                        Robotics and Automation, pages 2290–2295 vol.3, 1992.
+                     VII. C ONCLUSION                                   doi: 10.1109/ROBOT.1992.219918.
+   We present DextrAH-RGB, end-to-end dexterous grasping            [8] Ankur Handa, Arthur Allshire, Viktor Makoviychuk,
+policies from RGB-input trained entirely in simulation. To              Aleksei Petrenko, Ritvik Singh, Jingzhou Liu, Denys
+achieve this, we first train a teacher policy in simulation that        Makoviichuk, Karl Van Wyk, Alexander Zhurke-
+receives privileged state-information. We then distill this into        vich, Balakumar Sundaralingam, Yashraj Narang, Jean-
+an RGB-based student policy. We leverage the real-time ray-             Francois Lafleche, Dieter Fox, and Gavriel State. Dex-
+tracing capabilities to offer fast and realistic tiled rendering        treme: Transfer of agile in-hand manipulation from sim-
+for the student. We further make use of geometric fabrics               ulation to reality, 2024. URL https://arxiv.org/abs/2210.
+that exposes an action space to both the teacher and student            13702.
+policies. This action space is one that allows for safety and       [9] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+reactivity while also providing a strong inductive bias for             Sun. Deep residual learning for image recognition, 2015.
+dexterous grasping behaviors. We are able to demonstrate                URL https://arxiv.org/abs/1512.03385.
+successful sim-to-real transfer of our end-to-end RGB policies.    [10] Gao Huang, Zhuang Liu, Laurens van der Maaten, and
+Future work includes improving the performance of DextrAH-              Kilian Q. Weinberger. Densely connected convolutional
+RGB in the single object setting and initiate the multi-object          networks, 2018. URL https://arxiv.org/abs/1608.06993.
+setting as well. We believe our approach is real-world relevant    [11] Puhao Li, Tengyu Liu, Yuyang Li, Yiran Geng, Yixin
+on its own, can be used to develop more complex skills,                 Zhu, Yaodong Yang, and Siyuan Huang. Gendexgrasp:
+and serve as a source of data for larger pixels-to-action               Generalizable dexterous grasping, 2023. URL https://
+foundational policies.                                                  arxiv.org/abs/2210.00722.
+                                                                   [12] Qingtao Liu, Yu Cui, Qi Ye, Zhengnan Sun, Haoming
+                        R EFERENCES                                     Li, Gaofeng Li, Lin Shao, and Jiming Chen. Dexrep-
+ [1] Ananye Agarwal, Shagun Uppal, Kenneth Shaw, and                    net: Learning dexterous robotic grasping network with
+     Deepak Pathak. Dexterous functional grasping, 2023.                geometric and spatial hand-object representations, 2023.
+     URL https://arxiv.org/abs/2312.02975.                              URL https://arxiv.org/abs/2303.09806.
+ [2] Berk Calli, Aaron Walsman, Arjun Singh, Siddhartha            [13] Tyler Ga Wei Lum, Albert H. Li, Preston Culbertson,
+     Srinivasa, Pieter Abbeel, and Aaron M. Dollar. Bench-              Krishnan Srinivasan, Aaron D. Ames, Mac Schwager,
+     marking in manipulation research: Using the yale-cmu-              and Jeannette Bohg. Get a grip: Multi-finger grasp
+     berkeley object and model set. IEEE Robotics &amp;                 evaluation at scale enables robust sim-to-real transfer,
+     Automation Magazine, 22(3):36–52, September 2015.                  2024. URL https://arxiv.org/abs/2410.23701.
+[14] Tyler Ga Wei Lum, Martin Matak, Viktor Makoviy-                   generation through differentiable simulation, 2023. URL
+     chuk, Ankur Handa, Arthur Allshire, Tucker Hermans,               https://arxiv.org/abs/2306.08132.
+     Nathan D. Ratliff, and Karl Van Wyk. DextrAH-G:              [26] Weikang Wan, Haoran Geng, Yun Liu, Zikang Shan,
+     Pixels-to-Action Dexterous Arm-Hand Grasping with                 Yaodong Yang, Li Yi, and He Wang. Unidexgrasp++: Im-
+     Geometric Fabrics, 2024. URL https://arxiv.org/abs/               proving dexterous grasping policy learning via geometry-
+     2407.02274.                                                       aware curriculum and iterative generalist-specialist learn-
+[15] Martin Matak and Tucker Hermans. Planning visual-                 ing, 2023. URL https://arxiv.org/abs/2304.00464.
+     tactile precision grasps via complementary use of vision     [27] Ruicheng Wang, Jialiang Zhang, Jiayi Chen, Yinzhen Xu,
+     and touch, 2022. URL https://arxiv.org/abs/2212.08604.            Puhao Li, Tengyu Liu, and He Wang. Dexgraspnet: A
+[16] A.T. Miller and P.K. Allen. Graspit! a versatile simulator        large-scale robotic dexterous grasp dataset for general
+     for robotic grasping. IEEE Robotics & Automation                  objects based on simulation, 2023. URL https://arxiv.
+     Magazine, 11(4):110–122, 2004. doi: 10.1109/MRA.                  org/abs/2210.02697.
+     2004.1371616.                                                [28] Shuzhe Wang, Vincent Leroy, Yohann Cabon, Boris
+[17] Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,                 Chidlovskii, and Jerome Revaud. Dust3r: Geometric 3d
+     Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik Singh,          vision made easy, 2024. URL https://arxiv.org/abs/2312.
+     Yunrong Guo, Hammad Mazhar, Ajay Mandlekar, Buck                  14132.
+     Babich, Gavriel State, Marco Hutter, and Animesh Garg.       [29] Zehang Weng, Haofei Lu, Danica Kragic, and Jens
+     Orbit: A unified simulation framework for interactive             Lundell. Dexdiffuser: Generating dexterous grasps with
+     robot learning environments. IEEE Robotics and Au-                diffusion models, 2024. URL https://arxiv.org/abs/2402.
+     tomation Letters, 8(6):3740–3747, 2023. doi: 10.1109/             02989.
+     LRA.2023.3270034.                                            [30] Karl Van Wyk, Ankur Handa, Viktor Makoviychuk, Yijie
+[18] OpenAI, Ilge Akkaya, Marcin Andrychowicz, Maciek                  Guo, Arthur Allshire, and Nathan D. Ratliff. Geometric
+     Chociej, Mateusz Litwin, Bob McGrew, Arthur Petron,               fabrics: a safe guiding medium for policy learning, 2024.
+     Alex Paino, Matthias Plappert, Glenn Powell, Raphael              URL https://arxiv.org/abs/2405.02250.
+     Ribas, Jonas Schneider, Nikolas Tezak, Jerry Tworek,         [31] Yinzhen Xu, Weikang Wan, Jialiang Zhang, Haoran
+     Peter Welinder, Lilian Weng, Qiming Yuan, Wojciech                Liu, Zikang Shan, Hao Shen, Ruicheng Wang, Haoran
+     Zaremba, and Lei Zhang. Solving rubik’s cube with a               Geng, Yijia Weng, Jiayi Chen, Tengyu Liu, Li Yi, and
+     robot hand, 2019. URL https://arxiv.org/abs/1910.07113.           He Wang. Unidexgrasp: Universal robotic dexterous
+[19] Yuzhe Qin, Binghao Huang, Zhao-Heng Yin, Hao Su,                  grasping via learning diverse proposal generation and
+     and Xiaolong Wang. Dexpoint: Generalizable point cloud            goal-conditioned policy, 2023. URL https://arxiv.org/abs/
+     reinforcement learning for sim-to-real dexterous manip-           2303.00938.
+     ulation, 2022. URL https://arxiv.org/abs/2211.09423.
+[20] Nathan Ratliff and Karl Van Wyk. Fabrics: A foundation-
+     ally stable medium for encoding prior experience, 2023.
+     URL https://arxiv.org/abs/2309.07368.
+[21] Stephane Ross, Geoffrey J. Gordon, and J. Andrew
+     Bagnell. A reduction of imitation learning and structured
+     prediction to no-regret online learning, 2011. URL
+     https://arxiv.org/abs/1011.0686.
+[22] Himanshu Gaurav Singh, Antonio Loquercio, Carmelo
+     Sferrazza, Jane Wu, Haozhi Qi, Pieter Abbeel, and Ji-
+     tendra Malik. Hand-object interaction pretraining from
+     videos, 2024. URL https://arxiv.org/abs/2409.08273.
+[23] Ritvik Singh, Jingzhou Liu, Karl Van Wyk, Yu-Wei Chao,
+     Jean-Francois Lafleche, Florian Shkurti, Nathan Ratliff,
+     and Ankur Handa. Synthetica: Large scale synthetic data
+     for robot perception, 2024. URL https://arxiv.org/abs/
+     2410.21153.
+[24] Samarth Sinha, Homanga Bharadhwaj, Aravind Srinivas,
+     and Animesh Garg. D2rl: Deep dense architectures in
+     reinforcement learning, 2020. URL https://arxiv.org/abs/
+     2010.09163.
+[25] Dylan Turpin, Tao Zhong, Shutong Zhang, Guanglei
+     Zhu, Jingzhou Liu, Ritvik Singh, Eric Heiden, Miles
+     Macklin, Stavros Tsogkas, Sven Dickinson, and Ani-
+     mesh Garg. Fast-grasp’d: Dexterous multi-finger grasp
+                                                               A PPENDIX
+A. Randomization Parameters
+
+                           Parameter                                           Initial Setting   Terminal Setting
+                           Robot Static Contact Friction Coefficient             ∼ U (1, 1)       ∼ U (0.3, 1.2)
+                           Robot Dynamic Contact Friction Coefficient            ∼ U (1, 1)        ∼ U (0.2, 1)
+                           Robot Collision Restitution                           ∼ U (1, 1)        ∼ U (0.8, 1)
+                           Robot Joint PD Stiffness Multiplicative Scaling       ∼ U (1, 1)        ∼ U (0.5, 2)
+                           Robot Joint PD Damping Multiplicative Scaling         ∼ U (1, 1)        ∼ U (0.5, 2)
+                           Robot Joint Friction Coefficient                      ∼ U (0, 0)       ∼ U (−10, 10)
+                           Object Static Contact Friction Coefficient            ∼ U (1, 1)       ∼ U (0.3, 1.2)
+                           Object Dynamic Contact Friction Coefficient           ∼ U (1, 1)        ∼ U (0.2, 1)
+                           Object Collision Restitution                          ∼ U (1, 1)        ∼ U (0.8, 1)
+                           Object Mass Multiplicative Scaling                    ∼ U (1, 1)        ∼ U (0.5, 3)
+                           Object Disturbance Acceleration                       ∼ U (0, 0)         ∼ U (0, 10)
+                           Object Spawn Width                                    ∼ U (0, 0)        ∼ U (0, 0.8)
+                           Object Spawn Height                                   ∼ U (0, 0)         ∼ U (0, 1)
+                           Object Measured Position Noise                        ∼ U (0, 0)        ∼ U (0, 0.3)
+                           Object Measured Position Bias                         ∼ U (0, 0)        ∼ U (0, 0.2)
+                           Object Measured Rotation Noise                        ∼ U (0, 0)        ∼ U (0, 0.1)
+                           Object Measured Rotation Bias                         ∼ U (0, 0)        ∼ U (0, 0.08)
+                           Robot Initial Joint Velocity                          ∼ U (0, 0)         ∼ U (0, 1)
+                           Robot Measured Position Noise                         ∼ U (0, 0)        ∼ U (0, 0.08)
+                           Robot Measured Position Bias                          ∼ U (0, 0)        ∼ U (0, 0.08)
+                           Robot Measured Velocity Noise                         ∼ U (0, 0)        ∼ U (0, 0.18)
+                           Robot Measured Velocity Bias                          ∼ U (0, 0)        ∼ U (0, 0.08)
+                           βobj goal                                                −15                −20
+                           βcurl                                                   −0.01              −0.05
+                           PD Velocity Target                                         1                  0
+                           Fabric Damping Gain                                       10                 20
+                           Observation Annealing                                      1                  0
+
+         TABLE IV: Various physics parameters controlled by automatic domain randomization during learning progression.
+
+
+                                        Parameter                   Probability Distribution
+                                        Lighting
+                                        HDRI Texture Map             ∼ U (texture_maps)
+                                        Rotation                          ∼ U (SO(3))
+                                        Intensity                      ∼ U (1000, 4000)
+                                        Object
+                                        Texture Map                  ∼ U (texture_maps)
+                                        Texture Scale                     ∼ U (0.7, 5)
+                                        Diffuse Tint                       ∼ U (0, 1)
+                                        Roughness                          ∼ U (0, 1)
+                                        Metallic                           ∼ U (0, 1)
+                                        Specular                           ∼ U (0, 1)
+                                        Robot
+                                        Roughness                            ∼ U (0.2, 1)
+                                        Metallic                             ∼ U (0, 0.8)
+                                        Specular                              ∼ U (0, 1)
+                                        Table
+                                        Texture Map                 ∼ U (texture_maps)
+                                        Texture Rotate                     ∼ U (0, 2π)
+                                        Diffuse Tint           ∼ U ((0.3, 0.2, 0.1), (0.6, 0.4, 0.2))
+                                        Roughness                         ∼ U (0.3, 0.9)
+                                        Specular                            ∼ U (0, 1)
+
+                  TABLE V: Various visual domain randomization parameters and their probability distributions
+
+
+                                                 Data Augmentation Type          Probability
+                                                 Random Background                  0.5
+                                                 Color Jitter                        1
+                                                 Random Blur                        0.1
+
+                             TABLE VI: Various data augmentations and their associated probabilities
+

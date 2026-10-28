@@ -1,0 +1,1469 @@
+                                        Published as a conference paper at ICLR 2026
+
+
+
+
+                                        E MERGENT D EXTERITY VIA D IVERSE R ESETS AND
+                                        L ARGE -S CALE R EINFORCEMENT L EARNING
+                                            Patrick Yin1,∗   Tyler Westenbroek1,∗      Octi Zhang2      Joshua Tran1        Ignacio Dagnino1
+
+                                         Eeshani Shilamkar1        Numfor Mbiziwo-Tiapo1         Simran Bagaria3         Xinlei Liu1
+
+                                         Galen Mullins3 Andrey Kolobov3 Abhishek Gupta1
+                                         1                                                                    ∗
+                                           University of Washington 2 NVIDIA 3 Microsoft Research                 Equal contribution
+
+
+
+
+arXiv:2603.15789v3 [cs.RO] 2 Apr 2026
+                                                                                   A BSTRACT
+
+                                                  Reinforcement learning in massively parallel physics simulations has driven ma-
+                                                  jor progress in sim-to-real robot learning. However, current approaches remain
+                                                  brittle and task-specific, relying on extensive per-task engineering to design re-
+                                                  wards, curricula, and demonstrations. Even with this engineering, typical rein-
+                                                  forcement learning methods can often fail on long-horizon, contact-rich manipu-
+                                                  lation tasks and do not meaningfully scale with compute, as performance quickly
+                                                  saturates when training revisits the same narrow regions of state space. We in-
+                                                  troduce OmniReset, a simple and scalable framework that enables on-policy
+                                                  reinforcement learning to robustly solve a broad class of dexterous manipulation
+                                                  tasks using fixed algorithm hyperparameters, no curricula, minimal reward en-
+                                                  gineering, and no human demonstrations. Our key insight is that long-horizon
+                                                  exploration can be dramatically simplified by using simulator resets to system-
+                                                  atically expose the RL algorithm to the diverse set of robot-object interactions
+                                                  that underlie dexterous manipulation. OmniReset programmatically generates
+                                                  such resets with minimal human input, converting additional compute directly
+                                                  into broader behavioral coverage and continued performance gains for dynamic
+                                                  policies. We show that OmniReset gracefully scales to long-horizon dexter-
+                                                  ous manipulation tasks beyond the capabilities of existing approaches and is able
+                                                  to learn robust policies demonstrating a variety of dynamic, contact-rich recov-
+                                                  ery behavior. Finally, we distill OmniReset into visuomotor policies that can
+                                                  be transferred to the real world zero-shot, displaying robust retrying behavior to
+                                                  accomplish complex, contact-rich tasks with non-trivial success rates. Project
+                                                  webpage: https://omnireset.github.io
+
+
+                                        1     I NTRODUCTION
+
+                                        Reinforcement learning (RL) in massively parallelized simulation environments (Mittal et al., 2023;
+                                        Todorov et al., 2012) has driven recent successes in sim-to-real robotics (Akkaya et al., 2019;
+                                        Hwangbo et al., 2019). While very successful for locomotion and navigation problems, these meth-
+                                        ods have seen relatively less success in robotic manipulation problems. In principle, these algorithms
+                                        can also be applied to robotic manipulation, automatically acquiring complex, contact-rich behav-
+                                        iors through repeated interaction with the simulated environment. Yet in practice, obtaining robust
+                                        and performant policies still requires extensive per-task environment and reward engineering, limit-
+                                        ing the scalability of this paradigm—particularly for long-horizon manipulation tasks. This sharply
+                                        contrasts with domains such as language modeling, where simply scaling data and compute has
+                                        yielded dramatic gains with similarly simple RL algorithms Guo et al. (2025). How can we achieve
+                                        comparable scalability for robotic manipulation?
+                                        The central bottleneck in robotic RL is that standard exploration techniques Schulman et al. (2017);
+                                        Haarnoja et al. (2018) saturate as parallelism and compute are scaled, repeatedly sampling a narrow
+                                        state–action distribution and becoming trapped in local minima Singla et al. (2024). While numerous
+
+
+                                                                                          1
+Published as a conference paper at ICLR 2026
+
+
+
+
+                                           Drawer Insertion
+
+
+
+
+                                          Screw In Table Leg
+
+
+
+
+                                              Peg Insertion
+
+Figure 1: OmniReset is a scalable framework for dexterous manipulation which uses diverse simulator
+resets and large scale reinforcement learning to solve contact-rich, long horizon tasks beyond the capabilities
+of existing approaches. These policies are then distilled to RGB camera observations and robustly transferred
+to the real world zero-shot, where they are able to consistently solve challenging tasks over much wider ranges
+of initial conditions than baselines.
+
+advanced exploration methods have been proposed Pathak et al. (2017); Burda et al. (2018), their
+added algorithmic complexity makes them difficult to scale in practice. As a result, practitioners
+often rely on human intuition to reduce the exploration burden, injecting structure through task-
+specific reward design Westenbroek et al. (2022); Ng et al.; Handa et al. (2023), hand-designed
+curricula Lee et al. (2020a), or user-provided demonstrations Bauza et al. (2025); Peng et al. (2018);
+Nair et al. (2018). Although effective in many settings, these approaches are fundamentally limited
+by the amount of human effort they require. A complementary strategy is to simplify the learning
+problem through additional system scaffolding—using RL only for contact-rich phases while relying
+on motion planning or trajectory optimization for the remainder Lee et al. (2020b); Tang et al.
+(2024); Zhou et al. (2024); Lee et al. (2020c). While this reduces exploration demands, it comes
+at the cost of increased system complexity and a lack of smooth, adaptive behavior for complex
+
+
+                                                      2
+Published as a conference paper at ICLR 2026
+
+
+
+
+tasks. These approaches reflect a prevailing assumption in robotics: that dexterous manipulation is
+too complex to emerge from large-scale RL alone and must instead be scaffolded with additional
+task-specific structure.
+We argue that with the right system design, this scaffolding is unnecessary. In this work, we instead
+propose systematically exposing RL to a superset of the interactions it will encounter when manip-
+ulating the scene, and then allowing dexterous task-specific behaviors to emerge from large-scale
+compute and optimization. Although the space of possible behaviors for robust task performance
+is vast—flipping, screwing, insertion, and other contact-rich motions—successful policies reuse a
+relatively small set of recurring interaction modes, such as approaching objects, initiating contact,
+and forming stable grasps. These modes can be densely covered through generic resets that do
+not encode task-specific solutions. By sufficiently randomizing object poses and sampling these
+interaction states, we substantially reduce the exploration burden and ensure the agent encounters
+meaningful success signals. This coverage allows sparse rewards to propagate smoothly through
+the state space, enabling the agent to identify high-value regions and learn how to stitch together
+multiple distinct behaviors to reach these goals, without task-specific reward shaping or guidance.
+Concretely, we introduce OmniReset, a scalable framework for robotic manipulation that auto-
+matically generates diverse initial-state distributions to densely cover the contact-rich interactions
+the robot may encounter. This coverage allows PPO Schulman et al. (2017) to fully leverage large-
+scale compute, improving performance as the number of parallel environments increases. When
+scaled sufficiently, OmniReset learns the emergent behavior of combining multiple interaction
+modes—such as pushing, flipping, and insertion (Fig. 1)—into coherent, multi-stage strategies with-
+out task-specific reward shaping, curricula, or demonstrations. Across diverse contact-rich tasks,
+this approach solves long-horizon problems that are considerably out of reach for existing methods,
+producing robust policies that succeed from a huge range of initial states rather than narrow distri-
+butions typical of many prior approaches. Finally, we demonstrate that OmniReset can be used to
+train visuomotor policies via student-teacher distillation which can robustly transfer zero-shot to the
+real-world, substantially outperforming alternatives such as imitation learning.
+
+
+2   R ELATED W ORK
+
+Exploiting Resets in Reinforcement Learning: Exploiting simulator resets for RL is a natural idea
+which has been explored in many contexts. Prior theoretical works (Kakade & Langford, 2002)
+have suggested more uniform sampling over initial states, but do not provide practical algorithms.
+The primary focus of many works is to make learning more tractable by generating an explicit cur-
+riculum over resets (Tang et al., 2023; Dennis et al., 2020; Bauza et al., 2025), for instance through
+a “reverse-curriculum” of states going backwards from the goal (Florensa et al., 2017) or using
+a learned dynamics model to propose viable resets (Edwards et al., 2018; Ivanovic et al., 2019).
+In contrast, a second category of methods leverage demonstrations (whether human or automati-
+cally generated) to generate feasible pathways to the goal (Tao et al., 2024; Resnick et al., 2018;
+Salimans & Chen, 2018; Bauza et al., 2025; Tang et al., 2024). In contrast to these prior works,
+we show that neither human demonstrations, nor a curriculum is needed, but rather that the sim-
+ple approach for generating diverse resets in OmniReset naturally scales to various long-horizon
+manipulation problems without added algorithmic complexity. More recently, staggered environ-
+ment resets (Bharthulwar et al., 2025) have been shown to improve optimization by decorrelating
+rollouts, but leave the initial state distribution unchanged and thus do not alleviate exploration. In
+contrast, OmniReset directly addresses exploration by enumerating diverse, task-relevant initial
+states, enabling coverage of critical intermediate states that are otherwise rarely visited.
+Exploration Strategies for Reinforcement Learning: RL practitioners have designed a variety
+of exploration strategies to effectively uncover goal-reaching paths for a fixed set of initial condi-
+tions, with uninformative rewards. A major line of work is bonus-based exploration, where agents
+receive intrinsic rewards for visiting novel or unpredictable states. Count-based methods reward
+visits to rarely seen states (Ostrovski et al., 2017; Bellemare et al., 2016; Martin et al., 2017), while
+curiosity-based methods provide bonuses based on prediction errors (Burda et al., 2018; Sancaktar
+et al., 2022; Pathak et al., 2017). Other approaches (Osband et al., 2016; 2019; Russo et al., 2018)
+promote temporally correlated exploration by injecting stochasticity at the policy or value-function
+level. Finally, diversity-driven methods optimize for behavioral variety (Eysenbach et al., 2019;
+
+
+                                                   3
+Published as a conference paper at ICLR 2026
+
+
+
+
+ 1     Collect Reset States         2                                   3                               4 Zero-Shot Transfer to
+                                         Train RL Expert                    Distill to Perception
+                                                                                                                Real Robot
+
+
+       Reaching     Near Object
+
+
+
+
+      Render RGB Dataset           State-Base RL with Diverse Resets
+                                                                            Large Scale RGB Dataset         Robust Policies With Zero
+                                    and Massively Parallel Simulation
+       Grasped       Near Goal                                              with Visual Randomization          Real-World Data
+
+
+
+Figure 2: Sim-to-Real Pipeline with OmniReset (1) After generating partial assemblies and grasps from
+the simulator, (2) we collect reset states: reaching, near object, grasped, and near goal. (3) We then train a
+state-based RL policy initialized from these reset states, which is used to (4) train student-teacher distillation to
+get a RGB policy. (5) We finally deploy the RGB-based policy in the real world zero-shot.
+
+Rajeswar et al., 2023). These approaches are complimentary to our work; our main contribution is
+demonstrating that large scale-scale parallelization and resetting schemes lead to the emergence of
+surprising levels of dexterity without the need for advanced exploration incentives.
+Leveraging Demonstrations: An alternative is to increasingly rely on human demonstrations and
+imitation learning to overcome difficult long-horizon exploration. Approaches include adding aux-
+iliary BC loss terms to RL objectives (Nair et al., 2018; Hester et al., 2018; Rajeswaran et al., 2017),
+simply adding demonstrations to the replay buffer (Vecerik et al., 2017), and introducing reward
+shaping terms which encourage RL agent to follow demonstrations (Tang et al., 2024; Reddy et al.,
+2019; Koprulu et al., 2024; Peng et al., 2018). Other works have sought to squeeze more information
+out demonstrations by automatically translating existing demonstrations to new initial conditions
+and scenes (Mandlekar et al., 2023) or by robustifying BC policies by promoting recovery behavior
+(Ke et al., 2023; Ankile et al., 2024). While our work complementarily pushes the limits of what
+behaviors can be learned entirely from scratch, we expect that demonstrations (when available) can
+also be incorporated into our framework to further accelerate learning.
+
+
+3     G ENERATING D IVERSE R ESETS FOR L EARNING D EXTEROUS
+      M ANIPULATION
+
+This section introduces OmniReset, a scalable framework for robotic manipulation that automat-
+ically constructs RL problems by generating diverse, manipulation-centric reset distributions in a
+task-agnostic way. Rather than relying on task-specific curricula, demonstrations, or carefully tuned
+rewards to guide exploration, OmniReset exposes standard RL algorithms to a broad superset of
+key interaction states that would be rarely encountered under naı̈ve exploration. When paired with
+large-scale simulation and compute, this reset design continually exposes the algorithm to diverse
+interaction states, preventing convergence to narrow, suboptimal behaviors and enabling complex
+multi-step manipulation skills to emerge from large-scale optimization.
+
+3.1     P ROBLEM S ETTING
+
+Reinforcement Learning Problem: We formalize the RL problems synthesized by OmniReset
+as a Markov decision process (MDP) defined by the tuple (S, A, P, r, γ, ρ), where s ∈ S denotes
+the state, a ∈ A denotes the robot’s action, s′ ∼ P (·|s, a) denotes the next state sampled from the
+transition dynamics, r is the reward function, γ is the discount factor, and s0 ∼ ρPis the initial state
+                                                                                        ∞
+distribution. We optimize for the discounted sum of rewards: J(π) = Es0 ∼ρ,a∼π [ t=0 γ t r(st , at )],
+where a ∼ π(·|s) denotes actions sampled from the policy. We focus our RL training on compact
+state representations (i.e., Lagrangian states), only moving to vision-based distillation for transfer to
+the real world (Sec. 5).
+Task Scope and User Inputs: To effectively leverage task structure when automatically designing
+RL problems we make several practical assumptions. First, we focus on manipulating rigid bodies
+where the goal is to move a single user-specified object to a target configuration (potentially relative
+to other objects). For example, the assembly task in Figure 1 requires picking up a table leg, moving
+it to the desired hole, and screwing the pieces together—a long-horizon task requiring diverse behav-
+
+
+                                                              4
+Published as a conference paper at ICLR 2026
+
+
+
+
+iors, yet framed as moving one object to a goal. Specifically, OmniReset requires the following
+input from the user:
+
+Requirement 1 A target object star ⊂ s to be manipulated.
+
+Requirement 2 A set of goal configurations G ⊂ S for star .
+
+Requirement 3 A workspace W ⊂ S for the robot.
+
+At a code level, this requires that the user identify star in the environment definition, provide a
+means for sampling goal states, and select and operating region for the robot (such as the area over
+a table top). These pieces of information place minimal burden on the user, yet nonetheless contain
+rich information about problem structure which OmniReset exploits to design easily solvable RL
+problems. In short, OmniReset automatically constructs a diverse initial state distribution s0 ∼ ρ
+that enables RL algorithms to solve all considered tasks using a single task-agnostic reward function,
+without any task-specific hyperparameter tuning or explicit curricula.
+
+
+3.2   AUTOMATICALLY G ENERATING RL P ROBLEMS WITH D IVERSE R ESETS
+
+Reinforcement learning fails to solve long-horizon manipulation tasks when training only encoun-
+ters a narrow slice of potential object configurations or robot-object interactions. To prevent this
+collapse, OmniReset systematically expands coverage along two axes. First, we approximately
+cover the space of pathways along which the target object can be transported to the goal by densely
+resetting star on the tabletop, at random point in the air, and at and near the goal G. This exposes the
+RL algorithm to difficult-to-discover success signals, and allows these signals to smoothly propagate
+throughout the state-space as the value function is updated. Next, we cover the different ways the
+robot can interact with star by resetting the arm in configurations where it is reaching towards star ,
+making contact with star from a wide variety of points, and with stable grasps on star . This ex-
+poses the RL algorithm to the different ways the robot can interact with star to move it towards the
+goal. Altogether, this broad coverage enables the RL algorithm to discover high-value regions of the
+state space and the behaviors required to reach those states. In the parlance of motion planning, we
+are exposing the agent to states in “narrow passages”, allowing them to be easily traversed through
+RL-based optimization.
+Specifically, we generate these resets as follows. First, we use the grasp sampler from Mittal et al.
+(2023) to calculate a set of 1000 feasible grasp points on the target object star , as depicted in Figure
+3a. Next, we generate a set of feasible offsets for star relative to the goal G. This is accomplished
+by spawning star at G, and then applying small random forces to dislodge the target from the goal,
+as in Tang et al. (2023). For example, for the insertion task in Figure 1, this process generates a
+continuum of relative configurations between the peg and the hole where the peg is only partially
+inserted. With these pre-computed quantities, we generate the following resets over the space of
+robot-object configurations:
+1) Reaching Resets: S R ⊂ S cap-
+ture states where the robot is mov-
+ing towards the target object. For our
+tabletop manipulation problems, this
+corresponds to resetting the target ob-
+ject at diverse poses on the table top,
+with the gripper spawned at random        (a) Grasp Sampling. We display the grasp poses (S G ⊂ S) sam-
+poses throughout the workspace W.         pled for the table leg. From left-to-right, the grasp sampling ranges
+                                          are broad, moderate, and narrow. Our method uses the broad range.
+2) Near-Object Resets: S N O also
+spawns star across the tabletop, but then resets the end effector to one of the pre-computed grasp
+points with a small random offset and randomly set the gripper to either be open or closed. This
+provides broad coverage over states where the robot is initiating contact with star from a wide dis-
+tribution of directions, providing coverage over both non-prehensile interactions and the initiation
+of stable grasps.
+
+
+                                                    5
+Published as a conference paper at ICLR 2026
+
+
+
+
+3) Stable Grasp Resets: S G ⊂ S covers states where prehensile manipulation occurs and the robot
+has secured a stable grasp on star . We spawn star randomly in the air throughout W, then spawn
+the gripper at a feasible grasp point.
+4) Near-Goal Resets: S N G ⊂ S provides dense coverage over near goal states where contact rich
+behavior such as insertion or twisting occur. We spawn star at one of the pre-computed offsets from
+the goal G, then spawn the gripper to be in contact with star as with the Near-Object resets.
+Altogether, these different reset regions provide dense, approximate coverage over the space of
+pathways to the goal, without prescribing a priori which behaviors are needed to solve the task. It
+is important to note two important things about this reset distribution- 1) we do not order or connect
+the states in any graph structure, the paths between them are completely determined by RL, 2) we
+do not inform any dynamic behavior between these states, these are completely emergent from the
+RL process. Indeed, as we see from our wide range of examples (Fig.1), the RL algorithm is free to
+select completely different pathways through the state space when solving different tasks, utilizing
+the reset states that are useful while ignoring those that are not. For example, in the Drawer
+Insertion task, at convergence, the RL algorithm does not obtain stable grasps on the drawer,
+but instead repeatedly flips the drawer and then pushes it into the cabinet. In contrast, for the Leg
+Twisting tasks, the robot picks up the table leg, pushes it against the table to obtain a more
+favorable grasp, and then twists the leg into the hole.
+Practical Implementation: In practice, it can be difficult to efficiently sample feasible resets that
+respect the contact constraints of the physics simulator. Sampling invalid initial conditions can lead
+to pathological and non-physical behavior that destabilizes learning. Moreover, reset states must
+be sampled with minimal overhead to maximize GPU-parallelism. Thus, we first sample feasible
+resets during an offline phase, sampling proposed resets from the four regions defined above and
+rejecting invalid samples using a combination of collision checking and stepping the simulator for
+a few steps to allow for stabilization. This yields four validated datasets corresponding to the four
+reset distributions described above: DR , DN O , DG , and DN G . During RL training, we sample
+from Uniform(D) where D = DC ∪ DN O ∪ DG ∪ DN G . We cache these resets on-GPU to ensure
+efficient sampling during training.
+
+3.3   A LGORITHMIC D ECISIONS FOR RL T RAINING
+
+Next, we discuss key algorithmic decisions that are required for an on-policy algorithm (PPO Schul-
+man et al. (2017)) to learn manipulation behavior by leveraging the diversity of reset states and scale
+to the complexity of tasks we consider in this work.
+Task-Agnostic Reward Structure: Leveraging the design choices described above, we use a sim-
+ple, common reward function shared across all tasks:
+             r(st , at ) = rsuccess (st ) + rdist (st ) + rreach (st ) + rsmooth (st , at ) + rterm (st ).   (1)
+Here, rsuccess is a sparse binary reward indicating task completion, rdist encourages minimizing the
+distance of the target object star to the goal, rreach encourages the gripper to be near star , rsmooth
+penalizes large or rapidly changing actions, and rterm penalizes unsafe or physically invalid states
+that trigger terminations. Importantly, this reward does not encode task-specific strategies as all
+components and weights are kept fixed across experiments. We find that this generic structure is
+sufficient for stable training across diverse manipulation tasks, and performance is largely insensitive
+to the precise weighting of individual terms. See Appendix A.1 for additional details.
+Scaling Parallel Environments: When combined with increasing reset diversity, we found that
+scaling the number of parallel environments used by PPO stabilized and accelerated learning. This
+enables OmniReset to obviate curricula and task dependent rewards, significantly reducing the
+amount of tuning which is required to solve a new task. Intuitively, this large batch size prevents
+catastrophic forgetting in situations when many of the reset states result in unsuccessful policy be-
+havior. This is necessary to ensure continued value propagation backwards from the target configu-
+ration.
+Asymmetric Actor-Critic: Since we have access to privileged information in a simulator, we use
+an asymmetric actor-critic approach (Pinto et al., 2017) for our learning architecture. The actor
+observations include a history of the five previous time-steps for the state of the robot, the poses
+of all objects in the scene, and the previous actions taken by the policy. The critic takes in these
+
+
+                                                          6
+Published as a conference paper at ICLR 2026
+
+
+
+
+observations as well as additional privileged parameters of the environment. We found that condi-
+tioning the actor on larger observation spaces led to less stable training and led us to only provide
+this information to the critic.
+Generalized State-Dependent Exploration Noise: We employ the policy noise parameterization
+from gSDE (Raffin et al., 2022). gSDE has a separate prediction head which determines the gaus-
+sian exploration noise at each time-step and is conditioned on the features of the final layer of the
+policy network. This approach enables the actor to learn different temporally-correlated exploration
+strategies in different regions of the state-space, crucial for solving heterogeneous multi-stage tasks.
+
+4     S IMULATION E XPERIMENTS
+Let us first consider a study of data generation in simulation with OmniReset. We aim to address
+the following questions experimentally - (Q1) Does OmniReset outperform baselines in terms of
+asymptotic performance and sample complexity, enabling tasks beyond current methods? (Q2) How
+do the key design decisions laid out in Section 3.3 affect performance? (Q3) Can the learned RL
+policies be used to generate diverse data for sim-to-real transfer?
+
+4.1   TASK D ESCRIPTIONS
+
+We use the following tasks to demonstrate the effectiveness of the OmniReset framework. The
+Leg Twisting tasks is a replication of the the square table task from (Heo et al., 2023),
+and involves screwing in a single table leg. The Drawer Insertion task is based on the task
+by the same name from (Heo et al., 2023) and requires inserting a drawer into a dresser. The
+Peg Insertion task requires inserting a peg into a hole. The Cube Stacking task requires
+stacking one cube on top of another with a desired orientation. The Wall Slide task requires
+non-prehensile motion to push a block up against a wall into a desired orientation. Finally, the
+Cupcake Placement task requires placing a cupcake on a plate at a desired orientation. For
+each task, we consider both Hard and Easy variants. For the Hard variants, the target object
+star is distributed on the table with x − y coordinates in (x, y) ∈ [−0.2, 0.2] × [−0.15, 0, 15] and
+task-specific randomization over the goal position, whereas the Easy version of each task uses a
+highly restricted set of initial conditions with (x, y) ∈ [0.1, 0.12] × [0.1, 0.12] with a single fixed
+goal location. We refer the reader to our public code release for additional task specific parameters,
+but summarize each task below. Snapshots from the tasks are depicted in Figures 1 and 4
+Finally, to fully demonstrate the utility of OmniReset, we solve the Four Leg task depicted in
+Figure 4 by a) training independent OmniReset policies to screw in each of the four legs then b)
+using a simple scripting policy to switch between the policies to complete the overall long-horizon
+task. The demonstrations highlights how OmniReset can be combined with high-level planning
+to push the horizon of tasks that can be solved to even greater extremes.
+
+
+
+
+Figure 4: Additional tasks. Visualizations of the new manipulation tasks solved with OmniReset. From left
+to right: Four-Leg Table Assembly, Cube Stacking, Cupcake on Plate, Block Reorientation on Wall
+
+
+4.2   BASELINE C OMPARISONS IN S IMULATION
+
+We compare to the following baselines, which bootstrap learning with expert demonstrations, pro-
+viding them with more prior information about how to solve the task than OmniReset. For each of
+
+
+                                                    7
+Published as a conference paper at ICLR 2026
+
+
+
+
+Figure 5: Success rates during RL training. We plot success rates over learning process for tasks described
+in Sec.4. We see that OmniResetscales to task where baselines struggle to make meaningful progress, espe-
+cially with the wide range of initial conditions specified in the Hard variants of tasks.
+
+the methods, we supply 100 successful demonstrations, effectively giving the baselines additional
+access to the optimal behavior, while OmniReset does not have this information. The initial con-
+ditions for these demonstrations are drawn from the reaching region S R , which corresponds to the
+set of initial conditions the robot will encounter when solving the full task.
+1) BC-PPO: We add a Behavior-Cloning (BC) loss to the PPO objective to construct a baseline
+  emblematic of numerous works combining BC and RL objectives (Hester et al., 2018; Rajeswaran
+  et al., 2017). When training this algorithm, the environment is always reset from the reaching
+  region S R , which reflects the ‘standard’ reset distribution typically used to solve such tasks.
+2) DeepMimic: To compare with methods for motion imitation, we use DeepMimic-style reward
+   augmentation (Peng et al., 2018) on top of our generic rewards. During resets, a random demon-
+
+
+                                                    8
+Published as a conference paper at ICLR 2026
+
+
+
+
+  stration is chosen, and the agent is reset from a random point along the demonstration and is given
+  an auxiliary reward which provides bonuses for following the demonstration.
+3) Demo Curriculum: This baseline is constructed in the spirit of method such as (Bauza et al.,
+   2025) and uses a success-weighted autocurriculum to sample reset states from the demonstrations.
+   We use PPO (Schulman et al., 2017) as the base RL algorithm to ensure a fair comparison.
+Learning Curves and Success Rates: We plot learning curves for the Hard variants of each task
+and the Easy variants of the Peg Insertion, Leg Twisting, and Drawer Insertion
+tasks in Figure 5. Success rates are reported for initial conditions sampled from the Reaching re-
+sets S R , which correspond to states from which the robot must solve the full task. We see that
+OmniReset is able to consistently obtain high success rates on each of the tasks, substantially
+outperforming baseline methods. While the baselines make some progress on the Easy variants of
+the tasks, they consistently struggle to scale to the wider distributions of initial conditions that de-
+fine the Hard variants. Appendix Figure 12 provides additional fine-grained insight into the failure
+modes of the baselines. Here we plot success rates during training for initial conditions drawn from
+the demonstrations that fall into the Near-Goal and Reaching regions of the state-space. This plot
+demonstrates how the baselines are able to solve part of the task (i.e, when starting near the goal)
+but fail to scale to the full long-horizon task (i.e, starting from a reaching position). We refer readers
+to the supplementary website for a more detailed look at failure modes.
+
+
+
+
+Figure 6: Success rate over perturbations. We plot the decline in success rate (measured by ratio of success
+rate between no perturbations and current level of perturbations). We find that OmniResetis robust to pertur-
+bations while performance of baselines drops significantly.
+
+Emergent Curricula: OmniReset does not rely on curricula to stabilize and accelerate learning.
+We visualize how learning for OmniReset progresses over time on our website. We observe that
+the diverse resets OmniReset provides enables PPO to naturally solve the problem backwards, first
+learning to succeed from near-goal states and eventually learning to succeed from the entire search
+space. This behavior is entirely emergent from our diverse resets and large number of parallel
+environments.
+Robustness of Policies: We conduct a robustness analysis on the learned policies (Fig 6). We
+sample an initial condition from one of the demonstrations, perturb the initial condition with forces
+of different magnitudes and report policy success from these perturbed initial conditions. We find
+that baseline performance quickly degrades under small perturbations, while OmniReset is barely
+affected under large perturbations.
+We also analyze the ability of policies to solve the task from a wide range of initial conditions in
+the scatter plots in Figure 7. These plots show success rates over various initial conditions for both
+OmniResetand Demo Curriculum (the most successful baseline) on the Leg Twisting Easy
+task. For each plot we show the success rate over 1000 sampled initial conditions from the full task
+distribution. This plot demonstrates how the baseline struggles to achieve achieve consistent success
+across the distribution of initial conditions it was trained on, while OmniReset achieves is able to
+succeed across the entire workspace.
+
+4.3   A BLATING K EY D ESIGN D ECISIONS
+
+We ablate 1) the number of parallel environments (and PPO batch size) and 2) the range of reset
+randomization used by OmniReseton the Leg Twisting Hard task. Figure 8 ablates the
+number of parallel environments and shows success rates during training from the four different reset
+distributions used by OmniReset. The reset distributions in Figure 8 are roughly ordered from left
+
+
+                                                     9
+Published as a conference paper at ICLR 2026
+
+
+
+
+                          OmniReset, Hard Range of Initial Conditions                                   DemoCurriculum, Hard Range of Initial Conditions                                     DemoCurriculum, Easy Range of Initial Conditions
+    0.15                                                                                        0.15                                                                                0.15
+
+    0.10                                                                                        0.10                                                                                0.10
+
+    0.05                                                                                        0.05                                                                                0.05
+
+y   0.00                                                                                    y   0.00                                                                            y   0.00
+
+    0.05                                                                                        0.05                                                                                0.05
+
+    0.10                                                                                        0.10                                                                                0.10
+
+    0.15                                                                                        0.15                                                                                0.15
+            0.20           0.15   0.10   0.05 0.00    0.05   0.10       0.15         0.20              0.20   0.15    0.10    0.05 0.00            0.05   0.10    0.15   0.20              0.20           0.15   0.10   0.05 0.00   0.05   0.10   0.15   0.20
+                                                x                                                                                    x                                                                                         x
+
+
+                                                                            Goal            Hard Initial Conditions           Easy Initial Conditions              Successful Initial Conditions
+
+
+
+Figure 7: Successful initial states of RL policy. For the Lew Twisting, we plot the xy configurations from
+which RL polices trained with Demo Curriculum and OmniResetsucceed. We find that OmniResetsucceeds
+from a much broader range of initial conditions.
+
+                                                             65536 environments         16384 environments         4096 environments
+                                                             32768 environments         8192 environments          2048 environments
+                                   Success From                            Success from                 Success from                  Success
+                      1.0         Near-Goal Resets                 1.0    Grasped Resets        1.0 Near-Object Resets        1.0    Entire Task
+                      0.8                                                      0.8                                                          0.8                                                       0.8
+
+
+           Success Rate                                             Success Rate                                                 Success Rate                                              Success Rate
+                      0.6                                                      0.6                                                          0.6                                                       0.6
+                      0.4                                                      0.4                                                          0.4                                                       0.4
+                      0.2                                                      0.2                                                          0.2                                                       0.2
+                      0.00         500     1000      1500    2000              0.00         500        1000     1500         2000           0.00          500     1000      1500      2000            0.00         500     1000     1500     2000
+                                         Updates                                                   Updates                                                       Updates                                                 Updates
+
+Figure 8: Ablation on number of environments. We plot the success rates over course of RL using different
+number of environments. We find that the number of environments significantly impacts training performance.
+
+to right from the end of the task (Near-Goal) to the beginning of the task (Reaching). While runs
+with a smaller number of environments can make progress at solving the task from Near-Goal states,
+we observe that a large number of parallel environments are essential for scaling to the complexity
+of the full multi-stage task (i.e. from reaching states). Similarly, we see that increased diversity
+in the grasps used by OmniReset has a substantial effect on sample efficiency, highlighting how
+densely covering the different modes of robot-object interactions is crucial for efficient and scalable
+RL training.
+                                                                                                                                                                             Broad Grasp Sampling Range
+                                                                                                                                                                             Moderate Grasp Sampling Range
+                                                                                                                                                                             Narrow Grasp Sampling Range
+5           D ISTILLATION AND R EAL -W ORLD T RANSFER
+                                              1.0                                                                                                                                   Success Entire Task
+We demonstrate the utility of our learned data-        0.8
+generation policies by distilling them into vi-
+suomotor policies deployable directly on hard-
+
+                                                                                                                                 Success Rate
+                                                       0.6
+ware from RGB inputs. Experiments are con-
+ducted on a UR7e robot equipped with a Robo-           0.4
+tiq 2F-85 gripper, with control and policy infer-
+ence running on a PC with an RTX 4090 GPU.             0.2
+The robot observes 224 × 224 RGB images
+from three RealSense cameras: a D455 provid-           0.0 0    500       1000       1500   2000    2500
+ing the front view, a D435 for the side view, and                             Updates
+a D415 mounted on the wrist. Using the pho-
+torealistic rendering capabilities of IsaacLab Figure 9: Ablation on grasp sampling range. For
+(Mittal et al., 2023), we collect 80,000 expert this ablation on the Leg Twisting task, we find that
+rollouts with synchronized images and actions training RL on narrower grasp sampling ranges leads to
+                                                    worse sample efficiency and lower success rate.
+for standard student–teacher distillation Chen
+et al. (2021). The student policy operates at 10Hz and uses an ImageNet-pretrained ResNet-18 en-
+coder and a Gaussian MLP head conditioned on the five most recent observations. See Appendix A.3
+for full implementation details for distillation and transfer.
+Visual randomization. As shown in Fig. 11, to mitigate the sim-to-real visual gap, we apply ex-
+tensive domain randomization following DextrAH-G (Singh et al., 2025), varying lighting, back-
+
+
+                                                                                                                                10
+Published as a conference paper at ICLR 2026
+
+
+
+
+grounds, object and robot appearance, and workspace textures. Camera extrinsics are calibrated to
+the real setup with additional pose and FOV jitter for robustness. We also apply standard image
+augmentations including color jitter, blur, grayscale, and noise.
+Dynamics randomization. To reduce the
+control gap, we calibrate kinematics to hard-
+ware and deploy the same task-space opera-
+tional space controller (Khatib, 1987) in sim-
+ulation and reality, with the policy predicting
+end-effector pose deltas that are converted to
+torques using identical Jacobian-based control.
+We perform system identification of key actu-
+ator parameters (friction, armature, and delay)
+to match real joint behavior following PACE
+(Bjelonic et al., 2025), then randomize con-
+troller gains and physical parameters around
+identified values during RL training. We ad- Figure 10: Sim2Real Tasks. Simulation setup for pre-
+ditionally randomize object mass and friction training (top) and real-world deployment (bottom) of
+to improve robustness to contact dynamics, and peg insertion (left), leg twisting (middle), and drawer
+apply a curriculum that progressively reduces assembly (right).
+the action space to encourage smaller, smoother motions. We emphasize that this curricula was used
+to improve sim-to-real transfer, and is not necessary for learning high-performing policies in simula-
+tion. Indeed, the simulation only evaluations we report are trained without the curricula, maintaining
+our claim that OmniReset does not rely on complex training curricula for behavior generation.
+Real-World Transfer. We successfully de-
+ploy a distilled OmniReset policy on the Peg
+Insertion, Leg Twisting, and Drawer
+Insertion tasks, as shown in Figure 10. The
+distilled RGB policies, trained on 80,000 sim-
+ulation trajectories spanning a wide range of
+initial conditions, achieve zero-shot real-world
+success rates of 85.37% on Peg, 56.36% on
+Leg, and 15.38% on Drawer, as summarized
+in Table 1. This substantially outperforms a
+behavior cloning Diffusion Policy baseline Chi
+et al. (2025), which achieves ∼2% success
+across tasks when trained on 100 demonstra-
+tions.
+We additionally report first-try success, defined
+as completing the task with a single grasp and
+execution (i.e., no dropping and regrasping),
+as well as throughput, measured as successful
+completions per minute. These metrics high-
+light that there remains significant room for im-
+provement in efficiency and reliability. Full       Figure 11: Visual randomizations. Examples of do-
+                                                    main randomization applied during training. We vary
+real-world evaluation details are provided in
+                                                    lighting conditions, backgrounds, object and robot ap-
+Appendix A.4.                                       pearance, and workspace textures, along with camera
+Qualitatively, the OmniReset visuomotor             pose and field-of-view jitter, to improve robustness to
+policy exhibits robust retrying behavior, recov-    real-world visual variation.
+ering from initial failures and successfully com-
+pleting the task. For examples of these behaviors, see our project website. Overall, these results
+demonstrate that OmniReset provides a scalable foundation for training sim-to-real policies capa-
+ble of handling substantially broader initial condition distributions than prior approaches.
+
+
+
+
+                                                    11
+Published as a conference paper at ICLR 2026
+
+
+
+
+Table 1: Sim-to-real performance across tasks: We report state-based RL performance in simulation, dis-
+tilled image policy performance in simulation and real-world deployment, and a behavior cloning baseline
+trained on only 100 real-world demos.
+
+     Metric                                                         Peg        Leg      Drawer
+     State RL Success Rate (Sim)                                  94.97%     93.94%      89.60%
+     Distilled Image Policy Success Rate (Sim)                    55.45%     43.69%      84.00%
+     Distilled Image Policy Success Rate (Real)                   85.37%     56.36%      15.38%
+     Distilled Image Policy First-Try Success Rate (Real)         21.95%     43.64%       5.77%
+     Distilled Image Policy Throughput (success/min, Real)         1.49       0.63         0.31
+     Real-Only BC (100 demos) Success Rate (Real)                 2.44%      1.82%        1.92%
+
+6   C ONCLUSION
+
+In this work we presented OmniReset, a simple and scalable system for data generation in simu-
+lation for complex, dexterous tasks. The primary insight in OmniReset is showing that a diverse,
+minimally structured set of reset states paired with large-batch on-policy reinforcement learning
+in simulation can lead to the emergence of surprisingly complex dexterous behavior. We provide
+a general purpose recipe to instantiate data generators across a variety of manipulation tasks, and
+demonstrate both the efficacy of this paradigm in simulation and it’s ability to train robust policies
+which can be successfully transferred directly to the real world. However, the preset framework has
+several limitations which leave the door open for exciting future works. OmniReset is dependent
+on the quality of grasps obtained by the grasp sampler, which can fail to generate diverse grasps
+on complex, highly non-convex objects. Moreover, pre-computing stable grasps for tasks which re-
+quire bimanual manipulation or dexterous hands will present additional challenges, and whether the
+techniques and principles behind OmniReset will scale to such settings remains an open question.
+Moreover, OmniReset uses relatively modest levels of dynamics randomization for RL training
+compared existing sim-to-real approaches, and we expect there to be additional challenges training
+policies which must adapt their behavior to solve the task over a wide range of potential operating
+conditions. For distillation and transfer, even in simulation our RGB policies achieve much lower
+success rates than the state-based experts. We expect that reaching higher success rates will re-
+quire additional research into how to best combine techniques such as DAgger and RL directly from
+images. Moreover, we found that scaling the RGB dataset to be as large as possible continually
+improved performance up to the 80k trajectories we were able to train on with our compute budget,
+and we believe obtaining a deeper understanding of scaling laws for this setting will prove valuable.
+Xu et al. (2023).
+
+
+
+7   R EPRODUCIBILITY S TATEMENT
+
+We have made efforts to ensure reproducibility of our results by describing the steps of our data
+generation and training pipeline (Sec. 3), our distillation and transfer pipeline (Sec. 5), and our
+experimental results (Sec. 4). Additional ablation studies are provided in the Appendix.
+
+
+
+8   ACKNOWLEDGEMENTS
+
+We would like to thank Arhan Jain, Sriyash Poddar, Marius Memmel, and Emma Romig for their in-
+valuable engineering help, and Mateo Guaman Castro for assistance with creative real-robot videos.
+We also thank Filip Bjelonic, Bingjie Tang, and Iretiayo Akinola for research discussions and ad-
+vice. Finally, we thank Chuning Zhu, Prashanth Rajan, Arhan Jain, Mateo Guaman Castro, Entong
+Su, Marius Memmel, Jesse Zhang, David Celis Garcia, and Brenda Potts for their gracious feed-
+back on the website design. Patrick Yin is supported by the National Science Foundation Graduate
+Research Fellowship (NSF GRFP). Patrick Yin and Tyler Westenbroek have also been supported by
+National Science Foundation under Grant No. 2212310.
+
+
+                                                  12
+Published as a conference paper at ICLR 2026
+
+
+
+
+R EFERENCES
+Ilge Akkaya, Marcin Andrychowicz, Maciek Chociej, Mateusz Litwin, Bob McGrew, Arthur Petron,
+   Alex Paino, Matthias Plappert, Glenn Powell, Raphael Ribas, et al. Solving rubik’s cube with a
+   robot hand. arXiv preprint arXiv:1910.07113, 2019. 1
+
+Lars Ankile, Anthony Simeonov, Idan Shenfeld, and Pulkit Agrawal. Juicer: Data-efficient imitation
+  learning for robotic assembly. In 2024 IEEE/RSJ International Conference on Intelligent Robots
+  and Systems (IROS), pp. 5096–5103. IEEE, 2024. 4
+
+Maria Bauza, Jose Enriaue Chen, Valentin Dalibard, Nimrod Gileadi, Roland Hafner, Murilo F
+ Martins, Joss Moore, Rugile Pevceviciute, Antoine Laurens, Dushyant Rao, et al. Demostart:
+ Demonstration-led auto-curriculum applied to sim-to-real with multi-fingered robots. In 2025
+ IEEE International Conference on Robotics and Automation (ICRA), pp. 6756–6763. IEEE, 2025.
+ 2, 3, 9
+
+Marc Bellemare, Sriram Srinivasan, Georg Ostrovski, Tom Schaul, David Saxton, and Remi Munos.
+ Unifying count-based exploration and intrinsic motivation. Advances in neural information pro-
+ cessing systems, 29, 2016. 3
+
+Sid Bharthulwar, Stone Tao, and Hao Su. Staggered environment resets improve massively parallel
+  on-policy reinforcement learning, 2025. URL https://arxiv.org/abs/2511.21011. 3
+
+Filip Bjelonic, Fabian Tischhauser, and Marco Hutter. Towards bridging the gap: Systematic sim-
+   to-real transfer for diverse legged robots. arXiv preprint arXiv:2509.06342, 2025. 11, 20
+
+Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg Klimov. Exploration by random network
+  distillation. arXiv preprint arXiv:1810.12894, 2018. 2, 3
+
+Tao Chen, Jie Xu, and Pulkit Agrawal. A system for general in-hand object re-orientation. In
+  Aleksandra Faust, David Hsu, and Gerhard Neumann (eds.), Conference on Robot Learning, 8-11
+  November 2021, London, UK, volume 164 of Proceedings of Machine Learning Research, pp.
+  297–307. PMLR, 2021. URL https://proceedings.mlr.press/v164/chen22a.
+  html. 10
+
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin Burchfiel, Russ Tedrake,
+  and Shuran Song. Diffusion policy: Visuomotor policy learning via action diffusion. The Inter-
+  national Journal of Robotics Research, 44(10-11):1684–1704, 2025. 11
+
+Michael Dennis, Natasha Jaques, Eugene Vinitsky, Alexandre Bayen, Stuart Russell, Andrew Critch,
+ and Sergey Levine. Emergent complexity and zero-shot transfer via unsupervised environment
+ design. Advances in neural information processing systems, 33:13049–13061, 2020. 3
+
+Ashley D Edwards, Laura Downs, and James C Davidson. Forward-backward reinforcement learn-
+  ing. arXiv preprint arXiv:1803.10227, 2018. 3
+
+Benjamin Eysenbach, Abhishek Gupta, Julian Ibarz, and Sergey Levine. Diversity is all you need:
+  Learning skills without a reward function. In International Conference on Learning Representa-
+  tions (ICLR), 2019. 3
+
+Carlos Florensa, David Held, Markus Wulfmeier, Michael Zhang, and Pieter Abbeel. Reverse cur-
+  riculum generation for reinforcement learning. In Conference on robot learning, pp. 482–495.
+  PMLR, 2017. 3
+
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu,
+  Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms
+  via reinforcement learning. arXiv preprint arXiv:2501.12948, 2025. 1
+
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine. Soft actor-critic: Off-policy
+  maximum entropy deep reinforcement learning with a stochastic actor. In International confer-
+  ence on machine learning, pp. 1861–1870. Pmlr, 2018. 1
+
+
+                                               13
+Published as a conference paper at ICLR 2026
+
+
+
+
+Ankur Handa, Arthur Allshire, Viktor Makoviychuk, Aleksei Petrenko, Ritvik Singh, Jingzhou Liu,
+  Denys Makoviichuk, Karl Van Wyk, Alexander Zhurkevich, Balakumar Sundaralingam, et al.
+  Dextreme: Transfer of agile in-hand manipulation from simulation to reality. In 2023 IEEE
+  International Conference on Robotics and Automation (ICRA), pp. 5977–5984. IEEE, 2023. 2
+Minho Heo, Youngwoon Lee, Doohyun Lee, and Joseph J Lim. Furniturebench: Reproducible real-
+ world benchmark for long-horizon complex manipulation. The International Journal of Robotics
+ Research, pp. 02783649241304789, 2023. 7, 25
+Todd Hester, Matej Vecerik, Olivier Pietquin, Marc Lanctot, Tom Schaul, Bilal Piot, Dan Horgan,
+  John Quan, Andrew Sendonaris, Ian Osband, et al. Deep q-learning from demonstrations. In
+  Proceedings of the AAAI conference on artificial intelligence, volume 32, 2018. 4, 8
+Jemin Hwangbo, Joonho Lee, Alexey Dosovitskiy, Dario Bellicoso, Vassilios Tsounis, Vladlen
+  Koltun, and Marco Hutter. Learning agile and dynamic motor skills for legged robots. Science
+  Robotics, 4(26):eaau5872, 2019. 1
+Boris Ivanovic, James Harrison, Apoorva Sharma, Mo Chen, and Marco Pavone. Barc: Backward
+  reachability curriculum for robotic reinforcement learning. In 2019 International Conference on
+  Robotics and Automation (ICRA), pp. 15–21. IEEE, 2019. 3
+Sham Kakade and John Langford. Approximately optimal approximate reinforcement learning. In
+  Proceedings of the nineteenth international conference on machine learning, pp. 267–274, 2002.
+  3
+Liyiming Ke, Yunchu Zhang, Abhay Deshpande, Siddhartha Srinivasa, and Abhishek Gupta.
+  Ccil: Continuity-based data augmentation for corrective imitation learning. arXiv preprint
+  arXiv:2310.12972, 2023. 4
+Oussama Khatib. A unified approach for motion and force control of robot manipulators: The
+  operational space formulation. IEEE Journal of Robotics and Automation, 3(1):43–53, 1987. doi:
+  10.1109/JRA.1987.1087068. 11, 20
+Cevahir Koprulu, Po-han Li, Tianyu Qiu, Ruihan Zhao, Tyler Westenbroek, David Fridovich-Keil,
+  Sandeep Chinchali, and Ufuk Topcu. Dense dynamics-aware reward synthesis: Integrating prior
+  experience with demonstrations. arXiv preprint arXiv:2412.01114, 2024. 4
+Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen, Vladlen Koltun, and Marco Hutter. Learning
+  quadrupedal locomotion over challenging terrain. Science robotics, 5(47):eabc5986, 2020a. 2
+Michelle A Lee, Carlos Florensa, Jonathan Tremblay, Nathan Ratliff, Animesh Garg, Fabio Ramos,
+ and Dieter Fox. Guided uncertainty-aware policy optimization: Combining learning and model-
+ based strategies for sample-efficient policy learning. In 2020 IEEE international conference on
+ robotics and automation (ICRA), pp. 7505–7512. IEEE, 2020b. 2
+Michelle A. Lee, Carlos Florensa, Jonathan Tremblay, Nathan D. Ratliff, Animesh Garg, Fabio
+ Ramos, and Dieter Fox. Guided uncertainty-aware policy optimization: Combining learn-
+ ing and model-based strategies for sample-efficient policy learning. In 2020 IEEE Interna-
+ tional Conference on Robotics and Automation, ICRA 2020, Paris, France, May 31 - Au-
+ gust 31, 2020, pp. 7505–7512. IEEE, 2020c. doi: 10.1109/ICRA40945.2020.9197125. URL
+ https://doi.org/10.1109/ICRA40945.2020.9197125. 2
+Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo Akinola, Yashraj Narang, Linxi Fan,
+  Yuke Zhu, and Dieter Fox. Mimicgen: A data generation system for scalable robot learning using
+  human demonstrations. arXiv preprint arXiv:2310.17596, 2023. 4
+Jarryd Martin, Suraj Narayanan Sasikumar, Tom Everitt, and Marcus Hutter. Count-based explo-
+   ration in feature space for reinforcement learning. arXiv preprint arXiv:1706.08090, 2017. 3
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu, Nikita Rudin, David Hoeller, Jia Lin Yuan,
+ Ritvik Singh, Yunrong Guo, Hammad Mazhar, Ajay Mandlekar, Buck Babich, Gavriel State,
+ Marco Hutter, and Animesh Garg. Orbit: A unified simulation framework for interactive robot
+ learning environments. IEEE Robotics and Automation Letters, 8(6):3740–3747, 2023. doi:
+ 10.1109/LRA.2023.3270034. 1, 5, 10
+
+
+                                               14
+Published as a conference paper at ICLR 2026
+
+
+
+
+Ashvin Nair, Bob McGrew, Marcin Andrychowicz, Wojciech Zaremba, and Pieter Abbeel. Over-
+  coming exploration in reinforcement learning with demonstrations. In 2018 IEEE international
+  conference on robotics and automation (ICRA), pp. 6292–6299. IEEE, 2018. 2, 4
+Andrew Y Ng et al. Algorithms for inverse reinforcement learning. 2
+Ian Osband, Charles Blundell, Alexander Pritzel, and Benjamin Van Roy. Deep exploration via
+  bootstrapped DQN. In Advances in Neural Information Processing Systems (NeurIPS), 2016. 3
+Ian Osband, Benjamin Van Roy, Daniel J. Russo, and Zheng Wen. Deep exploration via randomized
+  value functions. J. Mach. Learn. Res., 20:124:1–124:62, 2019. URL https://jmlr.org/
+  papers/v20/18-339.html. 3
+Georg Ostrovski, Marc G Bellemare, Aäron Oord, and Rémi Munos. Count-based exploration with
+  neural density models. In International conference on machine learning, pp. 2721–2730. PMLR,
+  2017. 3
+Deepak Pathak, Pulkit Agrawal, Alexei A Efros, and Trevor Darrell. Curiosity-driven exploration
+  by self-supervised prediction. In International conference on machine learning, pp. 2778–2787.
+  PMLR, 2017. 2, 3
+Xue Bin Peng, Pieter Abbeel, Sergey Levine, and Michiel Van de Panne. Deepmimic: Example-
+  guided deep reinforcement learning of physics-based character skills. ACM Transactions On
+  Graphics (TOG), 37(4):1–14, 2018. 2, 4, 8
+Lerrel Pinto, Marcin Andrychowicz, Peter Welinder, Wojciech Zaremba, and Pieter Abbeel. Asym-
+  metric actor critic for image-based robot learning. arXiv preprint arXiv:1710.06542, 2017. 6,
+  23
+Antonin Raffin, Jens Kober, and Freek Stulp. Smooth exploration for robotic reinforcement learning.
+  In Conference on robot learning, pp. 1634–1644. PMLR, 2022. 7
+Sai Rajeswar, Pietro Mazzaglia, Tim Verbelen, Alexandre Piché, Bart Dhoedt, Aaron C. Courville,
+  and Alexandre Lacoste. Mastering the unsupervised reinforcement learning benchmark from
+  pixels. In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan
+  Sabato, and Jonathan Scarlett (eds.), International Conference on Machine Learning, ICML 2023,
+  23-29 July 2023, Honolulu, Hawaii, USA, volume 202 of Proceedings of Machine Learning
+  Research, pp. 28598–28617. PMLR, 2023. URL https://proceedings.mlr.press/
+  v202/rajeswar23a.html. 4
+Aravind Rajeswaran, Vikash Kumar, Abhishek Gupta, Giulia Vezzani, John Schulman, Emanuel
+  Todorov, and Sergey Levine. Learning complex dexterous manipulation with deep reinforcement
+  learning and demonstrations. arXiv preprint arXiv:1709.10087, 2017. 4, 8
+Siddharth Reddy, Anca D Dragan, and Sergey Levine. Sqil: Imitation learning via reinforcement
+  learning with sparse rewards. arXiv preprint arXiv:1905.11108, 2019. 4
+Cinjon Resnick, Roberta Raileanu, Sanyam Kapoor, Alexander Peysakhovich, Kyunghyun Cho, and
+  Joan Bruna. Backplay:” man muss immer umkehren”. arXiv preprint arXiv:1807.06919, 2018. 3
+Daniel Russo, Benjamin Van Roy, Abbas Kazerouni, Ian Osband, and Zheng Wen. A tutorial on
+  thompson sampling. Found. Trends Mach. Learn., 11(1):1–96, 2018. doi: 10.1561/2200000070.
+  URL https://doi.org/10.1561/2200000070. 3
+Tim Salimans and Richard Chen. Learning montezuma’s revenge from a single demonstration. arXiv
+  preprint arXiv:1812.03381, 2018. 3
+Cansu Sancaktar, Sebastian Blaes, and Georg Martius. Curious exploration via structured world
+  models yields zero-shot object manipulation. Advances in Neural Information Processing Sys-
+  tems, 35:24170–24183, 2022. 3
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal policy
+  optimization algorithms. arXiv preprint arXiv:1707.06347, 2017. 1, 3, 6, 9
+
+
+                                                15
+Published as a conference paper at ICLR 2026
+
+
+
+
+Ritvik Singh, Arthur Allshire, Ankur Handa, Nathan Ratliff, and Karl Van Wyk. Dextrah-rgb:
+  Visuomotor policies to grasp anything with dexterous hands, 2025. URL https://arxiv.
+  org/abs/2412.01791. 10, 22, 24
+Jayesh Singla, Ananye Agarwal, and Deepak Pathak. Sapg: split and aggregate policy gradients.
+  arXiv preprint arXiv:2407.20230, 2024. 1
+Bingjie Tang, Michael A Lin, Iretiayo Akinola, Ankur Handa, Gaurav S Sukhatme, Fabio Ramos,
+  Dieter Fox, and Yashraj Narang. Industreal: Transferring contact-rich assembly tasks from simu-
+  lation to reality. arXiv preprint arXiv:2305.17110, 2023. 3, 5
+Bingjie Tang, Iretiayo Akinola, Jie Xu, Bowen Wen, Ankur Handa, Karl Van Wyk, Dieter Fox,
+  Gaurav S Sukhatme, Fabio Ramos, and Yashraj Narang. Automate: Specialist and generalist
+  assembly policies over diverse geometries. arXiv preprint arXiv:2407.08028, 1(2), 2024. 2, 3, 4
+Stone Tao, Arth Shukla, Tse-kai Chan, and Hao Su. Reverse forward curriculum learning
+  for extreme sample and demonstration efficiency in reinforcement learning. arXiv preprint
+  arXiv:2405.03379, 2024. 3
+Emanuel Todorov, Tom Erez, and Yuval Tassa. Mujoco: A physics engine for model-based control.
+  In 2012 IEEE/RSJ International Conference on Intelligent Robots and Systems, pp. 5026–5033.
+  IEEE, 2012. 1
+Mel Vecerik, Todd Hester, Jonathan Scholz, Fumin Wang, Olivier Pietquin, Bilal Piot, Nico-
+ las Heess, Thomas Rothörl, Thomas Lampe, and Martin Riedmiller. Leveraging demonstra-
+ tions for deep reinforcement learning on robotics problems with sparse rewards. arXiv preprint
+ arXiv:1707.08817, 2017. 4
+Tyler Westenbroek, Fernando Castaneda, Ayush Agrawal, Shankar Sastry, and Koushil Sreenath.
+  Lyapunov design for robust and efficient robotic reinforcement learning. arXiv preprint
+  arXiv:2208.06721, 2022. 2
+Yinzhen Xu, Weikang Wan, Jialiang Zhang, Haoran Liu, Zikang Shan, Hao Shen, Ruicheng Wang,
+  Haoran Geng, Yijia Weng, Jiayi Chen, et al. Unidexgrasp: Universal robotic dexterous grasp-
+  ing via learning diverse proposal generation and goal-conditioned policy. In Proceedings of the
+  IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 4737–4746, 2023. 12
+Zihan Zhou, Animesh Garg, Dieter Fox, Caelan Reed Garrett, and Ajay Mandlekar. SPIRE:
+  synergistic planning, imitation, and reinforcement learning for long-horizon manipulation. In
+  Pulkit Agrawal, Oliver Kroemer, and Wolfram Burgard (eds.), Conference on Robot Learning,
+  6-9 November 2024, Munich, Germany, volume 270 of Proceedings of Machine Learning Re-
+  search, pp. 2347–2371. PMLR, 2024. URL https://proceedings.mlr.press/v270/
+  zhou25a.html. 2
+
+
+
+
+                                               16
+Published as a conference paper at ICLR 2026
+
+
+
+
+A     A PPENDIX
+A.1   D ETAILED R EWARD S PECIFICATION
+
+We provide the full specification of the task-agnostic reward introduced in Equation 1. The reward
+consists of a weighted sum of safety and task-related terms that are shared across all environments,
+with identical weights and no task-specific tuning.
+
+Safety and regularization terms. To encourage stable and physically plausible behavior, we pe-
+nalize large actions, rapid changes in actions, and excessive joint velocities:
+                   rsmooth (st , at ) = −λact ∥at ∥22 − λrate ∥at − at−1 ∥22 − λvel ∥q̇t ∥22 .      (2)
+Additionally, we include a large penalty for invalid or unsafe robot states:
+                               rterm (st ) = −λabnormal · 1[abnormal state].                        (3)
+In practice, we use weights λact = 10−4 , λrate = 10−3 , λvel = 10−2 , and λabnormal = 100.
+
+Task-related terms. We include several dense reward components that guide the agent toward
+successful completion of the task.
+First, we encourage the end-effector to approach the target object:
+                                                                      
+                                                          ∥pee − pobj ∥
+                         rreach (st ) = λreach 1 − tanh                    ,                        (4)
+                                                               σ
+where pee and pobj denote the end-effector and target object positions, respectively.
+Second, we provide a dense shaping signal based on the relative pose between the manipulated
+object and the goal:
+                                                                          
+                                           1        ∥xerr ∥           ∥θerr ∥
+                     rdist (st ) = λdist ·    exp −           + exp −            ,       (5)
+                                           2          σ                 σ
+where xerr and θerr denote position and orientation errors computed in the goal frame.
+We also include a sparse success reward:
+               rsuccess (st ) = λsuccess · 1[position and orientation thresholds satisfied],        (6)
+which activates when both position and orientation errors fall below predefined thresholds.
+
+Implementation details. The full reward is implemented as a weighted sum of the above terms
+with fixed coefficients across all tasks. In particular, we use:
+                              λreach = 0.1,     λdist = 0.1,     λsuccess = 1.0.
+
+Notably, all reward components and weights are shared across tasks without modification. We find
+that performance is largely insensitive to moderate changes in these weights, and that the primary
+driver of successful learning is the coverage of the initial state distribution rather than reward shap-
+ing.
+
+
+
+
+                                                      17
+Published as a conference paper at ICLR 2026
+
+
+
+
+A.2                      A DDITIONAL S IMULATION R ESULTS
+
+               1.0
+                               Leg Twisting (Easy) ­ Reaching Resets                                   1.0
+                                                                                                                      Leg Twisting (Easy) ­ Near­Goal Resets
+
+               0.8                                                                                     0.8
+
+
+
+
+Success Rate                                                                            Success Rate
+               0.6                                                                                     0.6
+
+
+               0.4                                                                                     0.4
+
+
+               0.2                                                                                     0.2
+
+
+               0.0                                                                                     0.0
+                     0    30    60   90   120     150     180   210   240   270   300                        0   30      60   90      120     150     180   210   240   270   300
+                                                Updates                                                                                     Updates
+
+
+                                                 OmniReset (Ours)           BC­PPO                           DeepMimic             DemoCurriculum
+
+
+Figure 12: Success Rates on Different Stages of Task. We plot the success rates for the Leg Twisting
+task when starting from states that are in the Near-Goal region and also the Reaching Region of the state space.
+When evaluating these success rates, we sample resets from the demonstrations used by the baseline algorithms
+to ensure the resulting policies start from in-distribution states. We see that the baselines can achieve moderate
+success rates when starting close to the goal (Near Goal), but struggle to make meaningful progress on the full
+long-horizon task (captured by the reaching resets).
+
+
+A.3                      D ISTILLATION AND T RANSFER D ETAILS
+
+A.3.1                     ROBOT K INEMATICS
+Accurate modeling of robot kinematics is a prerequisite for sim-to-real transfer. We use a Universal
+Robots UR7e for all real-world experiments. However, each physical UR7e deviates from its nom-
+inal model due to manufacturing tolerances in link lengths and joint offsets. As a result, using the
+default URDF leads to systematic pose errors that accumulate along the kinematic chain.
+To address this, we regenerate the URDF using the factory-provided calibration file specific to our
+robot. This ensures that forward kinematics in simulation closely match the real system. Without this
+calibration step, we observe consistent end-effector pose misalignment, which significantly degrades
+performance on precision tasks such as insertion.
+For safety, we align joint limits between simulation and the real system, with one exception for the
+wrist joints. Specifically, we reduce the wrist joint limits from [−360◦ , 360◦ ] to [−180◦ , 180◦ ] in
+simulation. This prevents the policy from exploiting extreme joint rotations during training, which
+could lead to the robot hitting joint limits during real-world execution and triggering safety stops.
+In addition, we augment the wrist camera mount region with an enlarged, invisible collision geom-
+etry in simulation. This acts as a safety buffer to discourage behaviors that bring the wrist-mounted
+camera into contact with the environment. We find that these conservative modifications improve
+the reliability of deployment without negatively impacting task performance.
+
+A.3.2                     ROBOT DYNAMICS AND S YSTEM I DENTIFICATION
+Even with matched kinematics, sim-to-real transfer fails without accurate modeling of robot dynam-
+ics and actuation. A key requirement is that the interface between the policy and the robot, which
+maps low-frequency position outputs to high-frequency joint torques, is identical in simulation and
+on hardware.
+We therefore re-implement the same controller with identical gains in both simulation and real-
+world execution, ensuring identical computation of torques from end-effector commands. Small
+implementation details are critical. For example, Jacobian computations must be consistent. We
+found that default simulator choices, such as computing Jacobians at link centers of mass, can differ
+from real implementations and lead to subtle but important discrepancies.
+
+
+                                                                                     18
+Published as a conference paper at ICLR 2026
+
+
+
+
+                                   (a) Without system identification
+
+
+
+
+                                     (b) With system identification
+
+Figure 13: Effect of system identification. Comparison of chirp trajectory fit with and without system
+identification.
+
+
+                                                  19
+Published as a conference paper at ICLR 2026
+
+
+
+
+After aligning the controller, residual mismatch remains due to unmodeled actuator dynamics. In
+particular, the UR7e exhibits significant joint friction. We perform system identification of actuator
+parameters following PACE (Bjelonic et al., 2025) by executing open-loop trajectories and minimiz-
+ing the error between simulated and real joint trajectories using CMA-ES.
+We identify friction, armature, and motor delay parameters. To ensure sufficient excitation, we use
+chirp trajectories that span a wide range of velocities. After system identification, we achieve an
+under 2 degree RMSE in joint space. In contrast, if we use zero-defaults for these parameters, we
+have approximately a 7 degree RMSE in joint space (see Fig. 13 for details).
+This level of accuracy is sufficient for successful transfer in tasks such as Peg Insertion. How-
+ever, more sensitive tasks, such as flipping a drawer in the Drawer Insertion task, highlight
+that even small residual control errors can lead to significant performance degradation and failure.
+Reducing this control gap between simulation and hardware remains an important direction for fu-
+ture work.
+
+A.3.3   G RIPPER M ODELING
+
+We use a Robotiq 2F-85 gripper mounted on the UR7e. Accurate modeling of the gripper is impor-
+tant for transfer, particularly for contact-rich manipulation.
+Due to limitations of the physics engine, since PhysX does not support closed kinematic chains,
+we approximate the gripper using mimic joints in simulation. If the gripper is instead modeled
+with unconstrained joints, the resulting system behaves as a compliant mechanism, similar to a
+spring-damper system, which does not match the real hardware. In this case, the policy can exploit
+unrealistic deformation modes that do not transfer to the real world.
+To avoid this issue, we enforce rigid coupling via mimic joints. We use a simplified binary gripper
+action, open or close, rather than modeling the full internal control loop. While this introduces some
+mismatch relative to the real system, we find that it is not performance-limiting for our tasks. In
+practice, careful tuning of gripper force and speed parameters is required to approximately match
+the effective behavior in simulation.
+
+A.3.4   C ONTACT M ODELING
+
+We use signed distance fields (SDFs) for contact modeling of objects, which is critical for accurately
+representing contact geometry in assembly tasks such as threaded insertions. Compared to simpler
+collision approximations, SDF-based contacts provide more precise surface interactions, which we
+find important for successful sim-to-real transfer.
+We also find that the simulation timestep plays a key role in contact fidelity. Using a simulation
+timestep of sim dt = 1/120 provides a good balance between computational efficiency and accu-
+rate contact modeling for the tasks considered in this work.
+Despite these improvements, and the use of extensive randomization (Section A.3.7), certain
+contact-rich behaviors remain difficult to transfer reliably. For example, strategies that rely on ex-
+ploiting fine contact interactions, such as reorienting a peg by pushing it against the back of the
+hole, often fail due to small discrepancies in contact dynamics. Improving contact modeling to bet-
+ter capture such interactions remains an important direction for future work, including exploring
+more accurate contact models or integrating multiple physics simulation backends.
+
+A.3.5   C ONTROLLER D ESIGN
+
+Controller design plays a central role in both policy learning and sim-to-real transfer. We use a
+torque-level operational space controller (Khatib, 1987) that tracks a desired end-effector pose.
+Given current joint positions q and velocities q̇, we compute the end-effector pose error e ∈ R6 ,
+consisting of position and orientation error (represented as axis-angle). The desired task-space force
+is:
+
+
+                                         F = Kp e − Kd ẋ,                                         (7)
+
+
+                                                 20
+Published as a conference paper at ICLR 2026
+
+
+
+
+where ẋ = J(q)q̇ is the end-effector velocity, J(q) is the Jacobian, and Kp , Kd are diagonal stiffness
+and damping matrices.
+Joint torques are then computed via:
+
+                                              τ = J(q)⊤ F.                                              (8)
+
+We additionally clip the pose error to bound the maximum task-space force, and apply torque limits
+at execution time:
+                                     τ ← clip(τ, −τmax , τmax ).                               (9)
+
+Importantly, we do not apply torque clipping during simulation training, as we found that satura-
+tion adversely affects learning performance by distorting the policy’s action-to-dynamics mapping.
+Instead, torque limits are enforced only during real-world deployment for safety and hardware pro-
+tection.
+In practice, we use separate gains for translational and rotational control. These gains are tuned
+empirically via teleoperation to achieve smooth, stable, and responsive behavior. For damping, we
+follow a critical damping heuristic and set:
+                                                  p
+                                            Kd = 2 Kp ,                                        (10)
+which ensures fast convergence without oscillations under a second-order system approximation.
+We command joint torques to the robot at 500Hz with policy end effector pose commands updating
+at 10Hz.
+In contrast, joint-space PD control or inverse kinematics combined with joint PD results in sig-
+nificantly worse performance. These controllers are more prone to jamming and unstable motion.
+Empirically, both RL training and distilled policy performance are substantially worse under joint-
+space control formulations. A deeper investigation into the interaction between controller design
+and policy learning remains an important direction for future work.
+
+A.3.6    ACTION S PACE
+We use a relative Cartesian action space, where the policy predicts incremental end-effector pose
+updates. We find that this choice is critical for stable RL training. In particular, using small action
+magnitudes significantly improves exploration and learning. In contrast, absolute Cartesian actions
+or large action scales lead to unstable behavior, where the robot exhibits large, wild motions and
+fails to learn.
+During training, we use an action scale of (0.02, 0.02, 0.02, 0.02, 0.02, 0.2) for (x, y, z, rx , ry , rz ).
+We assign a larger scale to the final rotational dimension to encourage exploration of twisting mo-
+tions, which are important for tasks such as leg twisting, while remaining beneficial for other tasks.
+More generally, we find that larger action magnitudes are better tolerated at the wrist, where mo-
+tions have more localized effects, whereas large motions at the base joints can lead to unstable global
+movements.
+For sim-to-real transfer, we further reduce the action scale to (0.01, 0.01, 0.002, 0.02, 0.02, 0.2).
+This reduction improves stability and mitigates aggressive motions that can degrade performance on
+hardware. In particular, we decrease the translational components, especially along the vertical (z)
+axis, to prevent the gripper from applying excessive forces during contact.
+To avoid destabilizing the learned policy, we do not switch directly to the smaller action scale.
+Instead, we apply a curriculum that gradually transitions from the original training scale to the
+reduced scale, conditioned on task success. This allows the policy to adapt smoothly to the more
+conservative control regime while preserving previously learned behaviors. Note that this is not a
+curriculum over behaviors or state distributions, since the policy is already succeeding, but rather a
+parameter curriculum designed specifically to facilitate stable sim-to-real transfer.
+We also note that simply clipping actions to enforce smaller motions is not effective, as it introduces
+discontinuities that degrade optimization and can cause RL training to collapse. Gradually adjusting
+the action scale through a curriculum provides a more stable alternative.
+
+
+                                                    21
+Published as a conference paper at ICLR 2026
+
+
+
+
+ Category              Parameter                           Range / Distribution
+                       Robot friction (static)             U (0.3, 1.2)
+                       Robot friction (dynamic)            U (0.2, 1.0)
+                       Insertive object friction           U (1.0, 2.0) (static), U (0.9, 1.9) (dynamic)
+                       Table friction                      U (0.3, 0.6) (static), U (0.2, 0.5) (dynamic)
+ Dynamics
+                       Robot mass scale                    ×U (0.7, 1.3)
+                       Insertive object mass               U (0.02, 0.2) kg
+                       Receptive object mass scale         ×U (0.5, 1.5)
+                       Table mass scale                    ×U (0.5, 1.5)
+                       Joint friction, armature, damping   ×U (0.8, 1.2)
+                       Motor delay                         U ({0, 1, 2}) steps
+ Actuation / Sys-ID    OSC gains                           ×U (0.8, 1.2)
+                       Gripper stiffness                   × log U (0.5, 2.0)
+                       Gripper damping                     × log U (0.5, 2.0)
+                       Object pose                         x ∼ U (0.3, 0.55), y ∼ U (−0.1, 0.5), z ∼ U (0, 0.3), SO(3)
+ State Reset
+                       End-effector pose                   x ∼ U (0.3, 0.7), y ∼ U (−0.4, 0.4), z ∼ U (0, 0.5),
+                                                           pitch ∼ U (π/4, 3π/4), yaw ∼ U (π/2, 3π/2)
+                       Third person camera position        ±5 cm per axis
+                       Third person camera rotation        ±2◦ per axis
+                       Third person camera focal length    ±2.0
+ Visual (Camera)
+                       Wrist camera position               ±1 cm
+                       Wrist camera rotation               ±1◦
+                       Wrist camera camera focal length    ±1.0
+                       Texture vs. color                   texture w.p. 0.5, color w.p. 0.5
+                       Texture map                         U (texture maps) (if texture)
+ Visual (Appearance)   Diffuse color                       U (0, 1)3 (if color)
+                       Texture scale                       U (0.7, 5.0)
+                       Roughness                           U (0.0, 1.0)
+                       Metallic                            U (0.0, 1.0)
+                       Specular                            U (0.0, 1.0)
+                       HDRI texture map                    U (texture maps)
+ Lighting              HDRI rotation                       U (SO(3))
+                       HDRI intensity                      U (1000, 4000)
+                       Color jitter                        brightness = 0.1, contrast = 0.1, saturation = 0.1, hue = 0.05
+                       Gaussian blur                       kernel size = 5, σ ∼ U (0.1, 2.0)
+ Image Augmentation
+                       Random grayscale                    p = 0.05
+                       Gaussian noise                      std = 0.01
+
+Table 2: Domain randomization and state initialization used during training. Parameters are either
+sampled directly from distributions or applied as multiplicative scaling to nominal values (denoted
+by ×).
+A.3.7   R ANDOMIZATIONS
+
+
+We apply domain randomization across dynamics, actuation, state initialization, and visual observa-
+tions, as summarized in Table 2. We find that these randomizations significantly improve sim-to-real
+transfer and robustness.
+For camera setup, we first calibrate extrinsics using ArUco markers in the real environment. We
+then manually refine alignment by adjusting camera pose and field-of-view (FOV) in simulation to
+match overlaid real and simulated images. To account for residual calibration error and potential
+perturbations such as camera movement, we randomize camera pose and focal length within small
+ranges around the calibrated values.
+For visual observations, we follow extensive domain randomization similar to DextrAH-RGB (Singh
+et al., 2025), varying lighting, backgrounds, object and robot appearance, and workspace textures.
+We randomize between 920 high-dynamic range conditions (HDR) for lighting and 957 texture
+paths for object and gripper fingertip textures. In addition, we apply standard image augmentations
+including color jitter, blur, and grayscale.
+
+
+                                                  22
+Published as a conference paper at ICLR 2026
+
+
+
+
+We note that the ranges of randomization were not extensively tuned, and were chosen to provide
+broad coverage of plausible variations. Future work could study how to more systematically se-
+lect these ranges, either by narrowing them to improve data efficiency and alignment with the real
+system, or by expanding them further to increase diversity and potentially improve robustness.
+
+A.3.8    C AMERA PLACEMENT
+
+We find that camera placement is critical for successful RGB-based distillation. In particular, using
+a wrist-mounted camera together with third-person cameras positioned close to the workspace along
+the z-axis provides significantly better performance than top-down viewpoints.
+We use two third-person cameras: one capturing the entire tabletop region for grasping, and another
+focused on the insertion area for contact-rich interactions. This setup helps reduce partial observ-
+ability by ensuring that both pre-contact and contact phases of the task are well observed.
+In practice, we find that a single third-person camera can already achieve reasonable performance.
+We choose to use both third-person cameras to maximize performance.
+
+A.3.9    RL T RAINING AND F INETUNING
+
+We train RL policies using an asymmetric actor-critic setup (Pinto et al., 2017), where the policy
+observes object and robot positions, while the critic has access to privileged information such as
+object mass and other physical parameters. The policy input consists of a stack of 5 frames at 10 Hz
+to provide short-term temporal context, whereas the critic does not use any history. We find that this
+design significantly improves training stability under large-scale domain randomization.
+We find that directly training RL policies with system-identified dynamics, particularly high joint
+friction, leads to poor learning performance. In practice, the policy struggles to explore effectively
+and training often fails to converge.
+To address this, we adopt a staged training procedure. We first train the policy to convergence un-
+der simplified dynamics, without system-identified parameters (with zero friction, armature, and
+motor delay), which enables efficient exploration and stable learning. We then apply a curriculum
+that gradually transitions the environment dynamics toward the system-identified parameters, con-
+ditioned on task success. In conjunction with this transition, we also increase controller gains to
+ensure that the robot remains responsive under higher friction. Note that this is not a curriculum
+over behaviors or state distributions, since the policy is already succeeding, but rather a parameter
+curriculum designed specifically to facilitate stable sim-to-real transfer.
+Training the RL policy from scratch takes approximately 8 hours for Peg Insertion, 16 hours
+for Leg Twisting, and 24 hours for Drawer Assembly using 4 L40S GPUs. Fine-tuning
+with the curriculum takes approximately 8 hours on 1 L40S GPU for Peg Insertion, 24 hours
+on 4 L40S GPUs for Leg Twisting, and 24 hours on 1 L40S GPU for Drawer Assembly.
+
+A.3.10    S EED S ELECTION
+
+We observe that policies trained
+with different random seeds can ex-
+hibit substantially different behav-
+iors, with some transferring more re-
+liably to the real world than oth-
+ers. For example, in the peg inser-
+tion task, certain policies learn to re-
+orient the peg by dropping it above
+the hole and re-grasping it as shown
+in Fig. 14a. While effective in sim- (a) Behavior which doesn’t transfer well. We show an example
+ulation, this strategy requires precise of a behavior which doesn’t transfer well, where the policy reorient
+timing and accurate gripper behavior, the peg by dropping it above the hole and re-grasping it.
+making it sensitive to sim-to-real dis-
+crepancies and prone to failure on hardware.
+
+
+                                                    23
+Published as a conference paper at ICLR 2026
+
+
+
+
+To mitigate this, we train multiple policies with different random seeds and select among them
+using an offline proxy metric. Specifically, we evaluate each policy under injected action noise and
+measure its success rate. We then select the policy with the highest performance under noise. This
+metric serves as a proxy for robustness to control error and sim-to-real mismatch, and we find that
+it correlates well with real-world performance.
+
+A.3.11    S TUDENT-T EACHER D ISTILLATION
+
+We collect 80K trajectories from a state-based expert under extensive randomization (Section A.3.7)
+and use them to train a visuomotor policy. The policy consists of an ImageNet-pretrained ResNet-
+18 encoder followed by a 4-layer MLP with 512 hidden units, trained via supervised learning. The
+policy takes as input a stack of 5 consecutive frames and predicts the mean and standard deviation
+of a Gaussian action distribution.
+Following DextrAH-RGB (Singh et al., 2025), we find that combining pose reconstruction with KL
+matching to the expert’s action distribution leads to the best distillation and transfer performance.
+In particular, our most performant policies are trained with a KL loss and deployed only using the
+mean action. Without pose reconstruction, the RGB policy sometimes fails to reliably localize and
+grasp objects. We also find that end-to-end training, with gradients propagated through the visual
+encoder, is critical; freezing the encoder significantly degrades performance.
+We experiment with alternative representations and architectures, including DINO features and fine-
+tuning larger pretrained models such as Pi-0.5, but do not observe significant performance improve-
+ments. These approaches substantially increase training cost, suggesting that larger models may
+only provide benefits at larger data scales or across more diverse tasks.
+We also evaluate action chunking and diffusion-based policies, but find that they underperform sim-
+ple MLP policies. We hypothesize that this is due to the high-frequency and reactive nature of the
+expert RL policy, particularly in contact-rich assembly tasks where small corrective motions and
+jittering are important.
+In terms of data scaling, we observe that using 10K–80K trajectories yields similar performance
+in simulation, but real-world transfer improves significantly with larger datasets. Training for a
+sufficient number of iterations is also important; we train for approximately 350K iterations (about
+2 days on a single H200 GPU). Collecting 80K trajectories requires approximately 24 GPU hours
+on a 3090 GPU. Further study is needed to better understand the relationship between dataset size,
+training time, and transfer performance.
+Despite these efforts, RGB policy performance in simulation remains limited (approximately 50%
+success rate), indicating a gap between imitation learning and robust deployment. This suggests
+that incorporating online adaptation methods in simulation, such as image-based DAgger or RL
+fine-tuning, may be necessary to achieve higher performance. We leave this to future work.
+
+A.3.12    I NFERENCE S PEED
+
+We deploy the policy at 10 Hz using a non-blocking control pipeline. Sensor data is collected asyn-
+chronously at their native frequencies. At each control step, the policy retrieves the most recent
+observation from each sensor that precedes the current timestep, performs inference, and sends the
+resulting action to the robot.
+This design enables smooth and responsive motion, but introduces latency due to sensor delay, data
+processing, and policy inference. Our setup uses a RealSense D415 wrist camera, along with D435
+and D455 third-person cameras, all streamed over USB 3.2. We measure approximately 30 ms of
+sensor-to-PC delay and an additional 5 ms for processing. Policy inference using a ResNet18-MLP
+architecture takes approximately 5 ms on an NVIDIA RTX 4090 GPU, resulting in a total end-to-end
+latency of roughly 40 ms.
+Despite not incorporating explicit latency randomization during training, we find that policies remain
+smooth and robust under this level of delay. However, fast inference speed is critical. When we
+artificially increase inference latency to 60 ms, policies exhibit significant jitter and performance
+degrades substantially.
+
+
+                                                 24
+Published as a conference paper at ICLR 2026
+
+
+
+
+These results highlight the importance of low-latency inference for stable control and suggest that
+robustness to delay remains an important direction for future work.
+
+A.4    R EAL W ORLD E VALUATION D ETAILS
+
+Evaluation Setup. We deploy the policy at 10 Hz, matching the control frequency used during
+simulation training. At the start of evaluation, the robot joints are reset to a fixed initial configuration;
+no further resets are performed, and the policy continuously rolls out in the environment.
+To improve robustness, we implement a simple stuck-detection mechanism. If the robot’s joint
+positions exhibit negligible movement over a 2-second window (maximum joint displacement below
+0.002 radians across all joints), we override the policy by commanding the gripper to open for 1
+second. This helps the robot recover from situations such as failed grasps or unfavorable contact
+configurations. Triggering this mechanism is not counted as a failure in our evaluation.
+With this mechanism, the robot operates continuously without manual resets. We define a trajectory
+as a failure only if human intervention is required, such as repositioning the robot or the object. This
+typically occurs when the robot becomes stuck or takes excessively long to complete the task.
+
+Initialization Distribution. For evaluation, we sample initial object configurations by uniformly
+randomizing their positions on the table. We intentionally include challenging setups, such as objects
+in contact that require separation, stacked objects, or objects placed far from the workspace center,
+for example near the robot base, to stress test the policy’s capabilities.
+
+Physical Setup. Task success also depends on aspects of the physical setup. We use a compliant
+silicone mat on the workspace, which facilitates manipulation by allowing slight deformation during
+contact, particularly for reorientation and flipping behaviors. The mat is secured to the table using
+command strips to prevent motion.
+For the Peg Insertion and Leg Twisting tasks, we additionally fix the receptive objects,
+such as the peg hole and tabletop, to the workspace using command strips. This is important because,
+in simulation, these objects are static, and the policy learns to reorient the insertive object relative
+to a fixed reference. Without securing them, the receptive objects may move during interaction,
+leading to failures. If the robot applies sufficient force to dislodge these fixtures during evaluation,
+we exclude the corresponding trajectory from success rate calculations.
+For the Drawer Assembly task, directly fixing the drawer is insufficient due to larger interaction
+forces. Instead, we secure an L-shaped 3D-printed bracket behind the drawer box, following (Heo
+et al., 2023), which provides a more stable constraint. We find that the policy largely ignores this
+additional structure, likely due to domain randomization during training. Additionally, to address
+height misalignment caused by the drawer lip, we use layered mats with a cutout to align the drawer
+bottom with the workspace surface, which significantly improves insertion success. Reducing re-
+liance on such environment modifications is an important direction for future work, for example
+through the use of bimanual manipulation.
+For all tasks, we mount a stage light above the workspace to ensure consistent lighting conditions
+throughout the day.
+
+Metrics and Evaluation Duration. We continuously run the policy for approximately 25 minutes
+for the peg and drawer tasks, and 50 minutes for the leg task, collecting 41, 52, and 55 trajectories,
+respectively.
+We define a first-try success as completing the task without re-grasping or re-inserting the object
+(e.g., dropping the object and attempting again counts as a retry). Throughput is computed as the
+total number of successful trajectories divided by the total evaluation time.
+
+
+
+
+                                                     25
+

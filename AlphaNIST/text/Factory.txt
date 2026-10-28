@@ -1,0 +1,1226 @@
+                                                   Factory: Fast Contact for Robotic Assembly
+                                              Yashraj Narang∗ , Kier Storey∗ , Iretiayo Akinola∗ , Miles Macklin∗ , Philipp Reist∗ , Lukasz Wawrzyniak∗ ,
+                                                 Yunrong Guo∗ , Adam Moravanszky∗ , Gavriel State∗ , Michelle Lu∗ , Ankur Handa∗ , Dieter Fox∗†
+                                                                                           ∗ NVIDIA Corporation, Santa Clara, USA
+                                                        † Paul G. Allen School of Computer Science & Engineering, University of Washington, Seattle, USA
+
+
+
+
+                                           Abstract—Robotic assembly is one of the oldest and most chal-
+                                        lenging applications of robotics. In other areas of robotics, such
+                                        as perception and grasping, simulation has rapidly accelerated
+                                        research progress, particularly when combined with modern deep
+
+
+
+
+arXiv:2205.03532v1 [cs.RO] 7 May 2022
+                                        learning. However, accurately, efficiently, and robustly simulating
+                                        the range of contact-rich interactions in assembly remains a
+                                        longstanding challenge. In this work, we present Factory, a set
+                                        of physics simulation methods and robot learning tools for such
+                                        applications. We achieve real-time or faster simulation of a wide
+                                        range of contact-rich scenes, including simultaneous simulation
+                                        of 1000 nut-and-bolt interactions. We provide 60 carefully-
+                                        designed part models, 3 robotic assembly environments, and 7
+                                        robot controllers for training and testing virtual robots. Finally,
+                                        we train and evaluate proof-of-concept reinforcement learning         Fig. 1. Rendering of Franka robots interacting with nut-and-bolt assemblies
+                                        policies for nut-and-bolt assembly. We aim for Factory to open        in Isaac Gym using methods from Factory. The simulation contains 128
+                                        the doors to using simulation for robotic assembly, as well as        parallel environments and is executing in real-time on a single GPU.
+                                        many other contact-rich applications in robotics. Please see our
+                                        website for supplementary content, including videos. 1
+
+                                                                                                              research has demonstrated a host of other applications: creat-
+                                                                   I. I NTRODUCTION
+                                                                                                              ing training environments for virtual robots [20, 50, 91, 105],
+                                           Assembly is an essential, but highly challenging area of           generating large-scale grasping datasets [21, 33], inferring
+                                        manufacturing. It includes a diverse range of operations, from        real-world material parameters [70, 71], simulating tactile
+                                        peg insertion, electrical connector insertion, and threaded           sensors [73, 84, 100], and training reinforcement learning (RL)
+                                        fastener mating (e.g., tightening nuts and bolts), to wire pro-       agents for manipulation and locomotion [13, 78]. Compelling
+                                        cessing, cable routing, and soldering [9, 42]. These operations       works have now shown that RL policies trained in simulation
+                                        are ubiquitous across the automotive, aerospace, electronics,         can be transferred to the real world [2, 4, 12, 27, 62, 81, 103].
+                                        and medical industries [9]. However, assembly has been ex-               Nevertheless, the power of physics simulation has not sub-
+                                        ceptionally difficult to automate due to physical complexity,         stantially impacted robotic assembly. For assembly, a simulator
+                                        part variability, and strict reliability requirements [42].           must accurately and efficiently simulate contact-rich interac-
+                                           In industry, robotic assembly methods may achieve high             tions, a longstanding challenge in robotics [14, 31, 53, 109],
+                                        precision, accuracy, and reliability [9, 52, 98]. However, these      particularly for geometrically-complex, tight-clearance bodies.
+                                        methods can be highly restrictive. They often use expensive           For instance, consider the canonical nut-and-bolt assembly
+                                        equipment, require custom fixtures, have high setup times (e.g.,      task. Real-world nuts and bolts have finite clearances between
+                                        tooling design, waypoint definition, parameter tuning) and cy-        their threads, thus experiencing 6-DOF relative motion rather
+                                        cle times, and are sensitive to variation (e.g., part appearance,     than pure helical motion. To simulate real-world motion phases
+                                        location). Custom tooling and part-specific engineering are           (e.g., initial mating, rundown) and associated pathologies (e.g.,
+                                        also cost-prohibitive for high-mix, low-volume settings [42].         cross-threading, jamming) [36], collisions between the threads
+                                        In research, methods for robotic assembly often use less-             must be simulated. However, high-quality surface meshes for
+                                        expensive equipment, require fewer custom fixtures, achieve           a nut-and-bolt may consist of 10k-50k triangles; a naive
+                                        increased robustness to variation, and may recover from failure       collision scheme may easily exceed memory and compute
+                                        [35, 56, 90]. Nevertheless, these methods often have lower            limits. Moreover, for RL training, a numerical solver may need
+                                        reliability, higher setup times (e.g., demo collection, real-world    to satisfy non-penetration constraints for 1000 environments
+                                        training, parameter tuning), and/or higher cycle times.               in real-time (i.e., at the same rate as the underlying physical
+                                           Meanwhile, physics simulation has become a powerful tool           dynamics). Despite the omnipresence of threaded fasteners in
+                                        for robotics development. Simulators have primarily been used         the world, no existing simulator achieves this performance.
+                                        to verify and validate robot designs and algorithms [1]. Recent          In this work, we present Factory, a set of physics simulation
+                                                                                                              methods and robot learning tools for such interactions (Fig. 1).
+                                          1 https://sites.google.com/nvidia.com/factory/                      Specifically, we contribute the following:
+  •  A physics simulation module for fast, accurate simu-          contact generation scales as O(n2 ) (where n is the number
+     lations of contact-rich interactions through a novel syn-     of triangles), again impacting memory and performance. In
+     thesis of signed distance function (SDF)-based collisions,    addition, since triangles have zero volume, penetrations can be
+     contact reduction, and a Gauss-Seidel solver. The module      difficult to resolve, motivating techniques such as boundary-
+     is accessible within the PhysX physics engine [75] and        layer expanded meshes [28]. Tetmeshes can mitigate such
+     Isaac Gym [64]. We demonstrate simulator performance          penetration issues, but high quality tetrahedral meshing is
+     on a wide range of challenging scenes. As an example,         challenging. Tetrahedra may have extreme aspect ratios in
+     we simulate 1000 simultaneous nut-and-bolt assemblies         high-detail areas, leading to inaccurate collision checks.
+     in real-time on a single GPU, whereas the prior state-of-        SDFs, which map points to distance-to-a-surface, can pro-
+                                                    1
+     the-art was a single nut-and-bolt assembly at 20 real-time.   vide accurate implicit representations of complex geometries.
+  • A robot learning suite consisting of a Franka robot            They enable fast lookups of distances, as well as efficient
+     and all rigid-body assemblies from the NIST Assembly          computation of gradients to define contact normals. However,
+     Task Board 1 [42], the established benchmark for robotic      using SDFs for collisions requires precomputing SDFs offline
+     assembly [98]. The suite includes 60 carefully-designed       from a mesh, which can be time- and memory-intensive.
+     assets, 3 robotic assembly environments, and 7 classical      Moreover, collision schemes typically test the vertices of
+     robot controllers. The suite is accessible within Isaac       a trimesh against the SDF to generate contacts. For sharp
+     Gym. User-defined assets, environments, and controllers       objects, simply sampling vertices can cause penetration to
+     can be added and simulated as desired.                        occur, motivating iterative per-triangle contact generation [61].
+  • Proof-of-concept RL policies for a simulated Franka               We use discrete, voxel-based SDFs as our geometric rep-
+     robot to solve the most contact-rich task on the NIST         resentation and demonstrate that they provide efficient, robust
+     board, nut-and-bolt assembly. The policies are trained and    collision detection for challenging assets in robotic assembly.
+     tested in Isaac Gym. The contact forces generated during         2) Contact Reduction: Contact reduction is a powerful
+     policy execution are compared to literature values from       technique from game physics for reducing the total number
+     the real world and show strong consistency.                   of contacts without compromising simulation accuracy. A
+  We aim for Factory to greatly accelerate research and de-        naive contact generation scheme between a nut and bolt may
+velopment in robotic assembly, as well as serve as a powerful      generate ∼1e6 contacts; a careful one may generate ∼1e4.
+tool for contact-rich simulation of any kind.                      Excessive contacts can impact both memory and stability, and
+                                                                   per-contact memory requirements cannot easily be reduced.
+                     II. R ELATED W ORK                            Since the rigid-body mechanics principle of equivalent systems
+                                                                   dictates that a set of distributed forces can be replaced by a
+A. Contact-Rich Simulation
+                                                                   smaller set of forces (constrained to produce the same net force
+   A longstanding challenge in contact-rich simulation is fast,    and moment), accurate dynamics can be preserved.
+accurate, and robust contact generation, as well as solution          Specifically, contact reduction consists of methods for pre-
+of non-penetration constraints. We have found that achieving       processing, clustering, and maintaining temporal persistence
+such performance requires careful consideration of 1) geo-         of contacts. We pay particular attention to contact clustering,
+metric representations, 2) contact reduction schemes, and 3)       which generates bins for contacts, reduces the bins, and
+numerical solvers. Here we review primary options for each,        reduces the contacts within each bin using heuristics. The two
+as well as prior results on a challenging benchmark.               most common heuristics are normal similarity and penetration
+   1) Geometric Representations: There are 5 major geomet-         depth [72]. Normal similarity assigns contacts with similar
+ric representations in physics simulation for graphics: convex     surface normals to the same bin, culls similar bins, and culls
+hulls, convex decompositions, triangular meshes (trimeshes),       similar contacts, and is often implemented with k-means or
+tetrahedral meshes (tetmeshes), and SDFs (Fig. S10).               cube map algorithms [76, 80, 26]. Penetration depth culls
+   Convex hulls cannot accurately approximate complex ob-          bins and contacts with negligible penetration, as these often
+ject geometries, such as threaded fasteners with concavities.      have minimal impact on dynamics. Data-driven methods train
+Convex decompositions address this issue by approximating          networks to perform the reduction [41], but require a separate
+the input shape using multiple convex hulls, generated with        data collection and learning phase to be effective.
+algorithms such as V-HACD [65]. While an improvement on               We combine normal similarity, penetration depth, and an
+single convex hulls, these decompositions can produce spatial      area-based metric to reduce contacts and demonstrate the
+artifacts on complex geometries (Fig. S11). Even for perfect       resulting dynamics across numerous evaluation scenes.
+decompositions, the number of collision pairs to test during          3) Solvers: There are 4 major options for solvers in
+contact generation scales as O(n2 ) (where n is the number of      physics simulation: direct, conjugate gradient/conjugate resid-
+convex shapes), impacting memory and performance. Since            ual (CG/CR), Jacobi, and Gauss-Seidel. We briefly review
+contacts are generated between convex shapes, undesirable          these solution methods below; see [3] for a detailed treatment.
+contact normals can be generated, and snagging may occur.             Direct solvers, which may rely on matrix pivoting, do not
+   Trimeshes can provide a near-exact approximation of com-        scale well to large sets of contact constraints, such as the ∼1e4
+plex geometries. However, the number of collision pairs for        constraints between a nut and bolt mesh. CG/CR methods can
+                                                                                 proposed method was also compared against Bullet (2018),
+                                                                                 and a 9.5× speed-up was measured for a stable scene.
+                                                                                    In [23], rigid-body contact was simulated using an extension
+                                                                                 of incremental potential contact (IPC) [51] and continuous
+                                                                                 collision detection (CCD) for curved trajectories. A dynamic,
+                                                                                                                                          1
+                                                                                 frictionless nut-and-bolt scene was simulated at 350        real-
+                                                                                 time (3.5 s for ∆t = 0.01 s). The proposed method was
+                                                                                 compared against Bullet (2019), MuJoCo [95], Chrono [92],
+                                                                                 and Houdini RBD [86]. Instabilities were observed with Bul-
+                                                                                 let and MuJoCo, and interpenetrations were observed with
+                                                                                 Chrono and Houdini. In [87], rigid-body contact was simulated
+Fig. 2. Cross-sectional view of an aligned M16 nut-and-bolt assembly. Nuts       using a configuration-space contact model. A single large M48
+and bolts have finite clearances between their threads, thus experiencing 6-     (48 mm diameter) nut-and-bolt was simulated at 4× real-
+DOF kinematics with multi-surface frictional contact, rather than pure helical
+motion. As follows, a nut can roll and pitch on a bolt, and may experience       time; however, data and evaluations were limited. Informally,
+pathologies such as cross-threading and jamming [36]. Left: a loose model,       an industry group simulated a dynamic nut-and-bolt scene at
+where the clearances between threads are at their maximum allowable value           1
+                                                                                 ≈ 20  real-time with variational integrators [10, 45].
+(ISO 965). Right: zoom view. Thread roots are not modeled.
+                                                                                    From the previous works, we define the established state-
+                                                                                 of-the-art for a general-purpose physics simulator that can
+                                                                                                                               1
+                                                                                 simulate a nut-and-bolt assembly to be 20        real-time for a
+handle larger sets of constraints, but are still unable to achieve
+                                                                                 single nut-bolt pair. Although fast, such speeds are not optimal
+real-time performance for complex scenarios. Gauss-Seidel
+                                                                                 for applications such as RL, which benefit from simulation of
+solvers are robust and converge quickly for well-conditioned
+                                                                                 ∼1e2–1e3 contact-rich interactions in real-time. In this work,
+problems, but perform serial operations that do not scale well
+                                                                                 we demonstrate real-time simulation of 1000 nuts-and-bolts,
+to large sets of constraints. Jacobi solvers perform parallel
+                                                                                 as well as exceptional speeds on other challenging scenes.
+operations that can leverage GPU acceleration, but converge
+slower than the aforementioned techniques.                                       B. Robotic Assembly Simulation
+    A naive implementation of Jacobi can outperform Gauss-                          Here we review previous efforts to simulate robotic assem-
+Seidel for simulating numerous contact-rich interactions. How-                   bly, as well as efforts to use these simulators and/or real-world
+ever, we show that contact reduction can greatly accelerate                      training for RL. For another recent review, see [89].
+Gauss-Seidel, achieving better performance than Jacobi.                             1) Simulation: Research efforts such as [106, 25, 23] have
+    4) Benchmark Problem: We pay special attention to the                        demonstrated advances in contact-rich simulation, often in
+problem of accurately and efficiently simulating a nut-and-                      comparison to physics engines used in robotics. However,
+bolt assembly (Fig. 2). In the simulation community, this                        the majority of robotics studies use PyBullet, MuJoCo, or
+problem has emerged as a canonical challenge in contact-                         Isaac Gym, as they provide robot importers, simulated sensors,
+rich simulation. Moreover, in robotic assembly, tightening nuts                  parallel simulation, and learning-friendly APIs. Consequently,
+onto bolts is critically important, as ≈ 40% of all mechanical                   existing work in simulation for robotic assembly is largely
+assembly operations involve screws and bolts [67].                               limited to the performance of these simulators.
+    The 3D finite element method (FEM) is the gold standard                         Efforts using MuJoCo or the robosuite extension [112] in-
+for accurate simulation of nut-and-bolt models, capturing                        clude [19, 22, 29, 37, 38, 48, 82, 88, 96, 97, 99, 108, 110, 111].
+deformation phenomena such as pretension ([40]). However,                        Simulated rigid-body assembly tasks are limited to peg-in-
+FEM simulation of a single nut-bolt pair may take ∼1-10 min                      hole insertion of large pegs with round, triangular, square, and
+to execute on CPU. As our aim is real-time (or faster)                           prismatic cross-sections, lap-joint mating, and one non-convex
+simulation to enable learning methods such as RL, we focus                       insertion [29]. Furthermore, clearances between rigid parts
+on rigid-body simulation prevalent in graphics and robotics.                     are typically 0.5-10 mm, substantially greater than real-world
+    In [106], rigid-body contact was simulated using semi-                       clearances. Efforts using PyBullet include [5, 57, 83, 107].
+implicit integration, symbolic Gaussian elimination, analytical                  Simulated tasks are again limited to large peg-in-hole insertion
+contact gradients, and an SVD solver. A dynamic scene was                        and lap-joint mating, with clearances of ∼1 mm. A handful
+simulated of screwing a hex bolt into a threaded hole at                         of research efforts have used other off-the-shelf simulators
+  1
+460 real-time (6.0 h for 47 s). The proposed method was
+                                                                                 [7, 32, 47, 104, 111] and custom simulators [16, 58, 87]. Only
+compared against Bullet (2012) [17], and a 7e4× speed-up                         [87] simulated a nut-and-bolt, which was exceptionally large
+was measured for a stable quasi-static version of the scene.                     (48 mm diameter) with inherently-larger clearances.
+In [25], rigid-body contact was simulated using a smoothed                          From the previous works, we conclude that there have been
+particle hydrodynamics solver that samples rigid surfaces with                   few successful efforts to simulate assembly tasks with realistic
+particles, models contacts as density deviations, and computes                   scales, realistic clearances (e.g., ∼0.1 mm diametral clearance
+pressure-based contact forces implicitly. A quasi-static nut-                    for a 4 mm peg), and complex geometries (e.g., nuts-and-
+                                  1
+and-bolt scene was simulated at 20   real-time (81 s for 4 s). The               bolts, electrical connectors) within a robotics simulator. In
+this work, we build a module for PhysX and Isaac Gym that           we uniquely combine SDF collisions [61], contact reduction
+can successfully simulate all rigid components on NIST Task         [72], and a Gauss-Seidel solver [60], allowing us to simulate
+Board 1 [42] with accurate models and real-world clearances.        interactions of highly-detailed models substantially faster than
+   2) Reinforcement Learning: The studies in the previous           previous efforts. We describe methods and results below.
+subsection, as well as a small number of studies that trained
+RL for robotic assembly purely in the real world, can be            A. SDF Collisions
+categorized according to their choice of RL algorithm.                 An SDF is a function φ(x) : R3 → R that maps a point
+   Several earlier works used model-based RL algorithms             x in Cartesian space to its Euclidean distance to a surface.
+or proposed variants, which explicitly predict environment          The surface is implicitly defined by φ(x) = 0, and the sign
+response during policy learning and/or execution. These efforts     indicates whether x is inside or outside the surface. The
+leveraged guided policy search [54, 93] and iterative LQG           gradient ∇φ(x) provides the normal at a point x on the
+[55]. Such algorithms are sample-efficient, but difficult to        surface. Collectively, the SDF value and gradient define a
+apply to contact-rich tasks due to highly discontinuous and         vector to push a colliding object out of the surface.
+nonlinear dynamics and unknown material parameters [88].               We generate the SDF for an object via sampling and
+   Most recent works have used model-free, off-policy RL            compute gradients via finite-differencing. Specifically, given
+algorithms or variants, which do not predict environment            a triangle mesh representing the boundaries of the object,
+response, and update an action-value function independently of      we generate an SDF for the mesh at initialization time and
+the current policy (e.g., using a replay buffer). These studies     store it as a 3D texture, which enables GPU-accelerated
+have applied Q-learning [35], deep-Q networks [110], deep           texture fetching with trilinear filtering and extremely fast O(1)
+deterministic policy gradients (DDPG) [5, 58, 56, 97], soft-        lookups. Since our shapes contain many small features, we
+actor critic [7], probabilistic embeddings [82], and hierarchical   typically use SDF resolutions of 2563 or greater.
+RL [32]. These algorithms are typically chosen for sample              To generate an initial set of contacts, we use the method
+efficiency, but are often brittle and slow/unable to converge.      of [61], which generates one contact per triangle-mesh face.
+   Several other studies use or develop off-policy RL algo-         The contact position on each face is determined by performing
+rithms that leverage human demonstrations, as well as motion        iterative local minimization to find the closest point on the face
+planners and trajectory optimizers. These efforts have used         to the opposing shape, using projected gradient descent with
+residual learning from demonstration [19], guided DDPG              adaptive stepping. As an example, detailed M4 nut-and-bolt
+[22], DDPG from demonstration (DDPGfD) [56, 57, 96], and            meshes generate 16k contacts; with the above method, these
+inverse RL [104]. Notably, [56] used DDPGfD to achieve              contacts can be generated in < 1 ms, orders of magnitude
+state-of-the-art performance in the real world for 3 insertion      faster than typical approaches for convex or mesh collision.
+tasks from NIST Task Board 1. They used human demonstra-
+tions, real-world training, and human on-policy corrections,        B. Contact Reduction and Solver Selection
+achieving a 99.8% success rate over 13k trials. Of course,             To motivate our contact reduction methods, we begin with
+these methods also require demonstration collection or ef-          a brief discussion and first-order analysis of the tight coupling
+fective planners/optimizers, and are typically limited to the       between contact generation and solver execution.
+performance of these structured priors.                                In a typical contact generation scheme, each contact only
+   Finally, a handful of research efforts have successfully used    requires approximately 7 floats (point, normal vector, and
+on-policy algorithms or variants. These studies have applied        distance) and 2 integers (rigid body indices), for a total of
+proximal policy optimization (PPO) [29, 87, 99], trust region       36 bytes. However, the memory required to store constraints
+policy optimization [47], asynchronous advantage actor-critic       associated with these contacts is substantially greater; in our
+[83], and additional algorithms [38]. These algorithms are          implementation, storing a contact and its constraints requires
+typically stable, easy-to-use, and achieve high return, but are     approximately 160 bytes. Thus, simulating an M4 nut-bolt pair
+highly sample-inefficient and require long wall-clock time.         with 16k contacts requires approx. 2.5 M B per timestep.
+                                                                                                             1
+   We take inspiration from the performance of [56], but aim           For a Jacobi solver with ∆t = 60        s, we require 8 sub-
+to achieve such performance in a fundamentally different way.       steps and 64 iterations for stable simulation. Thus, memory
+We build a module for contact-rich simulation that can help         bandwidth requirements for 16k contacts are approximately
+enable roboticists to perform more complicated tasks (e.g., nut-    1.28 GB per frame and 76.8 GB per second. Using a state-of-
+and-bolt assembly) with tight clearances; leverage performant       the-art GPU, we can only simulate 20 nut-and-bolt assemblies
+and stable on-policy RL algorithms with high parallelization;       in parallel (Table V). Unfortunately, although a Gauss-Seidel
+avoid tedious human demonstrations and corrections; and             solver converges faster (i.e., requires fewer substeps and itera-
+mitigate the need for time-consuming (e.g., ∼50 hours of data       tions), it would be unreasonably slow for so many contacts due
+in [56]), costly, and dangerous real-world RL training.             to its inherently serial nature. As reducing per-contact memory
+                                                                    can be challenging, contact reduction becomes a compelling
+        III. C ONTACT-R ICH S IMULATION M ETHODS                    strategy for reducing memory and increasing parallelization.
+   In this work, we first build a module for PhysX [75]                If we can reduce the number of contacts to 2% (i.e., from
+for efficient and robust contact-rich simulation. Specifically,     16k to 300), the simulation now requires approximately 48 kB
+per timestep. The Jacobi solver now only requires 24 M B per         Algorithm 1: Collision Detection: An overview of
+frame and 1.44 GB per second. We can now hypothetically              our collision detection pipeline. The input is two po-
+simulate a maximum of 1100 nut-and-bolt assemblies in real-          tentially contacting shapes (a, b). The output is a list
+time. Solving contact constraints is no longer a performance         of patches (i.e., sets of contacts) for each shape pair.
+bottleneck, and we can achieve a level of parallelization             foreach shape pair (a, b) do
+suitable for training on-policy RL algorithms.                            patches = ∅
+   In addition, given the far fewer contacts, it is now feasible          foreach batch in triangles(a, b) do
+                                           1
+to use a Gauss-Seidel solver. With ∆t = 60   s, we require only               candidates ← GenerateContacts(batch)
+1 substep and 16 iterations for stable simulation. Thus, we can               patches ← Assign(candidates, patches)
+now comfortably simulate > 1000 nut-and-bolt assemblies in                    while candidates 6= ∅ do
+real-time. We demonstrate exactly such performance later.                        best ← FindDeepest(candidates)
+                                                                                 patch ← BinReduce(candidates, best)
+C. Implementation of Contact Reduction
+                                                                                 patches ← AddPatch(patch, patches)
+   To implement contact reduction, we use the concept of                      end
+contact patches, which are sets of contacts that are proximal             end
+and share a normal. We generate contact patches in 3 phases           end
+(Algorithm 1). First, we Generate candidate contacts using
+SDF collisions for a batch of triangles (size 1024). Second,
+we Assign candidates to existing patches in the shape pair
+based on normal similarity. Third, for unassigned candidates,
+we FindDeepest (i.e., find the one with deepest penetration),
+create a new patch, BinReduce (i.e., assign remaining candi-
+dates to this patch based on normal similarity), and AddPatch
+to our list of patches. We repeat until no candidates remain.
+When performing AddPatch, we also check if a patch with a
+similar normal exists. We either add both patches or replace the
+existing patch, using a measure that maximizes patch surface
+area, prioritizes contacts with high penetration depth, and
+restricts the number of patches to N (where 128 ≤ N ≤ 256).
+   The preceding contact reduction process is performed ex-         Fig. 3. Rendering of the M16 nut-and-bolt assemblies scene, consisting of
+clusively in GPU shared memory. Notably, contact reduction          1024 parallel nut-and-bolt interactions executing in real-time.
+does not make contact generation slower; to the contrary, it
+makes generation faster, as the contact generation kernel does
+not need to write extensive amounts of data to global memory.           contact profiling, a 2e-6 m clearance is introduced,
+   Applying the above procedure to the M4 nut-and-bolt inter-           allowing the plug-and-socket to mate under gravity.
+actions, we reduce the number of contacts from 16k to 300             • 1024 parallel 2-stage gear assemblies from the NIST
+
+(Fig. S13), allowing us to simulate 1024 assemblies in real-            board (Fig S14). An external torque is applied to the
+time on an NVIDIA A5000 GPU. Generating and reducing                    intermediate gear to rotate the adjacent gears.
+contacts takes 11 ms, and solving contact constraints takes an        • 1024 M16 nuts, falling into a pile in one environment
+
+additional 3 ms. A number of additional evaluations follow.             (Fig. S15).
+                                                                      • 1024 bowls (akin to [106]), falling into a pile in one en-
+D. Performance Evaluations                                              vironment. To enable larger timesteps while maintaining
+   We test our collision detection, contact generation, contact         accuracy, a tiny 1e-6 m negative clearance is added.
+reduction, and solution pipeline on 8 contact-rich scenes.            • 1024 toruses, falling into a pile in one environment.
+These scenes were designed to represent a broad range of chal-        • 128 parallel Franka robot + M16 nut-and-bolt assem-
+lenging real-world scenarios, including complex geometries,             blies. A vibratory feeder mechanism feeds an aggregate
+robot-object interactions, tight clearances, 100s of interacting        of nuts into a channel. The robot grasps the nut from
+bodies, and multi-part mechanisms. The scenes are as follows:           the channel and tightens it onto the bolt using an inverse
+   • 1024 parallel 4-mm peg-in-hole assemblies from the                 kinematics (IK) controller (Fig. 4, App. C2).
+     NIST board with ISO-standard clearances (0.104 mm).               Table VI describes the geometric representations used in
+   • 1024 parallel M16 nut-and-bolt assemblies with ISO-            each of the scenes, including SDF resolution and number of
+     standard clearances (Fig 3). For ease of contact profiling,    triangles. Table I provides statistics on contacts before and
+     the coefficient of friction is reduced to 0.05, allowing the   after contact reduction, as well as timing for reduction and
+     nuts to rotate on the bolts under gravity.                     solution. Finally, Table II provides simulation performance
+   • 1024 parallel VGA-style D-subminiature (D-sub) con-            statistics, including comparisons to real-time. We also quali-
+     nectors from the NIST board (Fig S14). For ease of             tatively demonstrate an additional test scene: a Franka robot
+Fig. 4. Rendering of the Franka robot + M16 nut-and-bolt assemblies                Fig. 5. Rendering of a simulated NIST Task Board 1, demonstrating the
+scene, consisting of 128 parallel Franka robots retrieving nuts from a vibratory   provided assets. We provide simulation and RL training environments for all
+feeder mechanism (left) and tightening them onto a bolt (right).                   rigid components of the board. Compare to the real board in Fig. S16.
+
+
+
++ M16 nuts + flange assembly scene (App. C2).                                         We provide 60 high-quality, simulation-ready part mod-
+  Although we defer to the tables for complete performance                         els, each with an Onshape CAD model, one or more OBJ
+assessments, key observations include the following:                               meshes, a URDF description, and estimated material properties
+  • Contact reduction can reduce contact counts by over 2                          (Table VII and Table VIII). These models include all the parts
+     orders-of-magnitude compared to naive methods.                                on the NIST Task Board 1, as well as dimensional variations.
+  • Contact handling time (i.e., pair finding, generation, re-                     The assets for the nuts, bolts, pegs, and gearshafts conform
+     duction) is typically dominant compared to solution time.                     to ISO 724, ISO 965, and ISO 286 standards and contain
+  • Parallelization achieves a 3-orders-of-magnitude speed-                        loose and tight configurations that correspond to the extremes
+     up over real-time single-threaded computation.                                of the tolerance band. The CAD models for the electrical
+                                                                                   connectors were sourced from manufacturer-provided models.
+                   IV. ROBOT L EARNING T OOLS                                      Each part of each connector contains a visual mesh, directly
+   We have thus far evaluated our physics simulation module                        exported from the CAD models, and a collision mesh, carefully
+over a diverse array of contact-rich scenes. However, the                          redesigned to simplify external geometry while faithfully
+module is an extension of PhysX [75]. For convenient use                           preserving mating features (e.g., pins and holes).
+in robot learning, we have integrated our module into Isaac
+                                                                                   B. Scenes
+Gym [64], which can use PhysX as its physics engine. To use
+our contact methods for arbitrary assets, the user simply has                         We provide 3 robotic assembly scenes for Isaac Gym that
+to include an <sdf > tag in URDF descriptions (Listing 1).                         can be used for developing planning and control algorithms,
+   For applications to robotic assembly, assets and scenes                         collecting simulated sensor data for supervised learning, and
+related to NIST Task Board 1 may be particularly useful.                           training RL agents. Each scene contains a Franka robot and
+Thus, we provide 1) 60 assets from the NIST board, 2) 3                            disassembled assemblies from NIST Task Board 1. All scenes
+robotic assembly scenes for RL training in Isaac Gym, and 3) 7                     have been tested with up to 128 simultaneous environments
+classical robot controllers in Isaac Gym to accelerate learning.                   on an NVIDIA RTX 3090 GPU. The scenes are as follows:
+Here we describe our assets, environments, and controllers.                           • FrankaNutBoltEnv, which contains a Franka robot and
+                                                                                         nut-and-bolt assemblies of the user’s choice (M4, M8,
+A. Assets                                                                                M12, M16, and/or M20). The nuts and bolts can be
+   The NIST Task Board 1 consists of 38 unique parts. How-                               randomized in type and location across all environments.
+ever, the CAD models publicly provided for these parts are                               The default goal is to pick up a nut from a work surface
+not suitable for high-accuracy physics simulation. In particular,                        and tighten it to the bottom of its corresponding bolt.
+the models for the nuts, bolts, pegs, and gear assembly do not                           Our own RL training results on this environment will be
+conform to real-world tolerances and clearances; in assembly,                            discussed in detail in the next section.
+mating parts together with tight clearances is precisely the                          • FrankaInsertionEnv, which contains a Franka robot and
+most significant challenge. Furthermore, the models for the                              insertion assemblies of the user’s choice (round and/or
+electrical connectors were sourced from public repositories                              rectangular pegs-and-holes; BNC, D-sub, and/or USB
+rather than manufacturers (e.g., the D-sub plug and socket),                             plugs-and-sockets) (Fig. 6). The assets can be randomized
+were geometrically incompatible (e.g., the RJ45 plug and                                 in type and location across all environments. The default
+socket, which interpenetrate), were incomplete (e.g., the USB                            goal is to pick up a peg or plug and insert it into its
+socket, which lacks mating features), and/or were designed us-                           corresponding hole or socket.
+ing hand measurements (e.g., the Waterproof plug and socket).                         • FrankaGearsEnv, which contains a Franka robot and a
+Regardless of simulator accuracy, inaccurate geometries (esp.                            4-part gear assembly (Fig. 7). The assets can be random-
+interpenetration) will lead to unstable or inaccurate dynamics.                          ized in location across all environments. The default goal
+                                            Contact Stats (Before)                Contact Handling         Contact Stats (After)      Contact Solution
+      Scene                    Contacts     Per Pair (avg)    Per Pair (max)      Time                  Per Pair (avg)     Patches    Time
+      Peg-in-hole              5.89e5       576               576                 2 ms                  46                 11         1 ms
+      Nut-and-bolt             1.73e7       16930             16930               11 ms                 195                53         3 ms
+      D-sub connector          1.20e7       11746             11746               12.5 ms               175                36         1.5 ms
+      Gear assembly            7.26e7       14172             31568               39 ms                 83                 26         3 ms
+      Nuts                     1.81e6       2516              8304                10 ms                 99                 46         2.1 ms
+      Bowls                    5.23e5       731               1160                2 ms                  66                 18         4.3 ms
+      Toruses                  4.00e5       185               864                 4.6 ms                44                 20         2.8 ms
+      Franka + nut-and-bolt    4.64e5       9285              10031               1.7 ms                147                40         2.7 ms
+                                                               TABLE I
+    C ONTACT STATISTICS . Contacts IS THE TOTAL NUMBER OF CONTACTS IN THE SCENE . Contact Handling INCLUDES PAIR FINDING , CONTACT
+GENERATION , AND CONTACT REDUCTION . Contact Solution INCLUDES CONTACT CONSTRAINT PREPARATION , ITERATIVE CONSTRAINT SOLUTION , AND
+                                                        NUMERICAL INTEGRATION .
+
+
+
+                                                                        Timestepping                       Simulation Stats
+                               Scene                    Substeps     Pos Iterations    Vel Iterations    Time      Real-time
+                               Peg-in-hole              1            4                 1                 3 ms      5689x
+                               Nut-and-bolt             1            20                1                 14 ms     1219x
+                               D-sub connector          4            4                 1                 14 ms     305x
+                               Gear assembly            4            4                 1                 42 ms     102x
+                               Nuts                     1            16                1                 12 ms     1.39x
+                               Bowls                    2            50                1                 6.3 ms    1.32x
+                               Toruses                  1            16                1                 7.4 ms 2.25x
+                               Franka + nut-and-bolt    4            16                1                 4.4 ms    121x
+                                                                 TABLE II
+                                                                                 1
+P ERFORMANCE STATISTICS . T HE BASELINE TIMESTEP SIZE ( BEFORE SUBSTEPPING ) IS 60 s. Pos Iterations AND Vel Iterations DENOTE THE NUMBER OF
+  POSITION AND VELOCITY ITERATIONS IN THE G AUSS S EIDEL SOLVER . Time DENOTES TOTAL SIMULATION TIME PER FRAME , WHICH IS THE SUM OF
+Contact Handling AND Contact Solution FROM TABLE I. Real-time DENOTES STABLE TIMESTEP SIZE ( AFTER SUBSTEPPING ) RELATIVE TO SIMULATION
+                                         TIME , SCALED BY THE NUMBER OF PARALLEL ENVIRONMENTS .
+
+
+
+
+Fig. 6. Visualization of FrankaInsertionEnv. Each environment consists of       Fig. 7. Visualization of FrankaGearsEnv. Each environment consists of
+a Franka robot and an insertion assembly from NIST Task Board 1. Left: The      a Franka robot and the gear assembly from NIST Task Board 1. Left: The
+default initial state, where the positions of the parts are randomized on the   default initial state, where the positions of the gears are randomized on the
+work surface. Right: The default goal state, where all parts are inserted.      work surface. Right: The default goal state, where all gears are aligned.
+
+
+
+      is to pick up each gear, insert it onto its corresponding
+                                                                                   Akin to [112] in MuJoCo, we provide a series of robot
+      gear shaft, and align it with any other gears.
+                                                                                controllers based on those that researchers and engineers
+C. Controllers                                                                  commonly use in the real world. The actions of the controllers
+                                                                                are executed using an explicit integrator to avoid undesired
+  Research efforts in reinforcement learning for robotic ma-
+                                                                                damping. The controllers are as follows:
+nipulation have traditionally used an action space consisting
+of low-level position, velocity, or torque commands. On the                        •   Joint-space inverse differential kinematics (IK) motion
+other hand, classical PD- or PID-style robot controllers have                          controller, which converts task-space errors into joint-
+been used to solve contact-rich tasks in robotic assembly for                          space errors and applies PD gains to generate joint
+several decades [69, 101]. In recent years, there has been                             torques. The IK controller can use either the geometric or
+substantial interest in using an RL action space consisting                            analytic Jacobian [85] and generate torques with the Ja-
+of targets to such controllers, with promising results in both                         cobian pseudoinverse, Jacobian transpose, damped least-
+sample efficiency and asymptotic performance [68, 77].                                 squares (Levenberg-Marquardt), or adaptive SVD [11].
+                                                                              RL is neither the only means to solve the 3 phases of this
+                                                                           task, nor the most efficient: Pick and Place can be solved
+                                                                           with classical grasping and motion controllers, and although
+                                                                           challenging, Screw may be solved using a nut-driver and a
+                                                                           compliance and/or suction mechanism [43]. We investigate this
+                                                                           task as a proof-of-concept that our simulation methods can
+                                                                           enable efficient policy learning for tasks of such complexity.
+                                                                           Moreover, it is a common experience of simulation developers
+                                                                           that model-free RL agents reveal and exploit any inaccuracies
+                                                                           or instabilities in the simulator to maximize their reward; we
+                                                                           view successfully training RL agents in contact-rich tasks as
+Fig. 8. Rendering of achieved goal states of our trained subpolicies for   important qualitative evidence of simulator robustness.
+FrankaNutBoltEnv. Left: Pick. Middle: Place. Right: Screw.                    We describe each subpolicy below; detailed evaluations will
+                                                                           focus on Screw, the most contact-rich of the phases. We then
+                                                                           address sequential execution and examine contact forces.
+  • Joint-space inverse dynamics (ID) controller, which
+    uses the joint-space inertia matrix and gravity compensa-              A. Shared Framework
+    tion to generate joint torques, achieving desired spring-                 The Pick, Place, and Screw subpolicies were all trained
+    damper behavior in joint-space [79].                                   in Isaac Gym using our simulation methods and FrankaNut-
+  • Task-space impedance controller, which applies PD
+                                                                           BoltEnv environment. The PPO implementation from [63]
+    gains to task-space errors to generate joint torques. This             was used with a shared set of hyperparameters (Table IX).
+    controller is immediately available on the real-world                  Typically, a batch of 3-4 policies were trained simultaneously
+    Franka robot via the libfranka library [24].                           on a single NVIDIA RTX 3090 GPU, with each policy using
+  • Operational-space (OSC) motion controller, which
+                                                                           128 parallel simulation environments. Each batch required a
+    uses the task-space inertia matrix and gravity compensa-               total of 1-1.5 hours for 1024 policy updates.
+    tion to generate joint torques, achieving desired spring-                 We defined our action space as targets for our implemented
+    damper behavior in task-space (akin to [102]).                         controllers. Unless otherwise specified, the targets for the
+  • Open-loop force controller, which converts a task-space
+                                                                           joint-space IK controller, joint-space ID controller, task-space
+    force target into joint torques.                                       impedance controller, and OSC motion controller were all 6-
+  • Closed-loop P force controller, which stacks an open-
+                                                                           DOF transformations relative to the current state, with the
+    loop force controller with a closed-loop controller that               rotation expressed as axis-angle. The targets for the open-
+    applies P gains to task-space force errors.                            loop and closed-loop force controller were 3-dimensional force
+  • Hybrid force-motion controller, which stacks a task-
+                                                                           vectors. The targets for the hybrid force-motion controller
+    space impedance or OSC motion controller with an open-                 were the 9-dimensional union of the previous 2 action spaces.
+    or closed-loop force controller. Selection matrices can                   We now discuss our randomization, observations, rewards,
+    specify which axes use motion and/or force control.                    success criterion, and success rate for each subpolicy.
+  Mathematical formulations are provided in App. D4.
+                                                                           B. Subpolicy: Pick
+                V. R EINFORCEMENT L EARNING
+                                                                              At the start of each Pick episode, the 6-DOF Franka hand
+   The robotics community has demonstrated that RL can                     pose and 2-DOF nut pose (constrained by the work surface)
+effectively solve simulated or real-world assembly tasks. How-             were randomized over a large spatial range (Table III).
+ever, these efforts are often limited to off-policy algorithms,               The observation space for Pick was the pose (position and
+require extensive training time or human demonstrations/cor-               quaternion) of the hand and nut, as well as the linear and
+rections, and/or only address simple tasks. With our contact               angular velocity of the hand. In the real world, the pose and
+simulation methods, we use on-policy RL to solve the most                  velocity of the hand can be determined to reasonable accuracy
+contact-rich task on NIST Task Board 1: assembling a nut                   (< 1 cm) through a forward kinematic model and propri-
+onto a bolt. Like many assembly tasks, such a procedure is                 oception of joint positions and velocities, whereas the pre-
+long-horizon and challenging to learn end-to-end. We divide                grasp pose of the nut (a known model, as typical in industrial
+the task into 3 phases and learn an subpolicy for each:                    settings) can be accurately estimated through pose estimation
+   • Pick: The robot grasps the nut with a parallel-jaw gripper            frameworks [44]. The action space for Pick consisted of joint-
+     from a random location on a work surface.                             space IK controller targets with damped least-squares.
+   • Place: The robot transports the nut to the top of a bolt                 A dense reward was formulated as the distance between the
+     fixed to the surface.                                                 fingertips and the nut. Initial experiments defined this distance
+   • Screw: The robot brings the nut into contact with the bolt,           as ||x|| + α||q||, where x and q are the translation and quater-
+     engages the mating threads, and tightens the nut until it             nion errors, and α is a scalar hyperparameter. However, this
+     contacts the base of the bolt head.                                   approach was sensitive to α. Inspired by [2], we reformulated
+                             Pick                                   Place                                     Screw
+              Parameter           Range           Parameter                 Range            Parameter                Range
+              Hand X-axis         [-0.2, 0.2] m   Hand XY-axes              [-0.2, 0.2] m    Hand angle               [-90, 90] deg
+              Hand Y-axis         [-0.4, 0.0] m   Hand Z-axis               [0.5, 0.7] m     Fingertip X-axis         [-3, 3] mm
+              Hand Z-axis         [0.5, 0.7] m    Hand roll, pitch          [-17, 17] deg    Fingertip Y-axis         [-3, 3] mm
+              Hand roll, pitch    [-17, 17] deg   Hand yaw                  [-57, 57] deg    Fingertip Z-axis         [0, 3] mm
+              Hand yaw            [-57, 57] deg   Nut-in-gripper XY-axes    [-2, 2] mm       Nut-in-gripper X-axis    [-3.5, 3.5] mm
+              Nut X-axis          [-0.1, 0.1] m   Nut-in-gripper Z-axis     [-5, 5] mm       Nut-in-gripper Z-axis    [-6.5, 1.0] mm
+              Nut Y-axis          [-0.4, 0.2] m   Nut-in-gripper yaw        [-180, 180] mm   Nut-in-gripper yaw       [-15, 15] deg
+                                                  Bolt XY-axes              [-10, 10] mm
+                                                           TABLE III
+       R ANGES FOR INITIAL RANDOMIZATION OF POSE PARAMETERS . PARAMETER VALUES WERE UNIFORMLY SAMPLED FROM THE RANGES .
+
+
+
+
+the distance as ||kn − kf ||, where kn and kf are both tensors              applying an action gradient penalty at each timestep. The
+of 2-4 keypoints distributed along the nut central axis and end-            penalty was equal to β||at − at−1 ||, where a is the 6-
+effector approach axis, respectively. Intuitively, this method              dimensional action vector and β is a hyperparameter (0.1).
+computes distance on a single manifold, obviating tuning. The
+collinearity of each keypoint set also allows equivariance to               D. Subpolicy: Screw
+rotation of the hand (i.e., yaw) about the nut central axis.                   At the start of each Screw episode, the Franka hand and nut
+   After executing the Pick subpolicy for a prescribed (con-                were reset to a stable grasp pose, randomized relative to the
+stant) number of timesteps, a manually-specified grasp-and-lift             top of the bolt (Table III); these stable poses were generated
+action was executed. Policy success was defined as whether                  using the FrankaCalibrate script described in App. D3. The
+the nut remained in the grasp after lifting. If successful, a               nut-in-gripper position was also randomized as before.
+success bonus was added to the episodic return.                                Among the subpolicies, Screw was by far the most contact-
+   With the above approach, the Pick policy was able to                     rich, and as follows, challenging to train. The robot was
+achieve a 100% success rate within the randomization bounds.                required to bring the nut into contact with the bolt, engage the
+Qualitatively, the agent learned to execute a fast straight-line            respective threads, generate precise torques along the 7 arm
+path towards the nut, followed by a slow pose refinement. Due               joints to allow the high-inertia robot links to admit the rigid
+to the collinearity of the keypoints, the final pose distribution           bolt constraint, and maintain appropriate posture of the gripper
+of the hand was highly multimodal in yaw.                                   with respect to the nut during tightening. As a simplifying
+                                                                            assumption, the joint limit of the end-effector was removed,
+C. Subpolicy: Place                                                         allowing the Franka to avoid regrasping (akin to the Kinova
+   At the start of each Place episode, the Franka hand and nut              Gen3). Nevertheless, training was replete with a diverse range
+were reset to a known stable grasp pose. The nut-in-gripper                 of pathologies, including high-energy collision with the bolt
+position/rotation and the bolt position were randomized. The                shank, roll-pitch misalignment of the nut when first engaging
+hand-and-nut were moved to a random pose using the joint-                   the bolt threads, jamming of the nut during tightening, and
+space IK controller (Table III). Training was then initiated.               precession of the gripper around the bolt during tightening,
+   The observation space for Place was identical to that for                which induced slip between the gripper and nut.
+Pick, but also included the pose (position and quaternion)                     To overcome the preceding issues, a systematic exploration
+of the bolt. When grasped, the nut pose may be challenging                  of controllers/gains, observation/action spaces, and baseline re-
+to determine in the real world; however, recent research                    wards was executed. First, policies for 3 task-space controllers
+has demonstrated that visuotactile sensing with known object                were evaluated over a wide range of gains, and the controller-
+models can enable high-accuracy pose estimates [6].                         gain configuration with the highest success rate was chosen
+   The action space was identical to that for Pick. A dense                 (Table X). Then, 4 observation spaces were evaluated, and the
+reward was again formulated as a keypoint distance, now                     space with the highest success rate was selected (Table IV).
+between the bolt and nut central axes. The keypoints were                   The procedure continued with 2 action spaces (Table XI) and
+defined such that, when perfectly aligned, the base of the nut              3 baseline rewards (Table XII). Success was defined as when
+was located 1 mm above the top of the bolt. Success was                     the nut was less than 1 thread away from the base of the bolt.
+defined as when the average keypoint distance was < 0.8 mm                     To encourage stable robot posture, a dense reward was
+   With the above approach, the Place policy was able to                    formulated that consisted of the sum of the keypoint distance
+achieve a 98.4% success rate within the randomization bounds.               [between nut and base of bolt] and [between end-effector and
+A common initial failure case during training was collision                 nut]. To prioritize both task completion and efficient training,
+between the gripper and the bolt, dislodging the nut. The robot             early termination was applied on success and failure, and a
+learned trajectories that remained above the top plane of the               maximum of 1024 gradient updates was allowed. Future work
+bolt, with a slow pose refinement phase when close.                         will investigate asymptotic performance with more updates.
+   Although having negligible effect on steady-state error,                    Notably, collisions between the complex geometries of the
+an effective strategy for smoothing the Place trajectory was                nut and bolt remained stable during exploration by the RL
+agent. However, the majority of experimental groups failed due
+to the pathologies described earlier. The highest performing
+agents consistently used an OSC motion controller with low
+proportional gains, an observation space consisting of pose
+and velocity of the gripper and nut, a 2-DOF action space
+(Z-translation and yaw), and a linear baseline reward. As
+expected, the relatively low number of epochs biased towards
+lower-dimensional observations and actions.
+   Using the above configuration, a final Screw policy was
+trained over 4096 gradient updates and achieved an 85.6%
+success rate over 1024 episodes.
+E. Sequential Policy Execution
+                                                                    Fig. 9. Comparison of simulated contact forces during Screw subpolicy
+   Although not our primary focus, a natural question arose on      execution with analogous real-world contact forces from the Daily Interactive
+whether the subpolicies could be chained. Policy chaining can       Manipulation (DIM) dataset [34]. In this DIM task, humans tightened nuts
+be challenging, as errors in each subpolicy can accumulate into     using a wrench outfitted with a force-torque sensor. Extreme outliers were
+                                                                    rejected for visualization. Maximum mean discrepancy (MMD) was 0.01269.
+poor overall performance; as a simple example, 3 perfectly-         (MMD values were ∼0.1-1.0 for less-related tasks.)
+coupled subpolicies with 90% success rates can produce a
+combined policy with a 72.9% success rate.
+   In this work, we used a simple strategy to connect
+                                                                    strategies adopted by humans. Combined with our visual
+the learned Pick, Place, and Screw subpolicies end-to-end.
+                                                                    comparisons, these results do not guarantee sim-to-real policy
+Specifically, when training a given subpolicy, the initial states
+                                                                    transfer, but demonstrate that raw quantities computed by
+were randomized to span the distribution of the final states of
+                                                                    simulation are highly comparable to the real world.
+the preceding trained subpolicy. For example, we defined the
+initial states of the Screw subpolicy (Table III) to span the
+maximum observed error of the Place subpolicy. For a small
+                                                                                               VI. D ISCUSSION
+number of subpolicies, this strategy may be effective; however,
+the approach does not scale to long sequences, as Policy N
+must be trained and Sequence 0...N must be evaluated before            We have presented Factory, a set of physics simulation
+training Policy N +1. To facilitate smoothness, an exponential      methods and robot learning tools for contact-rich interactions
+moving average was applied on Place actions.                        in robotics. We provide a physics simulation module for PhysX
+   With this strategy, we achieved an end-to-end Pick, Place,       and Isaac Gym that enables 100s to 1000s of contact-rich
+and Screw success rate of 74.2%. More sophisticated tech-           interactions to be simulated in real-time on a single GPU, as
+niques can be explored for improvements [15, 49].                   tested on a diverse array of scenes. As one example, 1000 nuts-
+                                                                    and-bolts were simulated in real-time, whereas the established
+                                                                                                                1
+F. Contact Forces                                                   benchmark was a single nut-and-bolt at 20     real-time.
+   Quantitatively and through numerous visual comparisons,             We also provide 60 carefully-designed, ISO-standard or
+our physics simulation module enabled accurate, efficient, and      manufacturer-based assets from the NIST Assembly Task
+robust simulation of contact-rich interactions of assets with       Board 1, suitable for high-accuracy simulation; 3 robotic
+real-world geometries and material properties. Furthermore,         assembly scenes in Isaac Gym where a robot can interact
+our module was built on PhysX, which has been evaluated             with these assets across a diverse range of assembly operations
+under challenging sim-to-real conditions [2, 18, 81].               (fastener tightening, insertion, gear meshing); and 7 classical
+   Nevertheless, it is also important to consider the contact       robot controllers that can achieve pose, force, or hybrid targets.
+forces generated during such interactions. We executed our          We intend for our assets, environments, and controllers to grow
+Screw subpolicy and recorded joint torque norms, as well as         over time with contributions from the community.
+contact force norms at the gripper fingers and bolt (Fig. S17).        Finally, we train proof-of-concept RL policies in Isaac Gym
+The joint torques are well within the range of lightweight          for the most contact-rich interaction on the board, nut-and-
+collaborative robots (e.g., UR3). Furthermore, the contact force    bolt assembly. We show that we can achieve stable simulator
+norms at the fingertips were compared to analogous real-world       behavior, efficient training (1-1.5 hours to simultaneously
+forces from the Daily Interactive Manipulation dataset [34],        train 4 policies on 1 GPU), high success rates, and realistic
+in which human subjects tightened or loosened nuts with a           forces/torques. Although Factory was developed with robotic
+wrench outfitted with a force-torque sensor (Fig. 9).               assembly as a motivating application, there are no limitations
+   Although the reward functions for the RL agents never            on using our methods for entirely different tasks within
+involved contact forces, the robots learned policies that gen-      robotics, such as grasping of complex non-convex shapes in
+erated forces in the middle of human ranges; the much higher        home environments, locomotion on uneven outdoor terrain,
+variance of human forces was likely due to more diverse             and non-prehensile manipulation of aggregates of objects.
+                      Observations                    Success Rate   Env Steps to Success   Reward    Joint Torque (Nm)
+                      Pose                                  0.7708          2318            -0.1019               1.7319
+                      Pose, velocity                        0.7760          3015            -0.0941               1.7330
+                      Pose, velocity, force                 0.5026          3849            -0.0784               1.2186
+                      Pose, velocity, force, action         0.3307          3791            -0.0521               1.2257
+                                                                 TABLE IV
+    C OMPARISON OF OBSERVATION SPACES ON PERFORMANCE OF S CREW TASK . Success Rate SPECIFIES THE FRACTION OF EPISODES THAT WERE
+ SUCCESSFUL . Time to Success SPECIFIES THE MEAN NUMBER OF TIMESTEPS REQUIRED TO ACHIEVE SUCCESS . Reward SPECIFIES THE MEAN REWARD
+ DURING EACH EPISODE . Joint Torque SPECIFIES THE MEAN JOINT TORQUE NORM (N m) DURING EACH EPISODE . E ACH CELL IS COMPUTED FROM THE
+  AVERAGE OF 3 SEEDS . Pose WAS QUICKEST; Pose, velocity EXHIBITED HIGHEST SUCCESS RATE ; AND Pose, velocity, force, action ACHIEVED LOWEST
+                                       MEAN REWARD , BUT DID NOT CONSISTENTLY COMPLETE THE TASK .
+
+
+
+
+                       VII. L IMITATIONS                                     Adding noise on both low-dimensional and high-
+                                                                          dimensional observations may be valuable. Furthermore,
+   We plan to address several limitations of this work. Within            given that camera observations will be occluded during
+simulation, we plan to make 3 improvements to our SDF                     contact, we anticipate that integrating tactile sensing into
+collision scheme: 1) the ability to robustly handle collisions            our real-world system will be exceptionally critical for
+of thin-shell meshes (e.g., thin-walled bottles and boxes), 2)            object-gripper pose estimation and slip detection.
+improved handling of low-tessellation meshes, as currently, 1                Algorithmically, we are interested in obviating human
+contact is generated per-triangle, allowing penetration on large          demonstrations or corrections during policy learning. Nev-
+flat surfaces, 3) using sparse SDF representations to reduce              ertheless, our physics simulation module is also suitable for
+the SDF memory footprint (Table VI). Furthermore, we are                  simulation-based demonstration collection for use in imitation
+adding support for FEM-based simulation of stiff deformable               learning [16, 66] or DDPGfD-style policy learning.
+features, such as the flexible tab on an RJ45 connector.
+   Within our assets, environments, and controllers, we plan                                     VIII. C ONCLUSION
+to add assets for additional industrial and home subassemblies
+                                                                             We aim for Factory to establish the state-of-the-art in
+(e.g., USB-C, power plugs, key-in-lock), scenes for additional
+                                                                          contact-rich simulation, as well as serve as an existence
+assembly tasks (e.g., chain-and-sprocket assembly), and con-
+                                                                          proof that highly efficient simulation and learning of contact-
+trollers found in industrial settings (e.g., admittance). Within
+                                                                          rich interactions is possible in robotics. Our experience has
+policy training, we plan to extend our policy for FrankaNut-
+                                                                          shown that high-quality assets and accurate, efficient sim-
+BoltEnv to learn regrasp behavior. In addition, we aim to
+                                                                          ulation methods drastically reduce the inductive bias and
+develop a unified proof-of-concept policy for all insertion
+                                                                          algorithmic burden required to solve contact-rich tasks. We
+tasks within FrankaInsertionEnv, as well as a policy for gear
+                                                                          invite the community to establish benchmarks for solving the
+meshing within FrankaGearsEnv, further evaluating training
+                                                                          provided scenes, as well as extend and use Factory for their
+efficiency and simulator robustness. However, we encourage
+                                                                          own contact-rich applications both within and outside of RL.
+the broader RL community to test and develop state-of-the-art
+                                                                          We also hope that this work inspires researchers to execute
+RL algorithms around these complex tasks.
+                                                                          contact-rich simulations of tasks beyond what we show in this
+                                                                          paper to enable further solutions to complex problems.
+A. Future Work
+   Upon making the aforementioned improvements, our fu-                                      AUTHOR C ONTRIBUTIONS
+ture work will focus primarily on sim-to-real transfer. As                   YN led the research project.
+described earlier, there has been compelling evidence sim-                   MM initially developed SDF collisions for FleX.
+to-real is possible for industrial insertion tasks; we aim to                MM and YN conducted proof-of-concept demonstrations of
+demonstrate this for more complex bolt-tightening and gear-               SDF collisions for robotic assembly in FleX.
+meshing tasks, as well as full 3D assembly operations in                     KS, ML, PR, and AM developed SDF collisions and contact
+both industrial and home settings. For perception, we may                 reduction for PhysX.
+train image-based policies using real-time ray-tracing and/or                PR, KS, AM, and YN developed evaluation and demonstra-
+post-simulation path-tracing [8, 74] combined with domain                 tion scenes for PhysX.
+randomization [94], However, we find distillation approaches                 LW, YG, and GS integrated the PhysX developments into
+to be particularly compelling. Specifically, we can                       Isaac Gym.
+  1) Train RL teacher policies, which take privileged infor-                 YN, IA, and PR developed the assets, environments, and
+     mation (e.g., 6-DOF states) as input; and then use imita-            controllers for Isaac Gym.
+     tion learning to learn student policies, which take images              YN, IA, and AH developed the RL policies within Isaac
+     as input and replicate the teacher’s actions [13, 46], or            Gym.
+  2) Train RL policies with the actor accessing images, but                  DF, AH, MM, ML, GS, and AM advised the project.
+     the critic accessing privileged information [4].                        YN, MM, AH, and IA wrote the paper.
+                   ACKNOWLEDGMENTS                                    International Conference on Robotics and Automation
+   We thank Joe Falco for assistance with the original NIST           (ICRA), 2019.
+assets, John Ratcliff for generating the convex decomposition    [13] Tao Chen, Jie Xu, and Pulkit Agrawal. A system for
+for the bolt (Fig. S11), Karl Van Wyk and Lucas Manuelli              general in-hand object re-orientation. In Conference on
+for helpful discussions on controllers, Viktor Makoviychuk            Robot Learning (CoRL), 2021.
+for assistance with the rl-games [63] library, and the RSS       [14] HeeSun Choi, Cindy Crump, Christian Duriez, Asher
+reviewers for their insightful comments and questions.                Elmquist, Gregory Hager, David Han, Frank Hearl, Jes-
+                                                                      sica Hodgins, Abhinandan Jain, Frederick Leve, Chen
+                       R EFERENCES                                    Li, Franziska Meier, Dan Negrut, Ludovic Righetti,
+  [1] Afsoon Afzal, Deborah S. Katz, Claire Le Goues, and             Alberto Rodriguez, Jie Tan, and Jeff Trinkle. On the
+      Christopher S. Timperley. A study on the challenges of          use of simulation in robotics: Opportunities, challenges,
+      using robotics simulators for testing. arXiv:2004.07368         and suggestions for moving forward. Proc. Natl. Acad.
+      [cs], 2020.                                                     Sci. USA, 2021.
+  [2] Arthur Allshire, Mayank Mittal, Varun Lodaya, Viktor       [15] Alexander Clegg, Wenhao Yu, Jie Tan, C Karen Liu,
+      Makoviychuk, Denys Makoviichuk, Felix Widmaier,                 and Greg Turk. Learning to dress: Synthesizing human
+      Manuel Wüthrich, Stefan Bauer, Ankur Handa, and                dressing motion via deep reinforcement learning. ACM
+      Animesh Garg. Transferring dexterous manipulation               Transactions on Graphics (TOG), 2018.
+      from GPU simulation to a remote real-world TriFinger.      [16] Henry M. Clever, Ankur Handa, Hammad Mazhar,
+      arXiv:2108.09779 [cs], 2021.                                    Kevin Parker, Omer Shapira, Qian Wan, Yashraj
+  [3] Sheldon Andrews and Kenny Erleben. Contact and                  Narang, Iretiayo Akinola, Maya Cakmak, and Dieter
+      friction simulation for computer graphics. In ACM               Fox. Assistive Tele-op: Leveraging transformers to
+      SIGGRAPH Courses, 2021.                                         collect robotic task demonstrations. arXiv:2112.05129
+  [4] Marcin Andrychowicz, Bowen Baker, Maciek Chociej,               [cs], 2021.
+      Rafal Józefowicz, Bob McGrew, Jakub Pachocki,             [17] Erwin Coumans. Bullet real-time physics simulation.
+      Arthur Petron, Matthias Plappert, Glenn Powell, Alex            https://pybullet.org/wordpress/, 2022. [Online; accessed
+      Ray, Jonas Schneider, Szymon Sidor, Josh Tobin, Peter           1-January-2022].
+      Welinder, Lilian Weng, and Wojciech Zaremba. Learn-        [18] Xingye Da, Zhaoming Xie, David Hoeller, Byron Boots,
+      ing dexterous in-hand manipulation. Int. J. Rob. Res.,          Animashree Anandkumar, Yuke Zhu, Buck Babich, and
+      2020.                                                           Animesh Garg. Learning a contact-adaptive controller
+  [5] Aleksandra Anna Apolinarska, Matteo Pacher, Hui Li,             for robust, efficient legged locomotion. In Conference
+      Nicholas Cote, Rafael Pastrana, Fabio Gramazio, and             on Robot Learning (CoRL), 2020.
+      Matthias Kohler. Robotic assembly of timber joints         [19] Todor Davchev, Kevin Sebastian Luck, Michael Burke,
+      using reinforcement learning. Autom. Constr., 2021.             Franziska Meier, Stefan Schaal, and Subramanian
+  [6] Maria Bauza, Eric Valls, Bryan Lim, Theo Sechopoulos,           Ramamoorthy. Residual learning from demonstra-
+      and Alberto Rodriguez. Tactile object pose estimation           tion: Adapting DMPs for contact-rich manipulation.
+      from the first touch with geometric contact rendering.          arXiv:2008.07682 [cs], 2021.
+      In Conference on Robot Learning (CoRL), 2020.              [20] Kiana Ehsani, Winson Han, Alvaro Herrasti, Eli Vander-
+  [7] Cristian C. Beltran-Hernandez, Damien Petit, Ixchel G.          Bilt, Luca Weihs, Eric Kolve, Aniruddha Kembhavi, and
+      Ramirez-Alpizar, and Kensuke Harada. Variable com-              Roozbeh Mottaghi. ManipulaTHOR: A framework for
+      pliance control for robotic peg-in-hole assembly: A             visual object manipulation. In IEEE/CVF Conference
+      deep-reinforcement-learning approach. Appl. Sci., 2020.         on Computer Vision and Pattern Recognition (CVPR),
+  [8] Blender Foundation. Blender: A 3d modelling and                 2021.
+      rendering package. http://www.blender.org, 2018.           [21] Clemens Eppner, Arsalan Mousavian, and Dieter Fox.
+  [9] BNP Media.        Assembly Magazine.        https://www.        ACRONYM: A large-scale grasp dataset based on sim-
+      assemblymag.com/, 2022. [Online; accessed 1-January-            ulation. In IEEE International Conference on Robotics
+      2022].                                                          and Automation (ICRA), 2021.
+ [10] Kenneth Bodin. https://twitter.com/kennethbodin/status/    [22] Yongxiang Fan, Jieliang Luo, and Masayoshi Tomizuka.
+      1252973291217850368, 2021. [Online; accessed 1-                 A learning framework for high precision industrial
+      January-2022].                                                  assembly. In International Conference on Robotics and
+ [11] Samuel R. Buss. Introduction to inverse kinematics with         Automation (ICRA), 2019.
+      Jacobian transpose, pseudoinverse and damped least         [23] Zachary Ferguson, Minchen Li, Teseo Schneider, Fran-
+      squares methods. 2009.                                          cisca Gil-Ureta, Timothy Langlois, Chenfanfu Jiang,
+ [12] Yevgen Chebotar, Ankur Handa, Viktor Makoviychuk,               Denis Zorin, Danny M Kaufman, and Daniele Panozzo.
+      Miles Macklin, Jan Issac, Nathan Ratliff, and Dieter            Intersection-free rigid body dynamics. ACM Trans.
+      Fox. Closing the sim-to-real loop: Adapting simulation          Graph., 2021.
+      randomization with real world experience. In IEEE          [24] Franka Emika. libfranka examples. 2017.
+[25] Christoph Gissler, Andreas Peer, Stefan Band, Jan Ben-    [39] Oussama Khatib. A unified approach for motion and
+     der, and Matthias Teschner. Interlinked SPH pressure           force control of robot manipulators: The operational
+     solvers for strong fluid-rigid coupling. ACM Trans.            space formulation. IEEE J. Robot. Automat., 1987.
+     Graph., 2019.                                             [40] Jeong Kim, Joo-Cheol Yoon, and Beom-Soo Kang.
+[26] Loeiz Glondu, Sara C. Schvartzman, Maud Marchal,               Finite element analysis and modeling of structure with
+     Georges Dumont, and Miguel A. Otaduy. Efficient                bolted joints. Applied Mathematical Modelling, 2007.
+     collision detection for brittle fracture. In Proc. of     [41] Myungsin Kim, Jaemin Yoon, Dongwon Son, and
+     the ACM SIGGRAPH / Eurographics Symposium on                   Dongjun Lee. Data-driven contact clustering for robot
+     Computer Animation, 2012.                                      simulation.    In IEEE International Conference on
+[27] Huy Ha and Shuran Song. FlingBot: The unreasonable             Robotics and Automation (ICRA), 2019.
+     effectiveness of dynamic manipulation for cloth unfold-   [42] Kenneth Kimble, Karl Van Wyk, Joe Falco, Elena
+     ing. In Conference on Robot Learning (CoRL), 2021.             Messina, Yu Sun, Mizuho Shibata, Wataru Uemura,
+[28] Kris Hauser. Robust contact generation for robot simu-         and Yasuyoshi Yokokohji. Benchmarking protocols for
+     lation with unstructured meshes. In Robotics Research.         evaluating small parts robotic assembly systems. IEEE
+     Springer International Publishing, 2016.                       Robot. Autom. Lett., 2020.
+[29] Marius Hebecker, Jens Lambrecht, and Markus               [43] KUKA.       Fast & reliable micro screw fastening.
+     Schmitz. Towards real-world force-sensitive robotic            https://www.youtube.com/watch?v=BOY3oZ8SkZU,
+     assembly through deep reinforcement learning in sim-           2016. [Online; accessed 1-January-2022].
+     ulations. In IEEE/ASME International Conference on        [44] Y. Labbe, J. Carpentier, M. Aubry, and J. Sivic. Cosy-
+     Advanced Intelligent Mechatronics (AIM), 2021.                 Pose: Consistent multi-view multi-object 6D pose esti-
+[30] Neville Hogan and Stephen Buerger. Impedance and               mation. In Proceedings of the European Conference on
+     Interaction Control. In Robotics and Automation Hand-          Computer Vision (ECCV), 2020.
+     book. CRC Press, 2004.                                    [45] Claude Lacoursiere. Ghosts and machines: regularized
+[31] Peter C. Horak and Jeff C. Trinkle. On the similarities        variational methods for interactive simulations of multi-
+     and differences among contact models in robot simula-          bodies with dry frictional contacts. PhD thesis, Umeå
+     tion. IEEE Robot. Autom. Lett., 2019.                          University, 2007.
+[32] Zhimin Hou, Jiajun Fei, Yuelin Deng, and Jing Xu.         [46] Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen,
+     Data-efficient hierarchical reinforcement learning for         Vladlen Koltun, and Marco Hutter.               Learning
+     robotic assembly control applications. IEEE Trans. Ind.        quadrupedal locomotion over challenging terrain. Sci-
+     Electron., 2021.                                               ence Robotics, 2020.
+[33] Isabella Huang, Yashraj Narang, Clemens Eppner, Bal-      [47] Michelle A. Lee, Yuke Zhu, Peter Zachares, Matthew
+     akumar Sundaralingam, Miles Macklin, Tucker Her-               Tan, Krishnan Srinivasan, Silvio Savarese, Li Fei-Fei,
+     mans, and Dieter Fox. DefGraspSim: Physics-based               Animesh Garg, and Jeannette Bohg. Making sense of
+     simulation of grasp outcomes for 3D deformable ob-             vision and touch: Learning multimodal representations
+     jects. IEEE Robotics and Automation Letters, 2022.             for contact-rich tasks. IEEE Trans. Robot., 2020.
+[34] Yongqiang Huang and Yu Sun. A dataset of daily            [48] Youngwoon Lee, Edward S. Hu, and Joseph J. Lim.
+     interactive manipulation. The International Journal of         IKEA furniture assembly environment for long-horizon
+     Robotics Research, 2019.                                       complex manipulation tasks. In IEEE International
+[35] Tadanobu Inoue, Giovanni De Magistris, Asim Mu-                Conference on Robotics and Automation (ICRA), 2021.
+     nawar, Tsuyoshi Yokoya, and Ryuki Tachibana. Deep         [49] Youngwoon Lee, Joseph J Lim, Anima Anandkumar,
+     reinforcement learning for high precision assembly             and Yuke Zhu. Adversarial skill chaining for long-
+     tasks. In IEEE/RSJ International Conference on Intel-          horizon robot manipulation via terminal state regulariza-
+     ligent Robots and Systems (IROS), 2017.                        tion. In Conference on Robot Learning (CoRL), 2021.
+[36] Zhenzhong Jia, Ankit Bhatia, Reuben M. Aronson,           [50] Chengshu Li, Fei Xia, Roberto Martı́n-Martı́n, Michael
+     David Bourne, and Matthew T. Mason. A survey of                Lingelbach, Sanjana Srivastava, Bokui Shen, Kent
+     automated threaded fastening. IEEE Trans. Automat.             Vainio, Cem Gokmen, Gokul Dharan, Tanish Jain, An-
+     Sci. Eng., 2019.                                               drey Kurenkov, C. Karen Liu, Hyowon Gweon, Jiajun
+[37] Shiyu Jin, Diego Romeres, Arvind Ragunathan, De-               Wu, Li Fei-Fei, and Silvio Savarese. iGibson 2.0:
+     vesh K. Jha, and Masayoshi Tomizuka. Trajectory                Object-centric simulation for robot learning of everyday
+     optimization for manipulation of deformable objects:           household tasks. arXiv:2108.03272 [cs], 2021.
+     Assembly of belt drive units. In IEEE International       [51] Minchen Li, Zachary Ferguson, Teseo Schneider, Tim-
+     Conference on Robotics and Automation (ICRA), 2021.            othy Langlois, Denis Zorin, Daniele Panozzo, Chen-
+[38] Shahbaz Abdul Khader, Hang Yin, Pietro Falco, and              fanfu Jiang, and Danny M. Kaufman. Incremental
+     Danica Kragic.      Stability-guaranteed reinforcement         potential contact: intersection-and inversion-free, large-
+     learning for contact-rich manipulation. IEEE Robot.            deformation dynamics. ACM Trans. Graph., 2020.
+     Autom. Lett., 2021.                                       [52] Wenzhao Lian, Tim Kelch, Dirk Holz, Adam Norton,
+     and Stefan Schaal. Benchmarking off-the-shelf solu-          [65] Khaled Mamou. Volumetric hierarchical approximate
+     tions to robotic assembly tasks. arXiv:2103.05140 [cs],           convex decomposition. In Game Engine Gems 3. A.K.
+     2021.                                                             Peters / CRC Press, 2016.
+[53] C. Karen Liu and Dan Negrut. The role of physics-            [66] Ajay Mandlekar, Yuke Zhu, Animesh Garg, Jonathan
+     based simulators in robotics. Annu. Rev. Control Robot.           Booher, Max Spero, Albert Tung, Julian Gao, John Em-
+     Auton. Syst., 2021.                                               mons, Anchit Gupta, Emre Orbay, Silvio Savarese, and
+[54] Jianlan Luo, Eugen Solowjow, Chengtao Wen,                        Li Fei-Fei. RoboTurk: A crowdsourcing platform for
+     Juan Aparicio Ojea, and Alice M. Agogino. Deep                    robotic skill learning through imitation. In Conference
+     reinforcement learning for robotic assembly of                    on Robot Learning (CoRL), 2018.
+     mixed deformable and rigid objects. In IEEE/RSJ              [67] Louis A. Martin-Vega, Harold K. Brown, Wade H.
+     International Conference on Intelligent Robots and                Shaw, and Thomas J. Sanders. Industrial perspective
+     Systems (IROS), 2018.                                             on research needs and opportunities in manufacturing
+[55] Jianlan Luo, Eugen Solowjow, Chengtao Wen,                        assembly. J. Manuf. Syst., 1995.
+     Juan Aparicio Ojea, Alice M. Agogino, Aviv Tamar,            [68] Roberto Martı́n-Martı́n, Michelle A. Lee, Rachel Gard-
+     and Pieter Abbeel. Reinforcement learning on variable             ner, Silvio Savarese, Jeannette Bohg, and Animesh
+     impedance controller for high-precision robotic                   Garg. Variable impedance control in end-effector space:
+     assembly.      In IEEE International Conference on                An action space for reinforcement learning in contact-
+     Robotics and Automation (ICRA), 2019.                             rich tasks. In IEEE/RSJ International Conference on
+[56] Jianlan Luo, Oleg Sushkov, Rugile Pevceviciute, Wen-              Intelligent Robots and Systems (IROS), 2019.
+     zhao Lian, Chang Su, Mel Vecerik, Ning Ye, Stefan            [69] Matthew T. Mason. Mechanics of Robotic Manipula-
+     Schaal, and Jon Scholz. Robust multi-modal policies               tion. MIT Press, 2001.
+     for industrial assembly via reinforcement learning and       [70] Carolyn Matl, Yashraj Narang, Ruzena Bajcsy, Fabio
+     demonstrations: A large-scale study. arXiv:2103.11512             Ramos, and Dieter Fox. Inferring the material properties
+     [cs], 2021.                                                       of granular media for robotic tasks. In IEEE Interna-
+[57] Jieliang Luo and Hui Li. Dynamic experience replay.               tional Conference on Robotics and Automation (ICRA),
+     In Conference on Robot Learning (CoRL), 2019.                     2020.
+[58] Jieliang Luo and Hui Li. A learning approach to              [71] Carolyn Matl, Yashraj Narang, Dieter Fox, Ruzena
+     robot-agnostic force-guided high precision assembly.              Bajcsy, and Fabio Ramos. STReSSD: Sim-to-real from
+     In IEEE/RSJ International Conference on Intelligent               sound for stochastic dynamics. In Conference on Robot
+     Robots and Systems (IROS), 2021.                                  Learning (CoRL), 2020.
+[59] Kevin M. Lynch and Frank C. Park. Modern Robotics:           [72] Ádám Moravánszky and Pierre Terdiman. Fast contact
+     Mechanics, Planning, and Control. Cambridge Univer-               reduction for dynamics simulation. In Andrew Kirmse,
+     sity Press, 2017.                                                 editor, Game Programming Gems 4, pages 253–263.
+[60] Miles Macklin, Kier Storey, Michelle Lu, Pierre Ter-              Charles River Media, 2004.
+     diman, Nuttapong Chentanez, Stefan Jeschke, and              [73] Yashraj Narang, Balakumar Sundaralingam, Miles
+     Matthias Müller. Small steps in physics simulation.              Macklin, Arsalan Mousavian, and Dieter Fox. Sim-
+     ACM SIGGRAPH/Eurographics Symposium on Com-                       to-real for robotic tactile sensing via physics-based
+     puter Animation, 2019.                                            simulation and learned latent projections. In IEEE
+[61] Miles Macklin, Kenny Erleben, Matthias Müller, Nut-              International Conference on Robotics and Automation
+     tapong Chentanez, Stefan Jeschke, and Zach Corse.                 (ICRA), 2021.
+     Local optimization for robust signed distance field colli-   [74] NVIDIA. NVIDIA Omniverse Platform. https://
+     sion. Proc. ACM Comput. Graph. Interact. Tech., 2020.             developer.nvidia.com/nvidia-omniverse-platform, 2022.
+[62] Jeffrey Mahler, Matthew Matl, Vishal Satish, Michael              [Online; accessed 1-January-2022].
+     Danielczuk, Bill DeRose, Stephen McKinley, and Ken           [75] NVIDIA. NVIDIA PhysX SDK. https://github.com/
+     Goldberg. Learning ambidextrous robot grasping poli-              NVIDIAGameWorks/PhysX, 2022. [Online; accessed
+     cies. Sci. Robot., 2019.                                          1-January-2022].
+[63] Denys Makoviichuk and Viktor Makoviychuk. rl-                [76] M.A. Otaduy and M.C. Lin. A modular haptic rendering
+     games, 2021.       URL https://github.com/Denys88/rl              algorithm for stable and transparent 6-DOF manipula-
+     games/.                                                           tion. IEEE Trans. Robot., 2006.
+[64] Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong               [77] Xue Bin Peng and Michiel van de Panne. Learning
+     Guo, Michelle Lu, Kier Storey, Miles Macklin, David               locomotion skills using DeepRL: does the choice of
+     Hoeller, Nikita Rudin, Arthur Allshire, Ankur Handa,              action space matter? In Proceedings of the ACM
+     and Gavriel State. Isaac Gym: High performance GPU-               SIGGRAPH / Eurographics Symposium on Computer
+     based physics simulation for robot learning. In Neural            Animation, 2017.
+     Information Processing Systems (NeurIPS) Track on            [78] Xue Bin Peng, Glen Berseth, Kangkang Yin, and
+     Datasets and Benchmarks, 2021.                                    Michiel Van De Panne. DeepLoco: Dynamic locomo-
+     tion skills using hierarchical deep reinforcement learn-    [93] Garrett Thomas, Melissa Chien, Aviv Tamar,
+     ing. ACM Trans. Graph., 2017.                                    Juan Aparicio Ojea, and Pieter Abbeel. Learning
+[79] Robotic Systems Lab, ETH Zurich. Robot dynamics                  robotic assembly from CAD. In IEEE International
+     lecture notes. 2018.                                             Conference on Robotics and Automation (ICRA), 2018.
+[80] Alessio Rocchi, Barrett Ames, Zhi Li, and Kris Hauser.      [94] Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider,
+     Stable simulation of underactuated compliant hands.              Wojciech Zaremba, and Pieter Abbeel. Domain ran-
+     In IEEE International Conference on Robotics and                 domization for transferring deep neural networks from
+     Automation (ICRA), 2016.                                         simulation to the real world. In IEEE/RSJ International
+[81] Nikita Rudin, David Hoeller, Philipp Reist, and Marco            Conference on Intelligent Robots and Systems (IROS),
+     Hutter. Learning to walk in minutes using massively              2017.
+     parallel deep reinforcement learning. In Conference on      [95] Emanuel Todorov, Tom Erez, and Yuval Tassa. Mu-
+     Robot Learning (CoRL), 2021.                                     JoCo: A physics engine for model-based control.
+[82] Gerrit Schoettler, Ashvin Nair, Juan Aparicio Ojea,              In IEEE/RSJ International Conference on Intelligent
+     Sergey Levine, and Eugen Solowjow.                 Meta-         Robots and Systems, 2012.
+     reinforcement learning for robotic industrial insertion     [96] Mel Vecerik, Todd Hester, Jonathan Scholz, Fumin
+     tasks. In IEEE/RSJ International Conference on Intel-            Wang, Olivier Pietquin, Bilal Piot, Nicolas Heess,
+     ligent Robots and Systems (IROS), 2020.                          Thomas Rothörl, Thomas Lampe, and Martin Ried-
+[83] Lin Shao, Toki Migimatsu, and Jeannette Bohg. Learn-             miller. Leveraging demonstrations for deep reinforce-
+     ing to scaffold the development of robotic manipulation          ment learning on robotics problems with sparse rewards.
+     skills. In IEEE International Conference on Robotics             arXiv:1707.08817 [cs], 2018.
+     and Automation (ICRA), 2020.                                [97] Mel Vecerik, Oleg Sushkov, David Barker, Thomas
+[84] Zilin Si and Wenzhen Yuan. Taxim: An example-                    Rothorl, Todd Hester, and Jon Scholz. A practical
+     based simulation model for GelSight tactile sensors.             approach to insertion with variable socket position using
+     arXiv:2109.04027 [cs], 2021.                                     deep reinforcement learning. In IEEE International
+[85] Bruno Siciliano, Lorenzo Sciavicco, Luigi Villani, and           Conference on Robotics and Automation (ICRA), 2019.
+     Giuseppe Oriolo. Robotics. Springer, 2009.                  [98] Felix von Drigalski, Christian Schlette, Martin Rudor-
+[86] SideFX. Houdini. https://www.sidefx.com/products/                fer, Nikolaus Correll, Joshua C. Triyonoputro, Weiwei
+     houdini/, 2022. [Online; accessed 1-January-2022].               Wan, Tokuo Tsuji, and Tetsuyou Watanabe. Robots
+[87] Dongwon Son, Hyunsoo Yang, and Dongjun Lee. Sim-                 assembling machines: learning from the World Robot
+     to-real transfer of bolting tasks with tight tolerance.          Summit 2018 Assembly Challenge. Adv. Robot., 2019.
+     In IEEE/RSJ International Conference on Intelligent         [99] Nghia Vuong, Hung Pham, and Quang-Cuong Pham.
+     Robots and Systems (IROS), 2020.                                 Learning sequences of manipulation primitives for
+[88] Oren Spector and Miriam Zacksenhouse. Deep rein-                 robotic assembly. In IEEE International Conference
+     forcement learning for contact-rich skills using compli-         on Robotics and Automation (ICRA), 2021.
+     ant movement primitives. arXiv:2008.13223 [cs], 2020.      [100] Shaoxiong Wang, Mike Lambeta, Po-Wei Chou, and
+[89] Liliana Stan, Adrian Florin Nicolescu, and Cristina              Roberto Calandra. TACTO: A fast, flexible and open-
+     Pupăză. Reinforcement learning for assembly robots:            source simulator for high-resolution vision-based tactile
+     A review. Proc. Manuf. Syst., 2020.                              sensors. arXiv:2012.08456 [cs, stat], 2020.
+[90] Francisco Suárez-Ruiz, Xian Zhou, and Quang-Cuong         [101] Daniel E. Whitney. Mechanical Assemblies: Their De-
+     Pham. Can robots assemble an IKEA chair? Sci. Robot.,            sign, Manufacture, and Role in Product Development.
+     2018.                                                            Oxford University Press, 2004.
+[91] Andrew Szot, Alex Clegg, Eric Undersander, Erik Wi-        [102] Josiah Wong, Viktor Makoviychuk, Anima Anandku-
+     jmans, Yili Zhao, John Turner, Noah Maestre, Mustafa             mar, and Yuke Zhu. OSCAR: Data-driven operational
+     Mukadam, Devendra Chaplot, Oleksandr Maksymets,                  space control for adaptive and robust robot manipula-
+     Aaron Gokaslan, Vladimir Vondrus, Sameer Dharur,                 tion. arXiv:2110.00704 [cs], 2021.
+     Franziska Meier, Wojciech Galuba, Angel Chang, Zsolt       [103] Bohan Wu, Iretiayo Akinola, Jacob Varley, and Peter
+     Kira, Vladlen Koltun, Jitendra Malik, Manolis Savva,             Allen. MAT: Multi-fingered adaptive tactile grasping
+     and Dhruv Batra. Habitat 2.0: Training home assistants           via deep reinforcement learning. In Conference on
+     to rearrange their habitat. In Conference on Neural              Robot Learning (CoRL), 2019.
+     Information Processing Systems (NeurIPS), 2021.            [104] Zheng Wu, Wenzhao Lian, Vaibhav Unhelkar,
+[92] Alessandro Tasora, Radu Serban, Hammad Mazhar,                   Masayoshi Tomizuka, and Stefan Schaal. Learning
+     Arman Pazouki, Daniel Melanz, Jonathan Fleischmann,              dense rewards for contact-rich manipulation tasks.
+     Michael Taylor, Hiroyuki Sugiyama, and Dan Negrut.               In IEEE International Conference on Robotics and
+     Chrono: An open source multi-physics dynamics en-                Automation (ICRA), 2021.
+     gine. In High Performance Computing in Science and         [105] Fanbo Xiang, Yuzhe Qin, Kaichun Mo, Yikuan Xia,
+     Engineering. Springer International Publishing, 2016.            Hao Zhu, Fangchen Liu, Minghua Liu, Hanxiao Jiang,
+      Yifu Yuan, He Wang, Li Yi, Angel X. Chang,
+      Leonidas J. Guibas, and Hao Su. SAPIEN: A simulated
+      part-based interactive environment. In IEEE/CVF Con-
+      ference on Computer Vision and Pattern Recognition
+      (CVPR), 2020.
+[106] Hongyi Xu, Yili Zhao, and Jernej Barbič. Implicit multi-
+      body penalty-based distributed contact. IEEE Trans.
+      Visual. Comput. Graphics, 2014.
+[107] Mingxin Yu, Lin Shao, Zhehuan Chen, Tianhao
+      Wu, Qingnan Fan, Kaichun Mo, and Hao Dong.
+      RoboAssembly: Learning generalizable furniture as-
+      sembly policy in a novel multi-robot contact-rich sim-       Fig. S10. Geometric representations, demonstrated on an M4 bolt. Left to
+      ulation environment. arXiv:2112.10143 [cs], 2021.            right: Convex hull. Convex decomposition generated via V-HACD [65] (951
+                                                                   shapes). Triangle mesh generated in Onshape (47k triangles). SDF (144 ×
+[108] Peter A. Zachares, Michelle A. Lee, Wenzhao Lian,            256 × 144 voxels), visualized as a mesh of the isosurface.
+      and Jeannette Bohg. Interpreting contact interactions
+      to overcome failure in robot assembly tasks. In IEEE
+      International Conference on Robotics and Automation
+      (ICRA), 2021.
+[109] Mabel M. Zhang. Necessity for more realistic contact
+      simulation. In Robotics: Science and Systems (RSS)
+      Workshop on Visuotactile Sensors for Robust Manipu-
+      lation, 2020.
+[110] Xiang Zhang, Shiyu Jin, Changhao Wang, Xinghao Zhu,
+      and Masayoshi Tomizuka. Learning insertion primitives
+      with discrete-continuous hybrid action space for robotic
+      assembly tasks. arXiv:2110.12618 [cs], 2021.
+[111] Jialiang Zhao, Daniel Troniak, and Oliver Kroemer.
+                                                                   Fig. S11. Automatic convex decomposition from Fig. S12 for an M4 bolt
+      Towards robotic assembly by predicting robust, precise       (951 shapes). Spatial artifacts are apparent.
+      and task-oriented grasps. arXiv:2011.02462 [cs], 2020.
+[112] Yuke Zhu, Josiah Wong, Ajay Mandlekar, and
+      Roberto Martı́n-Martı́n. robosuite: A modular simu-          with trimesh-trimesh collisions using boundary-layer expanded
+      lation framework and benchmark for robot learning.           meshes [28]. However, stable behavior was only possible with
+      arXiv:2009.12293 [cs], 2020.                                 extremely small timesteps (∆t = 1e-3 s with 10 substeps),
+                                                                                                               1
+                                                                   and the resulting simulations executed at 80   of real-time.
+                          A PPENDIX
+                                                                      Only SDF representations enabled accurate, efficient, and
+A. Introduction                                                    robust simulation. Fig S12 shows a point-cloud visualization
+  No supplementary information.                                    of the SDF for the M4 bolt mesh. However, generating SDFs
+                                                                   is an expensive process proportional to the number of samples,
+B. Related Works                                                   and storage requires significant memory. The M4 bolt model
+  No supplementary information.                                    consists of 5.3 million samples, each a floating-point distance.
+C. Contact-Rich Simulation Methods
+   1) Initial Nut-and-Bolt Experiments: We performed initial
+experiments with various geometric representations of nuts and
+bolts before proceeding with SDFs. Fig. S10 shows 4 different
+geometric representations of an M4 bolt mesh.
+   The convex representation is clearly insufficient to simulate
+contact-rich interactions. The convex decomposition, gener-
+ated with voxel-based V-HACD using Omniverse [74], consists
+of 951 convex hulls and appears to faithfully represent the
+exact bolt geometry. However, Fig. S11 shows a closer view;
+artifacts are prevalent. These artifacts cause inaccuracy and
+instability when simulating contact with a mating M4 nut.          Fig. S12. Left: High-quality triangular mesh representation of an M4 nut and
+                                                                   bolt, consisting of 27k triangles (nut) and 47k triangles (bolt). Right: SDF
+   The trimesh representation, consisting of 47k triangles, is     representation of the bolt, stored in a voxel grid of dimensions 144×256×144
+highly faithful to the exact geometry. Fig. S12 shows the          and visualized as a point cloud. For easier visualization, colors are interpolated
+                                                                                       1
+M4 bolt and nut meshes. Initial experiments were conducted         according to φ(x) 4 . Streaks are artifacts of the viewing angle.
+Fig. S13. Contacts generated between a nut and bolt before and after applying   Fig. S15. Renderings of 2 scenes. Left: M16 nuts scene. Right: Franka
+our contact reduction scheme. Left: 16k contacts generated on the bolt before   robot + M16 nuts + flange assembly scene.
+reduction. Right: 300 contacts remaining after reduction.
+
+
+                                                                                D. Robot Learning Tools
+                                                                                   1) Assets: Table VII and Table VIII provide details on
+                                                                                all assets provided in this work. We intend for this to be a
+                                                                                growing database, with contributions from the community.
+                                                                                   2) Using Contact Simulation Methods: To use the contact
+                                                                                simulation methods from this work in Isaac Gym, the user
+                                                                                simply needs to add an <sdf > tag to the <collision> block
+                                                                                of the object that should use SDF collisions (Listing 1). PhysX
+                                                                                will then interpret the <sdf > tag as follows:
+                                                                                   Consider 2 colliding objects, Object A and Object B.
+                                                                                   • If A and B both have an <sdf > tag, SDF-mesh collision
+Fig. S14. Renderings of D-sub connector and gear assembly assets used in             will be applied. The object with the larger number of
+simulation evaluations and provided in this work.
+                                                                                     features (i.e., triangles) will be represented as an SDF,
+                                                                                     and the trimesh of the other object will be queried against
+   2) Additional Scene Descriptions: Franka robot + M16                              the SDF to check for collisions and generate contacts.
+                                                                                   • If A has an <sdf > tag and B does not, convex-mesh
+nut-and-bolt assemblies. A vibratory feeder is an ubiquitous
+mechanism for conveying and isolating mechanical compo-                              collision will be applied. Object A will be represented as
+nents. The feeder consists of a tray or bowl that vibrates                           a trimesh, and object B will be represented as a convex.
+                                                                                   • If neither A nor B has an <sdf > tag, a default convex-
+an aggregate of parts at high-frequency and small-amplitude.
+Under gravity, the parts gradually move towards a singulation                        convex collision will be applied.
+mechanism, which isolates them for inspection or downstream                     <?xml version="1.0"?>
+                                                                                <robot name="nut_m16">
+handling. We demonstrate a tray-style inclined feeder that                          <link name="nut_m16">
+vibrates an aggregate of nuts at 60 Hz. The nuts towards a                               <visual>
+                                                                                             <geometry>
+channel that only allows one nut to pass at a time. A Franka                                      <mesh filename="nut_m16_tight.obj"/>
+robot with a hand-scripted controller then grasps a nut from                                 </geometry>
+                                                                                         </visual>
+the channel opening and tightens it onto a bolt (Fig. 4).                                <collision>
+   Franka robot + M16 nuts + flange assembly. This scene is                                  <geometry>
+                                                                                                  <mesh filename="nut_m16_tight.obj"/>
+similar to the above, except that the Franka grasps and tightens                             </geometry>
+multiple nuts in sequence to clamp together 2 halves of a                                    <sdf resolution="256"/>
+                                                                                         </collision>
+flange (Fig. S15). This scene is only qualitatively evaluated.                      </link>
+   3) Rendering: For visualization purposes, we render several                  </robot>
+figures using Omniverse. The details are as follows:                            Listing 1. Example URDF file for a nut asset with SDF collision enabled.
+                                                                                The resolution field specifies the desired number of voxels along the longest
+   • The output of the simulation in Fig. 1 was path-traced.                    dimension of the object. We have typically used 256 or 512.
+   • The simulation in Fig. 3 was rendered in real-time.                           3) Helpful Additions: For all assembly assets provided
+   • The scene in Fig. 5 was path-traced.                                       (e.g., nut and bolt), the zero-positions of the parts correspond
+   • The scenes in Fig. 8 were path-traced.                                     to the configuration in which they are fully assembled; thus,
+   • The scenes in Fig. S14 were path-traced.                                   specifying a goal state for RL is extremely simple for the user.
+   • The scene in Fig. S15 was path-traced.                                        Furthermore, we provide a helper script called FrankaCal-
+For simulation-related figures not listed above, the images                     ibrate. When training RL policies, it is common to randomize
+were captured directly from PhysX, Isaac Gym, or Onshape.                       the joint state of the robot at the beginning of each episode
+                                                                       vector (R6 ). The analytic Jacobian can be computed from
+                                                                       the geometric Jacobian as described in [79]. When using
+                                                                       the geometric Jacobian, the orientation components of
+                                                                       ẋ are angular velocity, and      computes the rotational
+                                                                       transformation from current to target. When using the
+                                                                       analytic Jacobian, the orientation components of ẋ are
+                                                                       the derivatives of axis-angle, and simply computes the
+                                                                       difference between target and current.
+                                                                     • Operational-space motion controller
+
+                                                                            τ = JT (M(kp (xt − xc ) − kd (ẋc )) + b + g)      (4)
+                        Image of a real NIST Task Board 1.                                                                  6×6
+           Fig. S16.                                                   where M is now the task-space inertia matrix (R ),
+                                                                       b is now the task-space Coriolis and centrifugal torque
+                                                                       vector (R6 ), and g is now the task-space gravitational
+in order to facilitate robustness. Simultaneously, if a robot is       torque vector (R6 ). The task-space inertia matrix can
+learning a complex multi-step assembly procedure, it can be            be computed from the joint-space inertia matrix [39].
+helpful to learn short-horizon sub-policies that begin when            As before, vector b is currently ignored due to small
+an object is already grasped. Nevertheless, in practice, it is         velocities during assembly operations.
+challenging to randomize the state of a robot and a grasped          • Open-loop force controller
+object while maintaining grasp stability. Using FrankaCali-
+brate, the Franka can grasp an object, go to randomized poses,                                 τ = J T Ft                      (5)
+and generate a large set of stable robot-and-object poses that           where Ft is the target wrench (R6 ).
+can be imported when subsequently training policies.                 •   Closed-loop P force controller
+   4) Controllers: The controllers implemented in this work
+are based on the mathematical formulations articulated in [11,                        τ = JT (Ft + kf (Ft − Fc ))              (6)
+30, 59, 79, 85]. Our specific control laws are as follows:
+                                                                       where kf is a diagonal matrix consisting of task-space
+   • Joint-space inverse differential kinematics (IK) motion           proportional gains (R6×6 ).
+     controller                                                      • Hybrid force-motion controller
+
+                       τ = kp (qt − qc ) − kd (q̇c )         (1)           τ = JT (Sm [M(kp (xt − xc ) − kd (ẋc )) + b + g]
+    where τ is the joint torque vector (R7 ), kp and kd are                                       + Sf [Ft + kf (Ft − Fc )]) (7)
+    diagonal matrices consisting of joint-space proportional
+                                                                         where Sm and Sf are Boolean diagonal selection matrices
+    gains (R7×7 ) and joint-space derivative gains (R7×7 ),
+                                                                         that specify which axes use motion control and which
+    q and q̇ are the joint position vector (R7 ) and joint
+                                                                         use force control (R6×6 ). Although common practice, the
+    velocity vector (R7 ), and subscripts t and c denote
+                                                                         axes need not be complementary.
+    target and current. The quantity qt − qc is computed by
+    inputting a task-space error into an IK algorithm. For IK,     E. Reinforcement Learning
+    we have implemented Jacobian pseudoinverse, Jacobian             Table IX shows PPO parameters for Pick, Place, and
+    transpose, damped least-squares (Levenberg-Marquardt),         Screw. Table X shows a comparison of controller selection
+    and adaptive singular value decomposition (SVD) [11].          and gains on the Screw task. Table XI shows a comparison
+  • Joint-space inverse dynamics controller
+                                                                   of action spaces on the Screw task. Table XII shows a
+            τ = M(kp (qt − qc ) − kd (q̇c )) + b + g         (2)   comparison of baseline rewards on the Screw task.
+
+    where M is the joint-space inertia matrix (R7×7 ), b is the
+    joint-space Coriolis and centrifugal torque vector (R7 ),
+    and g is the joint-space gravitational torque vector (i.e.,
+    a gravity compensation term) (R7 ). Vector b is currently
+    ignored due to small joint velocities during assembly.
+  • Task-space impedance controller
+
+                 τ = JT (kp (xt         xc ) − kd (ẋc ))    (3)
+     where J is the geometric or analytic Jacobian (R6×7 ),
+     kp and kd are now diagonal matrices consisting of task-
+     space proportional gains (R6×6 ), and x and ẋ are the
+     task-space position vector (R6 ) and task-space velocity
+Fig. S17. Histograms of joint torques, gripper forces, and bolt forces. Data was collected during inference on the final trained Screw subpolicy over 128
+environments and 1024 episodes. At each timestep, norms were computed for each environment, and the maximum value was recorded. Histograms show
+distributions of these values over all timesteps. Extreme outliers were rejected for visualization.
+
+
+
+
+                                                        Stable Timesteps              Memory Bandwidth       Parallelization
+                             Solver type              Substeps   Iterations        Per frame  Per second    Max nuts/bolts
+                             Jacobi (before)          8          64                1.28 GB    76.8 GB       20
+                             Jacobi (after)           8          64                24 MB      1.44 GB       1100
+                             Gauss Seidel (before)    1          16                40 MB      2.4 GB        666
+                             Gauss Seidel (after)     1          16                768 KB     46 MB         35000
+                                                                    TABLE V
+  C OMPARISON OF MEMORY BANDWIDTH REQUIREMENTS FOR A JACOBI AND G AUSS -S EIDEL SOLVER ON THE NUT- AND - BOLT SCENE , BEFORE AND
+ AFTER CONTACT REDUCTION . Max nuts/bolt DENOTES THE THEORETICAL MAXIMUM NUMBER OF NUTS AND BOLTS THAT COULD BE SIMULATED ON A
+    STATE - OF - THE - ART GPU; IN PRACTICE , LIMITATIONS ASIDE FROM CONTACT CONSTRAINT SOLUTION (e.g., SCALING OF SDF- BASED CONTACT
+  GENERATION ) TYPICALLY REDUCE THIS UPPER BOUND BY ONE ORDER OF MAGNITUDE . N OTE THAT ALTHOUGH Gauss-Seidel (before) HAS LOWER
+                  MEMORY BANDWIDTH REQUIREMENTS THAN Jacobi (before), IT IS NOT PREFERRED DUE TO ITS LOW EXECUTION SPEED .
+
+
+
+
+                                                     Representation Info                     SDF Stats               Mesh Stats
+                   Scene                    Envs      Bodies    SDF        Mesh      Resolution     Memory      Vertices  Triangles
+                   Peg-in-hole              1024      2         Peg        Hole      43x43x104      3.55 MB     296       592
+                   Nut-and-bolt             1024      2         Bolt       Nut       144x404x144    31.95 MB    8899      17798
+                   D-sub connector          1024      2         Socket     Plug      534x129x254    66.75 MB    11935     23866
+                   Gear assembly            1024      4         Gear       Gear      314x314x104    39.1 MB     17557     35313
+                   Nuts                     1         1024      Nut        Nut       284x132x327    46.76 MB    8899      17798
+                   Bowls                    1         1024      Bowl       Bowl      257x75x257     14.36 MB    582       1160
+                   Toruses                  1         1024      Torus      Torus     304x104x304    36.60 MB    1024      6144
+                   Franka + nut-and-bolt    128       44        Bolt       Nut       144x404x144    31.95 MB    8899      17798
+                                                                TABLE VI
+ G EOMETRIC REPRESENTATIONS USED IN THE SIMULATOR TEST SCENES . Bodies DENOTES THE NUMBER OF BODIES IN EACH PARALLEL ENVIRONMENT.
+F OR Nuts, Bowls, AND Toruses, ALL BODIES ARE SIMULATED IN THE SAME ENVIRONMENT. SDF AND Mesh DENOTE WHICH BODY IN THE CONTACT PAIR
+   IS REPRESENTED AS AN SDF, AND WHICH IS REPRESENTED AS A MESH THAT IS QUERIED AGAINST THE SDF. F OR Gear assembly, STATISTICS ARE
+PROVIDED FOR SDF- MESH COLLISIONS BETWEEN THE LARGE AND MEDIUM GEARS . F OR Franka + nut-and-bolt, WHICH CONTAINS MORE THAN 2 TYPES
+  OF BODIES , THE F RANKA - NUT COLLISIONS ARE HANDLED WITH THE F RANKA GRIPPER FINGERS AS CONVEXES AND THE NUT AS A MESH , AND THE
+                                       NUT- NUT COLLISIONS ARE HANDLED WITH THE NUTS AS CONVEXES .
+                                                                        Part                Manufacturer       Configurations      Clearance (mm)
+                                                                        BNC plug (inner)    Amphenol           visual, collision   0.1778
+                                                                        BNC plug (outer)    Amphenol           visual, collision
+                                                                        BNC socket          Molex              visual, collision
+                                                                        D-sub plug          Assmann            visual, collision   0.0
+                                                                        D-sub socket        Assmann            visual, collision
+                                                                        RJ45 plug           Harting            visual, collision   0.34177
+                                                                        RJ45 socket         Amphenol           visual, collision
+                                                                        USB plug            Bulgin             visual, collision   0.0
+                                                                        USB socket          Amphenol           visual, collision
+                                                                        Waterproof plug     Harting            visual, collision   0.4
+ Part                Standards      Configurations   Clearance (mm)     Waterproof socket   Harting            visual, collision
+ 4 mm round peg      ISO 286        loose, tight     0.104-0.112                                  TABLE VIII
+ 4 mm round hole                                                           I NFORMATION ON ELECTRICAL CONNECTOR ASSETS (11 PARTS , 5
+ 8 mm round peg      ISO 286        loose, tight     0.105-0.114           DISTINCT SUBASSEMBLIES ) PROVIDED IN THIS WORK . T HE RIGID
+ 8 mm round hole                                                       SUBASSEMBLIES (BNC, D- SUB , USB) ARE ALSO SIMULATED ; ALTHOUGH
+ 12 mm round peg     ISO 286        loose, tight     0.206-0.217        THE DEFORMABLE PARTS (RJ45 PLUG , WATERPROOF SOCKET ) CAN BE
+ 12 mm round hole                                                      SIMULATED USING P HYS X OR I SAAC G YM , THEY ARE NOT TESTED HERE .
+ 16 mm round peg     ISO 286        loose, tight     0.506-0.517         T HE BNC PLUG CONTAINS BOTH AN INNER AND OUTER COMPONENT
+ 16 mm round hole                                                       COUPLED BY A LINEAR SPRING . Manufacturer SIMPLY DESIGNATES THE
+ 4 mm rect. peg      ISO 286        loose, tight     0.11-0.14         SOURCE OF THE ORIGINAL CAD MODEL USED TO GENERATE THE VISUAL
+ 4 mm rect. hole                                                         MESHES AND DESIGN THE COLLISION MESHES ; REGARDLESS OF THE
+ 8 mm rect. peg      ISO 286        loose, tight     0.134-0.224         MANUFACTURER , THE MATING FEATURES (e.g., PINS , HOLES ) FOR ALL
+ 8 mm rect. hole                                                          PARTS OF A CERTAIN TYPE ARE HIGHLY STANDARDIZED . Clearance
+ 12 mm rect. peg     ISO 286        loose, tight     0.1374-0.2274     DENOTES THE MINIMUM CLEARANCE BETWEEN THE GIVEN PART AND ITS
+ 12 mm rect. hole                                                          MATING COMPONENT (i.e., BETWEEN PLUG AND SOCKET ) AT THE
+ 16 mm rect. peg     ISO 286        loose, tight     0.1576-0.2612      BEGINNING OF INSERTION . C LEARANCE VALUES ARE 2- SIDED (e.g., FOR
+ 16 mm rect. hole                                                           THE D- SUB CONNECTOR , THE CLEARANCE IS THE DIAMETRAL
+ M4 nut              ISO 724, 965   loose, tight     0.416-0.736         CLEARANCE BETWEEN THE PINS AND HOLES ). T HE D- SUB AND USB
+ M4 bolt             ISO 724, 965   loose, tight                       CONNECTORS BEGIN WITH ZERO - CLEARANCE , WHEREAS THE REMAINING
+ M8 nut              ISO 724, 965   loose, tight     0.848-1.325       COMPONENTS ACHIEVE ZERO - CLEARANCE DURING INSERTION . L INKS TO
+ M8 bolt             ISO 724, 965   loose, tight                            PART- SPECIFIC WEBPAGES ARE AVAILABLE ON OUR WEBSITE .
+ M12 nut             ISO 724, 965   loose, tight     1.26-1.86
+ M12 bolt            ISO 724, 965   loose, tight
+ M16 nut             ISO 724, 965   loose, tight     1.472-2.127
+ M16 bolt            ISO 724, 965   loose, tight
+ M20 nut             ISO 724, 965   loose, tight     1.879-2.664
+ M20 bolt            ISO 724, 965   loose, tight
+ Gear base, shafts   ISO 286        loose, tight     0.005-0.014
+ Gear small
+ Gear medium
+ Gear large
+                             TABLE VII
+I NFORMATION ON PEG , HOLE , NUT, BOLT, AND GEAR MODELS (49 PARTS ,
+    14 DISTINCT SUBASSEMBLIES ) PROVIDED AND SIMULATED IN THIS                          Parameter               Value
+WORK . Loose AND Tight CONFIGURATIONS CORRESPOND TO THE ENDS OF                         MLP network size        [256, 128, 64]
+   THE MANUFACTURING TOLERANCE BAND SPECIFIED BY THE LISTED                             Horizon length (T)      32
+   STANDARD . Clearance DESIGNATES THE CORRESPONDING RANGE OF                           Adam learning rate      1.0e-4
+ CLEARANCES BETWEEN THE GIVEN PART AND ITS MATING COMPONENT                             Discount factor (γ)     0.99
+(e.g., BETWEEN PEG AND HOLE ). C LEARANCE VALUES ARE 2- SIDED (e.g.,                    GAE parameter (λ)       0.95
+          FOR A ROUND PEG , THE CLEARANCE IS DIAMETRAL ).                               Entropy coefficient     0.0
+                                                                                        Critic coefficient      2.0
+                                                                                        Minibatch size          512
+                                                                                        Minibatch epochs        8
+                                                                                        Clipping parameter     0.2
+                                                                                                    TABLE IX
+                                                                       PPO PARAMETERS USED IN PICK , PLACE , AND SCREW SUBPOLICIES . T HE
+                                                                         ACTOR AND CRITIC NETWORKS ARE MLP S WITH A SHARED TRUNK .
+                                                                          O BSERVATIONS , ACTIONS , ADVANTAGES , AND VALUES WERE ALL
+                                                                        NORMALIZED . T HE LEARNING RATE IS SMALL AND FIXED , AS HIGHER
+                                                                       RETURNS WERE CONSISTENTLY ACHIEVED COMPARED TO AN ADAPTIVE
+                                                                             SCHEDULE BASED ON A KL- DIVERGENCE THRESHOLD .
+ Controller             P Motion Gains     D Motion Gains      P Force Gains    Success Rate      Time to Success    Reward     Joint Torque (Nm)
+                                  0.01                0.1               N/A              0.0                 N/A      -0.321                 1.993
+ Task-space impedance              0.1                0.1               N/A               0.0                N/A      -0.308                 1.966
+                                     1                0.1               N/A              0.0                 N/A      -0.299                 1.966
+                                   0.1                  1               N/A            0.797                2335      -0.101                 1.743
+ OSC motion                          1                  1               N/A            0.669                2449      -0.115                 1.758
+                                    10                  1               N/A               0.0                N/A      -0.305                 2.891
+                                   0.1                  1               0.01             0.0                 N/A      -0.411                 4.214
+ Hybrid force-motion                 1                  1                0.1              0.0                N/A      -1.399                28.179
+                                    10                  1                  1             0.0                 N/A      -4.274               418.957
+                                                               TABLE X
+C OMPARISON OF CONTROLLER SELECTION AND GAINS ON S CREW TASK . P Motion Gains SPECIFIES THE VALUE OF THE PROPORTIONAL GAIN FOR THE
+   FIRST 5 ELEMENTS OF THE ACTION SPACE FOR THE MOTION CONTROLLER ; IN ORDER TO BIAS TOWARDS EFFICIENT SCREWING , ELEMENT 6 WAS
+ASSIGNED TO BE 10 FOR TASK - SPACE IMPEDANCE AND 100 FOR THE OTHERS . D Motion Gains SPECIFIES THE VALUE OF THE DERIVATIVE GAIN FOR ALL
+  6 ELEMENTS OF THE ACTION SPACE FOR THE MOTION CONTROLLER . P Force Gains SPECIFIES THE VALUE OF THE PROPORTIONAL GAIN FOR ALL 3
+ELEMENTS OF THE CLOSED - LOOP FORCE CONTROLLER . Success Rate SPECIFIES THE FRACTION OF EPISODES THAT WERE SUCCESSFUL . Time to Success
+ SPECIFIES THE MEAN NUMBER OF TIMESTEPS REQUIRED TO ACHIEVE SUCCESS . Reward SPECIFIES THE MEAN REWARD DURING EACH EPISODE . Joint
+       Torque SPECIFIES THE MEAN JOINT TORQUE NORM DURING EACH EPISODE . E ACH CELL IS COMPUTED FROM THE AVERAGE OF 3 SEEDS .
+
+
+
+
+                   Actions           Observations     Success Rate    Env Steps to Success      Reward     Joint Torque (Nm)
+                                              Pose          0.7734            2308              -0.1024                1.7378
+                   2-DOF (Z, yaw)
+                                     Pose, velocity         0.7969           3658               -0.1004                1.7397
+                                              Pose              0.0           N/A               -0.1602                1.7838
+                   6-DOF
+                                     Pose, velocity             0.0           N/A               -0.1647                1.8008
+                                                                TABLE XI
+    C OMPARISON OF ACTION SPACES ON PERFORMANCE OF S CREW TASK . F OR THE 2-DOF CASE , NO TASK - SPACE FORCE / TORQUE WAS ACTIVELY
+       GENERATED ALONG THE NON - ACTIVE DIMENSIONS OF THE ACTION SPACE . G IVEN THE COMPETITIVE NATURE OF THE RESULTS IN THE
+ OBSERVATION - SPACE ASSESSMENT, OBSERVATION SPACES WERE ALSO TESTED HERE . Success Rate SPECIFIES THE FRACTION OF EPISODES THAT WERE
+  SUCCESSFUL . Time to Success SPECIFIES THE MEAN NUMBER OF TIMESTEPS REQUIRED TO ACHIEVE SUCCESS . Reward SPECIFIES THE MEAN REWARD
+DURING EACH EPISODE . Joint Torque SPECIFIES THE MEAN JOINT TORQUE NORM DURING EACH EPISODE . E ACH CELL IS COMPUTED FROM THE AVERAGE
+                                                                OF 3 SEEDS .
+
+
+
+
+                              Baseline                Success Rate    Env Steps to Success      Joint Torque (Nm)
+                              Linear: −||d||                0.8359                   3148                   1.7295
+                              Exponential: e−||d||          0.0052                   3033                   0.7425
+                                         1
+                              Inverse: 1+||d||                 0.0                    N/A                   0.7270
+                                                                TABLE XII
+C OMPARISON OF BASELINE REWARDS ON PERFORMANCE OF S CREW TASK . Q UANTITY ||d|| DENOTES KEYPOINT DISTANCE , DEFINED IN S ECTION V-D.
+Success Rate SPECIFIES THE FRACTION OF EPISODES THAT WERE SUCCESSFUL . Time to Success SPECIFIES THE MEAN NUMBER OF TIMESTEPS REQUIRED
+   TO ACHIEVE SUCCESS . Joint Torque SPECIFIES THE MEAN JOINT TORQUE NORM DURING EACH EPISODES . D UE TO THE DISTINCT RANGE OF EACH
+                 BASELINE REWARD , MEAN REWARD IS NOT PROVIDED . E ACH CELL IS COMPUTED FROM THE AVERAGE OF 3 SEEDS .
+

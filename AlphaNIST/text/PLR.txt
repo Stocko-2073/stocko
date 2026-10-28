@@ -1,0 +1,1823 @@
+                                                                                       Prioritized Level Replay
+
+
+                                                                        Minqi Jiang 1 2 Edward Grefenstette 1 2 Tim Rocktäschel 1 2
+
+
+                                                                   Abstract                                  Zhong et al., 2020; Küttler et al., 2020). Unlike singleton
+                                                                                                             environments, like the Arcade Learning Environment games
+                                              Environments with procedurally generated con-                  (Bellemare et al., 2013), PCG environments take on algorith-
+                                              tent serve as important benchmarks for testing                 mically created configurations at the start of each training
+
+
+
+
+arXiv:2010.03934v4 [cs.LG] 12 Jun 2021
+                                              systematic generalization in deep reinforcement                episode, potentially varying the layout, asset appearances, or
+                                              learning. In this setting, each level is an algo-              even game dynamics. Each environment instance generated
+                                              rithmically created environment instance with a                this way is called a level. In mapping an identifier, such as a
+                                              unique configuration of its factors of variation.              random seed, to each level, PCG environments allow us to
+                                              Training on a prespecified subset of levels allows             measure a policy’s generalization to held-out test levels. In
+                                              for testing generalization to unseen levels. What              this paper, we assume only a blackbox generation process
+                                              can be learned from a level depends on the current             that returns a level given an identifier. We avoid the strong
+                                              policy, yet prior work defaults to uniform sam-                assumption of control over the generation procedure itself,
+                                              pling of training levels independently of the pol-             explored by several prior works (see Section 6). Further, we
+                                              icy. We introduce Prioritized Level Replay (PLR),              assume levels follow common latent dynamics, so that in
+                                              a general framework for selectively sampling                   aggregate, experiences collected in individual levels reveal
+                                              the next training level by prioritizing those with             general rules governing the entire set of levels.
+                                              higher estimated learning potential when revisited
+                                              in the future. We show TD-errors effectively esti-             Despite its humble origin in games, the PCG abstraction
+                                              mate a level’s future learning potential and, when             proves far-reaching: Many control problems, such as teach-
+                                              used to guide the sampling procedure, induce an                ing a robotic arm to stack blocks in a specific formation,
+                                              emergent curriculum of increasingly difficult lev-             easily conform to PCG. Here, each level may consist of a
+                                              els. By adapting the sampling of training levels,              unique combination of initial block positions, arm state, and
+                                              PLR significantly improves sample efficiency and               target formation. In a vastly different domain, Hanabi (Bard
+                                              generalization on Procgen Benchmark—matching                   et al., 2020) also conforms to PCG, where levels map to ini-
+                                              the previous state-of-the-art in test return—and               tial deck orderings. These examples illustrate the generality
+                                              readily combines with other methods. Combined                  of the PCG abstraction: Most challenging RL problems en-
+                                              with the previous leading method, PLR raises the               tail generalizing across instances (or levels) differing along
+                                              state-of-the-art to over 76% improvement in test               some underlying factors of variation and thereby can be
+                                              return relative to standard RL baselines.                      aptly framed as PCG. This highlights the importance of
+                                                                                                             effective deep RL methods for PCG environments.
+                                                                                                             Many techniques have been proposed to improve generaliza-
+                                         1. Introduction                                                     tion in the PCG setting (see Section 6), requiring changes
+                                                                                                             to the model architecture, learning algorithm, observation
+                                         Deep reinforcement learning (RL) easily overfits to training        space, or environment structure. Notably, these approaches
+                                         experiences, making generalization a key open challenge             default to uniform sampling of training levels. We instead
+                                         to widespread deployment of these methods. Procedural               hypothesize that the variation across levels implies that at
+                                         content generation (PCG) environments have emerged as a             each point of training, each level likely holds different po-
+                                         promising class of problems with which to probe and ad-             tential for an agent to learn about the structure shared across
+                                         dress this core weakness (Risi & Togelius, 2020; Chevalier-         levels to improve generalization. Inspired by this insight
+                                         Boisvert et al., 2018; Cobbe et al., 2020a; Juliani et al., 2019;   and selective sampling methods from active learning, we
+                                           1
+                                             Facebook AI Research, London, United Kingdom 2 University       investigate whether sampling the next training level weighed
+                                         College London, London, United Kingdom. Correspondence to:          by its learning potential can improve generalization.
+                                         Minqi Jiang <msj@fb.com>.
+                                                                                                             We introduce Prioritized Level Replay (PLR), illustrated in
+                                         Proceedings of the 38 th International Conference on Machine        Figure 1, a method for sampling training levels that exploits
+                                         Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+                                                          Prioritized Level Replay
+
+                                                               Equivalent to
+                                                     direct level sampling if
+
+
+
+                                                                              …
+                                            update
+                                                                              …                    update
+                                                                                                                                       Train
+                                                                              …
+
+
+
+
+Figure 1. Overview of Prioritized Level Replay. The next level is either sampled from a distribution with support over unseen levels (top),
+which could be the environment’s (perhaps implicit) full training-level distribution, or alternatively, sampled from the replay distribution,
+which prioritizes levels based on future learning potential (bottom). In either case, a trajectory τ is sampled from the next level and used
+to update the replay distribution. This update depends on the lists of previously seen levels Λseen , their latest estimated learning potentials
+S, and last sampled timestamps C.
+
+
+the differences in learning potential among levels to improve             troduce a computationally-efficient algorithm for sampling
+both sample efficiency and generalization. PLR selectively                levels during training based on an estimate of the future
+samples the next training level based on an estimated learn-              learning potential of collecting new experiences from each
+ing potential of replaying each level anew. During training,              level; (ii) we show our method significantly improves gen-
+our method updates scores estimating each level’s learning                eralization on 10 of 16 environments in Procgen Bench-
+potential as a function of the agent’s policy and temporal-               mark and two challenging MiniGrid environments; (iii) we
+difference (TD) errors collected along the last trajectory                demonstrate our method combines with the previous leading
+sampled on that level. Our method then samples the next                   method to set a new state-of-the-art on Procgen Benchmark;
+training level from a distribution derived from a normal-                 and (iv) we show our method induces an implicit curriculum
+ization procedure over these level scores. PLR makes no                   over training levels in sparse reward settings.
+assumptions about how the policy is updated, so it can be
+used in tandem with any RL algorithm and combined with                    2. Background
+many other methods such as data augmentation. Our method
+also does not assume any external, predefined ordering of                 In this paper, we refer to a PCG environment as any compu-
+levels by difficulty or other criteria, but instead derives level         tational process that, given a level identifier (e.g. an index or
+scores dynamically during training based on how the policy                a random seed), generates a level, defined as an environment
+interacts with the environment. The only requirements are                 instance exhibiting a unique configuration of its underlying
+as follows—satisfied by almost any problem that can be                    factors of variation, such as layout, asset appearances, or
+framed as PCG, including RL environments implemented                      specific environment dynamics (Risi & Togelius, 2020). For
+as seeded simulators: (i) Some notion of “level” exists, such             example, MiniGrid’s MultiRoom environment instantiates
+that levels follow common latent dynamics; (ii) such levels               mazes with varying numbers of rooms based on the seed
+can be sampled from the environment in an identifiable way;               (Chevalier-Boisvert et al., 2018). We refer to sampling a new
+and (iii) given a level identifier, the environment can be set            trajectory generated from the agent’s latest policy acting on
+to that level to collect new experiences from it.                         a given level l as replaying that level l.
+While previous works in off-policy RL devised effective                   The level diversity of PCG environments makes them use-
+methods to directly reuse past experiences for training                   ful testbeds for studying the robustness and generalization
+(Schaul et al., 2016; Andrychowicz et al., 2017), PLR uses                ability of RL agents, measured by agent performance on
+past experiences to inform the collection of future experi-               unseen test levels. The standard test evaluation protocol for
+ences by estimating how much replaying each level anew                    PCG environments consists of training the agent on a finite
+will benefit learning. Our method can thus be seen as a                   number of training levels Λtrain , and evaluating performance
+forward-view variation of prioritized experience replay, and              on unseen test levels Λtest , drawn from the set of all levels.
+an online counterpart to this off-policy method.                          Training levels are sampled from an arbitrary distribution
+                                                                          Ptrain (l|Λtrain ). We call this training process direct level sam-
+This paper makes the following contributions1 : (i) We in-
+                                                                          pling. A common variation of this protocol sets Λtrain to the
+   1                                                                      set of all levels, though in practice, the agent will still only
+   Our code is available at https://github.com/
+facebookresearch/level-replay.                                            effectively see a finite set of levels after training for a finite
+                                                      Prioritized Level Replay
+
+number of steps. In the case of a finite training set, typically     Algorithm 1 Policy-gradient training loop with PLR
+Ptrain (l|Λtrain ) = Uniform(l; Λtrain ). See Appendix C for
+                                                                     Input: Training levels Λtrain , policy πθ ,
+the pseudocode outlining this procedure.                               policy update function U(B, θ) → θ0 , and batch size Nb .
+PCG environments naturally lend themselves to curriculum               Initialize level scores S and level timestamps C
+                                                                       Initialize global episode counter c ← 0
+learning. Prior works have shown that directly altering levels         Initialize the ordered set of visited levels Λseen = ∅
+to match their difficulty to the agent’s abilities can improve         Initialize experience buffer B = ∅
+generalization (Justesen et al., 2018; Dennis et al., 2020;            while training do
+Chevalier-Boisvert et al., 2018; Zhong et al., 2020). These               B←∅
+findings further suggest the levels most useful for improving             while collecting experiences do
+                                                                             B ← B ∪ collect experiences(Λtrain , Λseen , πθ , S, C, c)
+an agent’s policy vary throughout the course of training.                                                              Using Algorithm 2
+In this work, we consider how to automatically discover a                 end while
+curriculum that improves generalization for a general black-              θ ← U(B, θ)        Update policy using collected experiences
+box PCG environment—crucially, without assuming any                    end while
+knowledge or control of how levels are generated (beyond
+providing the random seed or other indicial level identifier).       Algorithm 2 Experience collection with PLR
+                                                                     Input: Training levels Λtrain , visited levels Λseen , policy π,
+3. Prioritized Level Replay                                            global level scores S, global level timestamps C, and
+                                                                       global episode counter c.
+In this section, we present Prioritized Level Replay (PLR),          Output: A sampled trajectory τ
+                                                                       c←c+1
+an algorithm for selectively sampling the next training level          Sample replay decision d ∼ PD (d)
+given the current policy, by prioritizing levels with higher es-       if d = 0 and |Λtrain \ Λseen | > 0 then
+timated learning potential when replayed (that is, revisited).            Define new index i ← |S| + 1
+PLR is a drop-in replacement for the experience-collection                Sample li ∼ Pnew (l|Λtrain , Λseen )    Sample an unseen level
+process used in a wide range of RL algorithms. Algorithm 1                Add li to Λseen
+                                                                          Add initial value Si = 0 to S and Ci = 0 to C
+shows how it is straightforward to incorporate PLR into a              else
+generic policy-gradient training loop. For clarity, we fo-                Sample li ∼ (1 − ρ) · PS (l|Λseen , S) + ρ · PC (l|Λseen , C, c)
+cus on training on batches of complete trajectories (see                                                        Sample a level for replay
+Appendix C for pseudocode of PLR with T -step rollouts).               end if
+                                                                       Sample τ ∼ Pπ (τ |li )
+Our method, illustrated in Figure 1 and fully specified in             Update score Si ← score(τ, π) and timestamp Ci ← c
+Algorithm 2, induces a dynamic, nonparametric sampling
+distribution Preplay (l|Λseen ) over previously visited training     Bernoulli (or similar) distribution PD (d) to determine
+levels Λseen that prioritizes visited levels with higher learn-      whether to replay a level sampled from the replay distri-
+ing potential based on properties of the agent’s past trajec-        bution Preplay (l|Λseen ) or to experience a new, unseen level
+tories. We refer to Preplay (l|Λseen ) as the replay distribution.   from Λtrain , according to some distribution Pnew (l|Λtrain \
+Throughout training, our method updates this replay dis-             Λseen ). In practice, for the case of a finite number of training
+tribution according to a heuristic score, assigning greater          levels, we implement Pnew as a uniform distribution over the
+weight to visited levels with higher future learning potential.      remaining unseen levels. For the case of a countably infinite
+Using dynamic arrays S and C of equal length to Λseen , PLR          number of training levels, we simulate Pnew by sampling
+tracks level scores Si ∈ S for each visited training level li        levels from Ptrain until encountering an unseen level. In
+based on the latest episode trajectory on li , as well as the        our experiments based on a finite number of training levels,
+episode count Ci ∈ C at which each level li ∈ Λseen was              we opt to naturally anneal PD (d = 1) as |Λseen |/|Λtrain |, so
+last sampled. Our method updates Preplay after each termi-           replay occurs more often as more training levels are visited.
+nated episode by computing a mixture of two distributions,
+PS , based on the level scores, and PC , based on how long           The following sections describes how Prioritized Level Re-
+ago each level was last sampled:                                     play updates the replay distribution Preplay (l|Λseen ), namely
+                                                                     through level scoring and staleness-aware prioritization.
+              Preplay = (1 − ρ) · PS + ρ · PC ,               (1)
+where the staleness coefficient ρ ∈ [0, 1] is a hyperparameter.      3.1. Scoring Levels for Learning Potential
+We discuss how we compute level scores Si , parameterizing
+                                                                     After collecting each complete episode trajectory τ on
+the scoring distribution PS , and the staleness distribution
+                                                                     level li using policy π, our method assigns li a score
+PC , in Sections 3.1 and 3.2, respectively.
+                                                                     Si = score(τ, π) measuring the learning potential of re-
+PLR chooses the next level at the start of every train-              playing li in the future. We employ a function of the TD-
+ing episode by first sampling a replay-decision from a               error at timestep t, δt = rt + γV (st+1 ) − V (st ), as a proxy
+                                                     Prioritized Level Replay
+
+for this learning potential. The expectation of the TD-error       While we provide principled motivations for our specific
+over next states is equivalent to the advantage estimate, and      choice of scoring function, we emphasize that in general,
+therefore higher-magnitude TD-errors imply greater dis-            the scoring function can be any approximation of learning
+crepancy between expected and actual returns, making δt a          potential based on trajectory values. Note that candidate
+useful measure of the learning potential in revisiting a par-      scoring functions should asymptotically decrease with fre-
+ticular state transition. To prioritize the learning potential     quency of level visitation to avoid mode collapse of Preplay to
+of future experiences resulting from replaying a level, we         a limited set of levels and possible overfitting. In Section 4,
+use a scoring function based on the average magnitude of           we compare our choice of the GAE magnitude, or equiva-
+the Generalized Advantage Estimate (GAE; Schulman et al.,          lently, the L1 value loss, to alternative TD-error-based and
+2016) over each of T time steps in the latest trajectory τ         uncertainty-based scoring approaches, listed in Table 1.
+from that level:
+                                                                   Given level scores, we use normalized outputs of a prioritiza-
+                                 T    T                            tion function h evaluated over these scores and tuned using
+                              1  X    X
+       Si = score(τ, π) =                   (γλ)k−t δk .    (2)    a temperature parameter β to define the score-prioritized
+                              T t=0                                distribution PS (Λtrain ) over the training levels, under which
+                                      k=t
+
+While the GAE at time t is most commonly expressed as                                                   h(Si )1/β
+                                                                                  PS (li |Λseen , S) = P         1/β
+                                                                                                                     .          (3)
+the discounted sum of all 1-step TD-errors starting at t as in                                           j h(Sj )
+Equation 2, it is equivalent to an exponentially-discounted
+sum of all k-step TD-errors from t, with discount factor λ.        The function h defines how differences in level scores trans-
+By considering all k-step TD-errors, the GAE mitigates the         late into differences in prioritization. The temperature pa-
+bias introduced by the bootstrap term in 1-step TD-errors.         rameter β allows us to tune how much h(S) ultimately deter-
+The discount factor λ then controls the trade-off between          mines the resulting distribution. We make the design choice
+bias and variance. Our scoring function considers the abso-        of using rank prioritization, for which h(Si ) = 1/rank(Si ),
+lute value of the GAE, as we assume the learning potential         where rank(Si ) is the rank of level score Si among all scores
+grows with the magnitude of the TD-error irrespective of its       sorted in descending order. We also experimented with
+sign. This also avoids opposite signed errors canceling out.       proportional prioritization (h(Si ) = Si ) as well as greedy
+                                                                   prioritization (the level with the highest score receives prob-
+Another useful interpretation of Equation 2 comes from             ability 1), both of which tend to perform worse.
+observing that the GAE magnitude at t is equivalent to the
+L1 value loss |V̂t −Vt | under a policy-gradient algorithm that
+                                                                   3.2. Staleness-Aware Prioritization
+uses GAE for its own advantage estimates (and therefore
+value targets V̂t ), as done in state-of-the-art implementations   As the scores used to parameterize PS are a function of the
+of PPO (Schulman et al., 2017) used in our experiments.            state of the policy at the time the associated level was last
+Unless otherwise indicated, PLR refers to the instantiation        played, they come to reflect a gradually more off-policy
+of our algorithm with L1 value loss as the scoring function.       measure the longer they remain without an update through
+                                                                   replay. We mitigate this drift towards “off-policy-ness” by
+We further formulate the Value Correction Hypothesis to
+                                                                   explicitly mixing the sampling distribution with a staleness-
+motivate our approach: In sparse reward settings, prioritiz-
+                                                                   prioritized distribution PC :
+ing the sampling of training levels with greatest average
+absolute value loss leads to a curriculum that improves both                                              c − Ci
+sample efficiency and generalization. We reason that on                         PC (li |Λseen , C, c) = P                       (4)
+                                                                                                         Cj ∈C c − Cj
+threshold levels (i.e. those at the limit of the agent’s current
+abilities) the agent will see non-stationary returns (or value     which assigns probability mass to each level li in proportion
+targets)—and therefore incur relatively high value errors—         to the level’s staleness c − Ci . Here, c is the count of total
+until it learns to solve them consistently. In contrast, levels    episodes sampled so far in training and Ci (referred to as the
+beyond the agent’s current abilities tend to result in station-    level’s timestamp) is the episode count at which li was last
+ary value targets signaling failure and therefore low value        sampled. By pushing support to levels with staler scores,
+errors, until the agent learns useful, transferable behaviors      PC ensures no score drifts too far off-policy.
+from threshold levels. Prioritizing levels by value loss then
+                                                                   Plugging Equations 3 and 4 into Equation 1 gives us a replay
+naturally guides the agent along the expanding threshold
+                                                                   distribution that is calculated as
+of its ability—without the need for any externally provided
+measure of difficulty. We believe that learning behaviors          Preplay (li ) = (1−ρ)·PS (li |Λseen , S)+ρ·PC (li |Λseen , C, c).
+systematically aligned with the inherent complexities of the
+environment in this way may lead to better generalization,         Thus, a level has a greater chance of being sampled when
+and will seek to verify this empirically in Section 5.2.           its score is high or it has not been sampled for a long time.
+                                                   Prioritized Level Replay
+
+4. Experimental Setting                                                Table 1. Scoring functions investigated in this work.
+
+We evaluate PLR on several PCG environments with var-            Scoring function            score(τ, π)
+ious combinations of scoring functions and prioritization                                    1
+                                                                                               PT P
+schemes, and compare to the most common direct level sam-        Policy entropy              T    t=0     a π(a, st ) log π(a, st )
+pling baseline of Ptrain (l|Λtrain ) = Uniform(l; Λtrain ). We                               1
+                                                                                               PT
+                                                                 Policy min-margin       T   t=0 (maxa π(a, st ) −
+train and test on all 16 environments in the Procgen Bench-
+                                                                                         maxa6=maxa π(a,st ) π(a, st ))
+mark on easy and hard difficulties, but focus discussion on                                 PT
+the easy results, which allow direct comparison to several       Policy least-confidence T1 t=0 (1 − maxa π(a, st ))
+prior studies. We compare to UCB-DrAC (Raileanu et al.,                                   1
+                                                                                            PT
+2021), the state-of-the-art image augmentation method on
+                                                                 1-step TD error         T   t=0 |δt |
+
+this benchmark, and mixreg (Wang et al., 2020a), a recently                               1
+                                                                                            PT   PT           k−t
+                                                                 GAE                     T   t=0     k=t (γλ)     δk
+introduced data augmentation method. We also compare
+to TSCL Window (Matiisen et al., 2020), which resembles          GAE magnitude               1
+                                                                                                 PT     PT            k−t
+                                                                 (L1 value loss)             T    t=0      k=t (γλ)         δk
+PLR with an alternative scoring function using the slope of
+recent returns and no staleness sampling. For fair compari-
+son, we also evaluate a custom TSCL Window variant that
+mixes in the staleness distribution PC weighted by ρ > 0.        5. Results and Discussion
+Further, to demonstrate the ease of combining PLR with
+other methods, we evaluate UCB-DrAC using PLR for sam-           Our main findings are that (i) PLR significantly improves
+pling training levels. Finally, we test the Value Correction     both sample efficiency and generalization, attaining the high-
+Hypothesis on two challenging MiniGrid environments.             est normalized mean test and train returns and mean reduc-
+                                                                 tion in generalization gap on Procgen out of all individual
+We measure episodic test returns per game throughout train-      methods evaluated, while matching UCB-DrAC in test im-
+ing, as well as the performance of the final policy over 100     provement relative to PPO; (ii) alternative scoring functions
+unseen test levels of each game relative to PPO with uniform     lead to inconsistent improvements across environments; (iii)
+sampling. We also evaluate the mean normalized episodic          PLR combined with UCB-DrAC sets a new state-of-the-art
+test return and mean generalization gap, averaged over all       on Procgen; and (iv) PLR induces an implicit curriculum
+games (10 runs each). We normalize returns according to          over training levels, which substantially aids training in two
+Cobbe et al. (2019) and compute the generalization gap as        challenging MiniGrid environments.
+train returns minus test returns. Thus, a larger gap indicates
+more overfitting, making it an apt measure of generalization.    5.1. Procgen Benchmark
+We assess statistical significance at p = 0.05, using the
+Welch t-test.                                                    Our results, summarized in Figure 2, show PLR with rank
+                                                                 prioritization (β = 0.1, ρ = 0.1) leads to the largest statis-
+In line with the standard baseline for these environments, all   tically significant gains in mean normalized test and train
+experiments use PPO with GAE for training. For Procgen,          returns and reduction in generalization gap compared to
+we use the same ResBlock architecture as Cobbe et al.            uniform sampling, outperforming all other methods besides
+(2020a) and train for 25M total steps on 200 levels on the       UCB-DrAC + PLR. PLR combined with UCB-DrAC sees
+easy setting as in the original baselines. For MiniGrid, we      the most drastic improvements in these metrics. As reported
+use a 3-layer CNN architecture based on Igl et al. (2019),       in Table 2, UCB-DrAC + PLR yields a 76% improvement in
+and provide approximately 1000 levels of each difficulty per     mean test return relative to PPO with uniform sampling, and
+environment during training. Detailed descriptions of the        a 28% improvement relative to the previous state-of-the-art
+environments, architectures, and hyperparameters used in         set by UCB-DrAC. While PLR with rank prioritization leads
+our experiments (and how they were set or obtained) can be       to statistically significant gains in test return on 10 of 16
+found in Appendix A. See Table 1 for the full set of scoring     environments and proportional prioritization, on 11 of 16
+functions investigated in our experiments.                       games, we prefer rank prioritization: While we find the two
+Additionally, we extend PLR to support training on an            comparable in mean normalized returns, Figure 3 shows
+unbounded number of levels by tracking a rolling, finite         rank prioritization results in higher mean unnormalized test
+buffer of the top levels so far encountered by learning poten-   returns and a significantly lower mean generalization gap,
+tial. Appendix B.3 reports the results of this extended PLR      averaged over all environments.
+algorithm when training on the full level distribution of the    Further, Figure 3 shows that gains only occur when Preplay
+MiniGrid environments featured in our main experiments.          considers both level scores and staleness (0 < ρ < 1),
+                                                                 highlighting the importance of staleness-based sampling
+                                                                 in keeping scores from drifting off-policy. Lastly, we also
+                                                                                                                         Prioritized Level Replay
+
+                                          Uniform                            TSCL Window                                                        mixreg                                  UCB-DrAC                                               PLR                                 UCB-DrAC + PLR
+                                                                                                                                                    0.7
+                                bigfish             bossfight              caveflyer              chaser
+                           18                   9                     7                      8
+                                                                                                                                                                    Train
+                                                                                                                                                    0.6                                                                                                      2.5
+                           9                    4
+                                                                      3
+                                                                                             4                                                                      Test
+
+
+
+
+                                                                                                                   Mean normalized episode return
+                           0                    0                                                                                                   0.5                                                                                                      2.0
+
+
+
+
+Mean test episode return                                                                                                                                                                                                           Mean generalization gap
+                                climber               coinrun              dodgeball              fruitbot
+                           7                    9                     11                     29
+
+                                                                                                                                                    0.4                                                                                                      1.5
+                                                                                             14
+                                                                      5
+                           3                    4
+                                                                                             0
+                                                                      0                                                                             0.3                                                                                                      1.0
+                                 heist                jumper                leaper                 maze
+                           5                    6                     9                      7
+                                                                                                                                                    0.2                                                                                                      0.5
+                                                3                     4
+                           2
+                                                                                             3                                                      0.1
+                                                                                                                                                                                                                                                             0.0
+                                  miner               ninja                plunder                starpilot
+                           10                   7                     9                      34
+                                                                                                                                                    0.0
+                                                                                                                                                                                                                                                             0.5
+                           5                                                                 17
+                                                3
+                                                                      4                                                                             0.1
+                           0                                                                 0
+                            0     10M     20M   0      10M      20M    0      10M      20M    0     10M      20M
+                                                                                                                                                          0     5M                     10M      15M     20M       25M                                                 0       5M     10M   15M    20M    25M
+
+                                                                                                                                                              Steps
+
+Figure 2. Left: Mean episodic test returns (10 runs) of each method. Each colored F indicates statistically significant (p < 0.05) gains in
+final test performance or sample complexity along the curve, relative to uniform sampling, for the PLR-based method of the same color.
+Center: Mean normalized train and test returns averaged across all games. Right: Mean generalization gaps averaged across all games.
+
+
+                                                                                                                                                                                                  bigfish                                                             ninja
+benchmarked PLR on the hard setting against the same set of                                                                                                                          15.0                                                                                                  uniform
+
+
+
+
+                                                                                                                                                                  Mean test return                                  Mean test return
+methods, where it again leads with 35% greater test returns                                                                                                                          12.5                                                        6                                         least confidence
+                                                                                                                                                                                     10.0                                                                                                  min margin
+relative to uniform sampling and 83% greater test returns                                                                                                                             7.5
+                                                                                                                                                                                                                                                 4                                         policy entropy
+when combined with UCB-DrAC. Figures 10–18 and Table                                                                                                                                  5.0                                                        2
+                                                                                                                                                                                                                                                                                           GAE
+4 in Appendix B report additional details on these results.                                                                                                                           2.5                                                                                                  1-step TD-error
+                                                                                                                                                                                      0.0                                                        0                                         L1 value loss
+The alternative scoring metrics based on TD-error and                                                                                                                                           all averaged                                                       all averaged
+
+
+
+
+                                                                                                                                                                                                                    Mean generalization gap
+                                                                                                                                                                  Mean test return
+classifier uncertainty perform inconsistently across games.                                                                                                                            8
+                                                                                                                                                                                                                                                2
+
+While certain games, such as BigFish, see improved sample-                                                                                                                             6                                                                                                   uniform
+                                                                                                                                                                                                                                                1
+efficiency and generalization under various scoring func-                                                                                                                                                                                                                                  PLR, rank, = 0.1
+                                                                                                                                                                                       4
+                                                                                                                                                                                                                                                                                           PLR, prop, = 0.1
+tions, others, such as Ninja, see no improvement or worse,                                                                                                                                                                                      0
+                                                                                                                                                                                       2                                                                                                   PLR, = 1.0
+degraded performance. See Figure 3 for an example of                                                                                                                                                                                                                                       PLR, = 0.0
+                                                                                                                                                                                            0     10M       20M                                              0       10M       20M
+this inconsistent effect across games. We find the best-
+performing variant of TSCL Window does not incorporate                                                                                                                                                            Steps
+
+staleness information (ρ = 0) and similarly leads to in-
+consistent outcomes across games at test time, notably sig-                                                                                                        Figure 3. Top: Two example Procgen environments, between
+nificantly worsening performance on StarPilot, as seen in                                                                                                          which all scoring functions except L1 value loss show inconsistent
+Figure 2, and increasing the generalization gap on some                                                                                                            improvements to test performance (rank prioritization, β = 0.1,
+environments as revealed in Figure 15 of Appendix B.                                                                                                               ρ = 0.3). This inconsistency holds across settings in our grid
+                                                                                                                                                                   search. Bottom: Mean unnormalized episodic test returns (left)
+ 5.2. MiniGrid                                                                                                                                                     and mean generalization gap (right) for various PLR settings.
+
+We provide empirical support for the Value Correction Hy-                                                                                                          To test our hypothesis, we bin each level into its correspond-
+pothesis (defined in Section 3) on two challenging MiniGrid                                                                                                        ing difficulty, expressed as ascending, discrete values (note
+environments, whose levels fall into discrete difficulties (e.g.                                                                                                   that PLR does not have access to this privileged information).
+by number of rooms to be traversed). In both, PLR with                                                                                                             In the bottom row of Figure 4, we see how the expected dif-
+rank prioritization significantly improves sample efficiency                                                                                                       ficulty of levels sampled using PLR changes during training
+and generalization over uniform sampling, demonstrating                                                                                                            for each environment. We observe that as Preplay is updated,
+our method also works well in discrete state spaces. We find                                                                                                       levels become sampled according to an implicit curriculum
+a staleness coefficient of ρ = 0.3 leads to the best test per-                                                                                                     over the training levels that prioritizes progressively harder
+formance on MiniGrid. The top row of Figure 4 summarizes                                                                                                           levels. Of particular note, PLR seems to struggle to discover
+these results.                                                                                                                                                     a useful curriculum for around the first 4,000 updates on
+                                                                                                                                                                   ObstructedMazeGamut-Medium, at which point it discovers
+                                                       Prioritized Level Replay
+
+Table 2. Test returns of policies trained using each method with its best hyperparameters. Following Raileanu et al. (2021), the reported
+mean and standard deviations per environment are computed by evaluating the final policy’s average return on 100 test episodes,
+aggregated across multiple training runs (10 runs for Procgen Benchmark and 3 for MiniGrid, each initialized with a different training
+seed). Normalized test returns per run are computed by dividing the average test return per run for each environment by the corresponding
+average test return of the uniform-sampling baseline over all runs. We then report the means and standard deviations of normalized test
+returns aggregated across runs. We report the normalized return statistics for Procgen and MiniGrid environments separately. Bolded
+methods are not significantly different from the method with highest mean, unless all are, in which case none are bolded.
+
+Environment                           Uniform           TSCL         mixreg UCB-DrAC                   PLR UCB-DrAC + PLR
+BigFish                              3.7 ± 1.2      4.3 ± 1.3 6.9 ± 1.6    8.7 ± 1.1            10.9 ± 2.8            14.3 ± 2.1
+BossFight                            7.7 ± 0.4      7.4 ± 0.8 8.1 ± 0.7    7.7 ± 0.7            8.9 ± 0.4              8.8 ± 0.8
+CaveFlyer                            5.4 ± 0.8     6.3 ± 0.6    6.0 ± 0.6  4.6 ± 0.9            6.3 ± 0.5              6.8 ± 0.7
+Chaser                               5.2 ± 0.7      4.9 ± 1.0 5.7 ± 1.1    6.8 ± 0.9             6.9 ± 1.2             8.0 ± 0.6
+Climber                              5.9 ± 0.6      6.0 ± 0.8 6.6 ± 0.7 6.4 ± 0.9               6.3 ± 0.8              6.8 ± 0.7
+CoinRun                              8.6 ± 0.4     9.2 ± 0.2    8.6 ± 0.3  8.6 ± 0.4             8.8 ± 0.5             9.0 ± 0.4
+Dodgeball                            1.7 ± 0.2      1.2 ± 0.4 1.8 ± 0.4    5.1 ± 1.6             1.8 ± 0.5            10.3 ± 1.4
+FruitBot                            27.3 ± 0.9     27.1 ± 1.6 27.7 ± 0.8 27.0 ± 1.3             28.0 ± 1.3             27.6 ± 1.5
+Heist                                2.8 ± 0.9      2.5 ± 0.6 2.7 ± 0.4    3.2 ± 0.7             2.9 ± 0.5             4.9 ± 1.3
+Jumper                               5.7 ± 0.4      6.1 ± 0.6 6.1 ± 0.3    5.6 ± 0.5             5.8 ± 0.5              5.9 ± 0.3
+Leaper                               4.2 ± 1.3      6.4 ± 1.2 5.2 ± 1.1    4.4 ± 1.4             6.8 ± 1.2             8.7 ± 1.0
+Maze                                 5.5 ± 0.4      5.0 ± 0.3 5.4 ± 0.5    6.2 ± 0.5             5.5 ± 0.8             7.2 ± 0.8
+Miner                                8.7 ± 0.7      8.9 ± 0.6 9.5 ± 0.4 10.1 ± 0.6              9.6 ± 0.6             10.0 ± 0.5
+Ninja                                6.0 ± 0.4     6.8 ± 0.5 6.9 ± 0.5     5.8 ± 0.8            7.2 ± 0.4              7.0 ± 0.5
+Plunder                              5.1 ± 0.6      5.9 ± 1.1 5.7 ± 0.5 7.8 ± 0.9               8.7 ± 2.2              7.7 ± 0.9
+StarPilot                           26.8 ± 1.5     19.8 ± 3.4 32.7 ± 1.5 31.7 ± 2.4             27.9 ± 4.4             29.6 ± 2.2
+Normalized test returns (%)       100.0 ± 4.5 103.0 ± 3.6 113.8 ± 2.8 129.8 ± 8.2 128.3 ± 5.8                        176.4 ± 6.1
+
+MultiRoom-N4-Random      0.80 ± 0.04                         –              –              – 0.81 ± 0.01                          –
+ObstructedMazeGamut-Easy 0.53 ± 0.04                         –              –              – 0.85 ± 0.04                          –
+ObstructedMazeGamut-Med 0.65 ± 0.01                          –              –              – 0.73 ± 0.07                          –
+Normalized test returns (%)       100.0 ± 2.5                –              –              – 124.3 ± 4.7                          –
+
+
+
+a curriculum that gradually assigns more weight to harder             et al., 2020; Cobbe et al., 2020b). In contrast, PLR modifies
+levels. This curriculum enables PLR with access to only               only how the next training level is sampled, thereby easily
+6,000 training levels to attain even higher mean test returns         combining with any model or RL algorithm.
+than the uniform-sampling baseline with access to the full
+                                                                      The selective-sampling performed by PLR makes it a form
+set of training levels, of which there are roughly 4 billion (so
+                                                                      of active learning (Cohn et al., 1994; Settles, 2009). Our
+our training levels constitute 0.00015% of the total number).
+                                                                      work also echoes ideas from Graves et al. (2017), who train
+We further tested an extended version of PLR that trains              a multi-armed bandit to choose the next task in multi-task
+on the full level distribution on these two environments              supervised learning, so to maximize gradient-based progress
+by tracking a buffer of levels with the highest estimated             signals. Sharma et al. (2018) extend these ideas to multi-
+learning potential. We find it outperforms uniform sampling           task RL, but add the additional requirement of knowing a
+with access to the full level distribution. These additional          maximum target return for each task a priori. Zhang et al.
+results are presented in Appendix B.3.                                (2020b) use an ensemble of value functions for selective
+                                                                      goal sampling in the off-policy continuous control setting,
+6. Related Work                                                       requiring prior knowledge of the environment structure to
+                                                                      generate candidate goals. Unlike PLR, these methods as-
+Several methods for improving generalization in deep                  sume the ability to sample tasks or levels based on their
+RL adapt techniques from supervised learning, including               structural properties, an assumption that does not typically
+stochastic regularization (Igl et al., 2019; Cobbe et al.,            hold for PCG simulators. Instead, our method automatically
+2020a), data augmentation (Kostrikov et al., 2020; Raileanu           uncovers similarly difficult levels, giving rise to a curricu-
+et al., 2021; Wang et al., 2020a), and feature distillation (Igl      lum without prior knowledge of the environment.
+                                                                                         Prioritized Level Replay
+
+                                                  MultiRoom-N4-Random                        ObstructedMazeGamut-Easy                      ObstructedMazeGamut-Medium
+                                  1.0                                                                                           1.0
+
+
+
+
+       Mean test episode return
+                                                 Random                                                                                     uniform
+                                                 L1 value loss,   = 0.3                                                                     PLR , = 0.3
+                                  0.8                                                                                           0.8
+                                                                                                                                            uniform, full distribution
+
+                                  0.6                                                                                           0.6
+
+                                  0.4                                                                                           0.4
+                                                                                                         Random
+                                  0.2                                                                    L1 value loss,   = 0.30.2
+
+                                  0.0                                                                                           0.0
+                                             0   20M     40M      60M     80M    100M    0     20M      40M      60M      80M          0      50M     100M      150M     200M   250M
+                                                                                                         Steps
+                                                                                  1.00                                          1.00
+
+
+
+
+     Probability mass
+                                  1.00                                                                                                                                             5
+                                                                                   3                                             2
+                                                                                  0.75                                          0.75                                               4
+                                                                                   2                                                                                               3
+                                  0.50                                            0.50                                          0.50
+                                                                                                                                 1
+                                                                                   1                                                                                               2
+                                                                                  0.25                                          0.25                                               1
+                                                                                   0                                             0
+                                  0.00                                            0.00                                          0.00                                               0
+
+                                         0          2K            4K        6K           0      2K       4K       6K                   0            5K          10K         15K
+                                                                                                     PPO updates
+
+Figure 4. Top: Mean episodic test returns of PLR and the uniform-sampling baseline on MultiRoom-N4-Random (4 runs),
+ObstructedMazeGamut-Easy (3 runs), and ObstructedMazeGamut-Medium (3 runs). Bottom: The probability mass assigned to levels of
+varying difficulty over the course of training in a single, randomly selected run for the respective environment.
+
+
+A recent theme in the PCG setting explores adaptively gen-                                               fit simple PCG settings are complementary to the aims of
+erating levels to facilitate learning (Sukhbaatar et al., 2017;                                          this work. However, as these studies focus on PCG envi-
+Wang et al., 2019; 2020b; Khalifa et al., 2020; Akkaya                                                   ronments with low-dimensional state spaces, whether such
+et al., 2019; Campero et al., 2020; Dennis et al., 2020). Un-                                            methods can be successfully applied to more complex PCG
+like these approaches, our method does not assume control                                                environments like Procgen Benchmark remains to be seen.
+over level generation, requiring only the ability to replay                                              If so, they may potentially combine with PLR to yield addi-
+previously visited levels. These methods also require param-                                             tive improvements. We believe the interplay between such
+eterizing level generation with additional learning modules.                                             exploration methods and PLR to be a promising direction
+In contrast, our approach does not require such extensions                                               for future research.
+of the environment, for example including teacher-specific
+action spaces in the case of Campero et al. (2020). Most sim-                                            7. Conclusion and Future Work
+ilar to our method, Matiisen et al. (2020) proposes a teacher-
+student curriculum learning (TSCL) algorithm that samples                                                We introduced Prioritized Level Replay (PLR), an algo-
+training levels by considering the change in episodic returns                                            rithm for selectively sampling the next training level in PCG
+per level, though they neither design nor test the method                                                environments based on the estimated learning potential of re-
+for generalization. As shown in Section 5.1, it provides in-                                             visiting each level for the current policy. We showed that our
+consistent benefits at test time. Further, unlike TSCL, PLR                                              method remarkably improves both the sample efficiency and
+does not assume access to all levels at the start of training,                                           generalization of deep RL agents in PCG environments, in-
+and as we show in Appendix B.3, PLR can be extended to                                                   cluding the majority of environments in Procgen Benchmark
+improve sample efficiency and generalization by training on                                              and two challenging MiniGrid environments. We further
+an unbounded number of training levels.                                                                  combined PLR with the prior leading method to set a new
+                                                                                                         state-of-the-art on Procgen Benchmark. Further, on Mini-
+Like our method, Schaul et al. (2016) and Kapturowski et al.
+                                                                                                         Grid environments, we showed PLR induces an emergent
+(2019) use TD-errors to estimate learning potential. While
+                                                                                                         curriculum of increasingly more difficult levels.
+these methods make use of TD-errors to prioritize learning
+from past experiences, our method uses such estimates to                                                 The flexibility of the PCG abstraction makes PLR applica-
+prioritize revisiting levels for generating entirely new future                                          ble to many problems of practical importance, for example,
+experiences for learning.                                                                                robotic object manipulation tasks, where domain random-
+                                                                                                         ized environment instances map to the notion of levels. We
+Generalization requires sufficient exploration of environ-
+                                                                                                         believe PLR may even be applicable to singleton environ-
+ment states and dynamics. Thus, recent exploration strate-
+                                                                                                         ments, given a procedure for generating variations of the
+gies (e.g. Raileanu & Rocktäschel, 2020; Campero et al.,
+                                                                                                         underlying MDP as a function of a level identifier, for ex-
+2020; Zhang et al., 2020a; Zha et al., 2021) shown to bene-
+                                                   Prioritized Level Replay
+
+ample, by varying the starting positions of entities. Another    Andrychowicz, M., Wolski, F., Ray, A., Schneider, J., Fong,
+natural extension of PLR is to adapt the method to operate         R., Welinder, P., McGrew, B., Tobin, J., Abbeel, O. P., and
+in the goal-conditioned setting, by incorporating goals into       Zaremba, W. Hindsight experience replay. In Advances
+the level parameterization.                                        in neural information processing systems, pp. 5048–5058,
+                                                                   2017.
+Despite the wide applicability of PCG and consequently
+PLR, not all problem domains can be effectively represented      Bard, N., Foerster, J. N., Chandar, S., Burch, N., Lanctot,
+in seed-based simulation. Many real world problems require         M., Song, H. F., Parisotto, E., Dumoulin, V., Moitra,
+transfer into domains too complex to be adequately cap-            S., Hughes, E., Dunning, I., Mourad, S., Larochelle,
+tured by simulation, such as car driving, where realizing a        H., Bellemare, M. G., and Bowling, M. The han-
+completely faithful simulation would entail solving the very       abi challenge: A new frontier for AI research. Ar-
+same control problem of interest, creating a chicken-and-egg       tif. Intell., 280:103216, 2020. doi: 10.1016/j.artint.
+dilemma. Further, environment resets are not universally           2019.103216. URL https://doi.org/10.1016/
+available, such as in the continual learning setting, where        j.artint.2019.103216.
+the agent interacts with the environment without explicit
+episode boundaries—arguably, a more realistic interaction        Bellemare, M. G., Naddaf, Y., Veness, J., and Bowling, M.
+model for a learning agent deployed in the wild.                   The arcade learning environment: An evaluation platform
+                                                                   for general agents. Journal of Artificial Intelligence Re-
+Still, pre-training in simulation with resets can nevertheless     search, 47:253–279, Jun 2013. ISSN 1076-9757. doi:
+benefit such settings, where the target domain is rife with        10.1613/jair.3912. URL http://dx.doi.org/10.
+open-ended complexity and where resets are unavailable,            1613/jair.3912.
+especially as training through real-world interactions can
+be slow, expensive, and precarious. In fact, in practice, we     Campero, A., Raileanu, R., Küttler, H., Tenenbaum, J. B.,
+almost exclusively train deep RL policies in simulation for        Rocktäschel, T., and Grefenstette, E. Learning with
+these reasons. As PLR provides a simple method to more             AMIGo: Adversarially Motivated Intrinsic Goals. CoRR,
+fully exploit the simulator for improved test-time perfor-         abs/2006.12122, 2020. URL https://arxiv.org/
+mance, we believe PLR can also be adapted to improve               abs/2006.12122.
+learning in these settings.
+                                                                 Chevalier-Boisvert, M., Bahdanau, D., Lahlou, S., Willems,
+We further note that while we empirically demonstrated that        L., Saharia, C., Nguyen, T. H., and Bengio, Y. BabyAI:
+the L1 value loss acts as a highly effective scoring func-         First steps towards grounded language learning with a
+tion, there likely exist even more potent choices. Directly        human in the loop. CoRR, abs/1810.08272, 2018. URL
+learning such functions may reveal even better alternatives.       http://arxiv.org/abs/1810.08272.
+Lastly, combining PLR with various exploration strategies
+may further improve test performance in hard exploration         Chevalier-Boisvert, M., Willems, L., and Pal, S. Minimalis-
+environments. We look forward to investigating each of             tic gridworld environment for OpenAI Gym. https://
+these promising directions in future work, prioritized ac-         github.com/maximecb/gym-minigrid, 2018.
+cordingly, by learning potential.
+                                                                 Cobbe, K., Klimov, O., Hesse, C., Kim, T., and Schulman,
+                                                                   J. Quantifying generalization in reinforcement learning.
+Acknowledgements                                                   In International Conference on Machine Learning, pp.
+We thank Roberta Raileanu, Heinrich Küttler, and Jakob           1282–1289. PMLR, 2019.
+Foerster for useful discussions and feedback on this work,
+                                                                 Cobbe, K., Hesse, C., Hilton, J., and Schulman, J. Lever-
+and our anonymous reviewers, for their recommendations
+                                                                   aging Procedural Generation to Benchmark Reinforce-
+on improving this paper.
+                                                                   ment Learning. In International Conference on Ma-
+                                                                   chine Learning, pp. 2048–2056. PMLR, November 2020a.
+References                                                         URL http://proceedings.mlr.press/v119/
+                                                                   cobbe20a.html. ISSN: 2640-3498.
+Akkaya, I., Andrychowicz, M., Chociej, M., Litwin, M.,
+  McGrew, B., Petron, A., Paino, A., Plappert, M., Powell,       Cobbe, K., Hilton, J., Klimov, O., and Schulman, J. Phasic
+  G., Ribas, R., Schneider, J., Tezak, N., Tworek, J., Welin-      Policy Gradient. CoRR, abs/2009.04416, 2020b. URL
+  der, P., Weng, L., Yuan, Q., Zaremba, W., and Zhang,             https://arxiv.org/abs/2009.04416.
+  L. Solving rubik’s cube with a robot hand. CoRR,
+  abs/1910.07113, 2019. URL http://arxiv.org/                    Cohn, D., Atlas, L., and Ladner, R. Improving general-
+  abs/1910.07113.                                                  ization with active learning. Machine learning, 15(2):
+                                                                   201–221, 1994.
+                                                 Prioritized Level Replay
+
+Dennis, M., Jaques, N., Vinitsky, E., Bayen, A. M.,            Khalifa, A., Bontrager, P., Earle, S., and Togelius, J. PC-
+  Russell, S., Critch, A., and Levine, S. Emergent               GRL: procedural content generation via reinforcement
+  complexity and zero-shot transfer via unsupervised             learning. CoRR, abs/2001.09212, 2020. URL https:
+  environment design. In Larochelle, H., Ranzato, M.,           //arxiv.org/abs/2001.09212.
+  Hadsell, R., Balcan, M., and Lin, H. (eds.), Advances
+  in Neural Information Processing Systems 33: An-             Kostrikov, I., Yarats, D., and Fergus, R. Image Augmenta-
+  nual Conference on Neural Information Processing               tion Is All You Need: Regularizing Deep Reinforcement
+  Systems 2020, NeurIPS 2020, December 6-12, 2020,               Learning from Pixels. CoRR, abs/2004.13649, 2020. URL
+  virtual, 2020.     URL https://proceedings.                    https://arxiv.org/abs/2004.13649.
+  neurips.cc/paper/2020/hash/                                  Küttler, H., Nardelli, N., Miller, A. H., Raileanu, R.,
+  985e9a46e10005356bbaf194249f6856-                              Selvatici, M., Grefenstette, E., and Rocktäschel, T.
+  Abstract.html.                                                 The nethack learning environment. In Larochelle, H.,
+Graves, A., Bellemare, M. G., Menick, J., Munos, R.,             Ranzato, M., Hadsell, R., Balcan, M., and Lin, H. (eds.),
+  and Kavukcuoglu, K. Automated curriculum learning              Advances in Neural Information Processing Systems 33:
+  for neural networks. In Precup, D. and Teh, Y. W.              Annual Conference on Neural Information Processing
+  (eds.), Proceedings of the 34th International Conference       Systems 2020, NeurIPS 2020, December 6-12, 2020,
+  on Machine Learning, ICML 2017, Sydney, NSW, Aus-              virtual, 2020.       URL https://proceedings.
+  tralia, 6-11 August 2017, volume 70 of Proceedings             neurips.cc/paper/2020/hash/
+  of Machine Learning Research, pp. 1311–1320. PMLR,             569ff987c643b4bedf504efda8f786c2-
+  2017. URL http://proceedings.mlr.press/                        Abstract.html.
+  v70/graves17a.html.                                          Matiisen, T., Oliver, A., Cohen, T., and Schulman, J.
+                                                                Teacher–student curriculum learning. IEEE Transac-
+Igl, M., Ciosek, K., Li, Y., Tschiatschek, S., Zhang, C.,
+                                                                tions on Neural Networks and Learning Systems, 31
+   Devlin, S., and Hofmann, K. Generalization in reinforce-
+                                                                (9):3732–3740, Sep 2020. ISSN 2162-2388. doi:
+   ment learning with selective noise injection and infor-
+                                                                10.1109/tnnls.2019.2934906. URL http://dx.doi.
+   mation bottleneck. In Advances in Neural Information
+                                                                org/10.1109/TNNLS.2019.2934906.
+  Processing Systems, pp. 13978–13990, 2019.
+                                                               Raileanu, R. and Rocktäschel, T. RIDE: rewarding impact-
+Igl, M., Farquhar, G., Luketina, J., Boehmer, W., and
+                                                                 driven exploration for procedurally-generated environ-
+  Whiteson, S. The impact of non-stationarity on gen-
+                                                                 ments. In 8th International Conference on Learning
+   eralisation in deep reinforcement learning. CoRR,
+                                                                 Representations, ICLR 2020, Addis Ababa, Ethiopia,
+   abs/2006.05826, 2020. URL https://arxiv.org/
+                                                                 April 26-30, 2020. OpenReview.net, 2020. URL https:
+   abs/2006.05826.
+                                                                 //openreview.net/forum?id=rkg-TJBFPB.
+Juliani, A., Khalifa, A., Berges, V.-P., Harper, J., Teng,
+                                                               Raileanu, R., Goldstein, M., Yarats, D., Kostrikov, I., and
+  E., Henry, H., Crespi, A., Togelius, J., and Lange, D.
+                                                                 Fergus, R. Automatic data augmentation for general-
+  Obstacle tower: A generalization challenge in vision,
+                                                                 ization in reinforcement learning, 2021. URL https:
+  control, and planning. Proceedings of the Twenty-Eighth
+                                                                 //openreview.net/forum?id=9l9WD4ahJgs.
+  International Joint Conference on Artificial Intelligence,
+  Aug 2019. doi: 10.24963/ijcai.2019/373. URL http:            Risi, S. and Togelius, J.      Increasing generality in
+  //dx.doi.org/10.24963/ijcai.2019/373.                          machine learning through procedural content genera-
+                                                                 tion. Nature Machine Intelligence, 2(8):428–436, Aug
+Justesen, N., Torrado, R. R., Bontrager, P., Khalifa, A.,        2020. ISSN 2522-5839. doi: 10.1038/s42256-020-
+  Togelius, J., and Risi, S. Procedural level generation im-     0208-z. URL http://dx.doi.org/10.1038/
+  proves generality of deep reinforcement learning. CoRR,        s42256-020-0208-z.
+  abs/1806.10729, 2018. URL http://arxiv.org/
+  abs/1806.10729.                                              Schaul, T., Quan, J., Antonoglou, I., and Silver, D. Prior-
+                                                                 itized experience replay. In Bengio, Y. and LeCun, Y.
+Kapturowski, S., Ostrovski, G., Quan, J., Munos, R., and         (eds.), 4th International Conference on Learning Rep-
+  Dabney, W. Recurrent experience replay in distributed          resentations, ICLR 2016, San Juan, Puerto Rico, May
+  reinforcement learning. In 7th International Confer-           2-4, 2016, Conference Track Proceedings, 2016. URL
+  ence on Learning Representations, ICLR 2019, New               http://arxiv.org/abs/1511.05952.
+  Orleans, LA, USA, May 6-9, 2019. OpenReview.net,
+  2019. URL https://openreview.net/forum?                      Schulman, J., Moritz, P., Levine, S., Jordan, M. I., and
+  id=r1lyTjAqYX.                                                 Abbeel, P. High-dimensional continuous control using
+                                                 Prioritized Level Replay
+
+  generalized advantage estimation. In Bengio, Y. and Le-      Zha, D., Ma, W., Yuan, L., Hu, X., and Liu, J.
+  Cun, Y. (eds.), 4th International Conference on Learning       Rank the episodes: A simple approach for explo-
+  Representations, ICLR 2016, San Juan, Puerto Rico, May         ration in procedurally-generated environments. CoRR,
+  2-4, 2016, Conference Track Proceedings, 2016. URL             abs/2101.08152, 2021. URL https://arxiv.org/
+  http://arxiv.org/abs/1506.02438.                               abs/2101.08152.
+
+Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and       Zhang, T., Xu, H., Wang, X., Wu, Y., Keutzer, K., Gonzalez,
+  Klimov, O. Proximal policy optimization algorithms.            J. E., and Tian, Y. Bebold: Exploration beyond the bound-
+  CoRR, abs/1707.06347, 2017. URL http://arxiv.                  ary of explored regions. CoRR, abs/2012.08621, 2020a.
+  org/abs/1707.06347.                                            URL https://arxiv.org/abs/2012.08621.
+                                                               Zhang, Y., Abbeel, P., and Pinto, L. Automatic curriculum
+Settles, B. Active learning literature survey. Technical
+                                                                 learning through value disagreement. In Advances
+  report, University of Wisconsin-Madison Department of
+                                                                 in Neural Information Processing Systems 33: An-
+  Computer Sciences, 2009.
+                                                                 nual Conference on Neural Information Processing
+Sharma, S., Jha, A. K., Hegde, P., and Ravindran, B.             Systems 2020, NeurIPS 2020, December 6-12, 2020,
+  Learning to multi-task by active sampling. In 6th In-          virtual, 2020b.      URL https://proceedings.
+  ternational Conference on Learning Representations,            neurips.cc/paper/2020/hash/
+  ICLR 2018, Vancouver, BC, Canada, April 30 - May               566f0ea4f6c2e947f36795c8f58ba901-
+  3, 2018, Conference Track Proceedings. OpenReview.net,         Abstract.html.
+  2018. URL https://openreview.net/forum?                      Zhong, V., Rocktäschel, T., and Grefenstette, E. RTFM:
+  id=B1nZ1weCZ.                                                  generalising to new environment dynamics via read-
+                                                                 ing. In 8th International Conference on Learning Repre-
+Sukhbaatar, S., Kostrikov, I., Szlam, A., and Fergus, R.         sentations, ICLR 2020, Addis Ababa, Ethiopia, April
+  Intrinsic motivation and automatic curricula via asym-         26-30, 2020. OpenReview.net, 2020. URL https:
+  metric self-play. CoRR, abs/1703.05407, 2017. URL              //openreview.net/forum?id=SJgob6NKvH.
+  http://arxiv.org/abs/1703.05407.
+
+Wang, K., Kang, B., Shao, J., and Feng, J. Improving gener-
+ alization in reinforcement learning with mixture regular-
+ ization. In Advances in Neural Information Processing
+ Systems 33: Annual Conference on Neural Information
+ Processing Systems 2020, NeurIPS 2020, December 6-12,
+ 2020, virtual, 2020a. URL https://proceedings.
+ neurips.cc/paper/2020/hash/
+ 5a751d6a0b6ef05cfe51b86e5d1458e6-
+ Abstract.html.
+
+Wang, R., Lehman, J., Clune, J., and Stanley, K. O. POET:
+ open-ended coevolution of environments and their op-
+ timized solutions. In Auger, A. and Stützle, T. (eds.),
+ Proceedings of the Genetic and Evolutionary Compu-
+ tation Conference, GECCO 2019, Prague, Czech Re-
+ public, July 13-17, 2019, pp. 142–151. ACM, 2019.
+ doi: 10.1145/3321707.3321799. URL https://doi.
+ org/10.1145/3321707.3321799.
+
+Wang, R., Lehman, J., Rawal, A., Zhi, J., Li, Y., Clune, J.,
+ and Stanley, K. Enhanced POET: Open-ended Reinforce-
+ ment Learning through Unbounded Invention of Learning
+ Challenges and their Solutions. In International Con-
+ ference on Machine Learning, pp. 9940–9951. PMLR,
+ November 2020b. URL http://proceedings.
+ mlr.press/v119/wang20l.html. ISSN: 2640-
+ 3498.
+                                                    Prioritized Level Replay
+
+A. Experiment Details and Hyperparameters                         most pronounced gains at β = 0.1 and ρ = 0.1 on Procgen,
+                                                                  but these benefits also held for higher values (β = 0.5 and
+A.1. Procgen Benchmark                                            ρ = 0.3), though to a lesser degree.
+Procgen Benchmark consists of 16 PCG environments of              For UCB-DrAC, we make use of the best-reported hyper-
+varying styles, exhibiting a diversity of gameplay similar to     parameters on the easy setting of Procgen in Raileanu et al.
+that of the ALE benchmark. Game levels are determined by          (2021), listed in Table 3.
+a random seed and can vary in navigational layout, visual
+appearance, and starting positions of entities. All Procgen       We found the default setting of mixreg’s α = 0.2, as used by
+environments share the same discrete 15-dimensional action        Wang et al. (2020a) in the hard setting, performs poorly on
+space and produce 64 × 64 × 3 RGB observations. (Cobbe            the easy setting. Instead, we conducted a grid search over α
+et al., 2020a) provides a comprehensive description of each       in {0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.8, 0.2, 0.5, 0.8, 1}.
+of the 16 environments. State-of-the-art RL algorithms, like      Since the TSCL Window algorithm was not previously eval-
+PPO, lead to significant generalization gaps between test         uated on Procgen Benchmark, we perform a grid search
+and train performance in all games, making Procgen a useful       over different settings for both Boltzmann and -greedy
+benchmark for assessing generalization performance.               variants of the algorithm to determine the best hyperparam-
+We follow the standard protocol for testing generalization        eter settings for Procgen easy. We searched over window
+performance on Procgen: We train an agent for each game           size K in {10, 100, 1000, 10000}, bandit learning rate α
+on a finite number of levels, Ntrain , and sample test levels     in {0.01, 0.1, 0.5, 1.0}, random exploration probability  in
+from the full distribution of levels. Normalized test returns     {0.0, 0.01, 0.1, 0.5} for the -greedy variant, and tempera-
+are computed as (R − Rmin )/(Rmax − Rmin ), where R is            ture τ in {0.1, 0.5, 1.0} for the Boltzmann variant. Addi-
+the unnormalized return and each game’s minimum return,           tionally, for a fairer comparison to PLR we further evaluated
+Rmin , and maximum return, Rmax , are provided in Cobbe           a variant of TSCL Window that, like PLR, incorporates the
+et al. (2020a), which uses this same normalization.               staleness distribution, by additionally searching over values
+                                                                  of the staleness coefficient ρ in {0.0, 0.1, 0.3, 0.5}, though
+To make the most efficient use of our computational re-           we ultimately found that TSCL Window performed best
+sources, we perform hyperparameter sweeps on the easy             without staleness sampling (ρ = 0).
+setting. This also makes our results directly comparable
+to most prior works benchmarked on Procgen, which have            See Table 3 for a comprehensive overview of the hyper-
+likewise focused on the easy setting. In Procgen easy, our        parameters used for PPO, UCB-DrAC, mixreg, and TSCL
+experiments use the recommended settings of Ntrain = 200          Window, shared across all Procgen environments to generate
+and 25M steps of training, as well as the same ResNet pol-        our reported results on Procgen easy.
+icy architecture and PPO hyperparameters shared across all        The evaluation protocol on the hard setting entails train-
+games as in Cobbe et al. (2020a) and Raileanu et al. (2021).      ing on 500 levels over 200M steps (Cobbe et al., 2020a),
+We find 25M steps to be sufficient for uncovering differ-         making it more compute-intensive than the easy setting.
+ences in generalization performance among our methods             To save on computational resources, we make use of the
+and standard baselines. Moreover, under this setup, we find       same hyperparameters found in the easy setting for each
+Procgen training runs require much less wall-clock time           method on Procgen hard, with one exception: As our PPO
+than training runs on the two MiniGrid environments of in-        implementation does not use multi-GPU training, we were
+terest over an equivalent number of steps needed to uncover       unable to quadruple our GPU actors as done in Cobbe et al.
+differences in generalization performance. Therefore we           (2020a) and Wang et al. (2020a). Instead, we resorted to
+survey the empirical differences across various settings of       doubling the number of environments in our single actor
+PLR on Procgen easy rather than MiniGrid.                         to 128, resulting in mini-batch sizes half as large as used
+To find the best hyperparameters for PLR, we evaluate             in these two prior works. As such, our baseline results on
+each combination of the scoring function choices in Table 1       hard are not directly comparable to theirs. We found setting
+with both rank and proportional prioritization, performing a      mixreg’s α = 0.2 as done in Wang et al. (2020a) led to poor
+coarse grid search for each pair over different settings of the   performance under this reduced batch size. We conducted
+temperature parameter β in {0.1, 0.5, 1.0, 1.4, 2.0} and the      an additional grid search, finding α = 0.01 to perform best,
+staleness coefficient ρ in {0.1, 0.3, 1.0}. For each setting,     as on Procgen easy.
+we run 4 trials across all 16 of games of the Procgen Bench-
+mark, evaluating based on mean unnormalized test return           A.2. MiniGrid
+across games. In our TD-error-based scoring functions, we
+                                                                  The MiniGrid suite (Chevalier-Boisvert et al., 2018) features
+set γ and λ equal to the same respective values used by the
+                                                                  a series of highly structured environments of increasing dif-
+GAE in PPO during training. We found PLR offered the
+                                                                  ficulty. Each environment features a task in a grid world
+                                                    Prioritized Level Replay
+
+                                                                  We evaluate PLR with rank prioritization on two MiniGrid
+Table 3. Hyperparameters used for training on Procgen Benchmark
+                                                                  environments whose levels are uniformly distributed across
+and MiniGrid environments.
+                                                                  several difficulty settings. Training on levels of varying diffi-
+  Parameter                           Procgen     MiniGrid        culties helps agents make use of the easier levels as stepping
+  PPO                                                             stones to learn useful behaviors that help the agent make
+  γ                                      0.999        0.999       progress on harder levels. However, under the uniform-
+  λGAE                                    0.95         0.95       sampling baseline, learning may be inefficient, as the train-
+  PPO rollout length                       256          256       ing process does not selectively train the agent on levels of
+  PPO epochs                                  3            4      increasing difficulty, leading to wasted training steps when
+  PPO minibatches per epoch                   8            8      a difficult level is sampled early in training. On the con-
+  PPO clip range                            0.2          0.2      trary, if PLR scores levels according to the time-averaged
+  PPO number of workers                      64           64      L1 value loss of recently experienced level trajectories, the
+  Adam learning rate                      5e-4         7e-4       average difficulty of the sampled levels should adapt to the
+  Adam                                   1e-5         1e-5       agent’s current abilities, following the reasoning outlined in
+  return normalization                     yes          yes       the Value Correction Hypothesis, stated in Section 3.
+  entropy bonus coefficient               0.01         0.01       As in Igl et al. (2019), we parameterize the agent policy
+  value loss coefficient                    0.5          0.5      as a 3-layer CNN with 16, 32, and 32 channels, with a
+                                                                  final hidden layer of size 64. All kernels are 2 × 2 and
+  PLR                                                             use a stride of 1. For the ObstructedMazeGamut environ-
+  Prioritization                          rank          rank      ments, we increase the number of channels of the final CNN
+  Temperature, β, 0.1                      0.1           0.1      layer to 64. We follow the same high-level generalization
+  Staleness coefficient, ρ                 0.1           0.3      evaluation protocol used for Procgen, training the agent
+                                                                  on a fixed set of 4000 levels for MultiRoom-N4-Random,
+  UCB-DrAC
+                                                                  3000 levels for ObstructedMazeGamut-Easy, and 6000 lev-
+  Window size, K                             10            -
+                                                                  els for ObstructedMazeGamut-Medium, and testing on the
+  Regularization coefficient, αr            0.1            -
+                                                                  full level distribution. We chose these values for |Λtrain | to
+  UCB exploration coefficient, c            0.1            -
+                                                                  ensure roughly 1000 training levels of each difficulty setting
+  mixreg                                                          of each environment. We model our PPO parameters on
+  Beta shape, α                           0.01             -      those used by Igl et al. (2019) in their MiniGrid experiments.
+                                                                  We performed a grid search to find that PLR with rank pri-
+  TSCL Window                                                     oritization, β = 0.1, and ρ = 0.3 learned most quickly
+  Bandit exploration strategy         -greedy             -      on the MultiRoom environment, and used this setting for
+  Window size, K                            10             -      all our MiniGrid experiments. Table 3 summarizes these
+  Bandit learning rate, α                  1.0             -      hyperparameter choices.
+  Exploration probability,                0.5             -      The remainder of this section provides more details about
+                                                                  the various MiniGrid environments used in this work.
+
+setting, and as in Procgen, environment levels are deter-         MultiRoom-N4-Random This environment requires the
+mined by a seed. Harder levels require the agent to perform       agent to navigate through 1, 2, 3, or 4 rooms respectively
+longer action sequences over a combinatorially-rich set of        to reach a goal object, resulting in a natural ordering of
+game entities, on increasingly larger grids. The clear or-        levels over four levels of difficulty. The agent always starts
+dering of difficulty over subsets of MiniGrid environments        at a random position in the furthest room from the goal
+allows us to track the relative difficulty of levels sampled by   object, facing a random direction. The goal object is also
+PLR over the course of training.                                  initialized to a random position within its room. See Figure
+MiniGrid environments share a discrete 7-dimensional ac-          5 for screenshots of example levels.
+tion space and produce a 3-channel integer state encoding
+of the 7 × 7 grid immediately including and in front of the       ObstructedMazeGamut-Easy This environment con-
+agent. However, following the training setup in Igl et al.        sists of levels uniformly distributed across the first three
+(2019), we modify the environment to produce an N ×M ×3           difficulty settings of the ObstructedMaze environment, in
+encoding of the full grid, where N and M vary according to        which the agent must locate and pick up the key in order to
+the maximum grid dimensions of each environment. Full ob-         unlock the door to pick up a goal object in a second room.
+servability makes generalization harder, requiring the agent      The agent and goal object are always initialized in random
+to generalize across different level layouts in their entirety.   positions in different rooms separated by the locked door.
+                                                       Prioritized Level Replay
+
+                                                                      B. Additional Experimental Results
+                                                                      B.1. Extended Results on Procgen Benchmark
+                                                                      We present an overview of the improvements in test perfor-
+                                                                      mance of each method across all 16 Procgen Benchmark
+                                                                      games over 10 runs in Figure 14. For each game, Figure
+Figure 5. Example levels of each of the four difficulty levels of
+MultiRoom-N4-Random, in order of increasing difficulty from           15 further shows how the generalization gap changes over
+left to right. The agent (red triangle) must reach the goal (green    the course of training under each method tested. We show
+square).                                                              in Figures 16 and 17, the mean test episodic returns on the
+                                                                      Procgen Benchmark (easy) for PLR with rank and propor-
+                                                                      tional prioritization, respectively. In both of these plots, we
+The second difficulty setting further requires the agent to           can see that using only staleness (ρ = 1) or only L1 value
+first uncover the key from under a box before picking up the          loss scores (ρ = 0) is considerably worse than direct level
+key. The third difficulty level further requires the agent to         sampling. Thus, we only observe gains compared to the
+first move a ball blocking the door before entering the door.         baseline when both level scores and staleness are used for
+See Figure 6 for screenshots of example levels.                       the sampling distribution. Comparing Figures 16 with 17
+                                                                      we find that PLR with proportional instead of rank prioriti-
+                                                                      zation provides statistically significant gains over uniform
+                                                                      level sampling on an additional game (CoinRun), but rank
+                                                                      prioritization leads to slightly larger mean improvements on
+                                                                      several games.
+Figure 6. Example levels of each of the three difficulty levels of    Figure 18 shows that when PLR improves generalization per-
+ObstructedMazeGamut-Easy, in order of increasing difficulty from      formance, it also either matches or improves training sample
+left to right. The agent must find the key, which may be hidden       efficiency, suggesting that when beneficial to test perfor-
+under a box, to unlock a door, which may be blocked by an obstacle,
+                                                                      mance, the representations learned via the auto-curriculum
+to reach the goal object (blue circle).
+                                                                      induced by PLR prove similarly useful on training levels.
+                                                                      However we see that our method reduces training sample
+ObstructedMazeGamut-Hard This environment con-                        efficiency on two games on which our method does not
+sists of levels uniformly distributed across the first six dif-       improve generalization performance. Since our method
+ficulty levels of the ObstructedMaze environment. Harder              does not discover useful auto-curricula for these games, it
+levels corresponding to the fourth, fifth, and sixth difficulty       is likely that uniformly sampling levels at training time al-
+settings include two additional rooms with no goal object to          lows the agent to better memorize useful behaviors on each
+distract the agent. Each instance of these harder levels also         of the training levels compared to the selective sampling
+contain two pairs of keys of different colors, each opening a         performed by our method.
+door of the same color. The agent always starts one room              Finally, we also benchmarked PLR and UCB-DrAC + PLR
+away from the randomly positioned goal object. Each of the            against uniform sampling, TSCL Window, mixreg, and
+two keys is visible in the fourth difficulty setting and doors        UCB-DrAC on Procgen hard across 5 runs per environ-
+are unobstructed. The fifth difficulty setting hides the keys         ment. Due to the high computational cost of the evaluation
+under boxes, and the sixth again places obstacles that must           protocol for Procgen hard, which entails 200M training
+be removed before entering two of the doors, one of which             steps, we directly use the best hyperparameters found in
+is always the door to the goal-containing room. See Figure            the easy setting for each method. The results in Figure 10
+7 for example screenshots.                                            show the two PLR-based methods significantly outperform
+                                                                      all other methods in terms of normalized mean train and test
+                                                                      episodic return, as well as reduction in mean generalization
+                                                                      gap, attaining even greater margins of improvement than in
+                                                                      the easy setting. As summarized by Table 4, the gains of
+                                                                      PLR and UCB + PLR in mean normalized test return rela-
+                                                                      tive to uniform sampling in the hard setting are comparable
+                                                                      to those in the easy setting. We provide plots of episodic
+                                                                      test return over training for each individual environment in
+Figure 7. Example levels in increasing difficulty from left           Figure 12.
+to right of each additional difficulty setting introduced
+by ObstructedMazeGamut-Hard in addition to those in
+ObstructedMazeGamut-Easy.
+                                                                                      Prioritized Level Replay
+                                                    MultiRoom-N4-Random
+
+
+
+
+                                                                                                     Mean test episode return
+                   1.00                                                                                                                                                  MultiRoom-N4-Random
+                                                                                                 3                              0.8
+                   0.75                                                                                                                                                      Uniform + full dist
+                                                                                                 2                              0.6                                          PLR + 4000 fixed seeds
+                   0.50
+                                                                                                                                                                             PLR + full dist, M = 500
+                                                                                                 1                              0.4
+                   0.25                                                                                                                                                      PLR + full dist, M = 1000
+                   0.00                                                                          0                                                                           PLR + full dist, M = 4000
+                                                                                                                                0.2
+                          0    2K              4K            6K 0     2K        4K         6K
+                                                                                                                                0.0
+                                               ObstructedMazeGamut-Easy
+                   1.00                                                                                                               0   20M   40M   60M   80M   100M
+                                                                                                                                                  Steps
+
+
+Probability mass
+                   0.75                                                                          2
+
+
+
+
+                                                                                                     Mean test episode return
+                   0.50                                                                          1                              1.0                                      ObstructedMazeGamut-Easy
+                   0.25                                                                                                         0.8                                          Uniform + full dist
+                                                                                                 0
+                   0.00                                                                                                                                                      PLR + 3000 fixed seeds
+                                                                                                                                0.6
+                          0        2K               4K          0    2K    4K         6K
+                                                                                                                                                                             PLR + full dist, M = 500
+                                                                                                                                0.4                                          PLR + full dist, M = 1500
+                                           ObstructedMazeGamut-Medium                                                                                                        PLR + full dist, M = 3000
+                   1.00                                                                                                         0.2
+                                                                                                 5
+                   0.75                                                                          4                              0.0
+
+                   0.50                                                                          3
+                                                                                                                                      0   20M   40M   60M   80M   100M
+                                                                                                 2
+                   0.25                                                                          1                                                Steps
+                   0.00                                                                          0
+                          0   5K         10K         15K     0        5K        10K        15K       Figure 9. Mean test episodic returns on MultiRoom-N4-Random
+                                                       PPO updates
+                                                                                                     (top) and ObstructedMazeGamut-Easy (bottom) with access to the
+                                                                                                     full level distribution at training. Plots are averaged over 3 runs.
+ Figure 8. PLR consistently induces emergent curricula from easier                                   We set PD to a Bernoulli parameterized as p = 0.5 for MultiRoom-
+ to harder levels during training. Left and right correspond to two                                  N4-Random and p = 0.95 for ObstructedMazeGamut-Easy (found
+ additional training runs independent of that in Figure 4.                                           via grid search). As with all MiniGrid experiments using PLR, we
+                                                                                                     use rank prioritization, β = 0.1, and ρ = 0.3.
+  B.2. Extended Results on Minigrid
+ To demonstrate that PLR consistently induces an emergent                                             uniform sampling on the full distribution. In MultiRoom-
+ curriculum, we present plots showing the change in probabil-                                         N4-Random, the value M makes little difference to test
+ ity mass over different difficulty bins for additional training                                      performance, and training with PLR on the full level
+ runs in Figure 8. Like in Figure 4, we see the probabil-                                             distribution leads to a policy outperforming one trained
+ ity mass assigned by Preplay gradually shifts from easier to                                         with PLR on a fixed set of training levels. However, on
+ harder levels over the course of training.                                                           ObstructedMazeGamut-Easy, a smaller M leads to worse
+                                                                                                      test performance. Nevertheless, for all but M = 500, includ-
+  B.3. Training on the Full Level Distribution                                                        ing the case of a fixed set of 3000 training levels, PLR leads
+                                                                                                      to better mean test performance than uniform sampling on
+ While assessing generalization performance calls for using                                           the full level distribution.
+ a fixed set of training levels, ideally our method can also
+ make use of the full level distribution if given access to
+ it. We take advantage of an unbounded number of training
+                                                                                                       C. Algorithms
+ levels by modifying the list structures for storing scores                                            In this section, we provide detailed pseudocode for how PLR
+ and timestamps (see Algorithm 1 and 2) to track the top M                                             can be used for experience collection when using T -step
+ levels by learning potential in our finite level buffer. When                                         rollouts. Algorithm 3 presents the extension of the generic
+ the lists are full, we set the next level for replacement to be                                       policy-gradient training loop presented in Algorithm 1 to
+                                                                                                       the case of T -step rollouts, and Algorithm 4 presents an
+                                        lmin = arg min Preplay (l).
+                                                         l                                             implementation of experience collection in this setting (ex-
+                                                                                                       tending Algorithm 2). Note that when using T -step rollouts
+ When the outcome of the Bernoulli PD entails sampling
+                                                                                                       in the training loop, rollouts may start and end between
+ a new level l, the score and timestamps of l replace those
+                                                                                                       episode boundaries. To compute level scores on full tra-
+ of lmin only if the score of lmin is lower than that of l. In
+                                                                                                       jectories segmented across rollouts, we compute scores of
+ this way, PLR keeps a running buffer throughout training
+                                                                                                       partial episodes according to Equation 2, and record these
+ of the top M levels appraised to have the highest learning
+                                                                                                       partial scores alongside the partial episode step count in
+ potential for replaying anew.
+                                                                                                       a separate buffer S̃. The function score then technically,
+  Figure 9 shows that with access to the full level distribu-                                          optionally takes the additional input S̃ (through an abuse of
+  tion at training, PLR improves sample efficiency and gen-                                            notation) as an additional argument to stitch together this
+  eralization performance in both environments compared to                                             partial information into scores of full episodic trajectories.
+                                                                               Prioritized Level Replay
+
+
+
+Table 4. Comparison of test scores of PPO with PLR against PPO with uniform-sampling on the hard setting of Procgen Benchmark.
+Following (Raileanu et al., 2021), reported figures represent the mean and standard deviation of average test scores over 100 episodes
+aggregated across 5 runs, each initialized with a unique training seed. For each run, a normalized average return is computed by dividing
+the average test return for each game by the corresponding average test return of the uniform-sampling baseline over all 500 test episodes
+of that game, followed by averaging these normalized returns over all 16 games. The final row reports the mean and standard deviation of
+the normalized returns aggregated across runs. Bolded methods are not significantly different from the method with highest mean, unless
+all are, in which case none are bolded.
+
+                                 Environment                    Uniform          TSCL                                 mixreg UCB-DrAC          PLR UCB-DrAC + PLR
+                                 BigFish                        9.7 ± 1.8 11.9 ± 2.5 12.0 ± 2.5 10.9 ± 1.6 15.3 ± 3.6                                      15.5 ± 2.8
+                                 BossFight                     9.6 ± 0.2 8.4 ± 0.7 9.3 ± 0.9      9.0 ± 0.2 9.7 ± 0.4                                       9.5 ± 1.1
+                                 CaveFlyer                      3.5 ± 0.8   6.3 ± 0.6 4.0 ± 1.0   2.6 ± 0.8  6.4 ± 0.6                                      8.0 ± 0.9
+                                 Chaser                         5.9 ± 0.5   6.2 ± 1.0 6.5 ± 0.8 7.0 ± 0.6 6.8 ± 2.2                                         7.6 ± 0.2
+                                 Climber                        5.3 ± 1.1   5.2 ± 0.7 5.7 ± 0.7   6.1 ± 1.0  7.4 ± 0.6                                       7.6 ± 1.8
+                                 CoinRun                        4.5 ± 0.4   5.8 ± 0.8 6.2 ± 1.0   5.2 ± 1.0 6.8 ± 0.6                                       7.1 ± 0.5
+                                 Dodgeball                      3.9 ± 0.6   1.9 ± 0.9 4.7 ± 1.0   9.9 ± 1.2  7.4 ± 1.3                                     12.4 ± 0.7
+                                 FruitBot                     11.9 ± 4.2 13.1 ± 2.3 14.7 ± 2.2 15.6 ± 3.7 16.7 ± 1.0                                       12.9 ± 5.1
+                                 Heist                          1.5 ± 0.4   0.9 ± 0.3 1.2 ± 0.4   1.1 ± 0.3  1.3 ± 0.4                                       2.6 ± 2.2
+                                 Jumper                         3.2 ± 0.3   3.2 ± 0.3 3.3 ± 0.4   2.9 ± 0.9  3.5 ± 0.5                                       3.3 ± 0.8
+                                 Leaper                         7.1 ± 0.3 7.5 ± 0.5 7.5 ± 0.5     3.8 ± 1.6 7.4 ± 0.2                                       8.2 ± 0.7
+                                 Maze                           3.6 ± 0.7   3.8 ± 0.6 3.9 ± 0.5   4.4 ± 0.2  4.0 ± 0.4                                      6.2 ± 0.4
+                                 Miner                         12.8 ± 1.4 11.7 ± 0.9 13.3 ± 1.6 16.1 ± 0.6 11.3 ± 0.7                                      15.3 ± 0.8
+                                 Ninja                          5.2 ± 0.1   5.9 ± 0.8 5.0 ± 1.0   5.2 ± 1.0 6.1 ± 0.6                                       6.9 ± 0.3
+                                 Plunder                        3.2 ± 0.1   5.4 ± 1.1 3.7 ± 0.4   7.8 ± 1.1  8.6 ± 2.7                                     17.5 ± 1.3
+                                 StarPilot                      5.5 ± 0.6   2.1 ± 0.4 6.9 ± 0.6 11.2 ± 1.7   5.4 ± 0.8                                     12.3 ± 1.5
+                                 Normalized test returns (%) 100.0 ± 2.0 103.9 ± 3.5 110.6 ± 3.9 126.6 ± 3.0 135.0 ± 6.1                                  182.9 ± 8.2
+
+
+
+
+                                       Uniform            TSCL Window           mixreg                                  UCB-DrAC         PLR          UCB-DrAC + PLR
+                                 0.7                                                                                  3.0
+                                                 Train
+                                 0.6                                                                                  2.5
+
+
+
+
+Mean normalized episode return
+                                                 Test
+                                 0.5
+
+
+
+
+                                                                                            Mean generalization gap
+                                                                                                                      2.0
+                                 0.4
+                                                                                                                      1.5
+                                 0.3
+                                                                                                                      1.0
+                                 0.2
+                                                                                                                      0.5
+                                 0.1
+                                                                                                                      0.0
+                                 0.0
+                                                                                                                      0.5
+                                 0.1
+
+                                       0            50M      100M       150M         200M                                   0      50M         100M     150M       200M
+                                                                                         Steps
+
+Figure 10. Left: Mean normalized train and test episode returns on Procgen Benchmark (hard). Right: Corresponding generalization gaps
+during training. All curves are averaged across all environments over 5 runs. The shaded area indicates one standard deviation around the
+mean. PLR-based methods statistically significantly outperform all others in both train and test returns. Only the PLR-based methods
+statistically significantly reduce the generalization gap (p < 0.05).
+                                                                                        Prioritized Level Replay
+
+
+
+
+                                                                          Training performance on Procgen Benchmark (hard)
+
+                                  Uniform              TSCL Window                          mixreg                   UCB-DrAC                   PLR              UCB-DrAC + PLR
+
+                                          bigfish                                  bossfight                                 caveflyer                               chaser
+                                                                                                         10
+                            20                                10                                                                                       8
+                                                                                                             7
+                                                                                                                                                       6
+                                                                                                             5
+                            10                                    5
+                                                                                                                                                       4
+                                                                                                             2
+                                                                                                                                                       2
+                             0                                    0                                          0
+
+                                          climber                                  coinrun                                   dodgeball                               fruitbot
+                            10                                    8
+                                                                                                                                                      20
+                             7                                                                           10
+
+
+
+
+Mean train episode return
+                                                                  6
+
+                             5
+                                                                  4                                                                                   10
+                                                                                                             5
+                             2
+                                                                  2
+                             0                                                                                                                         0
+                                                                                                             0
+
+                                            heist                                   jumper                                    leaper                                  maze
+
+                             6                                                                               7                                         8
+                                                                  6
+                                                                                                                                                       6
+                             4                                    4                                          5
+                                                                                                                                                       4
+                             2                                    2                                          2
+                                                                                                                                                       2
+                             0                                    0                                          0
+
+                                            miner                                    ninja                                    plunder                                starpilot
+                            20
+                                                                                                         20
+                                                                  8
+                                                                                                                                                      15
+                            15
+                                                                  6                                      15
+                                                                                                                                                      10
+                            10                                    4                                      10
+
+                             5                                    2                                                                                    5
+                                                                                                             5
+                                                                  0                                                                                    0
+                             00     50M     100M    150M   200M       0      50M     100M      150M   200M       0     50M     100M      150M   200M       0   50M     100M      150M   200M
+
+
+
+
+ Figure 11. Mean train episode returns (5 runs) on Procgen Benchmark (hard), using the best hyperparameters found on the easy setting.
+ The shaded area indicates one standard deviation around the mean. A F indicates statistically significant improvement over the uniform-
+ sampling baseline by the PLR-based method of the matching color (p < 0.05). Note that while PLR reduces training performance on
+ StarPilot, it performs comparably to the uniform-sampling baseline at test time, indicating less overfitting to training levels.
+                                                                                         Prioritized Level Replay
+
+
+
+
+                                                                             Test performance on Procgen Benchmark (hard)
+
+                                    Uniform                  TSCL Window                      mixreg                  UCB-DrAC                  PLR              UCB-DrAC + PLR
+
+                                           bigfish                                  bossfight                                caveflyer                               chaser
+                           20
+                                                                 10                                                                                    8
+                                                                                                              7
+                           15
+                                                                                                                                                       6
+                                                                                                              5
+                           10
+                                                                     5                                                                                 4
+                                                                                                              2
+                            5
+                                                                                                                                                       2
+                                                                                                              0
+                            0                                        0
+
+                                           climber                                  coinrun                                  dodgeball                               fruitbot
+                           10                                        8                                                                             20
+
+                            7                                        6                                    10
+
+
+
+
+Mean test episode return
+                                                                                                                                                   10
+                            5
+                                                                     4                                        5
+                            2
+                                                                                                                                                       0
+                            0                                        2                                        0
+
+                                              heist                                  jumper                                   leaper                                  maze
+
+                                                                     4
+                            4                                                                                 7
+                                                                                                                                                       6
+
+                                                                                                              5
+                                                                     2                                                                                 4
+                            2
+                                                                                                              2
+                                                                                                                                                       2
+                            0                                        0                                        0
+
+                                           miner                                      ninja                                   plunder                                starpilot
+                                                                     8                                    20                                       15
+                           15
+                                                                     6                                    15
+                                                                                                                                                   10
+                           10
+                                                                     4
+                                                                                                          10
+                                                                                                                                                       5
+                            5                                        2
+                                                                                                              5
+
+                            0                                        0                                                                                 0
+                                0    50M      100M    150M    200M       0    50M     100M      150M   200M       0    50M     100M      150M   200M       0   50M     100M      150M   200M
+
+                                                                                                       Steps
+
+ Figure 12. Mean test episode returns (5 runs) on Procgen Benchmark (hard), using best hyperparameters found on the easy setting.
+ The shaded area indicates one standard deviation around the mean. A F indicates statistically significant improvement over the
+ uniform-sampling baseline by the PLR-based method of the matching color (p < 0.05).
+                                                                                      Prioritized Level Replay
+
+
+
+
+                                                                           Training peformance on Procgen Benchmark (easy)
+
+                                     Uniform                TSCL Window                   mixreg                 UCB-DrAC               PLR                UCB-DrAC + PLR
+
+                                           bigfish                              bossfight                             caveflyer                             chaser
+                            20                                 10
+                                                                                                         8                                    8
+                            15                                     7
+                                                                                                         6                                    6
+                            10                                     5
+                                                                                                         4                                    4
+                             5                                     2
+                                                                                                         2                                    2
+                             0                                     0
+
+                                          climber                               coinrun                               dodgeball                             fruitbot
+                            10                                 10                                                                         30
+
+                                                                   8                                 10
+                             7
+
+
+
+
+Mean train episode return
+                                                                                                                                          20
+                                                                   6
+                             5
+                                                                                                         5                                10
+                                                                   4
+                             2
+                                                                   2                                                                          0
+                                                                                                         0
+
+                                           heist                                 jumper                                leaper                               maze
+                                                                                                                                          10
+                                                                                                     10
+                             8                                     8
+                                                                                                                                              8
+                                                                                                         7
+                             6                                     6
+                                                                                                                                              6
+                                                                                                         5
+                             4                                     4
+                                                                                                                                              4
+                                                                                                         2
+                                                                   2
+                             2                                                                                                                2
+
+                                           miner                                  ninja                                plunder                             starpilot
+
+                                                                   8                                 10
+                            10                                                                                                            30
+                                                                   6                                     8
+                                                                                                                                          20
+                             5                                     4                                     6
+                                                                                                                                          10
+                                                                   2                                     4
+                             0                                                                                                                0
+                                 0   5M   10M   15M   20M    25M       0   5M   10M   15M   20M    25M       0   5M   10M   15M   20M   25M       0   5M   10M   15M   20M   25M
+
+                                                                                                   Steps
+
+Figure 13. Mean train episode returns (5 runs) on Procgen Benchmark (easy). The shaded area indicates one standard deviation around the
+mean. A F indicates statistically significant improvement over the uniform-sampling baseline by the PLR-based method of the matching
+color (p < 0.05). PLR tends to improve or match training sample efficiency. Note that while PLR reduces training performance on
+StarPilot, it performs comparably to the uniform-sampling baseline at test time, indicating less overfitting to training levels.
+                                                                                         Prioritized Level Replay
+
+
+
+
+                                                                             Test peformance on Procgen Benchmark (easy)
+
+                                    Uniform               TSCL Window                       mixreg                     UCB-DrAC                 PLR                 UCB-DrAC + PLR
+
+                                          bigfish                                 bossfight                                  caveflyer                               chaser
+                                                                                                                                                       8
+                           15                                        7                                         6
+                                                                                                                                                       6
+                           10                                        5
+                                                                                                               4                                       4
+                            5                                        2
+                                                                                                               2                                       2
+                                                                     0
+                            0
+
+                                          climber                                 coinrun                                    dodgeball                               fruitbot
+                                                                                                                                                      30
+                                                                                                           10
+                            6                                        8
+                                                                                                                                                      20
+                                                                                                               7
+
+
+
+
+Mean test episode return
+                                                                     6
+                            4
+                                                                                                               5                                      10
+                                                                     4
+                            2                                                                                  2
+                                                                     2                                                                                 0
+                                                                                                               0
+
+                                           heist                                    jumper                                    leaper                                 maze
+                            6                                                                              10
+                                                                     6
+                                                                                                               8
+                                                                                                                                                       6
+                            4                                                                                  6
+                                                                     4
+                                                                                                               4                                       4
+                            2
+                                                                     2                                         2
+
+
+                                              miner                                 ninja                                     plunder                               starpilot
+                           10
+                                                                                                                                                      30
+                                                                     6                                         8
+                            7
+                                                                                                                                                      20
+                            5                                        4                                         6
+
+                                                                                                                                                      10
+                            2                                        2                                         4
+                            0                                                                                                                          0
+                                0    5M   10M      15M   20M   25M       0   5M    10M      15M   20M    25M       0    5M    10M   15M   20M    25M       0   5M    10M   15M   20M   25M
+
+                                                                                                        Steps
+
+Figure 14. Mean test episode return (10 runs) on each Procgen Benchmark game (easy). The shaded area indicates one standard deviation
+around the mean. PLR-based methods consistently match or outperform uniform sampling with statistically significance (p < 0.05),
+indicated by a F of the corresponding color. We see that TSCL results in inconsistent outcomes across games, notably drastically lower
+test returns on StarPilot.
+                                                                                      Prioritized Level Replay
+
+
+
+
+                                                                      Generalization gap over training on Procgen Benchmark (easy)
+
+                                   Uniform                TSCL Window                     mixreg                  UCB-DrAC               PLR                 UCB-DrAC + PLR
+
+                                         bigfish                                bossfight                              caveflyer                              chaser
+                                                                 2                                       2
+                          7
+                                                                                                                                               1
+                          5                                      1                                       0
+
+                          2                                      0                                                                             0
+                                                                                                         -2
+                          0
+                                                                 -1
+
+                                        climber                                 coinrun                                dodgeball                              fruitbot
+                          4
+                                                                                                                                               4
+                                                                                                         4
+                          2                                      2
+
+
+
+
+Mean generalization gap
+                                                                                                                                               2
+                          0                                                                              2
+                                                                 0                                                                             0
+                          -2                                                                             0
+                                                                                                                                               -2
+                                                                 -2
+
+                                         heist                                   jumper                                 leaper                                maze
+                          6
+                                                                                                                                               4
+                          4                                      2                                       2
+                                                                                                                                               2
+                          2                                      0                                       0
+                                                                                                                                               0
+                          0
+                                                                 -2                                      -2                                    -2
+                          -2
+
+                                         miner                                    ninja                                 plunder                              starpilot
+                          4
+                                                                 2                                       2                                     5
+
+                          2
+                                                                 0                                       0
+                                                                                                                                               0
+                          0
+                                                                 -2
+                                                                                                         -2
+                               0   5M   10M   15M   20M    25M        0    5M   10M   15M   20M    25M        0   5M   10M   15M   20M   25M        0   5M   10M   15M   20M   25M
+
+                                                                                                     Steps
+
+Figure 15. Mean generalization gaps throughout training (10 runs) on each Procgen Benchmark game (easy). The shaded area indicates
+one standard deviation around the mean. A F indicates the method of matching color results in a statistically significant (p < 0.05)
+reduction in generalization gap compared to the uniform-sampling baseline. By itself, PLR significantly reduces the generalization gap
+on 7 games, and UCB-DrAC, on 5 games. This number jumps to 10 of 16 games when these two methods are combined. TSCL only
+significantly reduces generalization gap on 2 of 16 games relative to uniform sampling, while increasing it on others, most notably on
+Dodgeball.
+                                                                                     Prioritized Level Replay
+
+
+
+
+                                               Test performance of PLR + rank prioritization for various ρ on Procgen Benchmark (easy)
+                                                     Uniform                  ρ = 0.0               ρ = 0.1                  ρ = 0.3                    ρ = 1.0
+
+                                         bigfish                               bossfight                               caveflyer                                  chaser
+                                                                                                          7                                        8
+                           14
+
+                           12                                    8                                        6
+                                                                                                                                                   6
+                           10
+                                                                 6                                        5
+                           8
+                                                                                                          4                                        4
+                           6                                     4
+                                                                                                          3
+                           4
+                                                                 2                                                                                 2
+                           2                                                                              2
+
+                           0                                     0                                        1
+
+
+                                         climber                               coinrun                                 dodgeball                                  fruitbot
+                                                                                                                                                   30
+                           7
+                                                                 8                                                                                 25
+                           6                                                                              2
+                                                                                                                                                   20
+                           5
+
+
+
+
+Mean test episode return
+                                                                 6
+                                                                                                                                                   15
+                           4
+                                                                                                                                                   10
+                           3                                     4                                        1
+                                                                                                                                                   5
+                           2
+                                                                 2                                                                                 0
+                           1
+                                                                                                          0                                        -5
+
+
+                                          heist                                 jumper                                  leaper                                     maze
+                                                                                                          8
+                                                                 6                                                                                 6
+                           4
+                                                                                                          6                                        5
+                                                                 5
+                           3
+                                                                                                          4                                        4
+                                                                 4
+                           2
+                                                                                                                                                   3
+                                                                                                          2
+                                                                 3
+                           1                                                                                                                       2
+                                                                                                          0
+
+
+                                         miner                                  ninja                                  plunder                                    starpilot
+                           10                                                                             9                                        30
+                                                                 7
+                                                                                                          8                                        25
+                           8                                     6
+
+                                                                 5                                        7                                        20
+                           6
+                                                                 4                                        6                                        15
+
+                           4                                     3                                        5
+                                                                                                                                                   10
+                                                                 2                                        4
+                           2                                                                                                                       5
+                                                                 1
+                                                                                                          3
+                                                                                                                                                   0
+                                0   5M   10M   15M   20M   25M       0   5M    10M      15M   20M   25M       0   5M   10M     15M     20M   25M        0   5M    10M   15M   20M   25M
+
+
+                                                                                                      Steps
+
+  Figure 16. Mean test episode returns (10 runs) on the Procgen Benchmark (easy) for PLR with rank prioritization and β = 0.1 across
+  a range of staleness coefficient values, ρ. The replay distribution must consider both the L1 value-loss and staleness values to realize
+  improvements to generalization and sample efficiency. The shaded area indicates one standard deviation around the mean. A F next to
+  the game name indicates that ρ = 0.1 exhibits statistically significantly better final test returns or sample efficiency along the test curve
+  (p < 0.05), which we observe in 10 of 16 games.
+                                                                                     Prioritized Level Replay
+
+
+
+
+                                          Test performance of PLR + proportional prioritization for various ρ on Procgen Benchmark (easy)
+                                                     Uniform                  ρ = 0.0               ρ = 0.1                  ρ = 0.3                    ρ = 1.0
+
+                                          bigfish                               bossfight                              caveflyer                                   chaser
+                                                                                                                                                   8
+                           10                                                                             7
+                                                                                                                                                   7
+                                                                 8                                        6
+                           8                                                                                                                       6
+                                                                 6                                        5
+                                                                                                                                                   5
+                           6
+                                                                                                          4                                        4
+                                                                 4
+                           4
+                                                                                                          3                                        3
+
+                           2                                     2                                                                                 2
+                                                                                                          2
+                                                                                                                                                   1
+                           0                                     0                                        1
+
+
+                                          climber                               coinrun                                dodgeball                                   fruitbot
+                                                                                                                                                   30
+                           7
+                                                                                                          2                                        25
+                                                                 8
+                           6
+                                                                                                                                                   20
+                           5
+
+
+
+
+Mean test episode return
+                                                                 6
+                                                                                                                                                   15
+                           4
+                                                                                                          1                                        10
+                                                                 4
+                           3
+                                                                                                                                                   5
+                           2
+                                                                 2                                                                                 0
+                           1
+                                                                                                          0                                        -5
+
+
+                                           heist                                 jumper                                 leaper                                      maze
+                                                                                                                                                   7
+                           5
+                                                                 6
+                                                                                                          6                                        6
+                           4                                     5
+                                                                                                                                                   5
+                           3                                     4                                        4
+                                                                                                                                                   4
+                                                                 3
+                           2                                                                                                                       3
+                                                                                                          2
+                                                                 2
+                           1                                                                                                                       2
+                                                                 1                                        0
+
+                                           miner                                 ninja                                  plunder                                    starpilot
+                                                                                                                                                   30
+                           10
+                                                                 7
+                                                                                                          7                                        25
+                           8                                     6
+
+                                                                 5                                        6                                        20
+                           6
+                                                                 4                                                                                 15
+                                                                                                          5
+                           4                                     3
+                                                                                                                                                   10
+                                                                 2                                        4
+                           2                                                                                                                       5
+                                                                 1
+                                                                                                          3
+                                                                                                                                                   0
+                                0   5M   10M   15M   20M   25M       0   5M    10M      15M   20M   25M       0   5M   10M     15M     20M   25M        0   5M    10M   15M    20M   25M
+
+
+                                                                                                     Steps
+
+  Figure 17. Mean test episode returns (10 runs) on the Procgen Benchmark (easy) for PLR with proportional prioritization and β = 0.1
+  across a range of values of ρ. As in the case of rank prioritization, the replay distribution must consider both the L1 value loss score and
+  staleness values in order to realize performance improvements. The shaded area indicates one standard deviation around the mean. A F
+  next to the game name indicates the condition ρ = 0.1 exhibits statistically significantly better final test returns or sample efficiency along
+  the test curve (p < 0.05), which we observe in 11 of 16 games.
+                                                                                    Prioritized Level Replay
+
+
+
+
+                                            Training performance of PLR vs uniform-sampling baseline on Procgen Benchmark (easy)
+                                                                Uniform                 Rank, ρ = 0.1                  Proportional, ρ = 0.1
+
+                                      bigfish                                 bossfight                                caveflyer                              chaser
+                                                                10
+                            15                                                                           8                                      8
+                            12                                   8
+                                                                                                         6                                      6
+                            10                                   6
+
+                            7
+                                                                 4                                       4                                      4
+
+                            5
+                                                                 2                                                                              2
+                            2                                                                            2
+
+                                                                 0
+                            0
+
+
+                                      climber                                 coinrun                                  dodgeball                              fruitbot
+                            10                                  10                                       6                                      30
+
+                            8                                                                            5                                      25
+                                                                 8
+                                                                                                                                                20
+
+
+
+
+Mean train episode return
+                                                                                                         4
+                            6
+                                                                 6                                                                              15
+                                                                                                         3
+                            4                                                                                                                   10
+                                                                                                         2
+                                                                 4                                                                              5
+                            2
+                                                                                                         1
+                                                                                                                                                0
+                            0                                    2
+                                                                                                         0                                      -5
+
+
+                                      heist                                   jumper                                    leaper                                 maze
+
+                            8                                                                            8                                      9
+                                                                 8
+                            7                                                                                                                   8
+                                                                                                         6
+                            6                                    6                                                                              7
+
+                            5                                                                                                                   6
+                                                                                                         4
+                                                                 4                                                                              5
+                            4
+
+                                                                                                         2                                      4
+                            3
+                                                                 2
+                                                                                                                                                3
+                            2
+
+
+                                      miner                                    ninja                                   plunder                                starpilot
+                            12                                                                                                                  30
+                                                                 8                                       10
+                            10                                                                                                                  25
+
+                            8                                    6                                       8
+                                                                                                                                                20
+
+                            6                                                                                                                   15
+                                                                 4                                       6
+                            4                                                                                                                   10
+
+                            2                                    2                                       4                                      5
+
+                                                                                                                                                0
+                                 5M   10M     15M   20M   25M        0   5M   10M      15M   20M   25M        0   5M    10M   15M   20M   25M        0   5M   10M   15M   20M   25M
+
+
+
+                                                                                                     Steps
+
+  Figure 18. Mean training episode returns (10 runs) on the Procgen Benchmark for (easy) PLR with β = 0.1, ρ = 0.1, and each of rank
+  and proportional prioritization. On some games, PLR improves both training sample efficiency and generalization performance (e.g.
+  BigFish and Chaser), while on others, only generalization performance (e.g. CaveFlyer with rank prioritization). The shaded area indicates
+  one standard deviation around the mean.
+                                                 Prioritized Level Replay
+
+
+
+
+Algorithm 3 Generic T -step policy-gradient training loop with prioritized level replay
+Input: Training levels Λtrain of an environment, policy πθ , rollout length T , number of updates Nu , batch size Nb ,
+  policy update function U(B, θ) → θ0 .
+  Initialize level scores S, partial level scores S̃, and level timestamps C
+  Initialize global episode count c ← 0
+  Initialize set of visited levels Λseen = ∅
+  Initialize experience buffer B = ∅
+  Initialize Nb parallel environment instances E, each set to a random level in ∈ Λtrain
+  for u = 1 to Nu do
+     B←∅
+     for k = 1 to Nb do
+        B ← B ∪ collect experiences(k, E, Λtrain , Λseen , πθ , T, S, S̃, C, c)                           Using Algorithm 4
+     end for
+     θ ← U(B, θ)
+  end for
+                                                   Prioritized Level Replay
+
+
+
+
+Algorithm 4 Collect T -step rollouts with prioritized level replay
+Input: Actor index k, batch environments E, training levels Λtrain , visited levels Λseen , current level l, policy πθ , rollout
+  length T , scoring function score, level scores S, partial scores S̃, staleness values C, and global episode count c.
+Output: Experience buffer B
+  Initialize B = ∅, and set current level li = Ek
+  Observe current state s0 , termination flag d0
+  if d0 then
+     Define new index i ← |S| + 1
+     Choose current level li ← sampleNextLevel(Λtrain , S, C, c) and Ek ← li
+     Update level timestamp Ci ← c
+     Observe initial state s0
+  end if
+  Choose a0 ∼ πθ (·|s0 )
+  t=1
+  Initialize episodic trajectory buffer τ = ∅
+  while t < T do
+     Observe (st , rt , dt )
+     B ← B ∪ (st−1 , at−1 , st , rt , dt , log πθ (a))
+     τ ← τ ∪ (st−1 , at−1 , st , rt , dt , log πθ (a))
+     if dt then
+        Update level score Si ← score(τ, πθ , S̃i ) and partial score S̃i ← 0
+        τ ←∅
+        Define new index i ← |S| + 1
+        Update current level li ← sampleNextLevel(Λtrain , S, C, c) and Ek ← li
+        Update level timestamp Ci ← c
+     end if
+     Choose at+1 ∼ πθ (·|st )
+     t←t+1
+  end while
+  if not dt then
+     S̃i ← (score(τ, πθ ), |τ |)                                                   Track partial time-averaged score and |τ |
+  end if
+
+  function sampleNextLevel(Λtrain , S, C, c)
+    c←c+1
+    Sample replay decision d ∼ PD (d)
+    if d = 0 and |Λtrain \ Λseen | > 0 then
+       Define new index i ← |S| + 1
+       Sample li ∼ Pnew (l|Λtrain , Λseen )                                                     Sample an unseen level, if any
+       Add li to Λseen , add initial value Si = 0 to S and Ci = 0 to C
+    else
+       Sample li ∼ (1 − ρ) · PS (l|Λseen , S) + ρ · PC (l|Λseen , C, c)                              Sample a level for replay
+    end if
+    return li
+  end function
+
