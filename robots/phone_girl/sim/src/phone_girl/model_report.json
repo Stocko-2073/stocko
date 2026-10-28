@@ -1,0 +1,1056 @@
+{
+ "cad_sha256": "e47023d2e202fbea59e0a338c9b0fea3f33cc2063c6e1fd8dca534bb8e5ae0ab",
+ "slicer": "Bambu Lab X1 Carbon 0.4 nozzle / 0.20mm Standard @BBL X1C (15% grid, 2 walls, 5 top / 3 bottom layers) / Bambu PETG HF @BBL X1C (1.28 g/cm3)",
+ "links": {
+  "torso": {
+   "mass_kg": 0.4095787223571885,
+   "com_m": [
+    -0.005729230522914395,
+    0.002295535111235438,
+    0.06854946036639907
+   ],
+   "inertia_kg_m2": [
+    [
+     0.0011385468866900706,
+     -8.089967659163408e-06,
+     -0.00011221740104570711
+    ],
+    [
+     -8.089967659163396e-06,
+     0.0010160911031335174,
+     -3.4739319925318626e-05
+    ],
+    [
+     -0.0001122174010457071,
+     -3.4739319925318666e-05,
+     0.00023165745553660276
+    ]
+   ]
+  },
+  "right_shoulder_pitch": {
+   "mass_kg": 0.019955756998513548,
+   "com_m": [
+    -0.0039000028639599267,
+    -0.026178952128814745,
+    0.00492446270042422
+   ],
+   "inertia_kg_m2": [
+    [
+     3.282745731668422e-06,
+     -5.386276577218648e-07,
+     9.150688365997494e-08
+    ],
+    [
+     -5.386276577218648e-07,
+     1.78086211000326e-06,
+     3.4402129927640885e-07
+    ],
+    [
+     9.150688365997498e-08,
+     3.440212992764088e-07,
+     3.1939700452526457e-06
+    ]
+   ]
+  },
+  "right_shoulder_yaw": {
+   "mass_kg": 0.02108363601824561,
+   "com_m": [
+    -0.0037237333078692964,
+    -0.004189197876594364,
+    -0.025061060609926963
+   ],
+   "inertia_kg_m2": [
+    [
+     3.8343006053004e-06,
+     -9.634093497382229e-08,
+     -2.9388680211270317e-07
+    ],
+    [
+     -9.63409349738223e-08,
+     3.539762719744464e-06,
+     -2.859072154349893e-07
+    ],
+    [
+     -2.9388680211270317e-07,
+     -2.8590721543498933e-07,
+     1.8394234801354882e-06
+    ]
+   ]
+  },
+  "right_elbow": {
+   "mass_kg": 0.023432208166483455,
+   "com_m": [
+    0.007663390525374898,
+    0.009977132622379028,
+    -0.028125164376991377
+   ],
+   "inertia_kg_m2": [
+    [
+     5.318045815965419e-06,
+     -1.9541185482553512e-07,
+     4.5182313030718386e-07
+    ],
+    [
+     -1.9541185482554883e-07,
+     3.6518833355056583e-06,
+     -3.3429430250668084e-08
+    ],
+    [
+     4.5182313030718704e-07,
+     -3.342943025066521e-08,
+     3.488056905549045e-06
+    ]
+   ]
+  },
+  "right_wrist": {
+   "mass_kg": 0.00422096671048486,
+   "com_m": [
+    0.005123408882299711,
+    -0.0009857166437185407,
+    -0.020384453491684183
+   ],
+   "inertia_kg_m2": [
+    [
+     7.797782033422567e-07,
+     -2.81874287030434e-08,
+     9.15715468698209e-08
+    ],
+    [
+     -2.8187428703045026e-08,
+     8.25803047750537e-07,
+     9.39479687754107e-08
+    ],
+    [
+     9.157154686982424e-08,
+     9.394796877539984e-08,
+     2.698617256717469e-07
+    ]
+   ]
+  },
+  "left_shoulder_pitch": {
+   "mass_kg": 0.019955756998513548,
+   "com_m": [
+    -0.0039000028639599267,
+    0.026178952128814745,
+    0.00492446270042422
+   ],
+   "inertia_kg_m2": [
+    [
+     3.282745731668422e-06,
+     5.386276577218648e-07,
+     9.150688365997494e-08
+    ],
+    [
+     5.386276577218648e-07,
+     1.78086211000326e-06,
+     -3.4402129927640885e-07
+    ],
+    [
+     9.150688365997498e-08,
+     -3.440212992764088e-07,
+     3.1939700452526457e-06
+    ]
+   ]
+  },
+  "left_shoulder_yaw": {
+   "mass_kg": 0.02108363601824561,
+   "com_m": [
+    -0.0037237333078692964,
+    0.004189197876594364,
+    -0.025061060609926963
+   ],
+   "inertia_kg_m2": [
+    [
+     3.8343006053004e-06,
+     9.634093497382229e-08,
+     -2.9388680211270317e-07
+    ],
+    [
+     9.63409349738223e-08,
+     3.539762719744464e-06,
+     2.859072154349893e-07
+    ],
+    [
+     -2.9388680211270317e-07,
+     2.8590721543498933e-07,
+     1.8394234801354882e-06
+    ]
+   ]
+  },
+  "left_elbow": {
+   "mass_kg": 0.023432208166483455,
+   "com_m": [
+    0.007663390525374898,
+    -0.009977132622379028,
+    -0.028125164376991377
+   ],
+   "inertia_kg_m2": [
+    [
+     5.318045815965419e-06,
+     1.9541185482553512e-07,
+     4.5182313030718386e-07
+    ],
+    [
+     1.9541185482554883e-07,
+     3.6518833355056583e-06,
+     3.3429430250668084e-08
+    ],
+    [
+     4.5182313030718704e-07,
+     3.342943025066521e-08,
+     3.488056905549045e-06
+    ]
+   ]
+  },
+  "left_wrist": {
+   "mass_kg": 0.00422096671048486,
+   "com_m": [
+    0.005123408882299711,
+    0.0009857166437185407,
+    -0.020384453491684183
+   ],
+   "inertia_kg_m2": [
+    [
+     7.797782033422567e-07,
+     2.81874287030434e-08,
+     9.15715468698209e-08
+    ],
+    [
+     2.8187428703045026e-08,
+     8.25803047750537e-07,
+     -9.39479687754107e-08
+    ],
+    [
+     9.157154686982424e-08,
+     -9.394796877539984e-08,
+     2.698617256717469e-07
+    ]
+   ]
+  },
+  "waist": {
+   "mass_kg": 0.04752203412897567,
+   "com_m": [
+    -0.0001123818939366081,
+    0.014500972554200405,
+    -0.021112309924700822
+   ],
+   "inertia_kg_m2": [
+    [
+     3.061467133021219e-05,
+     5.978706766206134e-10,
+     4.54781722328084e-08
+    ],
+    [
+     5.978706766206134e-10,
+     6.3227840967311e-06,
+     -5.277642185052321e-10
+    ],
+    [
+     4.54781722328084e-08,
+     -5.277642185052321e-10,
+     2.8672691081912507e-05
+    ]
+   ]
+  },
+  "right_hip_roll": {
+   "mass_kg": 0.024250337587853762,
+   "com_m": [
+    -0.014598828843969147,
+    -0.004103519948157741,
+    -0.02681587333399778
+   ],
+   "inertia_kg_m2": [
+    [
+     3.720729393844592e-06,
+     -4.4813390372800607e-10,
+     -2.524074954318549e-09
+    ],
+    [
+     -4.4813390373461447e-10,
+     5.345206779088866e-06,
+     -1.0879766813797226e-07
+    ],
+    [
+     -2.5240749543154235e-09,
+     -1.0879766813797233e-07,
+     3.793436251606125e-06
+    ]
+   ]
+  },
+  "right_hip_pitch": {
+   "mass_kg": 0.021830576762218386,
+   "com_m": [
+    -0.0029955833318214085,
+    0.016265615277225826,
+    -0.02330672779610117
+   ],
+   "inertia_kg_m2": [
+    [
+     4.751800746647427e-06,
+     1.3439789225437626e-08,
+     -1.9155428140478917e-07
+    ],
+    [
+     1.3439789225426272e-08,
+     3.0444863643693266e-06,
+     -1.1361438673444985e-08
+    ],
+    [
+     -1.9155428140478996e-07,
+     -1.1361438673446388e-08,
+     3.2054245182714292e-06
+    ]
+   ]
+  },
+  "right_thigh_yaw": {
+   "mass_kg": 0.02334146082983517,
+   "com_m": [
+    -0.0045720521682820845,
+    0.002594922050163722,
+    -0.037133728976860146
+   ],
+   "inertia_kg_m2": [
+    [
+     6.21212328653649e-06,
+     3.655762801785183e-08,
+     -5.178830695130915e-07
+    ],
+    [
+     3.655762801785183e-08,
+     5.920705492188504e-06,
+     2.7248171151767136e-07
+    ],
+    [
+     -5.178830695130915e-07,
+     2.7248171151767136e-07,
+     2.061983209411913e-06
+    ]
+   ]
+  },
+  "right_knee": {
+   "mass_kg": 0.012427311815618515,
+   "com_m": [
+    0.0010387523392928414,
+    0.016919257477270005,
+    -0.041556193650996553
+   ],
+   "inertia_kg_m2": [
+    [
+     1.1639386971265683e-05,
+     1.0603158255415243e-08,
+     -2.2052583849733735e-07
+    ],
+    [
+     1.0603158255415243e-08,
+     1.056740294453198e-05,
+     5.958885515818513e-07
+    ],
+    [
+     -2.2052583849733735e-07,
+     5.958885515818484e-07,
+     1.7082421880780322e-06
+    ]
+   ]
+  },
+  "left_hip_roll": {
+   "mass_kg": 0.024250337587853762,
+   "com_m": [
+    0.014598828843969147,
+    0.004103561514589398,
+    -0.026815901910919548
+   ],
+   "inertia_kg_m2": [
+    [
+     3.720736059563932e-06,
+     -4.4813508425328554e-10,
+     2.524075765929828e-09
+    ],
+    [
+     -4.4813508425989394e-10,
+     5.345213420194322e-06,
+     1.0880250649387215e-07
+    ],
+    [
+     2.5240757659267027e-09,
+     1.0880250649387221e-07,
+     3.7934362762200103e-06
+    ]
+   ]
+  },
+  "left_hip_pitch": {
+   "mass_kg": 0.021830576762218386,
+   "com_m": [
+    -0.002995583331821408,
+    0.012863664836910604,
+    -0.025343576281857634
+   ],
+   "inertia_kg_m2": [
+    [
+     4.7517900456648e-06,
+     -1.335032294954302e-08,
+     -1.9155988129594595e-07
+    ],
+    [
+     -1.335032294955438e-08,
+     3.0444614185693085e-06,
+     1.1260454943292017e-08
+    ],
+    [
+     -1.9155988129594515e-07,
+     1.126045494329064e-08,
+     3.205438763077932e-06
+    ]
+   ]
+  },
+  "left_thigh_yaw": {
+   "mass_kg": 0.02334146082983517,
+   "com_m": [
+    -0.004569180766790164,
+    -0.002594965151624555,
+    -0.03713411037013958
+   ],
+   "inertia_kg_m2": [
+    [
+     6.211854122623687e-06,
+     -3.6279297392510676e-08,
+     -5.190203723554899e-07
+    ],
+    [
+     -3.6279297392510676e-08,
+     5.920709109756251e-06,
+     -2.7250871499396494e-07
+    ],
+    [
+     -5.1902037235549e-07,
+     -2.7250871499396494e-07,
+     2.06226622907658e-06
+    ]
+   ]
+  },
+  "left_knee": {
+   "mass_kg": 0.012427311815618515,
+   "com_m": [
+    0.0010387523392928414,
+    0.010971093507952268,
+    -0.04350647781171272
+   ],
+   "inertia_kg_m2": [
+    [
+     1.1639386971265683e-05,
+     -2.0191308795812446e-08,
+     -2.1985536941147296e-07
+    ],
+    [
+     -2.0191308795812446e-08,
+     1.0560057580699136e-05,
+     -6.481535084733277e-07
+    ],
+    [
+     -2.1985536941147296e-07,
+     -6.481535084733307e-07,
+     1.7155875519108761e-06
+    ]
+   ]
+  }
+ },
+ "joints": [
+  {
+   "name": "waist",
+   "slot": 0,
+   "dynamixel_id": 1,
+   "cad_knob": 0,
+   "parent": null,
+   "default_rad": 3.141592653589793,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "right_hip_roll",
+   "slot": 1,
+   "dynamixel_id": 2,
+   "cad_knob": 9,
+   "parent": "waist",
+   "default_rad": 0.7155849933176751,
+   "mirrored_servo": false,
+   "axis_sim": [
+    1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "right_hip_pitch",
+   "slot": 2,
+   "dynamixel_id": 3,
+   "cad_knob": 10,
+   "parent": "right_hip_roll",
+   "default_rad": -0.12217304763960307,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -0.9975640481882054,
+    -0.06975650336964902
+   ]
+  },
+  {
+   "name": "right_thigh_yaw",
+   "slot": 3,
+   "dynamixel_id": 4,
+   "cad_knob": 11,
+   "parent": "right_hip_pitch",
+   "default_rad": -1.5707963267948966,
+   "mirrored_servo": false,
+   "axis_sim": [
+    -0.12186904859667909,
+    0.06923652760885846,
+    -0.9901283948250389
+   ]
+  },
+  {
+   "name": "right_knee",
+   "slot": 4,
+   "dynamixel_id": 5,
+   "cad_knob": 12,
+   "parent": "right_thigh_yaw",
+   "default_rad": 1.6929693744344996,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -0.9975640481882054,
+    -0.06975650336964902
+   ]
+  },
+  {
+   "name": "left_hip_roll",
+   "slot": 5,
+   "dynamixel_id": 6,
+   "cad_knob": 13,
+   "parent": "waist",
+   "default_rad": 0.7155849933176751,
+   "mirrored_servo": false,
+   "axis_sim": [
+    -1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "left_hip_pitch",
+   "slot": 6,
+   "dynamixel_id": 7,
+   "cad_knob": 14,
+   "parent": "left_hip_roll",
+   "default_rad": -0.12217304763960307,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -0.9975640481882054,
+    0.06975650336964902
+   ]
+  },
+  {
+   "name": "left_thigh_yaw",
+   "slot": 7,
+   "dynamixel_id": 8,
+   "cad_knob": 15,
+   "parent": "left_hip_pitch",
+   "default_rad": -1.5707963267948966,
+   "mirrored_servo": false,
+   "axis_sim": [
+    -0.12186904859667909,
+    -0.06923652760885846,
+    -0.9901283948250389
+   ]
+  },
+  {
+   "name": "left_knee",
+   "slot": 8,
+   "dynamixel_id": 9,
+   "cad_knob": 16,
+   "parent": "left_thigh_yaw",
+   "default_rad": 1.6929693744344996,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -0.9975640481882054,
+    0.06975650336964902
+   ]
+  },
+  {
+   "name": "right_shoulder_pitch",
+   "slot": 9,
+   "dynamixel_id": 10,
+   "cad_knob": 1,
+   "parent": null,
+   "default_rad": 0.6981317007977318,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "right_shoulder_yaw",
+   "slot": 10,
+   "dynamixel_id": 11,
+   "cad_knob": 2,
+   "parent": "right_shoulder_pitch",
+   "default_rad": 1.3962634015954636,
+   "mirrored_servo": false,
+   "axis_sim": [
+    -0.1449969914132059,
+    -0.16317599033663654,
+    -0.9758839422076666
+   ]
+  },
+  {
+   "name": "right_elbow",
+   "slot": 11,
+   "dynamixel_id": 12,
+   "cad_knob": 3,
+   "parent": "right_shoulder_yaw",
+   "default_rad": 0.3490658503988659,
+   "mirrored_servo": false,
+   "axis_sim": [
+    -0.1529849393009426,
+    -0.9707486148410022,
+    0.18504792657947394
+   ]
+  },
+  {
+   "name": "right_wrist",
+   "slot": 12,
+   "dynamixel_id": 13,
+   "cad_knob": 4,
+   "parent": "right_elbow",
+   "default_rad": 1.2217304763960306,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.22163998439957766,
+    -0.041760797060611275,
+    -0.9742339314272611
+   ]
+  },
+  {
+   "name": "left_shoulder_pitch",
+   "slot": 13,
+   "dynamixel_id": 14,
+   "cad_knob": 5,
+   "parent": null,
+   "default_rad": -0.6981317007977318,
+   "mirrored_servo": false,
+   "axis_sim": [
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "left_shoulder_yaw",
+   "slot": 14,
+   "dynamixel_id": 15,
+   "cad_knob": 6,
+   "parent": "left_shoulder_pitch",
+   "default_rad": -1.3962634015954636,
+   "mirrored_servo": true,
+   "axis_sim": [
+    -0.1449969914132059,
+    0.16317599033663654,
+    -0.9758839422076666
+   ]
+  },
+  {
+   "name": "left_elbow",
+   "slot": 15,
+   "dynamixel_id": 16,
+   "cad_knob": 7,
+   "parent": "left_shoulder_yaw",
+   "default_rad": -0.3490658503988659,
+   "mirrored_servo": true,
+   "axis_sim": [
+    -0.1529849393009426,
+    0.9707486148410022,
+    0.18504792657947394
+   ]
+  },
+  {
+   "name": "left_wrist",
+   "slot": 16,
+   "dynamixel_id": 17,
+   "cad_knob": 8,
+   "parent": "left_elbow",
+   "default_rad": -1.2217304763960306,
+   "mirrored_servo": true,
+   "axis_sim": [
+    0.22163998439957766,
+    0.041760797060611275,
+    -0.9742339314272611
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "index": 0,
+   "module": "xl330",
+   "link": "torso",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 1,
+   "module": "chest",
+   "link": "torso",
+   "mass_g": 23.916188799127266,
+   "mass_source": "sliced, printed as xrot(90)"
+  },
+  {
+   "index": 2,
+   "module": "iphone_16_pro",
+   "link": "torso",
+   "mass_g": 199,
+   "mass_source": "199 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 3,
+   "module": "electronics",
+   "link": "torso",
+   "mass_g": 20.0,
+   "mass_source": "placeholder box; mass is a guess, randomized in training"
+  },
+  {
+   "index": 4,
+   "module": "inr18650",
+   "link": "torso",
+   "mass_g": 48,
+   "mass_source": "Molicel INR-18650-M35A, 48 g; solid cylinder"
+  },
+  {
+   "index": 5,
+   "module": "inr18650",
+   "link": "torso",
+   "mass_g": 48,
+   "mass_source": "Molicel INR-18650-M35A, 48 g; solid cylinder"
+  },
+  {
+   "index": 6,
+   "module": "backpack_lid",
+   "link": "torso",
+   "mass_g": 16.66253355806125,
+   "mass_source": "sliced, printed as xrot(-90)"
+  },
+  {
+   "index": 7,
+   "module": "xl330",
+   "link": "torso",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 8,
+   "module": "shoulder",
+   "link": "right_shoulder_pitch",
+   "mass_g": 1.9557569985135472,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 9,
+   "module": "xl330",
+   "link": "right_shoulder_pitch",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 10,
+   "module": "pole",
+   "link": "right_shoulder_yaw",
+   "mass_g": 3.083636018245606,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 11,
+   "module": "xl330",
+   "link": "right_shoulder_yaw",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 12,
+   "module": "u_bracket",
+   "link": "right_elbow",
+   "mass_g": 3.830576762218385,
+   "mass_source": "sliced, printed as xrot(-90)"
+  },
+  {
+   "index": 13,
+   "module": "wedge",
+   "link": "right_elbow",
+   "mass_g": 1.6016314042650688,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 14,
+   "module": "xl330",
+   "link": "right_elbow",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 15,
+   "module": "hand",
+   "link": "right_wrist",
+   "mass_g": 4.22096671048486,
+   "mass_source": "sliced, printed as xrot(90)"
+  },
+  {
+   "index": 16,
+   "module": "xl330",
+   "link": "torso",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 17,
+   "module": "shoulder",
+   "link": "left_shoulder_pitch",
+   "mass_g": 1.9557569985135472,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 18,
+   "module": "xl330",
+   "link": "left_shoulder_pitch",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 19,
+   "module": "pole",
+   "link": "left_shoulder_yaw",
+   "mass_g": 3.083636018245606,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 20,
+   "module": "xl330",
+   "link": "left_shoulder_yaw",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 21,
+   "module": "u_bracket",
+   "link": "left_elbow",
+   "mass_g": 3.830576762218385,
+   "mass_source": "sliced, printed as xrot(-90)"
+  },
+  {
+   "index": 22,
+   "module": "wedge",
+   "link": "left_elbow",
+   "mass_g": 1.6016314042650688,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 23,
+   "module": "xl330",
+   "link": "left_elbow",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 24,
+   "module": "hand",
+   "link": "left_wrist",
+   "mass_g": 4.22096671048486,
+   "mass_source": "sliced, printed as xrot(90)"
+  },
+  {
+   "index": 25,
+   "module": "abdomen",
+   "link": "waist",
+   "mass_g": 11.522034128975662,
+   "mass_source": "sliced, printed as yrot(90)"
+  },
+  {
+   "index": 26,
+   "module": "xl330",
+   "link": "waist",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 27,
+   "module": "hip",
+   "link": "right_hip_roll",
+   "mass_g": 4.320608125271709,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 28,
+   "module": "wedge",
+   "link": "right_hip_roll",
+   "mass_g": 1.9297294625820518,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 29,
+   "module": "xl330",
+   "link": "right_hip_roll",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 30,
+   "module": "u_bracket",
+   "link": "right_hip_pitch",
+   "mass_g": 3.830576762218385,
+   "mass_source": "sliced, printed as xrot(-90)"
+  },
+  {
+   "index": 31,
+   "module": "xl330",
+   "link": "right_hip_pitch",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 32,
+   "module": "pole",
+   "link": "right_thigh_yaw",
+   "mass_g": 5.341460829835169,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 33,
+   "module": "xl330",
+   "link": "right_thigh_yaw",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 34,
+   "module": "leg",
+   "link": "right_knee",
+   "mass_g": 12.427311815618515,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 35,
+   "module": "xl330",
+   "link": "waist",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 36,
+   "module": "hip",
+   "link": "left_hip_roll",
+   "mass_g": 4.320608125271709,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 37,
+   "module": "wedge",
+   "link": "left_hip_roll",
+   "mass_g": 1.9297294625820518,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 38,
+   "module": "xl330",
+   "link": "left_hip_roll",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 39,
+   "module": "u_bracket",
+   "link": "left_hip_pitch",
+   "mass_g": 3.830576762218385,
+   "mass_source": "sliced, printed as xrot(-90)"
+  },
+  {
+   "index": 40,
+   "module": "xl330",
+   "link": "left_hip_pitch",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 41,
+   "module": "pole",
+   "link": "left_thigh_yaw",
+   "mass_g": 5.341460829835169,
+   "mass_source": "sliced, printed as "
+  },
+  {
+   "index": 42,
+   "module": "xl330",
+   "link": "left_thigh_yaw",
+   "mass_g": 18,
+   "mass_source": "18 g from mass.py; uniform box inertia"
+  },
+  {
+   "index": 43,
+   "module": "leg",
+   "link": "left_knee",
+   "mass_g": 12.427311815618515,
+   "mass_source": "sliced, printed as "
+  }
+ ],
+ "home": {
+  "root_height_m": 0.26121249580444816,
+  "foot_heights_m": [
+   0.002500000000000016,
+   0.002527889853220014
+  ],
+  "foot_positions_m": [
+   [
+    -0.0038191599999999994,
+    0.01282953823698044,
+    0.002500000000000016
+   ],
+   [
+    -0.004019160000000001,
+    -0.012430548675899503,
+    0.002527889853220014
+   ]
+  ],
+  "com_m": [
+   -0.0038970578323879244,
+   0.0012382696067641738,
+   0.2742032871513519
+  ],
+  "total_mass_kg": 0.7581852662646709
+ },
+ "excluded_body_pairs": [],
+ "travel_deg": {
+  "waist": 45,
+  "shoulder_pitch": 150,
+  "shoulder_yaw": 90,
+  "elbow": 110,
+  "wrist": 150,
+  "hip_roll": 35,
+  "hip_pitch": 80,
+  "thigh_yaw": 60,
+  "knee": 110
+ },
+ "imu_in_phone_mm": [
+  0.0,
+  40.0,
+  0.0
+ ],
+ "assumptions": [
+  "XL330-M288-T servos; 18 g each with a uniform-box case inertia.",
+  "Printed parts are sliced PETG HF; bought masses come from mass.py.",
+  "The electronics box is a 20.0 g guess.",
+  "Wires, screws and glue are not modelled; randomize link masses to cover them.",
+  "Joint travel is provisional, not measured; IMU position in the phone is a guess.",
+  "Collision proxies are boxes, capsules and spheres; brackets are boxes."
+ ]
+}

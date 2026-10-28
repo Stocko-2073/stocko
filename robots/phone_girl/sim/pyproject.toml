@@ -1,0 +1,47 @@
+[project]
+name = "phone-girl-sim"
+version = "0.1.0"
+description = "MuJoCo Warp model, BAM servos, phone sensors and BLE link for phone_girl"
+readme = "README.md"
+# better-actuator-models supports only Python 3.12.
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Pinned to a green main commit: it has MuJoCo Warp 3.16 and fixes to the
+    # delay buffer, additive-bias noise and gaussian DR that 1.6.0 lacks.
+    "mjlab @ git+https://github.com/mujocolab/mjlab@8bb2bc9e187797689ec82c78c35019afd2fd0376",
+    "better-actuator-models==1.0.2",
+    "trimesh>=4.8.3",
+    "onnx>=1.19",
+]
+
+[project.entry-points."mjlab.tasks"]
+phone_girl = "phone_girl.tasks"
+
+[project.scripts]
+phone-girl-export = "phone_girl.cad:main"
+phone-girl-build = "phone_girl.mjcf:main"
+phone-girl-bench = "phone_girl.bench:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "onnxruntime>=1.19",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.18,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "phone_girl"
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["cad: needs OpenSCAD and Bambu Studio", "slow: long simulation runs"]
+filterwarnings = ["ignore:MULTICCD is enabled:UserWarning"]

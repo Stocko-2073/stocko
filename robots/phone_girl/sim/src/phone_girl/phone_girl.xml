@@ -1,0 +1,230 @@
+<mujoco model="phone_girl">
+  <compiler angle="radian" meshdir="assets" inertiafromgeom="false"/>
+
+  <statistic meansize="0.03" extent="0.5"/>
+
+  <asset>
+    <mesh name="xl330_idler_disk_True" file="xl330_idler_disk_True.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="chest" file="chest.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="iphone_16_pro" file="iphone_16_pro.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="electronics" file="electronics.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="inr18650" file="inr18650.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="backpack_lid" file="backpack_lid.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="xl330_idler_disk_False" file="xl330_idler_disk_False.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="shoulder_l_10" file="shoulder_l_10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="pole_l_10" file="pole_l_10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="u_bracket_w_20" file="u_bracket_w_20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wedge_a_10_w_20_l_34" file="wedge_a_10_w_20_l_34.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="hand" file="hand.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="shoulder_l_10_mirror" file="shoulder_l_10_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="xl330_idler_disk_False_mirror" file="xl330_idler_disk_False_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="pole_l_10_mirror" file="pole_l_10_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="xl330_idler_disk_True_mirror" file="xl330_idler_disk_True_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="u_bracket_w_20_mirror" file="u_bracket_w_20_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wedge_a_10_w_20_l_34_mirror" file="wedge_a_10_w_20_l_34_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="hand_mirror" file="hand_mirror.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="abdomen" file="abdomen.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="hip" file="hip.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wedge_a_18_w_34_l_23" file="wedge_a_18_w_34_l_23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="pole_l_25" file="pole_l_25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="leg" file="leg.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <worldbody>
+    <body name="torso" pos="0 0 0.261212">
+      <inertial pos="-0.00572923 0.00229554 0.0685495" quat="0.997829 -0.0229755 0.0603692 -0.0128196" mass="0.409579" diaginertia="0.00115233 0.00101756 0.000216405"/>
+      <joint name="root" type="free"/>
+      <geom name="torso_xl330_0_visual" pos="0 -0.0145 0" quat="0 0 -0.707107 0.707107" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+      <geom name="torso_xl330_0_0" size="0.01 0.017 0.0115" pos="0 0 0.0075" quat="0 0 -0.707107 0.707107" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <geom name="torso_chest_1_visual" pos="0 0 -0.0095" quat="0.5 0.5 -0.5 0.5" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="chest"/>
+      <geom name="torso_chest_1_0" size="0.0195 0.0301348 0.037225" pos="-0.0095 0 0.0407598" quat="0.707107 0.707107 0 0" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <geom name="torso_iphone_16_pro_2_visual" pos="0.002875 0 0.105305" quat="0.5 0.5 0.5 0.5" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="iphone_16_pro"/>
+      <geom name="torso_iphone_16_pro_2_0" size="0.03595 0.074805 0.00627" pos="0.00074 -0.000225 0.105305" quat="0.5 0.5 0.5 0.5" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <geom name="torso_electronics_3_visual" pos="-0.01 0 0.0693947" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="electronics"/>
+      <geom name="torso_inr18650_4_visual" pos="-0.02 0.0325 0.0413947" quat="0.5 0.5 -0.5 0.5" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="inr18650"/>
+      <geom name="torso_inr18650_5_visual" pos="-0.02 0.0325 0.0228947" quat="0.5 0.5 -0.5 0.5" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="inr18650"/>
+      <geom name="torso_backpack_lid_6_visual" pos="-0.01 0 0.0693947" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="backpack_lid"/>
+      <geom name="torso_backpack_lid_6_0" size="0.01025 0.0305 0.0372" pos="-0.02045 0 0.0403947" quat="0 0 -0.707107 0.707107" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <geom name="torso_xl330_7_visual" pos="0 -0.040225 0.034925" quat="0.707107 0.707107 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+      <geom name="torso_xl330_7_0" size="0.01 0.017 0.0115" pos="0 -0.025725 0.027425" quat="0.707107 0.707107 0 0" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <geom name="torso_xl330_16_visual" pos="0 0.040225 0.034925" quat="0 0 0.707107 0.707107" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+      <geom name="torso_xl330_16_0" size="0.01 0.017 0.0115" pos="0 0.025725 0.027425" quat="0 0 0.707107 0.707107" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+      <site name="imu" size="0.004" pos="0.002875 0 0.145305" quat="0.5 0.5 0.5 0.5"/>
+      <camera name="front" quat="-0.5 -0.5 0.5 0.5" resolution="96 128" pos="0.007 0.00733 0.1724" fovy="73.9245"/>
+      <camera name="rear_main" quat="0.5 0.5 0.5 0.5" resolution="96 128" pos="-0.00348 0.021555 0.16594" fovy="71.5958"/>
+      <camera name="rear_ultrawide" quat="0.5 0.5 0.5 0.5" resolution="96 128" pos="-0.00348 0.021555 0.1467" fovy="106.18"/>
+      <camera name="rear_tele" quat="0.5 0.5 0.5 0.5" resolution="96 128" pos="-0.00348 0.003565 0.15632" fovy="16.4147"/>
+      <body name="pelvis" pos="0 -0.0145 0">
+        <inertial pos="-0.000112382 0.014501 -0.0211123" quat="0.70705 0.707067 -0.00826482 0.00828205" mass="0.047522" diaginertia="3.06157e-05 2.86716e-05 6.32278e-06"/>
+        <joint name="waist" range="2.35619 3.92699" ref="3.14159" axis="0 -1 0"/>
+        <geom name="waist_abdomen_25_visual" quat="0.707107 0.707107 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="abdomen"/>
+        <geom name="waist_abdomen_25_0" size="0.0115 0.0276383 0.0285319" pos="0 0.0138569 -0.00986251" quat="0 0 0.349911 0.936783" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <geom name="waist_xl330_26_visual" pos="0.0145 -0.0159427 -0.0210174" quat="0.122788 0.696364 0.122788 0.696364" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+        <geom name="waist_xl330_26_0" size="0.01 0.017 0.0115" pos="0 -0.008895 -0.0235825" quat="0.122788 0.696364 0.122788 0.696364" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <geom name="waist_xl330_35_visual" pos="-0.0145 0.0449427 -0.0210174" quat="0.696364 0.122788 -0.696364 -0.122788" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+        <geom name="waist_xl330_35_0" size="0.01 0.017 0.0115" pos="0 0.037895 -0.0235825" quat="0.696364 0.122788 -0.696364 -0.122788" type="box" contype="2" conaffinity="61" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <body name="right_hip_roll_link" pos="0.0145 -0.0159427 -0.0210174">
+          <inertial pos="-0.0145988 -0.00410352 -0.0268159" quat="0.526386 0.472054 0.507631 0.492335" mass="0.0242503" diaginertia="5.3528e-06 3.78595e-06 3.72063e-06"/>
+          <joint name="right_hip_roll" range="0.10472 1.32645" ref="0.715585" axis="1 0 0"/>
+          <geom name="right_hip_roll_hip_27_visual" quat="-0.435338 0.557208 -0.435338 0.557208" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="hip"/>
+          <geom name="right_hip_roll_hip_27_0" size="0.0117 0.0143 0.017" pos="-0.0146 -0.00104026 -0.00417227" quat="0.435338 -0.557208 -0.435338 0.557208" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="right_hip_roll_wedge_28_visual" pos="-0.0146 -0.0044997 -0.0180475" quat="0 0 0.992546 -0.121869" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="wedge_a_18_w_34_l_23"/>
+          <geom name="right_hip_roll_wedge_28_0" size="0.00355857 0.0115008 0.017" pos="-0.0146 -0.00535864 -0.0214957" quat="0.701836 -0.0861747 0.701836 -0.0861747" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="right_hip_roll_xl330_29_visual" pos="-0.0071 -0.0185804 -0.0326189" quat="0.482246 0.517145 0.517145 -0.482246" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+          <geom name="right_hip_roll_xl330_29_0" size="0.01 0.017 0.0115" pos="-0.0146 -0.00411572 -0.0316074" quat="0.482246 0.517145 0.517145 -0.482246" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <body name="right_hip_pitch_link" pos="-0.0071 -0.0185804 -0.0326189">
+            <inertial pos="-0.00299558 0.0162656 -0.0233067" quat="0.680613 0.730111 0.0445061 -0.0414963" mass="0.0218306" diaginertia="4.7753e-06 3.18272e-06 3.04369e-06"/>
+            <joint name="right_hip_pitch" range="-1.51844 1.27409" ref="-0.122173" axis="0 -0.997564 -0.0697565"/>
+            <geom name="right_hip_pitch_u_bracket_30_visual" quat="-0.0416349 -0.0446479 0.72999 -0.680726" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="u_bracket_w_20"/>
+            <geom name="right_hip_pitch_u_bracket_30_0" size="0.01 0.0133 0.017" pos="-0.000402168 0.0147929 -0.00224898" quat="0.72999 -0.680726 0.0416349 0.0446479" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="right_hip_pitch_xl330_31_visual" pos="-0.00519163 0.0249956 -0.0406379" quat="-0.0610112 -0.00213057 0.997527 0.0348344" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+            <geom name="right_hip_pitch_xl330_31_0" size="0.01 0.017 0.0115" pos="-0.00342453 0.0165099 -0.0268042" quat="-0.0610112 -0.00213057 0.997527 0.0348344" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <body name="right_thigh_yaw_link" pos="-0.00519163 0.0249956 -0.0406379">
+              <inertial pos="-0.00457205 0.00259492 -0.0371337" quat="0.997524 0.0350205 0.0609361 0.00238553" mass="0.0233415" diaginertia="6.2758e-06 5.93985e-06 1.97916e-06"/>
+              <joint name="right_thigh_yaw" range="-2.61799 -0.523599" ref="-1.5708" axis="-0.121869 0.0692365 -0.990128"/>
+              <geom name="right_thigh_yaw_pole_32_visual" quat="0.0185098 0.706864 -0.703851 -0.0677731" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="pole_l_25"/>
+              <geom name="right_thigh_yaw_pole_32_0" size="0.0102 0.0133 0.0173" pos="-0.00210833 0.00119779 -0.0171292" quat="-0.00213057 0.0610112 -0.0348344 0.997527" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+              <geom name="right_thigh_yaw_xl330_33_visual" pos="-0.00622753 -0.0109267 -0.0516068" quat="-0.0416349 -0.0446479 0.72999 -0.680726" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+              <geom name="right_thigh_yaw_xl330_33_0" size="0.01 0.017 0.0115" pos="-0.00531351 0.0030187 -0.0431694" quat="-0.0416349 -0.0446479 0.72999 -0.680726" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+              <body name="right_knee_link" pos="-0.00622753 -0.0109267 -0.0516068">
+                <inertial pos="0.00103875 0.0169193 -0.0415562" quat="0.999379 0.0333949 0.0111224 -0.00163146" mass="0.0124273" diaginertia="1.16443e-05 1.06073e-05 1.66346e-06"/>
+                <joint name="right_knee" range="-0.226893 3.61283" ref="1.69297" axis="0 -0.997564 -0.0697565"/>
+                <geom name="right_knee_leg_34_visual" quat="0 0 0.731354 -0.681998" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="leg"/>
+                <geom name="right_knee_leg_34_0" size="0.01 0.017 0.0270423" pos="0 0.0157532 -0.0159824" quat="0 0 -0.0348995 0.999391" type="box" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+                <geom name="right_knee_leg_34_1" size="0.0035 0.0275" pos="0 0.0196218 -0.0713049" quat="0.999391 0.0348995 0 0" type="capsule" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+                <geom name="right_foot" size="0.0025" pos="0 0.0225237 -0.112804" contype="32" conaffinity="31" group="3" priority="1" friction="0.6" rgba="1 0.8 0.1 1"/>
+                <site name="right_foot" size="0.003" pos="0 0.0225237 -0.112804"/>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="left_hip_roll_link" pos="-0.0145 0.0449427 -0.0210174">
+          <inertial pos="0.0145988 0.00410356 -0.0268159" quat="0.472052 0.526387 0.492336 0.50763" mass="0.0242503" diaginertia="5.3528e-06 3.78594e-06 3.72064e-06"/>
+          <joint name="left_hip_roll" range="0.10472 1.32645" ref="0.715585" axis="-1 0 0"/>
+          <geom name="left_hip_roll_hip_36_visual" quat="0.557208 -0.435338 -0.557208 0.435338" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="hip"/>
+          <geom name="left_hip_roll_hip_36_0" size="0.0117 0.0143 0.017" pos="0.0146 0.00104026 -0.00417227" quat="0.557208 -0.435338 0.557208 -0.435338" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="left_hip_roll_wedge_37_visual" pos="0.0146 0.0044997 -0.0180475" quat="-0.121869 0.992546 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="wedge_a_18_w_34_l_23"/>
+          <geom name="left_hip_roll_wedge_37_0" size="0.00355857 0.0115008 0.017" pos="0.0146 0.00535864 -0.0214957" quat="0.0861747 -0.701836 -0.0861747 0.701836" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="left_hip_roll_xl330_38_visual" pos="0.0221 -0.0103489 -0.030596" quat="0.517145 0.482246 0.482246 -0.517145" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+          <geom name="left_hip_roll_xl330_38_0" size="0.01 0.017 0.0115" pos="0.0146 0.00411578 -0.0316075" quat="0.517145 0.482246 0.482246 -0.517145" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <body name="left_hip_pitch_link" pos="0.0221 -0.0103489 -0.030596">
+            <inertial pos="-0.00299558 0.0128637 -0.0253436" quat="0.729887 0.680854 0.0415032 -0.0444999" mass="0.0218306" diaginertia="4.77529e-06 3.18272e-06 3.04368e-06"/>
+            <joint name="left_hip_pitch" range="-1.51844 1.27409" ref="-0.122173" axis="0 -0.997564 0.0697565"/>
+            <geom name="left_hip_pitch_u_bracket_39_visual" quat="0.0446479 0.0416349 -0.680726 0.72999" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="u_bracket_w_20"/>
+            <geom name="left_hip_pitch_u_bracket_39_0" size="0.01 0.0133 0.017" pos="-0.000402168 0.014336 -0.00428587" quat="0.680726 -0.72999 0.0446479 0.0416349" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="left_hip_pitch_xl330_40_visual" pos="-0.00519163 0.0041332 -0.0426747" quat="0.0348344 0.997527 -0.00213057 -0.0610112" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+            <geom name="left_hip_pitch_xl330_40_0" size="0.01 0.017 0.0115" pos="-0.00342453 0.0126189 -0.028841" quat="0.0348344 0.997527 -0.00213057 -0.0610112" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <body name="left_thigh_yaw_link" pos="-0.00519163 0.0041332 -0.0426747">
+              <inertial pos="-0.00456918 -0.00259497 -0.0371341" quat="0.997517 -0.0349878 0.0610881 -0.00185521" mass="0.0233415" diaginertia="6.27581e-06 5.93986e-06 1.97916e-06"/>
+              <joint name="left_thigh_yaw" range="-2.61799 -0.523599" ref="-1.5708" axis="-0.121869 -0.0692365 -0.990128"/>
+              <geom name="left_thigh_yaw_pole_41_visual" quat="-0.0185098 0.706864 0.703851 -0.0677731" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="pole_l_25"/>
+              <geom name="left_thigh_yaw_pole_41_0" size="0.0102 0.0133 0.0173" pos="-0.00210833 -0.00119779 -0.0171292" quat="0.997527 -0.0348344 0.0610112 -0.00213057" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+              <geom name="left_thigh_yaw_xl330_42_visual" pos="-0.00622753 -0.0180027 -0.0495839" quat="0.0446479 0.0416349 -0.680726 0.72999" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+              <geom name="left_thigh_yaw_xl330_42_0" size="0.01 0.017 0.0115" pos="-0.00531351 -0.00301873 -0.0431694" quat="0.0446479 0.0416349 -0.680726 0.72999" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+              <body name="left_knee_link" pos="-0.00622753 -0.0180027 -0.0495839">
+                <inertial pos="0.00103875 0.0109711 -0.0435065" quat="0.999274 -0.0363996 0.0109815 -0.00240334" mass="0.0124273" diaginertia="1.16443e-05 1.06073e-05 1.66346e-06"/>
+                <joint name="left_knee" range="-0.226893 3.61283" ref="1.69297" axis="0 -0.997564 0.0697565"/>
+                <geom name="left_knee_leg_43_visual" quat="0 0 -0.681998 0.731354" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="leg"/>
+                <geom name="left_knee_leg_43_0" size="0.01 0.017 0.0270423" pos="0 0.0133756 -0.0180193" quat="0 0 0.0348995 0.999391" type="box" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+                <geom name="left_knee_leg_43_1" size="0.0035 0.0275" pos="0 0.00950709 -0.0733418" quat="0.999391 -0.0348995 0 0" type="capsule" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+                <geom name="left_foot" size="0.0025" pos="0 0.00660522 -0.11484" contype="16" conaffinity="47" group="3" priority="1" friction="0.6" rgba="1 0.8 0.1 1"/>
+                <site name="left_foot" size="0.003" pos="0 0.00660522 -0.11484"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="right_shoulder_pitch_link" pos="0 -0.040225 0.034925">
+        <inertial pos="-0.0039 -0.026179 0.00492446" quat="0.761732 0.625226 -0.0671917 -0.156022" mass="0.0199558" diaginertia="3.45764e-06 3.26832e-06 1.53162e-06"/>
+        <joint name="right_shoulder_pitch" range="-1.91986 3.31613" ref="0.698132" axis="0 -1 0"/>
+        <geom name="right_shoulder_pitch_shoulder_8_visual" quat="0.664463 0.664463 -0.241845 0.241845" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="shoulder_l_10"/>
+        <geom name="right_shoulder_pitch_shoulder_8_0" size="0.00896658 0.0100423 0.0111899" pos="0.00158209 -0.00666128 -0.000619897" quat="-0.246663 0.55153 -0.486584 0.631037" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <geom name="right_shoulder_pitch_xl330_9_visual" pos="-0.00418248 -0.0236024 -0.0102904" quat="-0.0579133 0.169079 0.979466 -0.0932957" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+        <geom name="right_shoulder_pitch_xl330_9_0" size="0.01 0.017 0.0115" pos="-0.00448308 -0.028177 0.0053775" quat="-0.0579133 0.169079 0.979466 -0.0932957" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <body name="right_shoulder_yaw_link" pos="-0.00418248 -0.0236024 -0.0102904">
+          <inertial pos="-0.00372373 -0.0041892 -0.0250611" quat="0.99046 -0.0880557 0.0658107 -0.0830971" mass="0.0210836" diaginertia="3.88646e-06 3.57917e-06 1.74785e-06"/>
+          <joint name="right_shoulder_yaw" range="-0.174533 2.96706" ref="1.39626" axis="-0.144997 -0.163176 -0.975884"/>
+          <geom name="right_shoulder_yaw_pole_10_visual" quat="0.0156051 0.759111 0.641633 -0.108695" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="pole_l_10"/>
+          <geom name="right_shoulder_yaw_pole_10_0" size="0.0098 0.0102 0.0133" pos="-0.00142097 -0.00159912 -0.00956366" quat="-0.442669 0.613631 0.464738 0.459914" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="right_shoulder_yaw_xl330_11_visual" pos="-0.00745262 -0.0199665 -0.0325462" quat="0.105284 -0.0121941 -0.638222 0.762522" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True"/>
+          <geom name="right_shoulder_yaw_xl330_11_0" size="0.01 0.017 0.0115" pos="-0.00414686 -0.00466682 -0.0279103" quat="0.105284 -0.0121941 -0.638222 0.762522" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <body name="right_elbow_link" pos="-0.00745262 -0.0199665 -0.0325462">
+            <inertial pos="0.00766339 0.00997713 -0.0281252" quat="0.991539 0.0298715 -0.115196 -0.0518376" mass="0.0234322" diaginertia="5.44536e-06 3.63061e-06 3.38202e-06"/>
+            <joint name="right_elbow" range="-1.5708 2.26893" ref="0.349066" axis="-0.152985 -0.970749 0.185048"/>
+            <geom name="right_elbow_u_bracket_12_visual" quat="-0.0287265 -0.122835 -0.626409 0.76922" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="u_bracket_w_20"/>
+            <geom name="right_elbow_u_bracket_12_0" size="0.01 0.0133 0.017" pos="0.00288726 0.0134681 -0.00585859" quat="0.626409 -0.76922 -0.0287265 -0.122835" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="right_elbow_wedge_13_visual" pos="0.00552172 0.0106276 -0.0185818" quat="0.10717 0.0665447 0.986858 -0.100983" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="wedge_a_10_w_20_l_34"/>
+            <geom name="right_elbow_wedge_13_0" size="0.00295698 0.01 0.0170004" pos="0.00610653 0.00999755 -0.0214059" quat="0.523608 0.35608 -0.529795 0.564233" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="right_elbow_xl330_14_visual" pos="0.0127806 0.0166102 -0.0469046" quat="0.112562 0.0569511 0.991904 -0.014588" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False"/>
+            <geom name="right_elbow_xl330_14_0" size="0.01 0.017 0.0115" pos="0.00869484 0.00976757 -0.0326573" quat="0.112562 0.0569511 0.991904 -0.014588" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <body name="right_wrist_link" pos="0.0127806 0.0166102 -0.0469046">
+              <inertial pos="0.00512341 -0.000985717 -0.0203845" quat="0.61105 -0.0178458 -0.118387 0.782485" mass="0.00422097" diaginertia="8.44636e-07 7.93028e-07 2.37779e-07"/>
+              <joint name="right_wrist" range="-1.39626 3.83972" ref="1.22173" axis="0.22164 -0.0417608 -0.974234"/>
+              <geom name="right_wrist_hand_15_visual" quat="0.100573 0.615584 0.779854 0.0526131" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="hand"/>
+              <geom name="right_wrist_hand_15_0" size="0.00985782 0.01 0.0229562" pos="0.00476191 -0.000313034 -0.0216026" quat="0.784342 0.0878717 -0.0556295 -0.611548" type="box" contype="8" conaffinity="55" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="left_shoulder_pitch_link" pos="0 0.040225 0.034925">
+        <inertial pos="-0.0039 0.026179 0.00492446" quat="0.625226 0.761732 0.156022 0.0671917" mass="0.0199558" diaginertia="3.45764e-06 3.26832e-06 1.53162e-06"/>
+        <joint name="left_shoulder_pitch" range="-3.31613 1.91986" ref="-0.698132" axis="0 1 0"/>
+        <geom name="left_shoulder_pitch_shoulder_17_visual" quat="0.241845 -0.241845 0.664463 0.664463" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="shoulder_l_10_mirror"/>
+        <geom name="left_shoulder_pitch_shoulder_17_0" size="0.00896658 0.0100423 0.0111899" pos="0.00158209 0.00666128 -0.000619897" quat="0.631037 -0.486584 0.55153 -0.246663" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <geom name="left_shoulder_pitch_xl330_18_visual" pos="-0.00418248 0.0236024 -0.0102904" quat="-0.0932957 0.979466 0.169079 -0.0579133" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False_mirror"/>
+        <geom name="left_shoulder_pitch_xl330_18_0" size="0.01 0.017 0.0115" pos="-0.00448308 0.028177 0.0053775" quat="-0.0932957 0.979466 0.169079 -0.0579133" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+        <body name="left_shoulder_yaw_link" pos="-0.00418248 0.0236024 -0.0102904">
+          <inertial pos="-0.00372373 0.0041892 -0.0250611" quat="0.99046 0.0880557 0.0658107 0.0830971" mass="0.0210836" diaginertia="3.88646e-06 3.57917e-06 1.74785e-06"/>
+          <joint name="left_shoulder_yaw" range="-2.96706 0.174533" ref="-1.39626" axis="-0.144997 0.163176 -0.975884"/>
+          <geom name="left_shoulder_yaw_pole_19_visual" quat="-0.108695 0.641633 0.759111 0.0156051" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="pole_l_10_mirror"/>
+          <geom name="left_shoulder_yaw_pole_19_0" size="0.0098 0.0102 0.0133" pos="-0.00142097 0.00159912 -0.00956366" quat="0.459914 0.464738 0.613631 -0.442669" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <geom name="left_shoulder_yaw_xl330_20_visual" pos="-0.00745262 0.0199665 -0.0325462" quat="0.762522 -0.638222 -0.0121941 0.105284" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_True_mirror"/>
+          <geom name="left_shoulder_yaw_xl330_20_0" size="0.01 0.017 0.0115" pos="-0.00414686 0.00466682 -0.0279103" quat="0.762522 -0.638222 -0.0121941 0.105284" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+          <body name="left_elbow_link" pos="-0.00745262 0.0199665 -0.0325462">
+            <inertial pos="0.00766339 -0.00997713 -0.0281252" quat="0.991539 -0.0298715 -0.115196 0.0518376" mass="0.0234322" diaginertia="5.44536e-06 3.63061e-06 3.38202e-06"/>
+            <joint name="left_elbow" range="-2.26893 1.5708" ref="-0.349066" axis="-0.152985 0.970749 0.185048"/>
+            <geom name="left_elbow_u_bracket_21_visual" quat="0.76922 -0.626409 -0.122835 -0.0287265" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="u_bracket_w_20_mirror"/>
+            <geom name="left_elbow_u_bracket_21_0" size="0.01 0.0133 0.017" pos="0.00288726 -0.0134681 -0.00585859" quat="0.122835 0.0287265 0.76922 -0.626409" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="left_elbow_wedge_22_visual" pos="0.00552172 -0.0106276 -0.0185818" quat="-0.100983 0.986858 0.0665447 0.10717" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="wedge_a_10_w_20_l_34_mirror"/>
+            <geom name="left_elbow_wedge_22_0" size="0.00295698 0.01 0.0170004" pos="0.00610653 -0.00999755 -0.0214059" quat="0.564233 -0.529795 0.35608 0.523608" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <geom name="left_elbow_xl330_23_visual" pos="0.0127806 -0.0166102 -0.0469046" quat="-0.014588 0.991904 0.0569511 0.112562" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.2 0.2 0.22 1" density="0" mesh="xl330_idler_disk_False_mirror"/>
+            <geom name="left_elbow_xl330_23_0" size="0.01 0.017 0.0115" pos="0.00869484 -0.00976757 -0.0326573" quat="-0.014588 0.991904 0.0569511 0.112562" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            <body name="left_wrist_link" pos="0.0127806 -0.0166102 -0.0469046">
+              <inertial pos="0.00512341 0.000985717 -0.0203845" quat="0.782485 -0.118387 -0.0178458 0.61105" mass="0.00422097" diaginertia="8.44636e-07 7.93028e-07 2.37779e-07"/>
+              <joint name="left_wrist" range="-3.83972 1.39626" ref="-1.22173" axis="0.22164 0.0417608 -0.974234"/>
+              <geom name="left_wrist_hand_24_visual" quat="0.0526131 0.779854 0.615584 0.100573" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.42 0.73 0.67 1" density="0" mesh="hand_mirror"/>
+              <geom name="left_wrist_hand_24_0" size="0.00985782 0.01 0.0229562" pos="0.00476191 0.000313034 -0.0216026" quat="0.611548 0.0556295 -0.0878717 -0.784342" type="box" contype="4" conaffinity="59" group="3" priority="1" friction="0.6" rgba="0.9 0.4 0.2 0.3"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <general name="waist" joint="waist"/>
+    <general name="right_hip_roll" joint="right_hip_roll"/>
+    <general name="right_hip_pitch" joint="right_hip_pitch"/>
+    <general name="right_thigh_yaw" joint="right_thigh_yaw"/>
+    <general name="right_knee" joint="right_knee"/>
+    <general name="left_hip_roll" joint="left_hip_roll"/>
+    <general name="left_hip_pitch" joint="left_hip_pitch"/>
+    <general name="left_thigh_yaw" joint="left_thigh_yaw"/>
+    <general name="left_knee" joint="left_knee"/>
+    <general name="right_shoulder_pitch" joint="right_shoulder_pitch"/>
+    <general name="right_shoulder_yaw" joint="right_shoulder_yaw"/>
+    <general name="right_elbow" joint="right_elbow"/>
+    <general name="right_wrist" joint="right_wrist"/>
+    <general name="left_shoulder_pitch" joint="left_shoulder_pitch"/>
+    <general name="left_shoulder_yaw" joint="left_shoulder_yaw"/>
+    <general name="left_elbow" joint="left_elbow"/>
+    <general name="left_wrist" joint="left_wrist"/>
+  </actuator>
+
+  <sensor>
+    <accelerometer site="imu" name="imu_accel"/>
+    <gyro site="imu" name="imu_gyro"/>
+    <framequat objtype="site" objname="imu" name="imu_quat"/>
+    <velocimeter site="imu" name="imu_vel"/>
+  </sensor>
+</mujoco>
