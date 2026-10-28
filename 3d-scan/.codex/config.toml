@@ -1,0 +1,10 @@
+[mcp_servers.agentcam]
+command = "/opt/homebrew/bin/uv"
+args = ["run", "--quiet", "--project", "agentcam/mcp", "agentcam-mcp"]
+cwd = "/Users/samw3/prj/Make/stocko/3d-scan"
+startup_timeout_sec = 60
+tool_timeout_sec = 900
+enabled = true
+
+[mcp_servers.agentcam.env]
+AGENTCAM_PORT = "47815"

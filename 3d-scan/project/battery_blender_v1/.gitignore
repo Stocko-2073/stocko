@@ -1,0 +1,9 @@
+# bulky intermediates (regenerate with the scripts)
+out/undist/
+out/render/
+out/masks/
+out/masks_dbg/
+out/*.npz
+out/*.npy
+out/*.log
+__pycache__/

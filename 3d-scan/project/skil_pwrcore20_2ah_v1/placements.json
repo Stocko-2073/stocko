@@ -1,0 +1,23 @@
+{
+ "up": {
+  "views": "r0075 r0076 r0077 r0078 r0079 r0080 r0081 r0082 r0083 r0084 r0085 r0087 r0088 r0089 r0091 r0092 r0093 r0095 r0096 r0097",
+  "note": "upright, reference placement (defines the object frame)"
+ },
+ "up1": {
+  "views": "r0069 r0070 r0071 r0072 r0073 r0074",
+  "note": "upright, first session (battery was moved before session 2)"
+ },
+ "side": {
+  "views": "r0098 r0099 r0100 r0101",
+  "note": "lying on its side, label up"
+ },
+ "end": {
+  "views": "r0102 r0103 r0104",
+  "note": "standing on its back end"
+ },
+ "flipped": {
+  "views": "r0106 r0107 r0108 r0109",
+  "note": "upside down",
+  "object_z_up": -1
+ }
+}
