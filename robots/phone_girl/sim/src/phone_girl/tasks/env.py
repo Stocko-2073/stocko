@@ -88,6 +88,33 @@ def copper_loss(env) -> torch.Tensor:
     return (actuator.current ** 2 * actuator.resistance).sum(-1)
 
 
+class body_on_floor:
+    """Termination: a fall, when anything but a stilt touches the floor.
+
+    Read once per control step from the last physics step's contact list, as a
+    contact sensor would count it. As contact sensors, one per body and updated
+    every physics step, the same check cost 3.3 ms a control step at 1k worlds
+    and 2.3 ms at 16k.
+    """
+
+    def __init__(self, cfg, env):
+        model = env.sim.mj_model
+        body = [model.body(model.geom_bodyid[g]).name for g in range(model.ngeom)]
+        self.floor = torch.tensor([b == "terrain" for b in body], device=env.device)
+        self.falls = torch.tensor([b.startswith("robot/") and not b.endswith("_knee_link") for b in body],
+                                  device=env.device)
+        self.slots = torch.arange(env.sim.data.contact.worldid[...].numel(), device=env.device)
+
+    def __call__(self, env) -> torch.Tensor:
+        data = env.sim.data
+        a, b = data.contact.geom[...].long().unbind(1)
+        active = self.slots < data.nacon[...]
+        fall = active & ((self.floor[a] & self.falls[b]) | (self.floor[b] & self.falls[a]))
+        world = torch.where(active, data.contact.worldid[...].long(), 0)
+        hits = torch.zeros(env.num_envs, dtype=torch.int32, device=env.device)
+        return hits.index_add_(0, world, fall.int()) > 0
+
+
 def foot_slip(env, sensor_name: str = "feet_ground") -> torch.Tensor:
     robot = env.scene["robot"]
     contact = (env.scene[sensor_name].data.found > 0).float().reshape(env.num_envs, -1)
@@ -107,13 +134,10 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
         name="feet_ground", primary=ContactMatch(mode="geom", pattern=FEET, entity="robot"),
         secondary=ContactMatch(mode="body", pattern="terrain"), fields=("found", "force"),
         reduce="netforce", num_slots=1, track_air_time=True)
-    # Anything but the stilts on the floor is a fall.
-    body_ground = ContactSensorCfg(
-        name="body_ground", primary=ContactMatch(mode="body", pattern=r"(?!.*_knee_link$).*", entity="robot"),
-        secondary=ContactMatch(mode="body", pattern="terrain"), fields=("found",), reduce="netforce", num_slots=1)
 
     events = {
         "friction_fields": EventTermCfg(func=servo_friction_fields, mode="startup"),
+        "graph_recompute": EventTermCfg(func=dr.graph_recompute, mode="startup"),
         "reset_base": EventTermCfg(func=mdp.reset_root_state_uniform, mode="reset",
                                    params={"pose_range": {"yaw": (-math.pi, math.pi)}, "velocity_range": {}}),
         "reset_joints": EventTermCfg(func=mdp.reset_joints_by_offset, mode="reset",
@@ -125,13 +149,14 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
         "friction": EventTermCfg(func=dr.randomize_friction, mode="reset", params={"randomization": randomization}),
         "link": EventTermCfg(func=link_events.sample_link, mode="reset", params={"link": link}),
         "late_commands": EventTermCfg(func=link_events.late_commands, mode="step", params={"link": link}),
+        "refresh_constants": EventTermCfg(func=dr.refresh_constants, mode="step", params={"every": 10}),
     }
 
     return ManagerBasedRlEnvCfg(
         decimation=decimation,
         scene=SceneCfg(terrain=TerrainEntityCfg(terrain_type="plane"),
                        entities={"robot": robot_cfg(**delay_settings(link, PHYSICS_DT))},
-                       sensors=(PhoneImuCfg(), feet_ground, body_ground), num_envs=1, extent=1.0),
+                       sensors=(PhoneImuCfg(), feet_ground), num_envs=1, extent=1.0),
         observations={"actor": observations.actor_group(history=history),
                       "critic": observations.critic_group()},
         actions={"joint_pos": JointPositionActionCfg(
@@ -142,8 +167,7 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
         terminations={
             "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
             "fell_over": TerminationTermCfg(func=mdp.bad_orientation, params={"limit_angle": math.radians(50)}),
-            "body_on_floor": TerminationTermCfg(func=velocity.illegal_contact,
-                                                params={"sensor_name": "body_ground"}),
+            "body_on_floor": TerminationTermCfg(func=body_on_floor),
         },
         curriculum={} if play else {"randomization": CurriculumTermCfg(
             func=dr.dr_curriculum, params={"start": 0.3, "steps": 24 * 1500, "terms": DR_EVENTS})},

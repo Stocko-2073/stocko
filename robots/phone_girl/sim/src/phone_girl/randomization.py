@@ -11,15 +11,16 @@ performance, a wrong nominal costs sim2real.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
+import gc
 import math
 
 import torch
+import warp as wp
 
-from mjlab.envs.mdp import dr
 from mjlab.managers.event_manager import RecomputeLevel, requires_model_fields
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 from phone_girl.link import servos
+from phone_girl.robot import BODY_GEOMS, FOOT_GEOMS, index
 
 
 @dataclass
@@ -100,31 +101,94 @@ def randomize_supply(env, env_ids: torch.Tensor | None, randomization: Randomiza
     actuator.bus_voltage[ids] = actuator.supply_voltage[ids]
 
 
-@requires_model_fields("body_mass", "body_ipos", "body_inertia", "body_iquat", "dof_armature",
-                       recompute=RecomputeLevel.set_const)
+@requires_model_fields("body_mass", "body_ipos", "body_inertia", "dof_armature",
+                       recompute=RecomputeLevel.set_const_fixed)
 def randomize_body(env, env_ids: torch.Tensor | None, randomization: Randomization) -> None:
-    """Reset event: link density (mass and inertia together), the torso's CoM, servo armature."""
+    """Reset event: link density (mass and inertia together), the torso's CoM, servo armature.
+
+    This is dr.pseudo_inertia (Rucker & Wensing) with only its density (alpha)
+    and CoM-shift (t) parameters, in closed form. Scaling density by s scales
+    mass and inertia by s and leaves the CoM and principal axes alone. Moving the
+    mass by t moves the CoM by t and leaves the inertia about it alone. That is
+    a few kernels where the general form launches about a thousand, and the
+    event runs on every step that resets an episode.
+
+    mjlab then recomputes body_subtreemass, which subtree_com divides by. The
+    other constants that depend on mass and armature, the constraints'
+    regularization weights and the solver's mean inertia, wait for
+    refresh_constants. Recomputing them takes the full set_const over every
+    world, about 11 ms a step at 16k worlds, when only the few that reset changed.
+    """
     scale = randomization.scale
-    # pseudo_inertia scales mass and inertia by exp(2 alpha) and shifts the CoM by t.
-    alpha = lambda span: tuple(math.log(v) / 2 for v in span.bounds(scale))
-    links = SceneEntityCfg("robot", body_names=(r"(?!torso$).*",))
-    torso = SceneEntityCfg("robot", body_names=("torso",))
-    for cfg in (links, torso):
-        cfg.resolve(env.scene)
-    dr.pseudo_inertia(env, env_ids, alpha_range=alpha(randomization.link_mass), asset_cfg=links)
-    dr.pseudo_inertia(env, env_ids, alpha_range=alpha(randomization.torso_mass),
-                      t_range=randomization.torso_com.bounds(scale), asset_cfg=torso)
-    dr.joint_armature(env, env_ids, operation="scale", ranges={".*": randomization.armature.bounds(scale)})
+    ids = torch.arange(env.num_envs, device=env.device) if env_ids is None else env_ids
+    bodies = env.scene["robot"].indexing.body_ids  # the torso first
+    dofs = servos(env).dof_ids
+    model, default = env.sim.model, env.sim.get_default_field
+
+    def density(span: Span, shape) -> torch.Tensor:
+        # exp(2 alpha) with alpha uniform, as pseudo_inertia draws it
+        low, high = (math.log(v) for v in span.bounds(scale))
+        return torch.exp(low + (high - low) * torch.rand(shape, device=env.device))
+
+    n = len(ids)
+    s = torch.cat([density(randomization.torso_mass, (n, 1)), density(randomization.link_mass, (n, len(bodies) - 1))], 1)
+    rows = ids[:, None]
+    model.body_mass[rows, bodies] = default("body_mass")[bodies] * s
+    model.body_inertia[rows, bodies] = default("body_inertia")[bodies] * s[..., None]
+    model.body_ipos[ids, bodies[0]] = default("body_ipos")[bodies[0]] + \
+        randomization.torso_com.sample((n, 3), scale, env.device)
+    model.dof_armature[rows, dofs] = default("dof_armature")[dofs] * \
+        randomization.armature.sample((n, len(dofs)), scale, env.device)
+
+
+def refresh_constants(env, env_ids, every: int) -> None:
+    """Step event: the full set_const every `every` steps, for what randomize_body leaves stale."""
+    del env_ids
+    if env.common_step_counter % every == 0:
+        env.sim.recompute_constants(RecomputeLevel.set_const)
+
+
+def graph_recompute(env, env_ids=None) -> None:
+    """Startup event: replay mjlab's recompute_constants from CUDA graphs.
+
+    After randomize_body changes masses, mjlab runs MuJoCo Warp's set_const, on
+    every step that resets an episode. It loops over DOFs and bodies in Python,
+    about 560 kernel launches. Each level is captured on first use, once the
+    model's fields are final, and replayed as one launch after that.
+    """
+    del env_ids
+    sim = env.sim
+    if not sim.use_cuda_graph:
+        return
+    uncaptured, graphs = sim.recompute_constants, {}
+
+    def recompute(level: RecomputeLevel) -> None:
+        with wp.ScopedDevice(sim.wp_device):
+            if level not in graphs:
+                # As mjlab captures its own graphs: a garbage collection during
+                # capture would record stale graphs' destructors into this one.
+                collecting = gc.isenabled()
+                gc.disable()
+                try:
+                    with wp.ScopedCapture() as capture:
+                        uncaptured(level)
+                finally:
+                    if collecting:
+                        gc.enable()
+                graphs[level] = capture.graph
+            wp.capture_launch(graphs[level])
+
+    sim.recompute_constants = recompute
 
 
 @requires_model_fields("geom_friction")
 def randomize_friction(env, env_ids: torch.Tensor | None, randomization: Randomization) -> None:
     """Reset event: one floor friction per episode at both tips, another for falls."""
-    scale = randomization.scale
-    dr.geom_friction(env, env_ids, operation="abs", axes=[0], shared_random=True,
-                     ranges={"(left|right)_foot": randomization.foot_friction.bounds(scale)})
-    dr.geom_friction(env, env_ids, operation="abs", axes=[0], shared_random=True,
-                     ranges={".*_[0-9]+": randomization.body_friction.bounds(scale)})
+    ids = torch.arange(env.num_envs, device=env.device) if env_ids is None else env_ids
+    geoms = env.scene["robot"].indexing.geom_ids
+    for local, span in ((FOOT_GEOMS, randomization.foot_friction), (BODY_GEOMS, randomization.body_friction)):
+        env.sim.model.geom_friction[ids[:, None], geoms[index(local, env.device)], 0] = \
+            span.sample((len(ids), 1), randomization.scale, env.device)
 
 
 def dr_curriculum(env, env_ids, start: float, steps: int, terms: tuple[str, ...]) -> float:

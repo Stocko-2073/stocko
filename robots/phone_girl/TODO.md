@@ -6,20 +6,79 @@ What we don't know yet, and how to find out. The simulator is described in
 
 ## On the RTX 5080
 
-1. **How fast is it, and how many worlds fit in 16 GB?**
-   Run `uv run phone-girl-bench` (1k–8k worlds). Use the largest world count
-   before throughput stops scaling or memory runs out.
-2. **Does Python's kernel-launch overhead matter?** The servo, battery, IMU and
-   link models run as a few dozen small torch kernels per physics step, between
-   MuJoCo Warp's graph launches. Profile one step (`nsys`, or time it with and
-   without the actuator). If the overhead is a large share, try two fixes:
-   `torch.compile` on `Xl330Actuator.compute`, or move it into a Warp kernel
-   captured with the physics.
-3. **Are there CPU–GPU waits besides mjlab's reset check?**
-   `uv run phone-girl-bench --sync-debug` lists each one.
-4. **Is the solver budget right?** Newton 15, line search 30, `njmax` 160 and
-   `nconmax` 24 were sized on the CPU. Check the bench's `newton`, `rows` and
-   `contacts` maxima, then try fewer iterations.
+1. **How fast is it, and how many worlds fit in 16 GB?** Measured with
+   `phone-girl-bench` (Walk, random actions). "Before" is 2026-10-28; "after"
+   is 2026-10-29, with the fixes in item 2.
+
+   | Worlds | Steps/s before | Steps/s after | ms/step after | Memory |
+   | --- | --- | --- | --- | --- |
+   | 1,024 | 34k | 66k | 15.6 | 0.9 GB |
+   | 4,096 | 123k | 207k | 19.8 | 1.4 GB |
+   | 8,192 | 196k | 298k | 27.5 | 2.4 GB |
+   | 16,384 | 257k | 361k | 45.4 | 4.2 GB |
+   | 32,768 | 282k | 394k | 83.2 | 8.0 GB |
+
+   Use 16k worlds: past that, throughput barely grows. Memory is never the
+   limit.
+2. **Python's kernel-launch overhead.** `phone-girl-bench --profile` splits a
+   control step into its parts. For each part it gives CPU time, time alone
+   (with the GPU drained around it) and kernel launches. The first profile
+   found three costs:
+   - Body randomization launched about 2,000 kernels per step, because
+     `dr.pseudo_inertia` is fully general. It is now in closed form.
+   - MuJoCo Warp's `set_const` launched 565 more, over every world, on every
+     step that reset an episode. It now replays from a CUDA graph, recomputes
+     only the subtree masses at a reset, and runs in full every 10 steps.
+   - Friction randomization resolved geom names by regex on every call.
+
+   Result on 2026-10-29: 16k worlds went from 257k to 348k steps/s, and 1k
+   worlds from 34k to 60k.
+
+   Then the fall check moved from 16 contact sensors, one per body and
+   updated every physics step, to one read of the contact list per control
+   step (`tasks.env.body_on_floor`). With the same resets, 8k worlds went from
+   30.2 to 28.2 ms a step (+7%). 1k worlds gained only 1%.
+
+   What's left:
+   - The physics alone takes 27 ms of a 47 ms step at 16k worlds. That makes
+     about 600k steps/s the ceiling.
+   - Our per-physics-step torch code launches about 1,300 kernels a step.
+     `torch.compile` on the servo step, servo telemetry and IMU (not yet
+     adopted) measured on Stand:
+
+     | Worlds | Eager | Compiled | Gain |
+     | --- | --- | --- | --- |
+     | 1,024 | 17.5 ms | 13.7 ms | +28% |
+     | 4,096 | 20.8 ms | 19.2 ms | +9% |
+     | 8,192 | 28.0 ms | 25.7 ms | +9% |
+
+     Also compiling mjlab's actuator write path and the foot sensor adds 4%
+     at 1k–4k, and nothing at 8k. Compiling takes about 9 s per run.
+     Inductor needs `Python.h`, which the system Python lacks: use uv's
+     managed Python or install `python3.12-dev`. Before adopting it, test the
+     compiled code against eager, with `fallback_random` so the IMU noise
+     matches.
+   - After the physics, mjlab's managers spend about 6 ms launching small
+     kernels while the GPU waits.
+3. **CPU–GPU waits.** `phone-girl-bench --sync-debug` finds five per control
+   step, all in mjlab:
+   - the reset and command-resample checks (`nonzero()`), which are expected;
+   - the push event's timer (`event_manager.py:282`);
+   - `velocity.upright` indexing bodies with a Python list (`rewards.py:94`);
+   - the velocity command copying `dt` to the GPU every step
+     (`velocity_command.py:116`).
+
+   Our own versions of `upright` and the command would remove the last two.
+   Each wait also stops the CPU queuing work ahead of the GPU, which makes
+   item 2 worse.
+4. **Solver budget: keep Newton 15 and line search 30.** At 16k worlds the
+   worlds average 3.1 Newton iterations and almost never reach the cap. The
+   graph stops once every world has converged, so the cap costs nothing.
+   Lower caps made the physics slower, not faster: every world at a cap
+   prints a warning from the GPU. At 6 iterations or fewer, the worst
+   velocity errors also passed the XL330's 0.024 rad/s resolution. Rows peak
+   at 93 of 160 and contacts average 2.3 per world, so `njmax` and `nconmax`
+   have room.
 5. **Do the tasks learn?** Train `PhoneGirl-Stand`, then `PhoneGirl-Walk`. The
    CPU run only proved that the training loop works. If standing stalls:
    - Is balancing on the stilt tips feasible at all with these servos and about

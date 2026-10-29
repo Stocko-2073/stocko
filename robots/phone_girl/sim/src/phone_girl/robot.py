@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 
 import mujoco
 import numpy as np
@@ -31,6 +32,8 @@ FEET = ("left_foot", "right_foot")
 # The robot's own site and geom ids, which are the entity's local ids in mjlab.
 FOOT_SITES = tuple(_MODEL.site(f).id for f in FEET)
 FOOT_GEOMS = tuple(_MODEL.geom(f).id for f in FEET)
+# Every other collision geom: the parts' boxes and capsules, named <link>_<part>_<n>.
+BODY_GEOMS = tuple(i for i in range(_MODEL.ngeom) if re.fullmatch(r".*_[0-9]+", _MODEL.geom(i).name))
 
 
 @functools.cache
