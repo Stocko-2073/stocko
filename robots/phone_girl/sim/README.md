@@ -30,11 +30,17 @@ before cloning, or MuJoCo will find pointer files where the meshes should be.
 sudo apt install git-lfs && git lfs install
 curl -LsSf https://astral.sh/uv/install.sh | sh
 cd stocko/robots/phone_girl/sim
-uv sync                      # Python 3.12 and the locked dependencies
+uv sync                      # uv's own Python 3.12 and the locked dependencies
 uv run python -c "import torch; print(torch.cuda.get_device_name())"
-uv run pytest -q             # 26 tests; the CAD comparison skips without OpenSCAD
+uv run pytest -q             # 31 tests; the CAD comparison skips without OpenSCAD
 uv run phone-girl-bench      # throughput at 1k-8k worlds: pick num-envs from this
 ```
+
+The project uses uv's own Python builds (`python-preference` in
+`pyproject.toml`). On a GPU the servo and IMU code is compiled with
+`torch.compile`, and its Triton kernels need `Python.h`, which Ubuntu's Python
+lacks without `python3.12-dev`. On the RTX 5080, 8k worlds is 0.75 s per PPO
+iteration.
 
 Then train, watch and export:
 
@@ -127,13 +133,20 @@ The BLE codec (`protocol.py`) never runs in training. The GPU code reproduces it
 tick quantization, register units and timing, and `test_protocol.py` checks they
 agree. Expect the codec in tools that talk to the real robot.
 
-mjlab waits for the GPU once per control step, to find the worlds that need a
-reset. The phone_girl code adds no waits of its own: constants and index tensors
-are built once.
+mjlab waits for the GPU a few times per control step, for example to find the
+worlds that need a reset. The phone_girl code adds no waits of its own:
+constants and index tensors are built once.
 
+What keeps the step fast on the GPU:
+- the servo and IMU code is compiled with `torch.compile` on CUDA;
+- body randomization is in closed form;
+- MuJoCo Warp's `set_const` replays from a CUDA graph;
+- falls are read from the contact list.
+
+The tools:
+- `uv run phone-girl-bench --profile` splits a control step into its parts.
 - `uv run phone-girl-bench --sync-debug` reports every CPU–GPU sync in one step.
-- If launch overhead shows up in the benchmark, `torch.compile` the actuator, or
-  move it into a Warp kernel inside the physics graph.
+- TODO.md has the measurements.
 
 ## The model, from the CAD
 
@@ -324,6 +337,7 @@ its span.
 | --- | --- |
 | `PhoneGirl-Stand` | Balance on the stilt tips and recover from pushes. Stepping is allowed. Rewards: upright, CoM over the line between the tips, posture, stillness, no slipping, low copper loss. |
 | `PhoneGirl-Walk` | Track a twist command (−0.15 to 0.25 m/s forward, ±0.1 m/s sideways, ±0.6 rad/s turning) with steps. |
+| `PhoneGirl-Stand-Ideal` | Stand on the nominal robot over a perfect link: no randomization, latency or stalls. A diagnostic, not for deployment: is balancing on the tips possible at all? |
 
 Every task shares the actor's inputs, the 17 joint targets and the twist-command
 slot; stand holds the command at zero. So policies are interchangeable on the
@@ -389,7 +403,7 @@ uv run pytest -q
 | --- | --- |
 | `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the IMU frame and camera directions; `phone-girl-view`'s stand holding home. |
 | `test_xl330.py` | The motor law and M6 friction against BAM; a closed loop against BAM's CPU controller. |
-| `test_env.py` | Clean resets; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls. |
+| `test_env.py` | Clean resets; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls; the closed-form body randomization against pseudo-inertia; the fall check against per-body contact sensors; on CUDA, the graph-captured `set_const` and the compiled servo and IMU code against the uncompiled ones. |
 | `test_phone.py` | CoreMotion gravity at rest; the 100 Hz sample-and-hold; camera frames held and late. |
 | `test_protocol.py` | Frame round trips; sizes within one notification; the C header byte-identical to Python; the app-side encoding equal to the simulator's. |
 | `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment. |

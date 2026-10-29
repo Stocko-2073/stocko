@@ -126,6 +126,7 @@ class Xl330ActuatorCfg(ActuatorCfg):
     supply_resistance: float = 0.15
     idle_current: float = 0.4
     telemetry_steps: int = 16
+    compile: bool = True  # on CUDA, fuse each physics step's ~100 small kernels into a few
 
     def build(self, entity: Entity, target_ids: list[int], target_names: list[str]) -> Xl330Actuator:
         return Xl330Actuator(self, entity, target_ids, target_names)
@@ -194,6 +195,9 @@ class Xl330Actuator(Actuator[Xl330ActuatorCfg]):
         self.command_lag = torch.zeros(envs, dtype=torch.long, device=device)  # physics steps
         self.stall = torch.zeros(envs, dtype=torch.long, device=device)  # physics steps left holding
         self._held = torch.zeros(shape, device=device)
+        if cfg.compile and device.startswith("cuda"):
+            # Python launching many small kernels, not the GPU, limits small world counts.
+            self.compute, self._sample = torch.compile(self.compute), torch.compile(self._sample)
 
     @property
     def command_field(self) -> str:

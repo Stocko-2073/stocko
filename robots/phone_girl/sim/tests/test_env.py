@@ -202,6 +202,7 @@ def test_body_on_floor_matches_a_contact_sensor():
         name="body_ground", primary=ContactMatch(mode="body", pattern=r"(?!.*_knee_link$).*", entity="robot"),
         secondary=ContactMatch(mode="body", pattern="terrain"), fields=("found",), reduce="netforce", num_slots=1))
     cfg.terminations = {}  # fallen robots stay down, so falls are seen from many poses
+    cfg.sim.nconmax, cfg.sim.njmax = 96, 480  # room for every contact of a robot lying flailing
     env = ManagerBasedRlEnv(cfg, device="cpu")
     env.reset()
     check, falls = body_on_floor(None, env), 0
@@ -211,4 +212,35 @@ def test_body_on_floor_matches_a_contact_sensor():
         torch.testing.assert_close(check(env), expected)
         falls += int(expected.sum())
     assert falls > 100
+    env.close()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="torch.compile on CUDA")
+def test_compiled_servos_and_imu_match_eager():
+    """The per-physics-step code, compiled on CUDA, computes what it does uncompiled."""
+    from phone_girl.phone import PhoneImu
+
+    cfg = load_env_cfg("PhoneGirl-Stand", play=True)
+    cfg.scene.num_envs = 64
+    imu_cfg = next(s for s in cfg.scene.sensors if s.name == "phone_imu")
+    imu_cfg.gyro_noise = imu_cfg.gravity_noise = imu_cfg.accel_noise = 0.0  # drawn differently when compiled
+    env = ManagerBasedRlEnv(cfg, device="cuda:0")
+    env.reset()
+    for _ in range(5):
+        env.step(torch.randn(64, len(JOINTS), device="cuda:0"))
+    robot, imu = env.scene["robot"], env.scene["phone_imu"]
+    servo = robot.actuators[0]
+    assert "compute" in vars(servo) and "_measure" in vars(imu)  # the compiled versions
+    torch.testing.assert_close(imu._measure(), PhoneImu._measure(imu))
+
+    cmd = servo.apply_delay(servo.get_command(robot.data))
+    state = {k: getattr(servo, k).clone() for k in ("stall", "_held", "supply_current")}
+    outputs = lambda torque: [torque.clone(), servo.duty.clone(), servo.current.clone(), servo.supply_current.clone(),
+                              env.sim.model.dof_frictionloss[...].clone()]
+    compiled = outputs(servo.compute(cmd))
+    for k, v in state.items():
+        setattr(servo, k, v.clone())
+    eager = outputs(Xl330Actuator.compute(servo, cmd))
+    for c, e in zip(compiled, eager, strict=True):
+        torch.testing.assert_close(c, e, rtol=1e-5, atol=1e-6)
     env.close()

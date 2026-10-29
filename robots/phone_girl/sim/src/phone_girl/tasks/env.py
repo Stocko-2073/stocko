@@ -180,9 +180,10 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
     )
 
 
-def stand_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+def stand_cfg(play: bool = False, link: LinkCfg | None = None,
+              randomization: dr.Randomization | None = None) -> ManagerBasedRlEnvCfg:
     """Balance on the stilt tips and recover from pushes. Stepping is allowed."""
-    cfg = base_cfg(play=play)
+    cfg = base_cfg(link, randomization, play=play)
     cfg.rewards = {
         "alive": RewardTermCfg(func=mdp.is_alive, weight=1.0),
         "upright": RewardTermCfg(func=velocity.upright, weight=1.0,
@@ -200,6 +201,22 @@ def stand_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         cfg.events["push"] = EventTermCfg(
             func=mdp.push_by_setting_velocity, mode="interval", interval_range_s=(2.0, 5.0),
             params={"velocity_range": {"x": (-0.15, 0.15), "y": (-0.15, 0.15), "yaw": (-0.5, 0.5)}})
+    return cfg
+
+
+def stand_ideal_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+    """Stand on the nominal robot over a perfect link: no randomization, latency or stalls.
+
+    Not for deployment. If Stand doesn't learn, this says whether balancing on
+    the stilt tips is possible at all with these servos, or whether the link
+    and the unknowns are what make it hard.
+    """
+    link = LinkCfg(max_delay_s=0.0, write_s=(0.0, 0.0), read_s=(0.0, 0.0), late_probability=0.0,
+                   stall_rate_hz=0.0)
+    cfg = stand_cfg(play, link, dr.Randomization(scale=0.0))
+    for name in ("link", "late_commands"):  # no lag to sample: commands land in the next physics step
+        cfg.events.pop(name)
+    cfg.curriculum = {}
     return cfg
 
 

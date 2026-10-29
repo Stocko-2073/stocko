@@ -4,7 +4,7 @@ from mjlab.rl import RslRlModelCfg, RslRlOnPolicyRunnerCfg, RslRlPpoAlgorithmCfg
 from mjlab.tasks.registry import register_mjlab_task
 
 from phone_girl.deploy import PhoneGirlRunner
-from phone_girl.tasks.env import stand_cfg, walk_cfg
+from phone_girl.tasks.env import stand_cfg, stand_ideal_cfg, walk_cfg
 
 
 def ppo(experiment: str, iterations: int) -> RslRlOnPolicyRunnerCfg:
@@ -23,5 +23,8 @@ def ppo(experiment: str, iterations: int) -> RslRlOnPolicyRunnerCfg:
 
 register_mjlab_task(task_id="PhoneGirl-Stand", env_cfg=stand_cfg(), play_env_cfg=stand_cfg(play=True),
                     rl_cfg=ppo("phone_girl_stand", 3000), runner_cls=PhoneGirlRunner)
+register_mjlab_task(task_id="PhoneGirl-Stand-Ideal", env_cfg=stand_ideal_cfg(),
+                    play_env_cfg=stand_ideal_cfg(play=True), rl_cfg=ppo("phone_girl_stand_ideal", 3000),
+                    runner_cls=PhoneGirlRunner)
 register_mjlab_task(task_id="PhoneGirl-Walk", env_cfg=walk_cfg(), play_env_cfg=walk_cfg(play=True),
                     rl_cfg=ppo("phone_girl_walk", 6000), runner_cls=PhoneGirlRunner)

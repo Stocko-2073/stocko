@@ -42,9 +42,10 @@ What we don't know yet, and how to find out. The simulator is described in
    What's left:
    - The physics alone takes 27 ms of a 47 ms step at 16k worlds. That makes
      about 600k steps/s the ceiling.
-   - Our per-physics-step torch code launches about 1,300 kernels a step.
-     `torch.compile` on the servo step, servo telemetry and IMU (not yet
-     adopted) measured on Stand:
+   - The servo step, servo telemetry and IMU are now compiled with
+     `torch.compile` on CUDA; they launched about 1,300 kernels a step
+     between them. A test checks the compiled code against the uncompiled
+     code. On Stand it measured:
 
      | Worlds | Eager | Compiled | Gain |
      | --- | --- | --- | --- |
@@ -52,14 +53,16 @@ What we don't know yet, and how to find out. The simulator is described in
      | 4,096 | 20.8 ms | 19.2 ms | +9% |
      | 8,192 | 28.0 ms | 25.7 ms | +9% |
 
-     Also compiling mjlab's actuator write path and the foot sensor adds 4%
-     at 1k–4k, and nothing at 8k. Compiling takes about 9 s per run.
-     Inductor needs `Python.h`, which the system Python lacks: use uv's
-     managed Python or install `python3.12-dev`. Before adopting it, test the
-     compiled code against eager, with `fallback_random` so the IMU noise
-     matches.
-   - After the physics, mjlab's managers spend about 6 ms launching small
-     kernels while the GPU waits.
+     Compiling takes about 9 s per run. Inductor needs `Python.h`, so the
+     project uses uv's managed Python. Also compiling mjlab's actuator write
+     path and the foot sensor would add 4% at 1k–4k worlds and nothing at 8k,
+     and would mean patching mjlab, so it is left as is.
+
+   Walk with all of the above: 71k steps/s at 1k worlds, 324k at 8k, 393k at
+   16k and 423k at 32k.
+
+   Still open: after the physics, mjlab's managers spend about 6 ms launching
+   small kernels while the GPU waits.
 3. **CPU–GPU waits.** `phone-girl-bench --sync-debug` finds five per control
    step, all in mjlab:
    - the reset and command-resample checks (`nonzero()`), which are expected;
@@ -79,10 +82,18 @@ What we don't know yet, and how to find out. The simulator is described in
    velocity errors also passed the XL330's 0.024 rad/s resolution. Rows peak
    at 93 of 160 and contacts average 2.3 per world, so `njmax` and `nconmax`
    have room.
-5. **Do the tasks learn?** Train `PhoneGirl-Stand`, then `PhoneGirl-Walk`. The
-   CPU run only proved that the training loop works. If standing stalls:
-   - Is balancing on the stilt tips feasible at all with these servos and about
-     17 ms of latency? Try with `Randomization.scale = 0` and no link delay.
+5. **Do the tasks learn?** Queued on cradle on 2026-10-29, one run after
+   another (`logs/overnight.sh`):
+   - `PhoneGirl-Stand-Ideal`, 8k worlds, 3,000 iterations;
+   - `PhoneGirl-Stand`, 8k worlds, 10,000 iterations;
+   - `PhoneGirl-Walk`, 8k worlds, 15,000 iterations;
+   - `PhoneGirl-Stand`, 16k worlds, 6,000 iterations, to compare with 8k.
+
+   Each takes about 0.75 s an iteration at 8k worlds. If standing stalls:
+   - Is balancing on the stilt tips feasible at all with these servos? Compare
+     with `PhoneGirl-Stand-Ideal`: no randomization, no latency, no stalls.
+     If only the ideal robot stands, find which of the link, the battery or
+     the unknowns makes the difference.
    - Shrink the action scale (0.4 rad) or the initial action noise (std 0.5).
    - The reward weights are first guesses.
 6. **How much latency can a policy take?** Train with a 30 ms interval and with

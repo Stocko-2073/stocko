@@ -49,6 +49,7 @@ class PhoneImuCfg(SensorCfg):
     accel_noise: float = 0.01  # g, per sample
     accel_bias: float = 0.02  # g, per axis, per episode
     mount_tilt: float = math.radians(2.0)  # phone seated askew in the chest pocket
+    compile: bool = True  # on CUDA, fuse each physics step's ~30 small kernels into a few
 
     def build(self) -> PhoneImu:
         return PhoneImu(self)
@@ -87,6 +88,8 @@ class PhoneImu(Sensor[dict]):
         self.gyro_bias = torch.zeros(n, 3, device=device)
         self.accel_bias = torch.zeros(n, 3, device=device)
         self._arange = torch.arange(n, device=device)
+        if self.cfg.compile and device.startswith("cuda"):
+            self._measure = torch.compile(self._measure)
         self.reset()
 
     def _measure(self) -> torch.Tensor:
