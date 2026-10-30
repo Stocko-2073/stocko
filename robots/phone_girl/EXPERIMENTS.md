@@ -18,8 +18,8 @@ this):
 A policy is evaluated over 4,096 robots for 19 s each (21.5 robot-hours), in
 its task's play setup, which has no shoves, unless the entry says otherwise.
 
-The entries so far ran over BLE at a 15 ms tick. Since then the default link is
-USB-C NCM at a 10 ms tick (`sim/src/phone_girl/link.py`).
+The first two entries ran over BLE at a 15 ms tick. Since then the default link
+is USB-C NCM at a 10 ms tick (`sim/src/phone_girl/link.py`).
 
 ## Standing on planted tips with the waist and hips (2026-10-29)
 
@@ -164,5 +164,93 @@ Joint use, as RMS from the default pose and RMS speed:
 - Would memory help? The actor still sees only 45 ms of history: too short to
   notice a constant tilt error from how the robot drifts.
 - How well can the phone's tilt be known on the robot? (TODO item 14.)
+- The simulator's joint limits act as hard stops, which the robot lacks
+  (TODO item 8).
+
+## Adding shoulder flexion and the knees, over USB (2026-10-30)
+
+**Question.** Does the faster link change the outcome of the entry above?
+
+**Setup.** stand3 again with only the link changed: the same task variant,
+8,192 worlds, 3,000 iterations and seed. Settings set in seconds keep their
+meaning at either tick (`sim/README.md`, Timing), so both runs simulate the
+same time.
+
+| | stand3: BLE | stand3_usb: USB-C NCM |
+| --- | --- | --- |
+| Tick | 15 ms | 10 ms |
+| Servo read to goals | 16–22 ms | 2.5–9.5 ms |
+| Late commands | 3%, one tick late | none |
+| Stalls | 0.05 a second, 50–250 ms each | none |
+| Actor history, 45 ms | 3 steps | 5 steps |
+
+USB's timings are design targets, not measurements. The phone IMU model is the
+same over both links: its samples reach the policy 5–25 ms late, so over USB
+the IMU is the robot's slowest input.
+
+**Runs.**
+
+| Run | Link | Iterations | Mean episode at the end |
+| --- | --- | --- | --- |
+| stand3 | BLE | 3,000 (38 minutes) | 67 steps (1.0 s), flat from the start |
+| stand3_usb | USB | 3,000 (49 minutes) | 103 steps (1.0 s), flat from the start |
+
+Over both links the mean episode reached 1.0 s within 25 iterations, peaked
+near 1.15 s within 350 and settled back to 1.0 s.
+
+**Evaluation**, each policy over its own link:
+
+| Policy | Link | Falls per robot-hour | With training's shoves |
+| --- | --- | --- | --- |
+| stand3 | BLE | 3,460: one every 1.0 s | 3,460 |
+| stand3_usb | USB | 3,490: one every 1.0 s | 3,490 |
+
+Evaluated again with today's code over BLE, stand3 fell 74,490 times against
+74,411 in the entry above, and its other measures didn't change: nothing but
+the link separates the two runs. Every fall was forward or backward, and the
+tips stayed down 95% of the time, over both links.
+
+Joint use, as RMS from the default pose and RMS speed:
+
+| Policy | Waist | Hip pitch | Hip roll | Shoulder pitch | Knees |
+| --- | --- | --- | --- | --- | --- |
+| stand3 | 12.5°, 92°/s | 4.8°, 34°/s | 0.6°, 3°/s | 8.9°, 49°/s | 2.6°, 10°/s |
+| stand3_usb | 13.8°, 93°/s | 6.4°, 30°/s | 0.5°, 3°/s | 6.0°, 35°/s | 2.4°, 9°/s |
+
+Both policies command the knees to the end of their travel nearly all the
+time: the targets' 5th to 95th percentiles sit at the stop. The knees sat within
+0.5° of it 57–65% of the time over USB, against 80–84% over BLE.
+
+Tips lift on 2.4% of a foot's control steps over USB and 2.5% over BLE. With
+1.5 times the steps per second, the evaluation counts about 1.5 times as many
+lifts a second over USB, so its per-second counts and stance lengths can't be
+compared between ticks. A one-off check found that most lifts aren't balancing:
+
+- about half come in the last 0.1 s before a fall;
+- a fifth to a quarter are the step that resets a robot, which the evaluation
+  counts as a lift: the respawned robot's tips are down in under half of
+  those samples;
+- away from falls and resets, a foot lifts on under 1% of control steps.
+
+**What it showed.**
+
+- The faster link changes nothing here. Over USB as over BLE, standing on
+  planted tips with the waist, hips, shoulder pitch and knees doesn't learn on
+  the robot as a whole. The robot falls about once a second, from the start of
+  training to the end, shoved or not.
+- That fits stand3_ideal, which had no link delay or randomization and still
+  fell every 1.6 s. Down to USB's design targets, the link isn't what stops
+  this task. In the first entry, the ideal robot learned to balance on planted
+  tips only with a perfect IMU.
+- The policy still leans on the knee stops the robot doesn't have.
+- The same training takes 49 minutes over USB instead of 38.
+
+**Open.**
+
+- How well can the phone's tilt be known on the robot, and how late does
+  CoreMotion deliver? (TODO item 14.)
+- Would memory help? The actor still sees 45 ms of history, now 5 steps.
+- How much latency can a policy take (TODO item 6)? This task can't say, since
+  it fails over either link. Walk can.
 - The simulator's joint limits act as hard stops, which the robot lacks
   (TODO item 8).

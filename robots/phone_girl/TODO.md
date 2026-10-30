@@ -138,10 +138,12 @@ BLE) in [protocol/PROTOCOL.md](protocol/PROTOCOL.md), and training experiments i
      didn't learn it and falls every 1.5 s. With a perfect IMU it learned the
      intended balance but still fell about every 34 s. Also driving shoulder
      pitch and the knees didn't help: on the robot as a whole it falls about
-     once a second. See [EXPERIMENTS.md](EXPERIMENTS.md).
+     once a second, over USB as over BLE. See [EXPERIMENTS.md](EXPERIMENTS.md).
 6. **How much latency can a policy take?** Train with longer turnarounds, late
    commands and stalls (`LinkCfg`). This sets what we must demand of the link,
-   and how much USB gains over BLE.
+   and how much USB gains over BLE. Stand on planted tips can't say: it fails
+   over both links, and on the ideal robot with no link delay at all
+   (EXPERIMENTS.md). Use a task that learns, such as Walk.
 7. **Boxes or convex hulls for collision?** Each printed part collides as one
    box around it, except the top of each stilt. The servos and the phone are
    their exact boxes, and each stilt is a hull, a capsule and the 2.5 mm tip

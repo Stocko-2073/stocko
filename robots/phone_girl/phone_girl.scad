@@ -652,15 +652,15 @@ collision_test_pose=[
     -77,112,110,156,30,  // leg_l 9-13
     -77,112,110,156,30   // leg_r 14-18
 ];
-jump_test_pose=[
+marketing_pose_1=[ // marketing pose
     -20,            // waist 0
     210,-10,20,70, // arm_r 1-4
     158,-10,109,135,  // arm_l 5-8
     -50,112,90,156,50,  // leg_l 9-13
     43,-7,0,7,-50  // leg_r 14-18
 ];
-pose=jump_test_pose;
-// pose=default_pose;
+// pose=marketing_pose_1;
+pose=default_pose;
 zrot(-360*(1-cos($t*180)))
 xrot(pose[0]) 
 robot(pose);
