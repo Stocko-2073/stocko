@@ -1,8 +1,9 @@
 # phone_girl: open questions
 
 What we don't know yet, and how to find out. The simulator is described in
-[sim/README.md](sim/README.md) and the radio link in
-[protocol/PROTOCOL.md](protocol/PROTOCOL.md).
+[sim/README.md](sim/README.md), the radio link in
+[protocol/PROTOCOL.md](protocol/PROTOCOL.md), and training experiments in
+[EXPERIMENTS.md](EXPERIMENTS.md).
 
 ## On the RTX 5080
 
@@ -18,8 +19,8 @@ What we don't know yet, and how to find out. The simulator is described in
    | 16,384 | 257k | 361k | 45.4 | 4.2 GB |
    | 32,768 | 282k | 394k | 83.2 | 8.0 GB |
 
-   Use 16k worlds: past that, throughput barely grows. Memory is never the
-   limit.
+   Past 16k worlds, throughput barely grows, and memory is never the limit.
+   For training, though, 8k worlds learn as fast per hour as 16k (item 5).
 2. **Python's kernel-launch overhead.** `phone-girl-bench --profile` splits a
    control step into its parts. For each part it gives CPU time, time alone
    (with the GPU drained around it) and kernel launches. The first profile
@@ -82,51 +83,75 @@ What we don't know yet, and how to find out. The simulator is described in
    velocity errors also passed the XL330's 0.024 rad/s resolution. Rows peak
    at 93 of 160 and contacts average 2.3 per world, so `njmax` and `nconmax`
    have room.
-5. **Do the tasks learn?** Queued on cradle on 2026-10-29, one run after
-   another (`logs/overnight.sh`):
-   - `PhoneGirl-Stand-Ideal`, 8k worlds, 3,000 iterations;
-   - `PhoneGirl-Stand`, 8k worlds, 10,000 iterations;
-   - `PhoneGirl-Walk`, 8k worlds, 15,000 iterations;
-   - `PhoneGirl-Stand`, 16k worlds, 6,000 iterations, to compare with 8k.
+5. **Do the tasks learn? Yes.** Trained on cradle overnight on 2026-10-29,
+   one run after another (`logs/overnight.sh` there). Falls are counted over
+   4,096 robots for 19 s each (21.5 robot-hours) with full randomization and
+   link lag:
 
-   Each takes about 0.75 s an iteration at 8k worlds. If standing stalls:
-   - Is balancing on the stilt tips feasible at all with these servos? Compare
-     with `PhoneGirl-Stand-Ideal`: no randomization, no latency, no stalls.
-     If only the ideal robot stands, find which of the link, the battery or
-     the unknowns makes the difference.
-   - Shrink the action scale (0.4 rad) or the initial action noise (std 0.5).
-   - The reward weights are first guesses.
+   | Task | Worlds | Full episodes after | Return within 3% after | Falls per robot-hour |
+   | --- | --- | --- | --- | --- |
+   | Stand-Ideal | 8k | 2 min | 10 min | 0 on its own task |
+   | Stand | 8k | 8 min | 45 min | under 0.5; 1.6 with pushes |
+   | Stand | 16k | 8 min | 45 min | under 0.5; 2.1 with pushes |
+   | Walk | 8k | 18 min | 90 min | about 4 |
+
+   "Full episodes" is when the mean episode first reaches 97% of its final
+   length; the return is compared with the run's final return.
+
+   - The randomization is needed: the ideal policy falls about once a second
+     on the randomized robot with link lag.
+   - 8k worlds learned as fast per hour as 16k (one run each): a 16k
+     iteration takes 1.7× as long for twice the samples. Train at 8k, for 45
+     to 90 minutes a run.
+   - Stand never stands still, even on the ideal robot. It taps at about 8
+     steps a second, with 60 ms swings and both tips down 46% of the time. On
+     two point feet that may be the only way to balance. Check it on the
+     robot: impacts, backlash (item 11) and servo wear are not well modelled.
+   - Walk steps about 5.5 times a second, with 150 ms swings. It turns at 97%
+     of the commanded rate and moves at 85–87% of the commanded speed. On a
+     zero command it keeps stepping in place.
+   - Neither slides. A tip moves 1.5–2.5 mm over a stance, as much on
+     slippery floors as on grippy ones. But until 2026-10-29 `foot_slip`
+     paired each foot's speed with the other foot's contact (the contact
+     sensor lists the right foot first), so these runs were penalized for
+     fast swings instead of slip. Retrain both before tuning further.
+   - Stand with planted tips, moving only the waist and hips (since
+     2026-10-29), is much harder. With the phone IMU model the ideal robot
+     didn't learn it and falls every 1.5 s. With a perfect IMU it learned the
+     intended balance but still fell about every 34 s. See
+     [EXPERIMENTS.md](EXPERIMENTS.md); item 14 decides whether this is viable.
 6. **How much latency can a policy take?** Train with a 30 ms interval and with
    more stalls (`LinkCfg`). This sets what we must demand of the BLE link.
 7. **Boxes or convex hulls for collision?** Each printed part collides as one
-   box around it. The servos and the phone are their exact boxes, and each
-   stilt is a box, a capsule and the 2.5 mm tip sphere. Boxes are fast on the
-   GPU but loose on tapered and rounded parts:
-   - **Stilts.** At home the stilt boxes are 1.1 mm apart, while the parts are
-     4.6 mm apart. The reset's ±0.03 rad joint noise makes the boxes overlap
-     in 43% of resets, by up to 8.7 mm, so the legs get kicked apart. Even the
-     parts' convex hulls overlap in 12% of resets, so cut the leg joints'
-     noise to about ±0.01 rad whatever shapes we use.
+   box around it, except the top of each stilt. The servos and the phone are
+   their exact boxes, and each stilt is a hull, a capsule and the 2.5 mm tip
+   sphere. Boxes are fast on the GPU but loose on tapered and rounded parts:
+   - **Stilts.** Their top boxes were 1.1 mm apart at home, where the parts
+     are 4.6 mm apart, so hip roll stopped at 0.5° inward. Since 2026-10-29
+     the tops are their convex hulls (80 vertices), 4.6 mm apart, and the
+     reset's joint noise is ±0.01 rad, so they never start overlapping. The
+     hulls cost 15%: Walk at 8k worlds went from 324k to 276k steps a second.
+     Fewer hull vertices, or a few boxes along the taper, might win it back.
    - **Hands.** In the CAD's `collision_test_pose` the hands just touch the
      phone, but their boxes sink 4 mm into the phone's box.
-   - **Hip roll.** At home it stops at 9–11° each way. Outward the leg hits
-     the arm hanging beside it, and inward the stilts hit each other. Check
-     whether the real robot rolls further.
+   - **Hip roll** stops at about 2° inward, on the other stilt, and 5.5°
+     outward, where the hip-pitch servo meets the hand hanging beside it.
+     That is the printed parts' clearance too (6.4 mm at home), not the
+     boxes'. Hands held further out would free it.
 
-   Try convex hulls of the printed parts' meshes, capped at 32–64 vertices.
-   Keep the servo and phone boxes and the tip spheres. Compare throughput and
-   contact counts with the boxes in `phone-girl-bench`. If hulls cost too much,
-   fit a few boxes along each tapered part instead. Item 23 covers parts that
-   one hull fits badly.
+   Hulls for the other printed parts, capped at 32–64 vertices, would fix the
+   hands; compare their cost in `phone-girl-bench` as for the stilts. Item 23
+   covers parts that one hull fits badly.
 
 ## On the robot
 
 Each answer replaces a guess or narrows a randomized span.
 
-8. **Joint travel.** The limits in `mjcf.TRAVEL_DEG` are placeholders. Find the
-   real stops, then set the same values as the MCU's soft limits. The CAD's
-   `collision_test_pose` is outside them for all eight leg joints: its knee is
-   167° from home, and the sim allows ±110°.
+8. **Joint travel.** The limits in `mjcf.TRAVEL_DEG` are placeholders, except
+   the knees'. Find the real stops, then set the same values as the MCU's soft
+   limits. The knees rest 7° past straight in the default pose, stop at 10°,
+   and fold 167° to the CAD's `collision_test_pose`. That pose is still outside
+   the other leg joints' travel.
 9. **Electronics mass.** Weigh the board and wiring, about 20 g estimated. Then
    run `phone-girl-export --electronics-g …` and `phone-girl-build`.
 10. **Do BAM's XL330 parameters fit our servos on 2S?** Record step responses
@@ -139,7 +164,9 @@ Each answer replaces a guess or narrows a randomized span.
 13. **Battery.** Measure the pack plus wiring resistance with a load step, and
     the idle current.
 14. **Phone IMU.** Find CoreMotion's noise, bias and latency (`systemUptime −
-    timestamp`), and where the IMU sits in the phone.
+    timestamp`), and where the IMU sits in the phone. Measure how well the
+    phone's tilt in its pocket can be calibrated: standing on planted tips
+    learned only with a perfect IMU (item 5).
 15. **Stilt-tip friction** on the floors we'll use.
 16. **Above 7.0 V.** Confirm that the XL330's input-voltage error bit is only a
     flag on these servos. A full pack exceeds the servo's Max Voltage Limit.

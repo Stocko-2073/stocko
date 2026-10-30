@@ -11,8 +11,9 @@ Offset with the robot in its home pose). Then for every joint
     goal ticks     = 2048 + round((home + scale * action - home) / tick), clipped to the soft limits
     joint_pos obs  = (Present Position - 2048) * tick
 
-with tick = 2 pi / 4096. Positive is counterclockwise looking at the horn, which
-is the model's joint axis for every servo.
+with tick = 2 pi / 4096 and each joint's own scale, 0 for a joint the task holds
+still. Positive is counterclockwise looking at the horn, which is the model's
+joint axis for every servo.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from __future__ import annotations
 import json
 
 import onnx
+import torch
 
 from mjlab.rl.runner import MjlabOnPolicyRunner
 
@@ -27,7 +29,7 @@ from phone_girl.observations import NOMINAL_VOLTAGE
 from phone_girl.robot import HOME, JOINTS, LIMITS, REPORT
 from phone_girl.xl330 import TICK
 
-CONTRACT_VERSION = 1
+CONTRACT_VERSION = 2  # 2: a scale per joint
 
 
 def contract(env) -> dict:
@@ -36,7 +38,9 @@ def contract(env) -> dict:
     dims = manager.group_obs_term_dim["actor"]
     group = env.cfg.observations["actor"]
     history = group.history_length or 1
-    action = env.cfg.actions["joint_pos"]
+    action = env.action_manager.get_term("joint_pos")
+    assert list(action.target_names) == list(JOINTS)
+    scale = action.scale[0].tolist() if isinstance(action.scale, torch.Tensor) else [action.scale] * len(JOINTS)
     by_name = {j["name"]: j for j in REPORT["joints"]}
     effort = next(t.func for n, t in group.terms.items() if n == "joint_effort")
     return dict(
@@ -45,7 +49,7 @@ def contract(env) -> dict:
         joints=[dict(name=j, slot=i, dynamixel_id=by_name[j]["dynamixel_id"], home_rad=HOME[j],
                      soft_limits_rad=list(LIMITS[j])) for i, j in enumerate(JOINTS)],
         tick_rad=TICK, home_ticks=2048,
-        action=dict(scale=action.scale, target="home + scale * action, clipped to soft limits"),
+        action=dict(scale=scale, target="home + scale * action, per joint, clipped to soft limits"),
         observation=dict(history=history, order="each term's history oldest to newest, term after term",
                          terms=[dict(name=n, size=int(d[0]) // history) for n, d in zip(names, dims)]),
         effort=dict(kt=effort.__globals__["BAM"].kt, resistance=effort.__globals__["BAM"].resistance,

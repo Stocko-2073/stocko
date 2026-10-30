@@ -35,6 +35,17 @@ def test_reset_starts_the_servos_at_home():
     env.close()
 
 
+def test_stand_moves_only_the_waist_and_hips():
+    """Stand's actions reach the waist and the hips' roll and pitch; every other servo holds home."""
+    from phone_girl.tasks.env import BALANCE_JOINTS
+
+    env = make()
+    env.step(torch.ones(2, len(JOINTS)))
+    target = env.scene["robot"].data.joint_pos_target[0]
+    assert {j for j, t in zip(JOINTS, target.tolist()) if abs(t - HOME[j]) > 1e-6} == set(BALANCE_JOINTS)
+    env.close()
+
+
 def test_commands_reach_the_servos_one_interval_later():
     """A new goal takes command_lag physics steps (a 15 ms interval plus the bus write) to land."""
     env = make()
@@ -212,6 +223,42 @@ def test_body_on_floor_matches_a_contact_sensor():
         torch.testing.assert_close(check(env), expected)
         falls += int(expected.sum())
     assert falls > 100
+    env.close()
+
+
+def test_foot_slip_counts_each_foot_only_while_it_is_down():
+    """Slip is a foot's speed while that foot, not the other, is on the floor."""
+    from mjlab.managers.reward_manager import RewardTermCfg
+
+    from phone_girl.tasks.env import foot_slip
+
+    seen = []
+
+    def check(env):
+        # A reward term, so it reads the contacts when the rewards do: the sensor
+        # caches what it read then, and the step's closing forward() moves on.
+        robot, data, model = env.scene["robot"], env.sim.data, env.sim.mj_model
+        floor = next(g for g in range(model.ngeom) if model.body(model.geom_bodyid[g]).name == "terrain")
+        a, b = data.contact.geom[...].long().unbind(1)
+        active = torch.arange(len(a)) < data.nacon[...]
+        down = torch.zeros(env.num_envs, 2, dtype=torch.bool)
+        for i, geom in enumerate(robot.indexing.geom_ids[list(FOOT_GEOMS)]):
+            touching = active & (((a == geom) & (b == floor)) | ((b == geom) & (a == floor)))
+            down[data.contact.worldid[...].long()[touching], i] = True
+        speed = robot.data.site_lin_vel_w[:, list(FOOT_SITES), :2].norm(dim=-1)
+        seen.append((foot_slip(env), (speed ** 2 * down).sum(-1), int((down.sum(-1) == 1).sum())))
+        return torch.zeros(env.num_envs)
+
+    cfg = load_env_cfg("PhoneGirl-Stand", play=True)
+    cfg.scene.num_envs = 16
+    cfg.rewards["check"] = RewardTermCfg(func=check, weight=1.0)
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    env.reset()
+    for _ in range(100):
+        env.step(torch.randn(16, len(JOINTS)))
+    for slip, expected, _ in seen:
+        torch.testing.assert_close(slip, expected)
+    assert sum(one_down for *_, one_down in seen) > 100
     env.close()
 
 

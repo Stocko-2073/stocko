@@ -6,7 +6,7 @@ body frame is world-aligned there and sits on its joint's shaft. Each joint's
 ref is its default servo angle, so qpos is the servo shaft angle. Inertials are
 summed from sliced and bought parts; visual meshes carry no mass. Collision uses
 cheap primitives: exact servo and phone boxes, oriented boxes for printed parts,
-and a sphere for each stilt tip.
+a convex hull for the top of each stilt, and a sphere for each stilt tip.
 
 The phone's IMU site uses CoreMotion's device frame (x right and y up the
 screen, z out of it), and its cameras use MuJoCo's camera frame (looking down
@@ -31,10 +31,14 @@ GROUND, TRUNK = 1, 2
 LIMB_BITS = {"left_shoulder": 4, "right_shoulder": 8, "left_hip": 16, "right_hip": 32}
 ALL_BODY_BITS = 2 | 4 | 8 | 16 | 32
 FOOT_RADIUS = 0.0025  # leg()'s foot=5 rounded end
-# Provisional soft travel either side of the CAD default pose, in degrees. These
-# are not measured: check them against the hardware before trusting them.
+# Provisional soft travel from the CAD default pose, in degrees: the same both
+# ways, or (down, up) for the servo angle falling and rising. These are not
+# measured: check them against the hardware before trusting them. A knee's leg
+# is straight 7° below its default angle and bends backward as the angle rises,
+# so the default pose rests on knees locked 7° past straight. They may go 3°
+# further, and fold 167° the other way to kneel, as the CAD's collision test pose does.
 TRAVEL_DEG = {"waist": 45, "shoulder_pitch": 150, "shoulder_yaw": 90, "elbow": 110, "wrist": 150,
-              "hip_roll": 35, "hip_pitch": 80, "thigh_yaw": 60, "knee": 110}
+              "hip_roll": 35, "hip_pitch": 80, "thigh_yaw": 60, "knee": (167, 3)}
 # Where the IMU sits in the phone's geometry frame, mm. Not published by Apple;
 # this guesses the logic board's upper middle and is randomized in training.
 IMU_IN_PHONE_MM = [0.0, 40.0, 0.0]
@@ -93,12 +97,13 @@ def collision_shapes(module: str, mesh: trimesh.Trimesh) -> list[tuple]:
         return []  # inside the backpack lid's box
     if module == "leg":
         # The stilt runs along +Y to a rounded tip. Keep every primitive inside the
-        # tapering shaft, so none touches the floor before the real leg would.
+        # tapering shaft, so none touches the floor before the real leg would. The
+        # top, widest at the knee, is its own convex hull: a box around it left the
+        # two legs 1.1 mm apart where the printed ones have 4.6, stopping hip roll.
         tip = mesh.vertices[np.argmax(mesh.vertices[:, 1])]
         axis_x, axis_z = tip[0], tip[2]
-        upper = trimesh.PointCloud(mesh.vertices[mesh.vertices[:, 1] < 45]).bounding_box_oriented
-        return [("box", list(upper.primitive.extents / 2), list(upper.primitive.transform[:3, 3]),
-                 upper.primitive.transform[:3, :3]),
+        upper = trimesh.PointCloud(mesh.vertices[mesh.vertices[:, 1] < 45]).convex_hull
+        return [("hull", upper.vertices, None, None),
                 ("capsule", [3.5], [[axis_x, 45, axis_z], [axis_x, 100, axis_z]], None),
                 ("foot", [FOOT_RADIUS * 1e3], [axis_x, tip[1] - FOOT_RADIUS * 1e3, axis_z], None)]
     box = mesh.bounding_box_oriented.primitive
@@ -153,9 +158,10 @@ def build(manifest: dict) -> tuple[mujoco.MjSpec, dict]:
                 child = "pelvis" if name == "waist" else f"{name}_link"
                 body = bodies[parent].add_body(name=child, pos=origin[name] - origin[parent])
                 default = j["default_rad"]
-                limit = np.radians(next(v for k, v in TRAVEL_DEG.items() if name.endswith(k)))
+                travel = next(v for k, v in TRAVEL_DEG.items() if name.endswith(k))
+                down, up = np.radians(travel if isinstance(travel, tuple) else (travel, travel))
                 body.add_joint(name=name, type=mujoco.mjtJoint.mjJNT_HINGE, ref=default,
-                               axis=CAD_TO_SIM @ np.array(j["axis"]), range=[default - limit, default + limit])
+                               axis=CAD_TO_SIM @ np.array(j["axis"]), range=[default - down, default + up])
                 bodies[name] = body
                 pending.remove(j)
 
@@ -216,6 +222,9 @@ def build(manifest: dict) -> tuple[mujoco.MjSpec, dict]:
                 body_of(link).add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_BOX, size=np.array(size) * 1e-3,
                                        pos=rotation @ np.array(pos) * 1e-3 + local,
                                        quat=quat(proper(rotation @ frame)[0]), **common)
+            elif kind == "hull":
+                spec.add_mesh(name=name, uservert=(np.asarray(size) @ rotation.T * 1e-3 + local).ravel())
+                body_of(link).add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_MESH, meshname=name, **common)
             elif kind == "capsule":
                 ends = [rotation @ np.array(p) * 1e-3 + local for p in pos]
                 body_of(link).add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_CAPSULE,
@@ -318,7 +327,7 @@ def main():
         f"The electronics box is a {manifest['variants']['electronics']['mass']['mass_g']} g guess.",
         "Wires, screws and glue are not modelled; randomize link masses to cover them.",
         "Joint travel is provisional, not measured; IMU position in the phone is a guess.",
-        "Collision proxies are boxes, capsules and spheres; brackets are boxes.",
+        "Collision proxies are boxes, capsules and spheres, with hulls for the stilts' tops; brackets are boxes.",
     ]
     model = spec.compile()  # validate before writing anything
     MJCF.write_text(spec.to_xml().replace(f'meshdir="{ASSETS}"', f'meshdir="{ASSETS.name}"'))

@@ -12,6 +12,7 @@ from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 
 from phone_girl import deploy
 from phone_girl.robot import JOINTS
+from phone_girl.tasks.env import BALANCE_JOINTS
 
 
 def test_onnx_matches_actor_and_carries_contract(tmp_path):
@@ -39,4 +40,6 @@ def test_onnx_matches_actor_and_carries_contract(tmp_path):
     sizes = {t["name"]: t["size"] for t in contract["observation"]["terms"]}
     assert sum(sizes.values()) * contract["observation"]["history"] == actor_obs.shape[1]
     assert sizes["joint_effort"] == len(JOINTS) and sizes["gravity"] == 3
+    scales = dict(zip(JOINTS, contract["action"]["scale"]))
+    assert {j for j, s in scales.items() if s} == set(BALANCE_JOINTS)  # Stand holds the rest at home
     env.close()

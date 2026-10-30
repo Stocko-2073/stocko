@@ -106,6 +106,47 @@ def test_home_stands_on_its_tips(model):
     assert data.site("left_foot").xpos[1] > data.site("right_foot").xpos[1]
 
 
+def test_knees_rest_locked_a_little_past_straight(model):
+    """The default pose stands on knees bent 7° backward past straight. They stop at
+    10°, and fold the other way as far as the CAD's collision test pose, to kneel."""
+    data = mujoco.MjData(model)
+    for side in ("left", "right"):
+        joint = model.joint(f"{side}_knee")
+
+        def bend(angle):
+            """Thigh to shank about the knee axis, degrees, and how far the knee is ahead of the hip-tip line."""
+            data.qpos[:] = model.qpos0
+            data.qpos[joint.qposadr[0]] = angle
+            mujoco.mj_forward(model, data)
+            hip, knee = data.joint(f"{side}_hip_pitch").xanchor, data.joint(f"{side}_knee").xanchor
+            tip, axis = data.site(f"{side}_foot").xpos, data.joint(f"{side}_knee").xaxis
+            thigh, shank = knee - hip, tip - knee
+            thigh, shank = thigh - axis * (thigh @ axis), shank - axis * (shank @ axis)
+            line = tip - hip
+            ahead = (knee - hip - line * ((knee - hip) @ line) / (line @ line))[0]
+            return np.degrees(np.arctan2(np.cross(thigh, shank) @ axis, thigh @ shank)), ahead
+
+        home = model.qpos0[joint.qposadr[0]]
+        assert bend(home)[0] == pytest.approx(7, abs=0.1)
+        backward, ahead = bend(joint.range[1])
+        assert backward == pytest.approx(10, abs=0.1) and ahead < 0
+        assert np.degrees(home - joint.range[0]) == pytest.approx(167)
+
+
+def test_stilt_proxies_are_as_far_apart_as_the_stilts(model):
+    """A box around each stilt's top left them 1.1 mm apart and stopped hip roll at 0.5°."""
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+
+    def gap(suffix):
+        right, left = (next(g for g in range(model.ngeom) if model.geom(g).name.startswith(f"{side}_knee_leg_")
+                            and model.geom(g).name.endswith(suffix)) for side in ("right", "left"))
+        return mujoco.mj_geomDistance(model, data, right, left, 0.1, None)
+
+    assert gap("_0") == pytest.approx(gap("_visual"), abs=2e-4)
+    assert gap("_0") > 0.004
+
+
 def test_imu_and_cameras_follow_the_phone(model):
     """The IMU frame is CoreMotion's: x to the robot's left, y up, z forward out of the screen."""
     data = mujoco.MjData(model)

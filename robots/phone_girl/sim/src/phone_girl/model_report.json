@@ -1038,7 +1038,10 @@
   "hip_roll": 35,
   "hip_pitch": 80,
   "thigh_yaw": 60,
-  "knee": 110
+  "knee": [
+   167,
+   3
+  ]
  },
  "imu_in_phone_mm": [
   0.0,
@@ -1051,6 +1054,6 @@
   "The electronics box is a 20.0 g guess.",
   "Wires, screws and glue are not modelled; randomize link masses to cover them.",
   "Joint travel is provisional, not measured; IMU position in the phone is a guess.",
-  "Collision proxies are boxes, capsules and spheres; brackets are boxes."
+  "Collision proxies are boxes, capsules and spheres, with hulls for the stilts' tops; brackets are boxes."
  ]
 }

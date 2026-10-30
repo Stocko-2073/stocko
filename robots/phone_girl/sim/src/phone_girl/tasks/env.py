@@ -2,7 +2,8 @@
 
 Every task shares the actor's observation layout, the 17 joint targets and the
 twist command slot (stand holds it at zero), so policies trained for different
-tasks can be compared, swapped on the phone, and distilled into one.
+tasks can be compared, swapped on the phone, and distilled into one. A task that
+holds joints still scales their targets to nothing rather than dropping them.
 """
 
 from __future__ import annotations
@@ -37,6 +38,8 @@ from phone_girl.robot import FEET, FOOT_SITES, JOINTS, LIMITS, index, robot_cfg,
 PHYSICS_DT = 0.0025
 ACTION_SCALE = 0.4  # rad per unit action, about the home pose
 DR_EVENTS = ("servos", "supply", "body", "friction")
+# What Stand balances with. The knees, thigh yaws and arms hold the default pose.
+BALANCE_JOINTS = ("waist", "left_hip_roll", "left_hip_pitch", "right_hip_roll", "right_hip_pitch")
 
 
 class ZeroTwist(UniformVelocityCommand):
@@ -116,10 +119,16 @@ class body_on_floor:
 
 
 def foot_slip(env, sensor_name: str = "feet_ground") -> torch.Tensor:
-    robot = env.scene["robot"]
-    contact = (env.scene[sensor_name].data.found > 0).float().reshape(env.num_envs, -1)
-    speed = robot.data.site_lin_vel_w[:, index(FOOT_SITES, env.device), :2].norm(dim=-1)
+    robot, sensor = env.scene["robot"], env.scene[sensor_name]
+    contact = (sensor.data.found > 0).float().reshape(env.num_envs, -1)
+    # The sensor lists the feet in the model's order, right first, not in FEET's.
+    sites = tuple(FOOT_SITES[FEET.index(name)] for name in sensor.primary_names)
+    speed = robot.data.site_lin_vel_w[:, index(sites, env.device), :2].norm(dim=-1)
     return (speed ** 2 * contact).sum(-1)
+
+
+def feet_off_floor(env, sensor_name: str = "feet_ground") -> torch.Tensor:
+    return (env.scene[sensor_name].data.found == 0).float().reshape(env.num_envs, -1).sum(-1)
 
 
 def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None = None,
@@ -140,8 +149,9 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
         "graph_recompute": EventTermCfg(func=dr.graph_recompute, mode="startup"),
         "reset_base": EventTermCfg(func=mdp.reset_root_state_uniform, mode="reset",
                                    params={"pose_range": {"yaw": (-math.pi, math.pi)}, "velocity_range": {}}),
+        # Small, so the stilts, 4.6 mm apart at home, never start overlapping.
         "reset_joints": EventTermCfg(func=mdp.reset_joints_by_offset, mode="reset",
-                                     params={"position_range": (-0.03, 0.03), "velocity_range": (0.0, 0.0),
+                                     params={"position_range": (-0.01, 0.01), "velocity_range": (0.0, 0.0),
                                              "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",))}),
         "servos": EventTermCfg(func=dr.randomize_servos, mode="reset", params={"randomization": randomization}),
         "supply": EventTermCfg(func=dr.randomize_supply, mode="reset", params={"randomization": randomization}),
@@ -182,8 +192,9 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
 
 def stand_cfg(play: bool = False, link: LinkCfg | None = None,
               randomization: dr.Randomization | None = None) -> ManagerBasedRlEnvCfg:
-    """Balance on the stilt tips and recover from pushes. Stepping is allowed."""
+    """Balance on planted stilt tips with the waist and the hips' roll and pitch."""
     cfg = base_cfg(link, randomization, play=play)
+    cfg.actions["joint_pos"].scale = {j: ACTION_SCALE if j in BALANCE_JOINTS else 0.0 for j in JOINTS}
     cfg.rewards = {
         "alive": RewardTermCfg(func=mdp.is_alive, weight=1.0),
         "upright": RewardTermCfg(func=velocity.upright, weight=1.0,
@@ -191,6 +202,7 @@ def stand_cfg(play: bool = False, link: LinkCfg | None = None,
         "com_over_feet": RewardTermCfg(func=com_over_feet, weight=1.0, params={"std": 0.02}),
         "posture": RewardTermCfg(func=posture, weight=0.5, params={"std": 0.3}),
         "still": RewardTermCfg(func=stillness, weight=0.5, params={"std": 0.1}),
+        "feet_off_floor": RewardTermCfg(func=feet_off_floor, weight=-2.0),
         "foot_slip": RewardTermCfg(func=foot_slip, weight=-2.0),
         "action_rate": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.01),
         "copper_loss": RewardTermCfg(func=copper_loss, weight=-0.05),
@@ -198,9 +210,11 @@ def stand_cfg(play: bool = False, link: LinkCfg | None = None,
         "fall": RewardTermCfg(func=mdp.is_terminated, weight=-20.0),
     }
     if not play:
+        # Shoves on the torso. A velocity kick would move the planted tips too.
         cfg.events["push"] = EventTermCfg(
-            func=mdp.push_by_setting_velocity, mode="interval", interval_range_s=(2.0, 5.0),
-            params={"velocity_range": {"x": (-0.15, 0.15), "y": (-0.15, 0.15), "yaw": (-0.5, 0.5)}})
+            func=mdp.apply_body_impulse, mode="step",
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=("torso",)), "force_range": (-0.25, 0.25),
+                    "torque_range": (0.0, 0.0), "duration_s": (0.05, 0.15), "cooldown_s": (1.0, 3.0)})
     return cfg
 
 

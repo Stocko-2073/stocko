@@ -32,7 +32,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd stocko/robots/phone_girl/sim
 uv sync                      # uv's own Python 3.12 and the locked dependencies
 uv run python -c "import torch; print(torch.cuda.get_device_name())"
-uv run pytest -q             # 31 tests; the CAD comparison skips without OpenSCAD
+uv run pytest -q             # 35 tests; the CAD comparison skips without OpenSCAD
 uv run phone-girl-bench      # throughput at 1k-8k worlds: pick num-envs from this
 ```
 
@@ -179,7 +179,9 @@ test fails if `phone_girl.scad` changed since the export.
   phone's screen is split off the phone mesh by its CAD colour (`cad.DECALS`)
   and drawn on its own, visual only.
 - **Collision.** The servo and phone boxes are exact; printed parts are oriented
-  boxes. Each stilt ends in a 2.5 mm sphere, which is the foot. Limbs collide with
+  boxes, except the top of each stilt, which is its convex hull: the stilts are
+  4.6 mm apart at home, and boxes left 1.1 mm. Each stilt ends in a 2.5 mm
+  sphere, which is the foot. Limbs collide with
   each other and with the trunk, but not with themselves. Robot geoms have
   priority, so the foot's randomized friction is the contact's.
 - **Home.** The CoM is 0.274 m up and within a millimetre of the stilt tips fore
@@ -198,9 +200,13 @@ observations, the bus, and the Dynamixel IDs (slot + 1).
 | 5–8 | left hip_roll, hip_pitch, thigh_yaw, knee | 13–16 | left shoulder_pitch, shoulder_yaw, elbow, wrist |
 
 The CAD's `leg_l` is the robot's right leg; sides here go by assembled position.
-The "knee" swings the stilt. **Joint travel is provisional.** It is ±35° to ±150°
-about home by joint type (`mjcf.TRAVEL_DEG`) and is not measured. Find the real
-stops before trusting it, and set the same values as the MCU's soft limits.
+The "knee" swings the stilt. Home rests on knees locked 7° backward past
+straight; they stop at 10° and fold 167° the other way, to kneel. Hip roll stops
+at about 2° inward on the other stilt and 5.5° outward on the hand hanging
+beside it, on the printed parts as in the model. **Other joint travel is
+provisional.** It is ±35° to ±150° about home by joint type (`mjcf.TRAVEL_DEG`)
+and is not measured. Find the real stops before trusting it, and set the same
+values as the MCU's soft limits.
 
 ## Servos
 
@@ -316,7 +322,7 @@ its span.
 | Torso CoM | ±6 mm | the same, plus the phone's seat |
 | Command latency, lost packets, stalls | see Timing | radio and app |
 | IMU latency, sample phase, bias, noise, fusion tilt, mount tilt | in `PhoneImuCfg` | the phone |
-| Pushes | 0.15 m/s, every 2–5 s while standing | robustness |
+| Pushes | Stand: up to 0.25 N on the torso for 50–150 ms, every 1–3 s; Walk: 0.1 m/s, every 3–8 s | robustness |
 
 ### Worth adding as they matter
 
@@ -335,7 +341,7 @@ its span.
 
 | Task | Goal |
 | --- | --- |
-| `PhoneGirl-Stand` | Balance on the stilt tips and recover from pushes. Stepping is allowed. Rewards: upright, CoM over the line between the tips, posture, stillness, no slipping, low copper loss. |
+| `PhoneGirl-Stand` | Balance on planted stilt tips with the waist and the hips' roll and pitch, through shoves on the torso. The knees, thigh yaws and arms hold home: their actions are scaled to zero. Rewards: upright, CoM over the line between the tips, posture, stillness, both tips on the floor, no slipping, low copper loss. |
 | `PhoneGirl-Walk` | Track a twist command (−0.15 to 0.25 m/s forward, ±0.1 m/s sideways, ±0.6 rad/s turning) with steps. |
 | `PhoneGirl-Stand-Ideal` | Stand on the nominal robot over a perfect link: no randomization, latency or stalls. A diagnostic, not for deployment: is balancing on the tips possible at all? |
 
@@ -401,12 +407,12 @@ uv run pytest -q
 
 | File | Checks |
 | --- | --- |
-| `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the IMU frame and camera directions; `phone-girl-view`'s stand holding home. |
+| `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the knees' locked rest and travel; the stilts' collision gap; the IMU frame and camera directions; `phone-girl-view`'s stand holding home. |
 | `test_xl330.py` | The motor law and M6 friction against BAM; a closed loop against BAM's CPU controller. |
-| `test_env.py` | Clean resets; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls; the closed-form body randomization against pseudo-inertia; the fall check against per-body contact sensors; on CUDA, the graph-captured `set_const` and the compiled servo and IMU code against the uncompiled ones. |
+| `test_env.py` | Clean resets; Stand moving only the waist and hips; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls; the closed-form body randomization against pseudo-inertia; the fall check against per-body contact sensors; the slip penalty pairing each foot with its own contact; on CUDA, the graph-captured `set_const` and the compiled servo and IMU code against the uncompiled ones. |
 | `test_phone.py` | CoreMotion gravity at rest; the 100 Hz sample-and-hold; camera frames held and late. |
 | `test_protocol.py` | Frame round trips; sizes within one notification; the C header byte-identical to Python; the app-side encoding equal to the simulator's. |
-| `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment. |
+| `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment, with each joint's action scale. |
 
 Versions are pinned in `uv.lock`: mjlab at commit `8bb2bc9e` on main, MuJoCo
 and MuJoCo Warp 3.16, warp-lang 1.18, torch 2.14.1 (CUDA 13) and BAM 1.0.2.
