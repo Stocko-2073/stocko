@@ -339,9 +339,12 @@ module hip(anchor="horn",spin=0,orient=UP) {
 // The u_bracket() shape with the foot on its bridge, running toward +Y.
 // Fits xl330(idler_disk=true) like u_bracket(): attach("horn","horn").
 module leg(anchor="horn",spin=0,orient=UP) {
-    wall=bracket_wall;w=20;span=29+$slop;reach=14+$slop;foot=5;l=100;
+    wall=bracket_wall;w=20;span=29+$slop;reach=14+$slop;foot=23;l=70;
     size=[w,w/2+reach+wall+l,span+wall*2];
-    anchors=[named_anchor("horn",[0,0,0],DOWN)];
+    anchors=[
+        named_anchor("horn",[0,0,0],DOWN),
+        named_anchor("base",[0,l+span/2+2+$slop-34,-span/2],BACK)
+    ];
     attachable(anchor,spin,orient,size=size,cp=[0,(reach+wall+l-w/2)/2,-span/2],anchors=anchors) {
         color("#6ba") difference() {
             union() {
@@ -351,11 +354,17 @@ module leg(anchor="horn",spin=0,orient=UP) {
                 }
                 back(reach) down(span/2)
                     cuboid([w,wall,span+wall*2],anchor=FWD);
-                back(reach+wall) down(span/2) hull() {
+                back(reach+wall) down(span/2) 
+                hull() 
+                {
                     cuboid([w,wall,span+wall*2],anchor=FWD);
-                    //up(5) 
-                    ycyl(d=foot,l=l,rounding2=foot/2,anchor=FWD);
+                    cuboid([20,l,23],anchor=FWD);
                 }
+            }
+            back(reach+wall) down(span/2) back(l) {
+                cuboid([20,34,23],anchor=BACK);
+                cuboid([20,11,29],anchor=BACK);
+                cyl(d=22.5,l=29,anchor=BACK);
             }
             xrot(-90) down(10) back(29/2+$slop) yrot(20) left(3.5) {
                 cuboid([21,29+$slop*2,36],anchor=BOT);
@@ -369,6 +378,40 @@ module leg(anchor="horn",spin=0,orient=UP) {
     }
 }
 
+module foot(w=20,anchor="horn",spin=0,orient=UP) {
+    wall=bracket_wall;span=29+$slop;reach=24+$slop;
+    size=[w,reach+wall+w/2,span+wall*2];
+    anchors=[
+        named_anchor("horn",[0,0,0],DOWN),
+        named_anchor("middle",[0,reach+wall,-span/2],BACK)
+    ];
+    attachable(anchor,spin,orient,size=size,cp=[0,(reach+wall-w/2)/2,-span/2],anchors=anchors) {
+        dd=24.5+bracket_wall*2+$slop;
+        color("#6ba") difference() {
+            union() {
+                up(wall) difference() {
+                    hull() {
+                        cyl(d=w,h=span+wall*2,chamfer=2.25,anchor=TOP);
+                        back(4) cyl(d=w,h=span+wall*2,chamfer=2.25,anchor=TOP);
+                    }
+                }
+                down(span/2) back(w/2) difference() {
+                    left(w/2+4.5) xcyl(d=dd,l=w*2.7,rounding2=(29+$slop)/3,anchor=LEFT);
+                    fwd(4.7) right(w/2) zrot(27) left(w) xrot(3) cuboid([100,dd,dd+5],anchor=LEFT+BACK);
+                    left(w/2) zrot(-35) right(w)cuboid([100,dd,dd],anchor=RIGHT+BACK);
+                }
+            }
+            cyl(d=16+$slop*2,h=span,anchor=TOP);
+            down(span/2) back(w/2) {
+                left(w/2+14.5+bracket_wall/2) xcyl(d=dd-bracket_wall,l=w*2.7+10,rounding=(31+$slop)/3-1.5,anchor=LEFT);
+                cuboid([w,34,24.5+$slop],anchor=BACK);
+            }
+
+        }
+        children();
+    }
+}
+// !xrot(-90) foot(); // print
 
 module abdomen(anchor=UP,spin=0,orient=UP) {
     a=-115;
@@ -520,7 +563,7 @@ module electronics(anchor=UP,spin=0,orient=UP) {
 
 module backpack_lid(anchor=UP,spin=0,orient=UP) {
     attachable(anchor,spin,orient) {
-        color("#444") back($slop) up(1.5) difference() {
+        color("#333") back($slop) up(1.5) difference() {
             cuboid([74.4,20.5,61],rounding=12+1.5,edges=[TOP+RIGHT,TOP+LEFT],anchor=TOP+FWD);
             down(1.5-$slop) cuboid([74.4-3+$slop*2,20.5-1.5,61-3],rounding=12+$slop,edges=[TOP+RIGHT,TOP+LEFT],anchor=TOP+FWD);
         }
@@ -541,7 +584,7 @@ module robot(pose) {
                     attach("horn","horn") shoulder()
                     attach("base",BACK)
                     xl330(drive=pose[2]+90,orient=FWD,spin=0,anchor="idler")
-                    attach("horn","horn") pole(10)
+                    attach("horn","horn") pole(15)
                         attach("base",FWD)
                         xl330(drive=pose[3],idler_disk=true,orient=FWD,spin=90,anchor="idler")
                             attach("horn","horn") u_bracket()
@@ -555,7 +598,7 @@ module robot(pose) {
                     attach("horn","horn") xflip() shoulder()
                     attach("base",BACK)
                     xl330(drive=pose[6]+90,orient=FWD,spin=0,anchor="idler")
-                    attach("horn","horn") pole(10)
+                    attach("horn","horn") pole(15)
                         attach("base",FWD)
                         xl330(drive=pose[7],idler_disk=true,orient=FWD,spin=90,anchor="idler")
                             attach("horn","horn") u_bracket()
@@ -574,16 +617,20 @@ module robot(pose) {
                     attach("horn","horn") pole(25)
                     attach("base",FWD) xl330(drive=-pose[12]+90,idler_disk=true,spin=-90)
                     attach("horn","horn") leg(spin=-90)
+                    attach("base",FWD) xl330(drive=pose[13],spin=180,idler_disk=true)
+                    attach("horn","horn") xflip() foot(spin=0)
                     ;
-            attach("leg_r",FWD) xl330(drive=pose[13],idler_disk=true)
+            attach("leg_r",FWD) xl330(drive=pose[14],idler_disk=true)
                 attach("horn","horn") hip(spin=55)
                     attach("side","bracket") wedge(spin=0,a=18,w=34,l=23)
-                    attach("motor",LEFT) xl330(drive=pose[14],spin=0,idler_disk=true)
+                    attach("motor",LEFT) xl330(drive=pose[15],spin=0,idler_disk=true)
                     attach("horn","horn") u_bracket(spin=-90)
-                    attach("middle",BOT) xl330(drive=-pose[15]-90,spin=180)
+                    attach("middle",BOT) xl330(drive=-pose[16]-90,spin=180)
                     attach("horn","horn") pole(25)
-                    attach("base",FWD) xl330(drive=-pose[16]+90,idler_disk=true,spin=90)
+                    attach("base",FWD) xl330(drive=-pose[17]+90,idler_disk=true,spin=90)
                     attach("horn","horn") leg(spin=-90)
+                    attach("base",FWD) xl330(drive=-pose[18],idler_disk=true)
+                    attach("horn","horn") foot(spin=0)
                     ;
         }
     }
@@ -593,22 +640,29 @@ module robot(pose) {
 // Servo drive angles in degrees, each limb from the body out.
 default_pose=[
     0,            // waist 0
-    40,-10,20,70,   // arm_r 1-4
-    40,-10,20,70,  // arm_l 5-8
-    41,-7,0,-7,    // leg_l 9-12
-    41,-7,0,-7     // leg_r 13-16
+    40,-10,20,70, // arm_r 1-4
+    40,-10,20,70, // arm_l 5-8
+    38,-7,0,-7,0, // leg_l 9-13
+    38,-7,0,-7,0  // leg_r 14-18
 ];
 collision_test_pose=[
     20,            // waist 0
-    158,-18.5,109,135,   // arm_r 1-4
+    158,-18.5,109,135,  // arm_r 1-4
     158,-18.5,109,135,  // arm_l 5-8
-    -77,112,110,160,    // leg_l 9-12
-    -77,112,110,160     // leg_r 13-16
+    -77,112,110,156,30,  // leg_l 9-13
+    -77,112,110,156,30   // leg_r 14-18
 ];
-// pose=collision_test_pose;
-pose=default_pose;
-zrot(-360*(1-cos($t*180))) 
-// xrot(7.2+pose[0]) 
+jump_test_pose=[
+    -20,            // waist 0
+    210,-10,20,70, // arm_r 1-4
+    158,-10,109,135,  // arm_l 5-8
+    -50,112,90,156,50,  // leg_l 9-13
+    43,-7,0,7,-50  // leg_r 14-18
+];
+pose=jump_test_pose;
+// pose=default_pose;
+zrot(-360*(1-cos($t*180)))
+xrot(pose[0]) 
 robot(pose);
 
 echo(str("\n",
