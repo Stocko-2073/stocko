@@ -5,6 +5,16 @@ showed. They ran on cradle's RTX 5080 at 8,192 worlds, with the code committed
 alongside each entry. Scripts written for a single experiment (task variants,
 the evaluation, diagnostics) are not kept; the entries say what they did.
 
+How we run them, since the evening of 2026-10-29 (the first entry predates
+this):
+
+- One run per question.
+- Policies are trained and judged on the robot as a whole: the randomized
+  robot over its default link, with the phone IMU model. No ideal robot, perfect
+  sensors or reduced models.
+- The hardware is fixed. Whether to change it is the owner's call, not an
+  experiment's conclusion.
+
 A policy is evaluated over 4,096 robots for 19 s each (21.5 robot-hours), in
 its task's play setup, which has no shoves, unless the entry says otherwise.
 
@@ -88,7 +98,68 @@ The knees and arms move only as far as their servos give under load.
 
 **Open.**
 
-- Which part of the IMU model stops it? Train with each part removed in turn.
 - How well can the phone's tilt be known on the robot? (TODO item 14.)
 - Would memory help? The actor sees 45 ms of history, too short to notice a
   constant tilt error.
+
+## Adding shoulder flexion and the knees (2026-10-29)
+
+**Question.** With the tips still planted, does Stand learn if it may also
+move shoulder flexion (shoulder pitch) and the knees?
+
+**Setup.** Stand as in the entry above, but driving nine joints instead of
+five: the waist, hip roll, hip pitch, shoulder pitch and the knees. The thigh
+yaws, shoulder yaws, elbows and wrists hold the default pose. The rewards and
+shoves are unchanged. The task variant was scratch code and is not kept.
+
+**Runs.**
+
+| Run | Robot | Iterations | Mean episode at the end |
+| --- | --- | --- | --- |
+| stand3_ideal | ideal, with the phone IMU model | 1,500 | 107 steps (1.6 s), against stand2_ideal's 100 |
+| stand3 | the robot as a whole | 3,000 (38 minutes) | 67 steps (1.0 s), flat from the start |
+
+stand3_ideal ran before the rules at the top of this file. A perfect-IMU run
+was stopped after 576 iterations, when the rules were adopted.
+
+**Evaluation.**
+
+| Policy | Robot | Falls per robot-hour |
+| --- | --- | --- |
+| stand3_ideal | ideal, with the phone IMU model | 2,240: one every 1.6 s |
+| stand3 | the robot as a whole | 3,460: one every 1.0 s |
+
+Shoves made no difference to stand3, because it falls before the first one
+arrives: 74,372 falls with them, 74,411 without. Every fall was forward or
+backward. The tips stayed down 95% of the time; most lifts lasted a single
+15 ms step.
+
+Joint use, as RMS from the default pose and RMS speed:
+
+| Policy | Waist | Hip pitch | Hip roll | Shoulder pitch | Knees |
+| --- | --- | --- | --- | --- | --- |
+| stand3_ideal | 9.4°, 74°/s | 5.4°, 37°/s | 0.4°, 2°/s | 10.3°, 69°/s | 2.8°, 9°/s |
+| stand3 | 12.5°, 92°/s | 4.8°, 34°/s | 0.6°, 3°/s | 8.9°, 49°/s | 2.6°, 10°/s |
+
+**What it showed.**
+
+- The policies use the new joints: shoulder pitch moves about as much as the
+  waist. Even so, standing on planted tips doesn't learn on the robot as a
+  whole. The robot falls about once a second, from the start of training to
+  the end.
+- It doesn't bend the knees. It commands them to the end of their travel, 10°
+  past straight, where the simulator's joint limit stops them hard: they sat
+  within 0.5° of it 80% of the time. The robot has no mechanical stops, only
+  its servos and self-collisions, so the policy leans on support the robot
+  doesn't have.
+- The overnight Stand of TODO item 5 fell under 0.5 times per robot-hour on
+  the whole robot. It could use every joint and lift its tips, which it tapped
+  about 8 times a second. Its shoves were velocity kicks rather than forces.
+
+**Open.**
+
+- Would memory help? The actor still sees only 45 ms of history: too short to
+  notice a constant tilt error from how the robot drifts.
+- How well can the phone's tilt be known on the robot? (TODO item 14.)
+- The simulator's joint limits act as hard stops, which the robot lacks
+  (TODO item 8).

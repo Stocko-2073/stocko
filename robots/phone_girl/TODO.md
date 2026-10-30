@@ -118,8 +118,9 @@ What we don't know yet, and how to find out. The simulator is described in
    - Stand with planted tips, moving only the waist and hips (since
      2026-10-29), is much harder. With the phone IMU model the ideal robot
      didn't learn it and falls every 1.5 s. With a perfect IMU it learned the
-     intended balance but still fell about every 34 s. See
-     [EXPERIMENTS.md](EXPERIMENTS.md); item 14 decides whether this is viable.
+     intended balance but still fell about every 34 s. Also driving shoulder
+     pitch and the knees didn't help: on the robot as a whole it falls about
+     once a second. See [EXPERIMENTS.md](EXPERIMENTS.md).
 6. **How much latency can a policy take?** Train with a 30 ms interval and with
    more stalls (`LinkCfg`). This sets what we must demand of the BLE link.
 7. **Boxes or convex hulls for collision?** Each printed part collides as one
@@ -147,11 +148,14 @@ What we don't know yet, and how to find out. The simulator is described in
 
 Each answer replaces a guess or narrows a randomized span.
 
-8. **Joint travel.** The limits in `mjcf.TRAVEL_DEG` are placeholders, except
-   the knees'. Find the real stops, then set the same values as the MCU's soft
-   limits. The knees rest 7° past straight in the default pose, stop at 10°,
-   and fold 167° to the CAD's `collision_test_pose`. That pose is still outside
-   the other leg joints' travel.
+8. **Joint travel.** The robot has no mechanical stops: a joint turns until
+   parts collide. `mjcf.TRAVEL_DEG` sets the soft limits the MCU clamps goals
+   to. They are placeholders, except the knees': 10° past straight, 3° beyond
+   the default pose, and 167° the other way to the CAD's
+   `collision_test_pose`. That pose is still outside the other leg joints'
+   travel. The simulator also enforces these limits as hard stops, which the
+   robot lacks, and a Stand policy pressed its knees against them
+   (EXPERIMENTS.md).
 9. **Electronics mass.** Weigh the board and wiring, about 20 g estimated. Then
    run `phone-girl-export --electronics-g …` and `phone-girl-build`.
 10. **Do BAM's XL330 parameters fit our servos on 2S?** Record step responses
