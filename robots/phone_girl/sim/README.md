@@ -2,16 +2,17 @@
 
 A MuJoCo Warp model of phone_girl for reinforcement learning with
 [mjlab](https://github.com/mujocolab/mjlab), built so that a trained policy
-runs on the robot unchanged. The phone, the radio link, the MCU and the servos
-are modelled the way the hardware will see them:
+runs on the robot unchanged. The phone, its link to the MCU, the MCU and the
+servos are modelled the way the hardware will see them:
 
 - **Model.** It comes straight from `phone_girl.scad`, with printed masses from
   the slicer.
 - **Servos.** BAM's identified XL330 model, fed by a battery that sags.
 - **Phone sensors.** CoreMotion's gravity and rotation rate at 100 Hz, and the
   phone's cameras with their real fields of view.
-- **Timing.** The BLE control loop in
-  [`../protocol/PROTOCOL.md`](../protocol/PROTOCOL.md).
+- **Timing.** The control loop in
+  [`../protocol/PROTOCOL.md`](../protocol/PROTOCOL.md): over USB-C NCM by
+  default, or over BLE.
 
 Everything the robot can't know is randomized. Every exported policy carries the
 contract the phone app needs to run it.
@@ -32,7 +33,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd stocko/robots/phone_girl/sim
 uv sync                      # uv's own Python 3.12 and the locked dependencies
 uv run python -c "import torch; print(torch.cuda.get_device_name())"
-uv run pytest -q             # 35 tests; the CAD comparison skips without OpenSCAD
+uv run pytest -q             # 40 tests; the CAD comparison skips without OpenSCAD
 uv run phone-girl-bench      # throughput at 1k-8k worlds: pick num-envs from this
 ```
 
@@ -92,10 +93,10 @@ uv run play PhoneGirl-Stand --agent zero  # http://localhost:8080: the simulator
 ## How it fits together
 
 ```
-policy (phone) --command--> BLE link --> MCU --> servo goals ---> BAM XL330 servos --> MuJoCo Warp
-     ^                     15 ms tick,         ticks from home    P loop, current limit,      |
-     |                     late packets,                          back-EMF, M6 friction,      |
-     |                     stalls                                 shared sagging battery      |
+policy (phone) --command--> link -----> MCU --> servo goals ---> BAM XL330 servos --> MuJoCo Warp
+     ^                     USB 10 ms tick      ticks from home    P loop, current limit,      |
+     |                     (BLE: 15 ms, late                      back-EMF, M6 friction,      |
+     |                     packets, stalls)                       shared sagging battery      |
      +-- CoreMotion gravity, rotation rate (100 Hz, latency, bias, mount tilt) <--------------+
      +-- servo registers: position, velocity, PWM, voltage (quantized, read before the tick) -+
 ```
@@ -107,12 +108,12 @@ policy (phone) --command--> BLE link --> MCU --> servo goals ---> BAM XL330 serv
 | `robot.py` | The mjlab entity, joint order, home pose and mirror map. |
 | `xl330.py` | BAM XL330 servos on MuJoCo Warp, the battery, and the servo telemetry. |
 | `phone.py` | CoreMotion IMU model, phone cameras, and camera frame rate and latency. |
-| `link.py` | BLE and bus timing, late packets and stalls. |
+| `link.py` | Link and bus timing over USB-C NCM or BLE, late packets and stalls. |
 | `randomization.py` | Every randomized parameter, and a curriculum that widens them. |
 | `observations.py` | The actor's inputs (the contract) and the critic's privileged inputs. |
 | `tasks/env.py` | The shared environment, and the stand and walk tasks. |
 | `deploy.py` | The ONNX export with the robot contract attached. |
-| `protocol.py` | BLE frames: the reference for the firmware and the app. |
+| `protocol.py` | The link's frames and UDP ports: the reference for the firmware and the app. |
 | `bench.py` | Throughput, solver and contact statistics. |
 
 ### Where it runs
@@ -129,7 +130,7 @@ Python on the CPU only launches the kernels and runs mjlab's managers; nothing
 loops over environments. Each world carries its own latency, stall, battery and
 randomized parameters, so all of them still step together.
 
-The BLE codec (`protocol.py`) never runs in training. The GPU code reproduces its
+The frame codec (`protocol.py`) never runs in training. The GPU code reproduces its
 tick quantization, register units and timing, and `test_protocol.py` checks they
 agree. Expect the codec in tools that talk to the real robot.
 
@@ -283,18 +284,32 @@ learns from history. The critic sees the true motor torque and Present Current.
 
 ## Timing
 
-`link.LinkCfg` mirrors [PROTOCOL.md](../protocol/PROTOCOL.md).
+`link.LinkCfg` mirrors [PROTOCOL.md](../protocol/PROTOCOL.md). The default link
+is USB-C NCM. `link.ble_link()` is BLE, used by the `-Ble` tasks.
 
-| Parameter | Value |
-| --- | --- |
-| Control period | 15 ms, one BLE connection interval: 6 physics steps of 2.5 ms |
-| Telemetry age | Servos read 0.5–4 ms before the state frame leaves |
-| Command latency | Goals land one interval plus 0.5–3 ms after the read, about 17 ms |
-| Lost packets | 3% of commands come one interval later |
-| Stalls | 0.05/s on average, 50–250 ms each: the MCU holds the last goals, as iOS stalls do |
+| Parameter | USB-C NCM (default) | BLE |
+| --- | --- | --- |
+| Control period | 10 ms, the MCU's tick: 4 physics steps of 2.5 ms | 15 ms, one connection interval: 6 physics steps |
+| Telemetry age | Servos read 0.5–1.5 ms before the state frame leaves | 0.5–4 ms |
+| Command latency | Goals land 1.5–5 ms plus 0.5–3 ms after the state leaves, inside the tick | one interval plus 0.5–3 ms, about 17 ms |
+| Late commands | none | 3% come one interval later |
+| Stalls | none until measured | 0.05/s on average, 50–250 ms each: the MCU holds the last goals, as iOS stalls do |
 
-These are design targets, not measurements. The state frame reports every
-command's real latency: fit these numbers to it.
+These are design targets, not measurements; USB's are placeholders. The state
+frame reports every command's real latency: fit these numbers to it.
+
+Settings counted in control steps are set in seconds, so they keep their meaning
+at either tick:
+
+| Setting | In seconds | USB, 10 ms | BLE, 15 ms |
+| --- | --- | --- | --- |
+| Actor history | 45 ms | 5 steps | 3 steps |
+| Rollout per PPO iteration | 0.36 s per robot | 36 steps | 24 steps |
+| Discount, GAE | 0.99 and 0.95 per 15 ms | 0.9933, 0.9664 | 0.99, 0.95 |
+| Randomization ramp | 540 s per robot, 1,500 iterations | 54,000 steps | 36,000 steps |
+
+The `action_rate` penalty compares consecutive steps, so it weighs a little
+less at 10 ms.
 
 ## Domain randomization
 
@@ -320,7 +335,7 @@ its span.
 | Link mass and inertia | ×0.9–1.1 | print variation, screws, wires; via pseudo-inertia, so it stays physical |
 | Torso mass and inertia | ×0.97–1.12 | unweighed wiring and electronics |
 | Torso CoM | ±6 mm | the same, plus the phone's seat |
-| Command latency, lost packets, stalls | see Timing | radio and app |
+| Command latency, lost packets, stalls | see Timing | link and app |
 | IMU latency, sample phase, bias, noise, fusion tilt, mount tilt | in `PhoneImuCfg` | the phone |
 | Pushes | Stand: up to 0.25 N on the torso for 50–150 ms, every 1–3 s; Walk: 0.1 m/s, every 3–8 s | robustness |
 
@@ -344,6 +359,9 @@ its span.
 | `PhoneGirl-Stand` | Balance on planted stilt tips with the waist and the hips' roll and pitch, through shoves on the torso. The knees, thigh yaws and arms hold home: their actions are scaled to zero. Rewards: upright, CoM over the line between the tips, posture, stillness, both tips on the floor, no slipping, low copper loss. |
 | `PhoneGirl-Walk` | Track a twist command (−0.15 to 0.25 m/s forward, ±0.1 m/s sideways, ±0.6 rad/s turning) with steps. |
 | `PhoneGirl-Stand-Ideal` | Stand on the nominal robot over a perfect link: no randomization, latency or stalls. A diagnostic, not for deployment: is balancing on the tips possible at all? |
+| `PhoneGirl-Stand-Ble`, `PhoneGirl-Walk-Ble` | Stand and Walk over BLE, the other link: a 15 ms tick, late packets and stalls. |
+
+Every task runs over USB-C NCM unless its name ends in `-Ble`.
 
 Every task shares the actor's inputs, the 17 joint targets and the twist-command
 slot; stand holds the command at zero. So policies are interchangeable on the
@@ -353,8 +371,9 @@ extending that slot, never by reordering. The critic sees privileged state: true
 velocities, contacts, friction, supply and torques.
 
 PPO uses an asymmetric actor–critic with ELU MLPs (actor 256-256-128) and a
-history of three observations. Episodes are 20 s; falls end them, as does any
-body part other than a stilt touching the floor. Mirror pairs and signs are in
+45 ms history of observations: five at the USB tick, three at the BLE tick.
+Episodes are 20 s; falls end them, as does any body part other than a stilt
+touching the floor. Mirror pairs and signs are in
 `robot.MIRROR`, ready for rsl_rl's symmetry augmentation.
 
 ## Deployment
@@ -364,11 +383,14 @@ file carries it in its `phone_girl` metadata (`deploy.read(path)`):
 
 - **Inputs, in order.** Gravity (3), gyro (3), joint position − home (17), joint
   velocity (17), torque estimate (17), bus voltage − 7.4 V (1), last action (17)
-  and twist command (3), repeated for 3 steps. Each term's history runs oldest to
-  newest, term after term. All values are in SI units; the network normalizes
-  them.
-- **Output.** The 17 actions. Each target is home + 0.4 × action, clipped to the
+  and twist command (3), repeated for the contract's history: 5 steps over USB,
+  3 over BLE. Each term's history runs oldest to newest, term after term. All
+  values are in SI units; the network normalizes them.
+- **Output.** The 17 actions. Each target is home + scale × action, with each
+  joint's scale from the contract (0 for joints the task holds), clipped to the
   soft limits and sent as round(target − home)/tick goals.
+- **Link.** The transport and tick the policy was trained for. Run it only over
+  that link.
 - **Encoding.** Calibrate every servo so the home pose reads 2048, using control
   opcode 4. Then joint position − home = (Present Position − 2048) × 2π/4096.
 
@@ -409,10 +431,10 @@ uv run pytest -q
 | --- | --- |
 | `test_model.py` | The MJCF against an independent OpenSCAD run; mass and inertia; standing on the tips; the knees' locked rest and travel; the stilts' collision gap; the IMU frame and camera directions; `phone-girl-view`'s stand holding home. |
 | `test_xl330.py` | The motor law and M6 friction against BAM; a closed loop against BAM's CPU controller. |
-| `test_env.py` | Clean resets; Stand moving only the waist and hips; commands landing after exactly the modelled latency; stalls holding; randomization spans; the web viewer's command controls; the closed-form body randomization against pseudo-inertia; the fall check against per-body contact sensors; the slip penalty pairing each foot with its own contact; on CUDA, the graph-captured `set_const` and the compiled servo and IMU code against the uncompiled ones. |
+| `test_env.py` | Clean resets; Stand moving only the waist and hips; USB as the default link, and PPO's settings kept in seconds; commands landing after exactly the modelled latency over USB and over BLE; stalls holding; randomization spans; the web viewer's command controls; the closed-form body randomization against pseudo-inertia; the fall check against per-body contact sensors; the slip penalty pairing each foot with its own contact; on CUDA, the graph-captured `set_const` and the compiled servo and IMU code against the uncompiled ones. |
 | `test_phone.py` | CoreMotion gravity at rest; the 100 Hz sample-and-hold; camera frames held and late. |
-| `test_protocol.py` | Frame round trips; sizes within one notification; the C header byte-identical to Python; the app-side encoding equal to the simulator's. |
-| `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment, with each joint's action scale. |
+| `test_protocol.py` | Frame round trips; sizes within one BLE notification; the C header byte-identical to Python, UDP ports included; the app-side encoding equal to the simulator's. |
+| `test_deploy.py` | The ONNX output equals the actor's; the attached contract matches the environment, with each joint's action scale and the link the policy was trained over. |
 
 Versions are pinned in `uv.lock`: mjlab at commit `8bb2bc9e` on main, MuJoCo
 and MuJoCo Warp 3.16, warp-lang 1.18, torch 2.14.1 (CUDA 13) and BAM 1.0.2.

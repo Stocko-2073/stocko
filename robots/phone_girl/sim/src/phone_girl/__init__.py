@@ -1,5 +1,5 @@
 """phone_girl simulation: CAD-derived MuJoCo model, BAM XL330 servos, iPhone
-sensors, BLE link timing and domain randomization for mjlab on MuJoCo Warp."""
+sensors, link timing and domain randomization for mjlab on MuJoCo Warp."""
 
 from pathlib import Path
 

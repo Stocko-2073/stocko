@@ -47,5 +47,7 @@ int main(void) {
   } reply = {{PGL_CALIBRATE_HOME | 0x80, 4, PGL_OK}};
   for (int i = 0; i < PGL_SERVOS; i++) reply.offsets[i] = i - 8;
   print("reply", &reply, sizeof reply);
+  printf("ports %d,%d,%d,%d,%d\n", PGL_STATE_PORT, PGL_COMMAND_PORT, PGL_CONTROL_PORT, PGL_INFO_PORT,
+         PGL_CAPTURE_PORT);
   return 0;
 }

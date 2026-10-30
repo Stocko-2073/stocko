@@ -1,7 +1,7 @@
 [project]
 name = "phone-girl-sim"
 version = "0.1.0"
-description = "MuJoCo Warp model, BAM servos, phone sensors and BLE link for phone_girl"
+description = "MuJoCo Warp model, BAM servos, phone sensors and link timing for phone_girl"
 readme = "README.md"
 # better-actuator-models supports only Python 3.12.
 requires-python = ">=3.12,<3.13"

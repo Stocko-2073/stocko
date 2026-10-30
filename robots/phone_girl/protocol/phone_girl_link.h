@@ -1,6 +1,7 @@
-// phone_girl BLE link, protocol version 1: frames between the phone app and the
-// servo-bus MCU. Behaviour is in PROTOCOL.md. sim/src/phone_girl/protocol.py is
-// the reference; its golden vectors are checked against this header.
+// phone_girl link, protocol version 1: frames between the phone app and the
+// servo-bus MCU, over USB-C NCM (UDP) or BLE (GATT). Behaviour is in PROTOCOL.md.
+// sim/src/phone_girl/protocol.py is the reference; its golden vectors are
+// checked against this header.
 // Little-endian and packed. Positions are servo ticks minus 2048.
 #pragma once
 #include <stdint.h>
@@ -16,6 +17,13 @@
 #define PGL_CONTROL_UUID "a7470003-77c3-4dbd-b507-83058991dbc6"  // write, replies by notify
 #define PGL_INFO_UUID "a7470004-77c3-4dbd-b507-83058991dbc6"     // read, JSON
 #define PGL_CAPTURE_UUID "a7470005-77c3-4dbd-b507-83058991dbc6"  // notify, system identification
+
+// USB-C NCM: one UDP datagram per frame, on the port matching each characteristic.
+#define PGL_STATE_PORT 47001    // MCU to phone, every tick
+#define PGL_COMMAND_PORT 47002  // phone to MCU, every tick
+#define PGL_CONTROL_PORT 47003  // requests, and their replies back to the sender
+#define PGL_INFO_PORT 47004     // an empty datagram gets the JSON back
+#define PGL_CAPTURE_PORT 47005  // MCU to phone, system identification
 
 // State flags.
 enum {

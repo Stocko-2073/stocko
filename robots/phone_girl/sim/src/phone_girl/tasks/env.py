@@ -38,6 +38,9 @@ from phone_girl.robot import FEET, FOOT_SITES, JOINTS, LIMITS, index, robot_cfg,
 PHYSICS_DT = 0.0025
 ACTION_SCALE = 0.4  # rad per unit action, about the home pose
 DR_EVENTS = ("servos", "supply", "body", "friction")
+# Set in seconds, so they mean the same at any control period.
+HISTORY_S = 0.045  # what the actor sees of the past: 3 ticks at 15 ms, 5 at 10 ms
+DR_RAMP_S = 540.0  # simulated time per robot until randomization is full: 1,500 iterations
 # What Stand balances with. The knees, thigh yaws and arms hold the default pose.
 BALANCE_JOINTS = ("waist", "left_hip_roll", "left_hip_pitch", "right_hip_roll", "right_hip_pitch")
 
@@ -132,9 +135,10 @@ def feet_off_floor(env, sensor_name: str = "feet_ground") -> torch.Tensor:
 
 
 def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None = None,
-             history: int = 3, play: bool = False) -> ManagerBasedRlEnvCfg:
+             history: int | None = None, play: bool = False) -> ManagerBasedRlEnvCfg:
     link = link or LinkCfg()
     randomization = randomization or dr.Randomization()
+    history = history or math.ceil(HISTORY_S / link.interval_s - 1e-9)
     decimation = round(link.interval_s / PHYSICS_DT)
     if abs(decimation * PHYSICS_DT - link.interval_s) > 1e-9:
         raise ValueError("The control period must be a whole number of physics steps")
@@ -180,7 +184,8 @@ def base_cfg(link: LinkCfg | None = None, randomization: dr.Randomization | None
             "body_on_floor": TerminationTermCfg(func=body_on_floor),
         },
         curriculum={} if play else {"randomization": CurriculumTermCfg(
-            func=dr.dr_curriculum, params={"start": 0.3, "steps": 24 * 1500, "terms": DR_EVENTS})},
+            func=dr.dr_curriculum, params={"start": 0.3, "steps": round(DR_RAMP_S / link.interval_s),
+                                           "terms": DR_EVENTS})},
         viewer=ViewerConfig(origin_type=ViewerConfig.OriginType.ASSET_BODY, entity_name="robot",
                             body_name="torso", distance=1.2, elevation=-10.0, azimuth=135.0),
         sim=SimulationCfg(nconmax=24, njmax=160,
@@ -225,8 +230,8 @@ def stand_ideal_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     the stilt tips is possible at all with these servos, or whether the link
     and the unknowns are what make it hard.
     """
-    link = LinkCfg(max_delay_s=0.0, write_s=(0.0, 0.0), read_s=(0.0, 0.0), late_probability=0.0,
-                   stall_rate_hz=0.0)
+    link = LinkCfg(max_delay_s=0.0, read_s=(0.0, 0.0), turnaround_s=(0.0, 0.0), write_s=(0.0, 0.0),
+                   late_probability=0.0, stall_rate_hz=0.0)
     cfg = stand_cfg(play, link, dr.Randomization(scale=0.0))
     for name in ("link", "late_commands"):  # no lag to sample: commands land in the next physics step
         cfg.events.pop(name)
@@ -234,9 +239,9 @@ def stand_ideal_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     return cfg
 
 
-def walk_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+def walk_cfg(play: bool = False, link: LinkCfg | None = None) -> ManagerBasedRlEnvCfg:
     """Follow a twist command on the stilt tips."""
-    cfg = base_cfg(play=play)
+    cfg = base_cfg(link, play=play)
     cfg.commands["twist"] = UniformVelocityCommandCfg(
         entity_name="robot", resampling_time_range=(3.0, 8.0), rel_standing_envs=0.15, debug_vis=True,
         ranges=UniformVelocityCommandCfg.Ranges(lin_vel_x=(-0.15, 0.25), lin_vel_y=(-0.1, 0.1),

@@ -4,6 +4,7 @@ from dataclasses import asdict
 
 import numpy as np
 import onnxruntime
+import pytest
 import torch
 
 from mjlab.envs import ManagerBasedRlEnv
@@ -36,10 +37,22 @@ def test_onnx_matches_actor_and_carries_contract(tmp_path):
 
     contract = deploy.read(str(exported))
     assert [j["name"] for j in contract["joints"]] == list(JOINTS)
-    assert contract["control_period_s"] == 0.015
+    assert contract["version"] == 3 and contract["control_period_s"] == pytest.approx(0.010)
+    assert contract["link"]["transport"] == "usb-ncm"
     sizes = {t["name"]: t["size"] for t in contract["observation"]["terms"]}
     assert sum(sizes.values()) * contract["observation"]["history"] == actor_obs.shape[1]
     assert sizes["joint_effort"] == len(JOINTS) and sizes["gravity"] == 3
     scales = dict(zip(JOINTS, contract["action"]["scale"]))
     assert {j for j, s in scales.items() if s} == set(BALANCE_JOINTS)  # Stand holds the rest at home
+    env.close()
+
+
+@pytest.mark.parametrize("task, period, transport", [("PhoneGirl-Stand-Ble", 0.015, "ble"),
+                                                     ("PhoneGirl-Stand-Ideal", 0.010, "ideal")])
+def test_contract_names_the_link(task, period, transport):
+    cfg = load_env_cfg(task)
+    cfg.scene.num_envs = 1
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    contract = deploy.contract(env)
+    assert contract["control_period_s"] == pytest.approx(period) and contract["link"]["transport"] == transport
     env.close()

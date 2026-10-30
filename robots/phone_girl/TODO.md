@@ -1,8 +1,8 @@
 # phone_girl: open questions
 
 What we don't know yet, and how to find out. The simulator is described in
-[sim/README.md](sim/README.md), the radio link in
-[protocol/PROTOCOL.md](protocol/PROTOCOL.md), and training experiments in
+[sim/README.md](sim/README.md), the link to the MCU (USB-C NCM by default, or
+BLE) in [protocol/PROTOCOL.md](protocol/PROTOCOL.md), and training experiments in
 [EXPERIMENTS.md](EXPERIMENTS.md).
 
 ## On the RTX 5080
@@ -21,6 +21,23 @@ What we don't know yet, and how to find out. The simulator is described in
 
    Past 16k worlds, throughput barely grows, and memory is never the limit.
    For training, though, 8k worlds learn as fast per hour as 16k (item 5).
+
+   The table above was measured over BLE at a 15 ms tick. Over USB the tick is
+   10 ms, so a control step is 4 physics steps instead of 6. Measured the same
+   day, 2026-10-29, after the stilt hulls (item 7):
+
+   | Worlds | USB, 10 ms | BLE, 15 ms | Simulated time per second, USB vs BLE |
+   | --- | --- | --- | --- |
+   | 1,024 | 77k steps/s, 13.3 ms | 61k, 16.7 ms | −17% |
+   | 4,096 | 251k, 16.3 ms | 195k, 21.0 ms | −14% |
+   | 8,192 | 375k, 21.8 ms | 289k, 28.4 ms | −13% |
+   | 16,384 | 475k, 34.5 ms | 361k, 45.4 ms | −12% |
+
+   Each control step costs about the same overhead, so 1.5× as many steps cost
+   12–17% of simulated time. In training at 8k worlds, an iteration still
+   simulates 0.36 s per robot but takes 0.99 s instead of 0.75 s. The batch is
+   1.5× larger and the actor's history longer, so learning takes 0.20 s instead
+   of 0.13 s. A 3,000-iteration run takes about 50 minutes instead of 38.
 2. **Python's kernel-launch overhead.** `phone-girl-bench --profile` splits a
    control step into its parts. For each part it gives CPU time, time alone
    (with the GPU drained around it) and kernel launches. The first profile
@@ -86,7 +103,8 @@ What we don't know yet, and how to find out. The simulator is described in
 5. **Do the tasks learn? Yes.** Trained on cradle overnight on 2026-10-29,
    one run after another (`logs/overnight.sh` there). Falls are counted over
    4,096 robots for 19 s each (21.5 robot-hours) with full randomization and
-   link lag:
+   link lag. Everything in this item ran over BLE at a 15 ms tick, before USB
+   became the default link:
 
    | Task | Worlds | Full episodes after | Return within 3% after | Falls per robot-hour |
    | --- | --- | --- | --- | --- |
@@ -121,8 +139,9 @@ What we don't know yet, and how to find out. The simulator is described in
      intended balance but still fell about every 34 s. Also driving shoulder
      pitch and the knees didn't help: on the robot as a whole it falls about
      once a second. See [EXPERIMENTS.md](EXPERIMENTS.md).
-6. **How much latency can a policy take?** Train with a 30 ms interval and with
-   more stalls (`LinkCfg`). This sets what we must demand of the BLE link.
+6. **How much latency can a policy take?** Train with longer turnarounds, late
+   commands and stalls (`LinkCfg`). This sets what we must demand of the link,
+   and how much USB gains over BLE.
 7. **Boxes or convex hulls for collision?** Each printed part collides as one
    box around it, except the top of each stilt. The servos and the phone are
    their exact boxes, and each stilt is a hull, a capsule and the 2.5 mm tip
@@ -178,12 +197,20 @@ Each answer replaces a guess or narrows a randomized span.
 ## Link firmware and phone app (not written yet)
 
 17. **Firmware.**
-    - Does iOS grant a 15 ms connection interval and keep it?
-    - Does phase-locking to command arrivals hold?
+    - Over USB-C NCM, the default:
+      - Does the iPhone bring up the ESP32-S3's NCM interface and take the
+        MCU's DHCP lease?
+      - What are the UDP round trip and its jitter? Fit `LinkCfg.turnaround_s`,
+        and the late and stall terms if there are any. Today's are placeholders.
+      - Power: the phone, as USB host, sources VBUS. The MCU runs from the pack
+        and mustn't back-feed it.
+    - Over BLE, if we use it:
+      - Does iOS grant a 15 ms connection interval and keep it?
+      - Does phase-locking to command arrivals hold?
+      - Fit `ble_link()` to the measured `command_latency` and stall rate.
     - Does a Fast Sync Read of 17 servos fit in about 1.2 ms at 3 Mbps?
-    - Fit `LinkCfg` to the measured `command_latency` and stall rate.
 18. **App.** How long does the policy take to run on the phone? It should be
-    well under 1 ms of the 15 ms tick.
+    well under 1 ms of the 10 ms tick.
 
 ## Later
 

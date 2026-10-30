@@ -1,5 +1,7 @@
 """The assembled environment: resets, command timing, stalls and randomization."""
 
+from dataclasses import replace
+
 import pytest
 import torch
 
@@ -7,18 +9,19 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.tasks.registry import load_env_cfg
 
 from phone_girl import MJCF
+from phone_girl.link import LinkCfg, ble_link
 from phone_girl.randomization import Randomization, randomize_body
 from phone_girl.robot import BODY_GEOMS, FEET, FOOT_GEOMS, FOOT_SITES, HOME, JOINTS
+from phone_girl.tasks.env import stand_cfg
 from phone_girl.xl330 import Xl330Actuator
 
 
-def make(scale: float = 0.0, envs: int = 2, device: str = "cpu", **link) -> ManagerBasedRlEnv:
-    cfg = load_env_cfg("PhoneGirl-Stand", play=True)
+def make(scale: float = 0.0, envs: int = 2, device: str = "cpu", link: LinkCfg | None = None) -> ManagerBasedRlEnv:
+    """Stand's play setup over `link`, USB by default, without late commands or stalls."""
+    cfg = stand_cfg(play=True, link=replace(link or LinkCfg(), late_probability=0.0, stall_rate_hz=0.0))
     cfg.scene.num_envs = envs
     for name in ("servos", "supply", "body", "friction"):
         cfg.events[name].params["randomization"].scale = scale
-    for key, value in dict(stall_rate_hz=0.0, late_probability=0.0, **link).items():
-        setattr(cfg.events["late_commands"].params["link"], key, value)
     env = ManagerBasedRlEnv(cfg, device=device)
     env.reset()
     return env
@@ -46,9 +49,36 @@ def test_stand_moves_only_the_waist_and_hips():
     env.close()
 
 
-def test_commands_reach_the_servos_one_interval_later():
-    """A new goal takes command_lag physics steps (a 15 ms interval plus the bus write) to land."""
-    env = make()
+def test_usb_is_the_default_link():
+    """A 10 ms tick of 4 physics steps, no late commands or stalls; settings set in seconds keep their time."""
+    cfg = load_env_cfg("PhoneGirl-Stand")
+    link = cfg.events["link"].params["link"]
+    assert link.transport == "usb-ncm" and cfg.decimation == 4
+    assert link.late_probability == 0 and link.stall_rate_hz == 0
+    assert cfg.observations["actor"].history_length == 5
+    assert cfg.curriculum["randomization"].params["steps"] == 54_000
+    ble = load_env_cfg("PhoneGirl-Stand-Ble")
+    assert ble.events["link"].params["link"].transport == "ble" and ble.decimation == 6
+    assert ble.observations["actor"].history_length == 3
+    assert ble.curriculum["randomization"].params["steps"] == 36_000
+
+
+def test_ppo_keeps_its_meaning_in_seconds():
+    """At 15 ms PPO is as tuned; at 10 ms its discount, GAE and rollout cover the same time."""
+    from phone_girl.tasks import ppo
+
+    tuned, usb = ppo("x", 1, 0.015), ppo("x", 1, 0.010)
+    assert (tuned.algorithm.gamma, tuned.algorithm.lam, tuned.num_steps_per_env) == (0.99, 0.95, 24)
+    assert usb.num_steps_per_env == 36
+    assert usb.algorithm.gamma ** (1 / 0.010) == pytest.approx(0.99 ** (1 / 0.015))
+    assert usb.algorithm.lam ** (1 / 0.010) == pytest.approx(0.95 ** (1 / 0.015))
+
+
+@pytest.mark.parametrize("link", [LinkCfg(), ble_link()], ids=["usb", "ble"])
+def test_commands_reach_the_servos_after_the_link_latency(link):
+    """A new goal takes command_lag physics steps, the turnaround plus the bus write, to land:
+    within the tick over USB, at the next connection event over BLE."""
+    env = make(link=link)
     actuator = env.scene["robot"].actuators[0]
     targets = []
     original = Xl330Actuator.compute
@@ -68,7 +98,9 @@ def test_commands_reach_the_servos_one_interval_later():
     finally:
         Xl330Actuator.compute = original
     lag = int(actuator.command_lag[0])
-    assert 6 <= lag <= 8
+    fastest, slowest = (round((t + w) / env.physics_dt) for t, w in zip(link.turnaround_s, link.write_s))
+    assert fastest <= lag <= slowest
+    assert (lag < env.cfg.decimation) == (link.transport == "usb-ncm")
     moved = next(i for i, t in enumerate(targets) if abs(t - HOME["waist"]) > 1e-6)
     assert moved == lag
     env.close()

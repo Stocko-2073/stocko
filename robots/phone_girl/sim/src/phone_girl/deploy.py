@@ -3,7 +3,9 @@
 Every checkpoint is also exported as ONNX (observation normalization included)
 with a `phone_girl` metadata entry holding everything the app needs to run it:
 joint order and servo IDs, the observation layout and history, the action
-mapping, limits and tick encoding, and the control period.
+mapping, limits and tick encoding, the control period, and the link it was
+trained over. The app should refuse to run a policy over any other link: USB
+and BLE commands land at different times.
 
 Servos are calibrated so the home pose reads 2048 on every one (set each Homing
 Offset with the robot in its home pose). Then for every joint
@@ -29,10 +31,12 @@ from phone_girl.observations import NOMINAL_VOLTAGE
 from phone_girl.robot import HOME, JOINTS, LIMITS, REPORT
 from phone_girl.xl330 import TICK
 
-CONTRACT_VERSION = 2  # 2: a scale per joint
+CONTRACT_VERSION = 3  # 2: a scale per joint; 3: the link
 
 
 def contract(env) -> dict:
+    link_event = env.cfg.events.get("link")
+    link = link_event.params["link"] if link_event else None
     manager = env.observation_manager
     names = manager.active_terms["actor"]
     dims = manager.group_obs_term_dim["actor"]
@@ -46,6 +50,8 @@ def contract(env) -> dict:
     return dict(
         version=CONTRACT_VERSION,
         control_period_s=env.step_dt,
+        link=dict(transport=link.transport, read_s=list(link.read_s), turnaround_s=list(link.turnaround_s),
+                  write_s=list(link.write_s)) if link else dict(transport="ideal"),
         joints=[dict(name=j, slot=i, dynamixel_id=by_name[j]["dynamixel_id"], home_rad=HOME[j],
                      soft_limits_rad=list(LIMITS[j])) for i, j in enumerate(JOINTS)],
         tick_rad=TICK, home_ticks=2048,

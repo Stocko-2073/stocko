@@ -1,4 +1,4 @@
-"""The BLE frames: round trips, sizes, the C header, and agreement with the simulator."""
+"""The link's frames: round trips, sizes, the C header, and agreement with the simulator."""
 
 import shutil
 import subprocess
@@ -24,7 +24,8 @@ def test_frames_round_trip():
 
 
 def test_frames_fit_one_notification():
-    # iOS negotiates an ATT MTU of at least 185; a value is MTU - 3 bytes.
+    # Over BLE, iOS negotiates an ATT MTU of at least 185; a value is MTU - 3 bytes.
+    # Over USB a frame is one UDP datagram, far below the 1,500-byte Ethernet MTU.
     assert protocol.State.SIZE <= 182 and protocol.Command.SIZE <= 182
     assert protocol.State.SIZE == 154 and protocol.Command.SIZE == 40
 
@@ -37,7 +38,7 @@ def test_c_header_matches_python(tmp_path):
     printed = dict(line.split() for line in subprocess.run([str(binary)], capture_output=True, text=True,
                                                             check=True).stdout.splitlines())
     expected = protocol.vectors()
-    for name in ("state", "command", "capture", "control", "reply"):
+    for name in ("state", "command", "capture", "control", "reply", "ports"):
         assert printed[name] == expected[name], name
 
 

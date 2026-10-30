@@ -12,7 +12,7 @@ from phone_girl.phone import with_camera
 
 @pytest.fixture(scope="module")
 def env():
-    cfg = with_camera(load_env_cfg("PhoneGirl-Stand"), kind="depth", fps=30.0, latency_s=(0.045, 0.045))
+    cfg = with_camera(load_env_cfg("PhoneGirl-Stand"), kind="depth", fps=30.0, latency_s=(0.04, 0.04))
     cfg.scene.num_envs = 2
     env = ManagerBasedRlEnv(cfg, device="cpu")
     env.reset()
@@ -41,7 +41,7 @@ def test_imu_samples_arrive_at_coremotion_rate(env):
 
 
 def test_camera_frames_are_held_and_late(env):
-    """At 30 fps and 66.7 Hz control a frame is held for two steps, 45 ms (3 steps) late."""
+    """At 30 fps and 100 Hz control a frame is held for three steps, 40 ms (4 steps) late."""
     frames = []
     for _ in range(10):
         obs, *_ = env.step(torch.zeros(2, env.action_manager.total_action_dim))

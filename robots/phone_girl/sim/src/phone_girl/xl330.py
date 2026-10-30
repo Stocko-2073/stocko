@@ -9,10 +9,10 @@ feeds every servo, so their supply current sags the voltage they all see.
 
 The servo telemetry the MCU reads back (position, velocity, current, PWM, input
 voltage) is kept for a few physics steps, so observations can be read with the
-bus and radio latency, quantized to the servo's register units. The XL330
+bus and link latency, quantized to the servo's register units. The XL330
 measures current at its power input, not the motor, so Present Current is
 modelled as duty times motor current; check that, and its sign, on the bench.
-When the radio stalls the MCU keeps sending the last goal, which `stall` holds.
+When the link stalls the MCU keeps sending the last goal, which `stall` holds.
 
 BAM: Duclusaud, Passault, Padois and Ly, "Extended Friction Models for the
 Physics Simulation of Servo Actuators", ICRA 2025. Parameters and the reference
@@ -214,7 +214,7 @@ class Xl330Actuator(Actuator[Xl330ActuatorCfg]):
 
     def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
         bias = self.entity.data.encoder_bias[:, self.target_ids]
-        # While the radio stalls, the MCU keeps writing the last goal it received.
+        # While the link stalls, the MCU keeps writing the last goal it received.
         holding = (self.stall > 0)[:, None]
         target = torch.where(holding, self._held, cmd.position_target)
         self._held = target

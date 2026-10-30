@@ -1,8 +1,10 @@
-"""phone_girl's BLE link: byte layouts shared by the MCU firmware, the phone app and the simulator.
+"""phone_girl's link: byte layouts shared by the MCU firmware, the phone app and the simulator.
 
-Behaviour is in robots/phone_girl/protocol/PROTOCOL.md; phone_girl_link.h is the C
-side and is checked against vectors() byte for byte. Integers are little-endian.
-Positions are servo ticks minus 2048, so zero is the home pose once calibrated.
+The frames are the same over USB-C NCM, as UDP datagrams, and over BLE, as GATT
+values. Behaviour is in robots/phone_girl/protocol/PROTOCOL.md; phone_girl_link.h
+is the C side and is checked against vectors() byte for byte. Integers are
+little-endian. Positions are servo ticks minus 2048, so zero is the home pose
+once calibrated.
 """
 
 from __future__ import annotations
@@ -18,6 +20,8 @@ HOME_TICKS = 2048
 _BASE = "-77c3-4dbd-b507-83058991dbc6"
 SERVICE = "a7470000" + _BASE
 STATE, COMMAND, CONTROL, INFO, CAPTURE = (f"a747000{i}{_BASE}" for i in range(1, 6))
+# USB-C NCM: one UDP datagram per frame, on the port matching each characteristic.
+STATE_PORT, COMMAND_PORT, CONTROL_PORT, INFO_PORT, CAPTURE_PORT = range(47001, 47006)
 
 # State flags.
 TORQUE_ON, COMMAND_FRESH, HOLDING, DEADMAN, SERVO_ERROR, LOW_VOLTAGE = (1 << i for i in range(6))
@@ -167,6 +171,7 @@ def vectors() -> dict:
     return dict(state=state.pack().hex(), command=command.pack().hex(), capture=capture.pack().hex(),
                 control=control(SAFETY, 9, struct.pack("<HBH", 300, 1, 2000)).hex(),
                 reply=reply(CALIBRATE_HOME, 4, OK, struct.pack(f"<{SERVOS}i", *range(-8, 9))).hex(),
+                ports=",".join(map(str, (STATE_PORT, COMMAND_PORT, CONTROL_PORT, INFO_PORT, CAPTURE_PORT))),
                 sizes=dict(state=State.SIZE, command=Command.SIZE))
 
 

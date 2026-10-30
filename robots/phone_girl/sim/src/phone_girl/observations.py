@@ -1,7 +1,7 @@
 """Observations: what the phone has when it runs the policy, and what only the simulator knows.
 
 The actor's terms are the robot's I/O contract. The phone app builds the same
-vector from CoreMotion and the MCU's state notification, in SI units and in this
+vector from CoreMotion and the MCU's state frame, in SI units and in this
 order, and feeds it to the exported policy (which normalizes internally):
 
     gravity        CMDeviceMotion.gravity, device frame, g                  3

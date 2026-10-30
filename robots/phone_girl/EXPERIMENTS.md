@@ -18,6 +18,9 @@ this):
 A policy is evaluated over 4,096 robots for 19 s each (21.5 robot-hours), in
 its task's play setup, which has no shoves, unless the entry says otherwise.
 
+The entries so far ran over BLE at a 15 ms tick. Since then the default link is
+USB-C NCM at a 10 ms tick (`sim/src/phone_girl/link.py`).
+
 ## Standing on planted tips with the waist and hips (2026-10-29)
 
 **Question.** Can phone_girl stand with both stilt tips planted, balancing
